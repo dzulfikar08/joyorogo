@@ -1,0 +1,132 @@
+{
+  "title": "Tidur dan pemulihan",
+  "subtitle": "Tidur dan pemulihan, {{from}} hingga {{to}}.",
+  "empty": {
+    "title": "Belum ada data tidur dalam julat ini",
+    "body": "Data tidur dan pemulihan muncul di sini selepas JoyoFit di telefon anda menyegerakkannya, atau selepas anda mencatat tidur di JoyoRogo."
+  },
+  "tiles": {
+    "average": "Purata tidur",
+    "nights_other": "{{count}} malam dicatat",
+    "need": "Keperluan tidur",
+    "needUnknown": "JoyoFit belum mengira keperluan anda",
+    "met": "{{met}} daripada {{total}} malam dipenuhi",
+    "debt": "Hutang tidur",
+    "debtHint": "Kekurangan setiap malam, dijumlahkan",
+    "consistency": "Keteraturan",
+    "consistencyUnknown": "Perlu sekurang-kurangnya 2 malam",
+    "spread": "±{{min}} min",
+    "band": {
+      "steady": "Sangat teratur",
+      "ok": "Agak teratur",
+      "irregular": "Berubah-ubah"
+    }
+  },
+  "nights": {
+    "title": "Tidur setiap malam",
+    "subtitleNeed": "Garisan putus-putus ialah keperluan tidur anda menurut JoyoFit.",
+    "subtitleAverage": "Garisan putus-putus ialah purata tidur anda.",
+    "hours": "Tidur",
+    "hoursUnit": "jam",
+    "aria": "Graf jam tidur setiap malam, purata {{avg}}",
+    "average": "Purata {{value}}",
+    "need": "Keperluan {{value}}"
+  },
+  "recovery": {
+    "title": "Pemulihan selepas tidur",
+    "subtitle": "Recovery, HRV dan degup jantung rehat setiap pagi.",
+    "recovery": "Recovery",
+    "hrv": "HRV",
+    "resting": "Degup jantung rehat",
+    "aria": "Graf recovery harian, purata {{avg}} peratus",
+    "empty": "Belum ada data recovery, HRV atau degup jantung rehat dalam julat ini."
+  },
+  "weekday": {
+    "title": "Tidur mengikut hari dalam seminggu",
+    "subtitle": "Purata tidur malam sebelum hari itu.",
+    "names": {
+      "mon": "Isn",
+      "tue": "Sel",
+      "wed": "Rab",
+      "thu": "Kha",
+      "fri": "Jum",
+      "sat": "Sab",
+      "sun": "Ahd"
+    },
+    "legend": "Garisan menegak ialah keperluan anda ({{need}}). Bar oren bermaksud di bawah keperluan."
+  },
+  "table": {
+    "title": "Sejarah tidur",
+    "subtitle": "Satu baris setiap pagi, terkini di atas.",
+    "more": "Papar lebih banyak",
+    "date": "Bangun pada",
+    "duration": "Tempoh",
+    "need": "% keperluan",
+    "recovery": "Recovery",
+    "hrv": "HRV",
+    "resting": "Degup jantung rehat",
+    "readiness": "Kesediaan",
+    "source": "Sumber",
+    "needShort": "Keperluan",
+    "restingShort": "Rehat"
+  },
+  "readiness": {
+    "Primed": "Prima",
+    "Balanced": "Seimbang",
+    "Strained": "Terbeban",
+    "Run down": "Keletihan"
+  },
+  "source": {
+    "joyofit": "Jam JoyoFit",
+    "manual": "Dicatat secara manual",
+    "health_connect": "Health Connect",
+    "apple_health": "Apple Health"
+  },
+  "stages": {
+    "title": "Fasa tidur",
+    "subtitle": "Peringkat tidur daripada jam setiap malam: lena, REM, ringan dan terjaga.",
+    "pick": "Pilih malam",
+    "previous": "Malam sebelumnya",
+    "next": "Malam seterusnya",
+    "names": {
+      "awake": "Terjaga",
+      "rem": "REM",
+      "light": "Ringan",
+      "deep": "Lena",
+      "asleep": "Tidur tanpa fasa"
+    },
+    "night": {
+      "window": "{{start}} hingga {{end}}",
+      "asleep": "Tidur",
+      "awake": "Terjaga",
+      "awakenings_other": "{{count}} kali terjaga",
+      "noStages": "Jam hanya mencatat bila anda tidur malam ini, tanpa fasa."
+    },
+    "hypnogram": {
+      "aria": "Graf fasa tidur {{day}}: {{summary}}"
+    },
+    "list": {
+      "label": "Masa dalam setiap fasa"
+    },
+    "naps": {
+      "title": "Tidur siang",
+      "item": "{{start}} hingga {{end}} ({{duration}})"
+    },
+    "composition": {
+      "title": "Komposisi setiap malam",
+      "subtitle": "Jam dalam setiap fasa, malam demi malam.",
+      "aria": "Graf komposisi fasa tidur daripada {{count}} malam"
+    },
+    "averages": {
+      "title": "Purata setiap malam",
+      "nights_other": "daripada {{count}} malam yang ada fasa"
+    },
+    "empty": {
+      "title": "Belum ada fasa tidur dalam julat ini",
+      "body": "Fasa muncul selepas JoyoFit di telefon anda menyegerakkan tidur daripada jam."
+    },
+    "window": "Fasa tersedia untuk 92 hari terakhir.",
+    "search": "Cari tarikh",
+    "noMatch": "Tiada malam yang sepadan"
+  }
+}

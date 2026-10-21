@@ -1,0 +1,209 @@
+{
+  "title": "VAR Perut",
+  "back": "Kembali ke kumpulan",
+  "close": "Tutup VAR",
+  "group": {
+    "fallback": "kumpulan ini"
+  },
+  "verdict": {
+    "label": {
+      "turun": "Perut mengecil",
+      "naik": "Nampak lebih penuh",
+      "sama": "Belum nampak beza",
+      "beda": "Keadaan foto berbeza, ulang",
+      "pertama": "Imbasan pertama disimpan"
+    },
+    "short": {
+      "turun": "Perut mengecil",
+      "naik": "Nampak lebih penuh",
+      "sama": "Belum nampak beza",
+      "beda": "Keadaan foto berbeza",
+      "pertama": "Imbasan pertama"
+    },
+    "chip": {
+      "turun": "mengecil",
+      "naik": "lebih penuh",
+      "sama": "belum beza",
+      "beda": "foto berbeza",
+      "pertama": "imbasan pertama"
+    }
+  },
+  "confidence": {
+    "short": "Yakin ~{{percent}}%"
+  },
+  "about": {
+    "title": "Cara berfungsi & privasi",
+    "disclaimer": "Perkembangan perut anda dilihat AI secara visual, bukan alat ukur.",
+    "confidence": "Keyakinan visual itu anggaran daripada foto, bukan pengukuran.",
+    "duration": "Biasanya 5-20 saat. Foto asal hanya disimpan untuk anda.",
+    "photoPrivate": "Foto perut anda peribadi: tidak pernah masuk suapan, dan hanya anda yang boleh membukanya.",
+    "retry": "Kira semula: AI membandingkan semula kedua-dua foto yang sama, tanpa foto semula dan tanpa menggunakan kuota imbasan harian.",
+    "retryShared": "Status yang dikongsi ke {{group}} turut dikemas kini.",
+    "share": "Yang turut kelihatan hanya keputusan + tarikh. Foto perut anda tidak pernah dikongsi.",
+    "waist": "Foto hanya anggaran visual, pita pengukur yang mengukur."
+  },
+  "capture": {
+    "guide": "Perut anda di dalam garisan putus-putus",
+    "cameraLabel": "Kamera untuk foto perut",
+    "capturedAlt": "Foto yang baru diambil",
+    "analyzing": {
+      "compare": "AI membandingkan dengan imbasan sebelumnya…",
+      "first": "Menyimpan imbasan pertama anda…"
+    },
+    "cameraUnavailable": "Kamera tidak tersedia pada peranti ini. Guna butang galeri di bawah, atau benarkan kamera dalam tetapan pelayar.",
+    "permission": {
+      "text": "Kebenaran kamera belum ada: guna galeri, atau beri kebenaran kamera dahulu.",
+      "action": "Beri Kebenaran Kamera"
+    },
+    "tips": {
+      "pose": "Aksi dan jarak yang sama setiap imbasan",
+      "light": "Cahaya terang, kamera selari dengan perut",
+      "stand": "Berdiri tegak, bernafas seperti biasa"
+    },
+    "timer": {
+      "on": "Pemasa {{seconds}} saat hidup",
+      "off": "Pemasa {{seconds}} saat mati",
+      "turnOff": "Matikan pemasa {{seconds}} saat",
+      "turnOn": "Hidupkan pemasa {{seconds}} saat"
+    },
+    "shutter": "Ambil foto perut",
+    "gallery": "Galeri",
+    "galleryPick": "Pilih daripada galeri",
+    "saved_other": "{{count}} imbasan disimpan.",
+    "savedNone": "Imbasan pertama menjadi pembanding awal.",
+    "firstScan": "Imbasan pertama"
+  },
+  "error": {
+    "process": "Gagal memproses foto. Cuba lagi.",
+    "capture": "Gagal mengambil foto. Cuba lagi.",
+    "historyLoad": "Sejarah gagal dimuatkan",
+    "historyLoading": "Memuatkan sejarah VAR"
+  },
+  "compare": {
+    "before": "Sebelum",
+    "now": "Sekarang",
+    "none": "Belum ada",
+    "altBefore": "Foto perut sebelumnya",
+    "altNow": "Foto perut sekarang",
+    "altDate": "Foto perut {{date}}",
+    "altCompare": "Pembanding: {{date}}",
+    "compareTitle": "Dibandingkan dengan {{date}}",
+    "rereading": "AI membaca semula kedua-dua foto...",
+    "rereadingLabel": "Mengira semula"
+  },
+  "retry": {
+    "title": "Hasilnya kurang sesuai?",
+    "left_other": "Percuma, baki {{count}}x",
+    "limit": "Had kira semula habis",
+    "exhausted": "Imbasan ini sudah dikira semula sehingga had. Imbas lagi pada hari lain.",
+    "hint": "Pembetulan ringkas (pilihan), cth. aksi kedua-dua foto sebenarnya sama",
+    "action": "Kira semula",
+    "running": "Mengira semula...",
+    "toast": {
+      "result": "Hasil baharu: {{label}}",
+      "keptTitle": "Hasil sebelumnya kekal digunakan",
+      "kept": "Hasil sebelumnya kekal digunakan. {{message}}",
+      "restoreFailed": "Gagal memulihkan hasil"
+    }
+  },
+  "waist": {
+    "title": "Angka yang lebih jujur: ukur lilit perut",
+    "last": "Terakhir {{date}}: {{cm}} cm",
+    "lastDelta": "Terakhir {{date}}: {{cm}} cm ({{delta}} cm)",
+    "empty": "Angka yang lebih jujur: ukur lilit perut.",
+    "link": "Catat di Berat"
+  },
+  "share": {
+    "title": "Kongsi status ke {{group}}",
+    "toggle": "Kongsi status VAR ke kumpulan",
+    "toast": {
+      "on": "Imbasan perut dikongsi ke kumpulan.",
+      "off": "Imbasan perut disembunyikan.",
+      "saved": "Tetapan kumpulan disimpan",
+      "failed": "Gagal menukar perkongsian"
+    }
+  },
+  "actions": {
+    "rescan": "Imbas lagi",
+    "delete": "Padam imbasan ini"
+  },
+  "history": {
+    "title": "Sejarah imbasan",
+    "deleteLabel": "Imbasan {{date}}",
+    "deleteFallback": "Imbasan perut",
+    "scan": "Imbasan"
+  },
+  "live": {
+    "banner": {
+      "aim": "SEMAKAN VAR",
+      "scanning": "VAR MENGIMBAS"
+    },
+    "stage": {
+      "lock": "MENGUNCI SASARAN…",
+      "scan": "MENGIMBAS ISI PERUT…",
+      "kcal": "ANALISIS KALORI…",
+      "decide": "MEMUTUSKAN…"
+    },
+    "scanning": "MENGIMBAS…",
+    "beep": "bip… {{percent}}%",
+    "beepNative": "bip… bip…",
+    "fallback": {
+      "them": "dia",
+      "friend": "Kawan",
+      "yourFriend": "kawan anda"
+    },
+    "hiddenTitle": "{{name}} menyembunyikan isi perutnya",
+    "hiddenNote": "Jumlah kalori tetap kelihatan pada kad ahlinya.",
+    "hiddenNoteNudge": "Jumlah kalorinya tetap kelihatan pada kad ahlinya. Cuit sahaja supaya lebih bersemangat.",
+    "aim": "Halakan ke perut {{name}}",
+    "foodsLabel": "Makanan {{name}} hari ini",
+    "verdict": {
+      "safe": "SELAMAT, teruskan!",
+      "offside": "OFFSIDE! +{{kcal}} kcal",
+      "noTarget": "Belum ada sasaran pembanding",
+      "empty": "Perut kosong… belum makan?"
+    },
+    "total": "Jumlah hari ini {{eaten}} daripada {{target}} kcal",
+    "totalNoTarget": "Jumlah hari ini {{eaten}} kcal",
+    "intake": {
+      "label": "Pengambilan hari ini",
+      "value": "{{eaten}} / {{target}} kcal"
+    },
+    "basis": "Berdasarkan catatan makan {{name}} hari ini, bukan foto asal.",
+    "chip": "VAR perut {{name}} ({{date}}): {{verdict}}",
+    "failTitle": "VAR gagal mengimbas",
+    "error": {
+      "generic": "Gagal mengimbas.",
+      "network": "Gagal mengimbas. Semak sambungan anda kemudian cuba lagi."
+    },
+    "poke": "Cuit",
+    "poked": "Dihantar",
+    "rescan": "Imbas semula",
+    "toast": {
+      "sent": "Cuit dihantar",
+      "sentDetail": "{{name}} mendapat pemberitahuan sekarang.",
+      "failed": "Gagal mencuit"
+    },
+    "scan": "Imbas",
+    "scanNow": "Imbas Sekarang",
+    "scanningBtn": "Mengimbas…",
+    "checking": "VAR sedang menyemak catatan makan…",
+    "check": "Semak catatan makan {{name}} melalui VAR",
+    "more": "+{{count}} lagi",
+    "noFood": "Tiada makanan dikesan",
+    "noCamera": "Kamera tidak tersedia. Tindihan tetap berjalan, cuba benarkan kamera dalam tetapan pelayar.",
+    "permissionHint": "Kebenaran kamera belum ada: mod bayangan. VAR tetap berjalan!",
+    "about": "Maklumat"
+  },
+  "errors": {
+    "compareFailed": "VAR tidak berjaya membandingkan foto. Cuba lagi dengan pencahayaan lebih baik, atau ulang esok.",
+    "analyzeFailed": "VAR gagal menganalisis foto.",
+    "retryFailed": "VAR gagal mengira semula.",
+    "saveFailed": "Gagal menyimpan foto. Cuba lagi.",
+    "firstScanNote": "Imbasan pertama disimpan. Imbas lagi pada hari lain untuk memulakan perbandingan.",
+    "scanNotFound": "Imbasan tidak ditemui.",
+    "noBaseline": "Imbasan pertama belum ada pembanding, jadi belum boleh dikira semula.",
+    "photoGone": "Foto imbasan sudah tidak disimpan, jadi tidak boleh dikira semula.",
+    "retriesExhausted_other": "Had kira semula imbasan ini habis ({{count}} kali). Imbas lagi pada hari lain."
+  }
+}

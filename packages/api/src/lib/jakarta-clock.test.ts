@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { jakartaToday } from "./engine";
+import { jakartaClockHour, jakartaToday, wibYesterday } from "./engine";
 
 import { advanceClock } from "./jakarta-clock";
 
@@ -37,5 +37,28 @@ describe("advanceClock", () => {
   test("a clock that went backwards still resyncs on a different hour", () => {
     const earlier = new Date("2026-10-20T10:00:00.000Z");
     expect(advanceClock(before, earlier)).toBe(earlier);
+  });
+});
+
+describe("day zone", () => {
+  // 2026-10-21 00:30 MYT = 2026-10-20 23:30 WIB = 16:30 UTC.
+  const between = new Date("2026-10-20T16:30:00.000Z");
+
+  test("between 00:00 and 01:00 in Kuala Lumpur the zones disagree on the day", () => {
+    expect(jakartaToday(between)).toBe("2026-10-20");
+    expect(jakartaToday(between, "Asia/Kuala_Lumpur")).toBe("2026-10-21");
+    expect(wibYesterday(between)).toBe("2026-10-19");
+    expect(wibYesterday(between, "Asia/Kuala_Lumpur")).toBe("2026-10-20");
+    expect(jakartaClockHour(between)).toBe(23.5);
+    expect(jakartaClockHour(between, "Asia/Kuala_Lumpur")).toBe(0.5);
+  });
+
+  test("a clock ticking over 16:00 UTC lands on the next Kuala Lumpur day", () => {
+    const eve = new Date("2026-10-20T15:59:30.000Z");
+    const midnight = new Date("2026-10-20T16:00:05.000Z");
+    const next = advanceClock(eve, midnight, "Asia/Kuala_Lumpur");
+    expect(next).toBe(midnight);
+    expect(jakartaToday(next, "Asia/Kuala_Lumpur")).toBe("2026-10-21");
+    expect(jakartaToday(next)).toBe("2026-10-20");
   });
 });

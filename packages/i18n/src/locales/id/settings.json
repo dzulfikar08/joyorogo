@@ -799,5 +799,12 @@
       "save": "Gagal menyimpan piring.",
       "remove": "Gagal menghapus piring."
     }
+  },
+  "dataSources": {
+    "title": "Sumber data makanan",
+    "intro": "Angka dari AI selalu perkiraan. Kalau hidanganmu ada di tabel di bawah, perkiraan itu disesuaikan dengan tabelnya.",
+    "tkpi": "Hidangan Indonesia: Tabel Komposisi Pangan Indonesia (TKPI) 2019, Kemenkes RI.",
+    "sgfoodid": "Hidangan Malaysia: Singapore Food Insights Database (SG FoodID), Health Promotion Board. Pemberitahuan sumber dalam bahasa aslinya:",
+    "notice": "Contains information from Singapore Food Insights Database (SG FoodID) accessed on 2026-10-21 from Health Promotion Board which is made available under the terms found at https://pphtpc.hpb.gov.sg/web/sgfoodid. The information contained within this dataset is provided on an \"as-is\" basis. The data, including but not limited to nutritional information, is subject to inherent limitations. No warranty or representation is made as to the accuracy or completeness of the data contained herein."
   }
 }

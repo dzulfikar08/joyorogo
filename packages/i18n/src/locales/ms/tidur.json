@@ -1,0 +1,55 @@
+{
+  "title": "Tidur",
+  "unit": {
+    "hours": "jam"
+  },
+  "ring": {
+    "lastNight": "Semalam",
+    "aria": {
+      "logged": "Tidur {{hours}} daripada keperluan {{need}} jam",
+      "empty": "Belum ada catatan tidur, keperluan {{need}} jam"
+    }
+  },
+  "status": {
+    "empty": "Belum dicatat. Keperluan anda {{need}} jam setiap malam.",
+    "met": "Keperluan dicapai, bagus.",
+    "short_other": "Kurang {{hours}} jam daripada keperluan {{need}} jam.",
+    "belowMin": "Tidur {{hours}} jam, di bawah had minimum yang disyorkan iaitu 7 jam untuk orang dewasa."
+  },
+  "log": {
+    "titleLastNight": "Tempoh semalam",
+    "titleDay": "Tempoh {{day}}",
+    "quick": "Catat pantas (jam)",
+    "group": "Catat tempoh tidur",
+    "presets": "Praset jam tidur",
+    "preset_other": "Catat {{count}} jam",
+    "manual": "Atau isi manual",
+    "manualButton": "Isi jam manual",
+    "saving": "Menyimpan..."
+  },
+  "week": {
+    "title": "7 malam terakhir"
+  },
+  "sheet": {
+    "title": "Isi jam tidur",
+    "field": "Jam tidur",
+    "hint": "Boleh guna perpuluhan, contoh {{example}}"
+  },
+  "toast": {
+    "lastNight_other": "Tidur semalam: {{hours}} jam.",
+    "savedTo": "Disimpan ke {{day}}.",
+    "logged": "Tidur dicatat"
+  },
+  "error": {
+    "range": "Isi jam tidur antara 0 dan 24."
+  },
+  "how": {
+    "title": "Cara ia berfungsi",
+    "lastNight": "Catatan dimasukkan untuk semalam. Menyimpan semula akan menggantikan nilai sebelumnya.",
+    "day": "Catatan dimasukkan untuk tidur {{day}}. Menyimpan semula akan menggantikan nilai sebelumnya.",
+    "onePerNight": "Satu catatan setiap malam. Hasil {{source}} turut dikira di sini.",
+    "home": "Jam tidur yang anda catat mengisi angka tidur di Laman Utama.",
+    "wib": "Malam dikira mengikut waktu tempatan."
+  },
+  "loading": "Memuatkan catatan tidur"
+}

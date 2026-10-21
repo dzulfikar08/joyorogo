@@ -1,0 +1,234 @@
+{
+  "basis": {
+    "device": "Disahkan peranti",
+    "photo": "Daripada imbasan foto",
+    "manual": "Dicatat secara manual",
+    "mixedManual": "Sebahagian dicatat secara manual",
+    "mixedAuto": "Peranti dan imbasan foto"
+  },
+  "goal": {
+    "steps": {
+      "label": "Langkah harian",
+      "lower": "langkah harian",
+      "blurb": "Capai jumlah langkah tertentu setiap hari.",
+      "source": "Langkah daripada Health Connect atau Apple Health.",
+      "unit": "langkah",
+      "deviceHint": "Sambungkan Health Connect atau Apple Health di JoyoRogo supaya langkah anda dikira.",
+      "rule": "Capai sasaran langkah",
+      "ruleTarget": "Sekurang-kurangnya {{target}} langkah sehari"
+    },
+    "protein": {
+      "label": "Sasaran protein",
+      "lower": "sasaran protein",
+      "blurb": "Penuhi sasaran protein harian anda sendiri.",
+      "source": "Protein daripada catatan makan anda, dibandingkan dengan sasaran protein anda semasa menyertai.",
+      "unit": "g protein",
+      "rule": "Penuhi sasaran protein harian anda"
+    },
+    "calories": {
+      "label": "Kalori mengikut sasaran",
+      "lower": "kalori mengikut sasaran",
+      "blurb": "Makan di bawah sasaran kalori harian anda, dan catat dengan lengkap.",
+      "source": "Kalori daripada catatan makan anda, dibandingkan dengan sasaran kalori anda semasa menyertai.",
+      "unit": "kcal",
+      "rule": "Makan sehingga sasaran kalori harian anda, tidak lebih"
+    },
+    "workouts": {
+      "label": "Latihan dicatat",
+      "lower": "latihan dicatat",
+      "blurb": "Catat sesi latihan setiap hari.",
+      "source": "Sesi latihan di JoyoRogo, JoyoFit, Health Connect atau Apple Health.",
+      "unit": "sesi",
+      "rule": "Catat latihan setiap hari",
+      "ruleTarget": "Catat sekurang-kurangnya {{target}} sesi latihan sehari"
+    },
+    "strain": {
+      "label": "Strain JoyoFit",
+      "lower": "strain JoyoFit",
+      "blurb": "Capai strain tertentu daripada jam tangan anda.",
+      "source": "Strain harian daripada JoyoFit (skala 0 hingga 21).",
+      "unit": "strain",
+      "deviceHint": "Memerlukan JoyoFit dan jam tangan yang disambungkan supaya strain dikira.",
+      "rule": "Capai strain",
+      "ruleTarget": "Strain JoyoFit sekurang-kurangnya {{target}} sehari"
+    },
+    "sleep": {
+      "label": "Tidur JoyoFit",
+      "lower": "tidur JoyoFit",
+      "blurb": "Penuhi peratusan tidur JoyoFit setiap malam.",
+      "source": "Skor tidur harian daripada JoyoFit, peratus daripada keperluan tidur anda.",
+      "unit": "% tidur",
+      "deviceHint": "Memerlukan JoyoFit dan jam tangan yang disambungkan supaya skor tidur dikira.",
+      "rule": "Capai tidur",
+      "ruleTarget": "Tidur JoyoFit sekurang-kurangnya {{target}}% sehari"
+    }
+  },
+  "title": {
+    "stepsTarget": "{{target}} langkah",
+    "protein": "Protein tercapai",
+    "calories": "Kalori mengikut sasaran",
+    "workouts": "Latihan setiap hari",
+    "strainTarget": "Strain {{target}}",
+    "sleepTarget": "Tidur {{target}}%",
+    "withDays": "{{head}}, {{days}} hari"
+  },
+  "validate": {
+    "duration": "Pilih tempoh 7, 14 atau 30 hari.",
+    "startAhead": "Mula selewat-lewatnya {{days}} hari dari sekarang.",
+    "personal": "Sasaran protein dan kalori mengikut profil setiap ahli.",
+    "targetRequired": "Isi sasaran dahulu.",
+    "range": "Sasaran {{goal}} antara {{min}} dan {{max}}.",
+    "step": "Sasaran mesti gandaan {{step}}."
+  },
+  "share": {
+    "ended": "Cabaran {{days}} hari tamat",
+    "upcoming": "Sertai cabaran {{days}} hari",
+    "active": "Sedang bersaing dalam cabaran {{days}} hari",
+    "score": "{{hit}} daripada {{judged}} hari sasaran tercapai.",
+    "rank": "Kedudukan {{rank}} daripada {{total}}.",
+    "streak": "Streak terbaik {{days}} hari.",
+    "data": "Data: {{label}}.",
+    "invite": "Jom sertai di JoyoRogo."
+  },
+  "status": {
+    "ended": "Tamat",
+    "startsTomorrow": "Mula esok",
+    "startsIn_other": "Mula dalam {{count}} hari",
+    "day": "Hari ke-{{day}} daripada {{total}}"
+  },
+  "section": {
+    "ariaLabel": "Cabaran kumpulan",
+    "title": "Cabaran",
+    "create": "Cipta cabaran",
+    "empty": {
+      "title": "Belum ada cabaran",
+      "body": "Ajak kumpulan anda bersaing langkah, protein atau latihan. Pengguna Pro yang mencipta, semua ahli menyertai secara percuma."
+    },
+    "full": "Maksimum {{max}} cabaran aktif bagi setiap kumpulan. Tunggu salah satu tamat.",
+    "hostHint": "Pengguna Pro yang mencipta cabaran kumpulan. Anda tetap boleh menyertai cabaran kawan anda secara percuma."
+  },
+  "card": {
+    "open": "Buka cabaran {{title}}",
+    "participants_other": "{{count}} peserta",
+    "progress": "{{hit}} daripada {{judged}} hari",
+    "firstDay": "Hari pertama anda sedang berjalan",
+    "joined": "Anda menyertai",
+    "streak_other": "{{count}} hari berturut-turut",
+    "join": "Sertai",
+    "joining": "Menyertai..."
+  },
+  "toast": {
+    "joined": "Anda menyertai cabaran ini",
+    "left": "Anda keluar daripada cabaran",
+    "removed": "Cabaran dipadam",
+    "created": "Cabaran dicipta",
+    "joinFailed": "Gagal menyertai",
+    "leaveFailed": "Gagal keluar",
+    "removeFailed": "Gagal memadam"
+  },
+  "detail": {
+    "title": "Cabaran",
+    "loading": "Memuatkan cabaran",
+    "refresh": "Muat semula",
+    "backToGroup": "Kembali ke kumpulan",
+    "dateRange": "{{from}} hingga {{to}}",
+    "daysLeft_other": "baki {{count}} hari",
+    "lastDay": "hari terakhir",
+    "createdBy": "Dicipta oleh {{name}}",
+    "yourTarget": "Sasaran anda: {{target}} {{unit}}, dibekukan semasa anda menyertai",
+    "countedFrom": "Hari anda mula dikira daripada {{date}}, semasa anda menyertai.",
+    "join": "Sertai cabaran",
+    "joining": "Menyertai...",
+    "share": "Kongsi hasil",
+    "leave": "Keluar",
+    "leaveFull": "Keluar daripada cabaran",
+    "remove": "Padam cabaran",
+    "confirm": {
+      "leaveTitle": "Keluar daripada cabaran?",
+      "leaveMessage": "Kemajuan anda dalam cabaran ini tidak lagi dipaparkan di papan pendahulu.",
+      "removeTitle": "Padam cabaran?",
+      "removeMessage": "Cabaran dan papan pendahulunya akan hilang untuk semua peserta.",
+      "leaveYes": "Ya, keluar",
+      "removeYes": "Ya, padam"
+    },
+    "howItWorks": {
+      "title": "Cara ia berfungsi",
+      "basis": "Label pada setiap peserta menunjukkan asal datanya: Disahkan peranti datang daripada peranti atau JoyoFit; Daripada imbasan foto dan Dicatat secara manual datang daripada catatan peserta sendiri.",
+      "foodPrivacy": "Angka makan peserta lain tidak dipaparkan, hanya tercapai atau tidak."
+    }
+  },
+  "board": {
+    "title": "Papan pendahulu",
+    "empty": {
+      "title": "Belum ada peserta",
+      "body": "Sertai dahulu supaya nama anda muncul di papan pendahulu."
+    },
+    "rank": "Kedudukan {{rank}}",
+    "you": "anda",
+    "noJudged": "Belum ada hari dinilai",
+    "score": "{{hit}} daripada {{judged}} hari",
+    "dots": "{{hit}} hari tercapai daripada {{total}} hari cabaran",
+    "dayNotStarted": "Belum bermula",
+    "day": {
+      "hit": "tercapai",
+      "miss": "tidak tercapai",
+      "pending": "sedang berjalan"
+    },
+    "today": "Hari ini:",
+    "noData": "Belum ada data",
+    "legend": {
+      "hit": "Tercapai",
+      "miss": "Tidak tercapai",
+      "pending": "Hari ini sedang berjalan"
+    },
+    "value": "{{value}} {{unit}}"
+  },
+  "create": {
+    "title": "Cipta cabaran",
+    "description": "Satu matlamat, satu tempoh. Semua ahli menyertai secara percuma.",
+    "goal": {
+      "label": "Matlamat",
+      "aria": "Matlamat cabaran"
+    },
+    "target": {
+      "label": "Sasaran harian",
+      "labelUnit": "Sasaran ({{unit}})",
+      "aria": "Sasaran {{unit}}",
+      "decrease": "Kurangkan sasaran",
+      "increase": "Tambah sasaran",
+      "range": "Antara {{min}} dan {{max}}, gandaan {{step}}.",
+      "personal": "Sasaran mengikut profil setiap ahli dan dibekukan semasa mereka menyertai."
+    },
+    "duration": {
+      "label": "Tempoh",
+      "aria": "Tempoh cabaran",
+      "days": "{{count}} hari"
+    },
+    "start": {
+      "label": "Mula",
+      "aria": "Tarikh mula",
+      "today": "Hari ini",
+      "tomorrow": "Esok",
+      "pick": "Pilih tarikh",
+      "dateAria": "Tarikh mula cabaran",
+      "endsOn": "Tamat pada {{date}}."
+    },
+    "name": {
+      "label": "Nama cabaran (pilihan)",
+      "hint": "Biarkan kosong untuk nama automatik. {{length}}/{{max}}"
+    },
+    "submit": "Cipta cabaran",
+    "submitting": "Mencipta..."
+  },
+  "server": {
+    "error": {
+      "teamNotFound": "Pasukan tidak ditemui.",
+      "notFound": "Cabaran tidak ditemui.",
+      "founderOnly": "Pengguna Pro yang mencipta cabaran kumpulan. Anda tetap boleh menyertai cabaran kawan anda secara percuma.",
+      "maxOpen": "Maksimum {{max}} cabaran aktif bagi setiap pasukan. Tunggu salah satu tamat atau padamkannya.",
+      "needsProfile": "Lengkapkan profil dahulu supaya sasaran protein dan kalori anda dapat dikira.",
+      "ended": "Cabaran ini sudah tamat.",
+      "deleteForbidden": "Hanya pencipta cabaran atau pemilik pasukan yang boleh memadamnya."
+    }
+  }
+}

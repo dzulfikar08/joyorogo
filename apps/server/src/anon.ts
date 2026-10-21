@@ -8,7 +8,7 @@ import type { VisionAnalysis } from "@joyorogo/api/lib/vision";
 import { aiUsage, anonScan } from "@joyorogo/db/schema/fitness";
 import type { Database } from "@joyorogo/db";
 
-import { requestLocale } from "./context";
+import { requestLocale, requestRegion } from "./context";
 
 const COOKIE = "jr_anon";
 
@@ -72,6 +72,7 @@ export function registerAnonScanRoutes(app: Hono, deps: Deps) {
         mimeType: mime,
         model: deps.model,
         locale,
+        region: requestRegion(c),
       });
     } catch (error) {
       const reason = error instanceof VisionError ? error.reason : "failed";

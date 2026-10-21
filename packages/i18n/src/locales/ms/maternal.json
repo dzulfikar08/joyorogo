@@ -1,0 +1,297 @@
+{
+  "disclaimer": {
+    "title": "Panduan umum, bukan nasihat perubatan",
+    "body": "JoyoRogo bukan alat perubatan. Angka di sini mengikut AKG 2019 (Permenkes 28/2019) dan saranan IOM 2009, dan tidak menggantikan doktor atau bidan. Ikuti nasihat pakar kesihatan yang memeriksa anda.",
+    "kia": "Catat pemeriksaan anda dalam buku rekod kesihatan ibu dan anak, dan pergi ke klinik kesihatan atau bidan secara berkala.",
+    "short": "Bukan alat perubatan. Ikuti nasihat doktor atau bidan."
+  },
+  "privacy": {
+    "note": "Data kehamilan dan penyusuan anda hanya kelihatan kepada anda. Tiada apa-apa yang dikongsi ke kumpulan, suapan atau halaman awam."
+  },
+  "mode": {
+    "none": "Biasa",
+    "pregnant": "Mengandung",
+    "breastfeeding": "Menyusu"
+  },
+  "entry": {
+    "question": "Sedang mengandung atau menyusukan bayi?",
+    "hint": "Kami laraskan sasaran kalori dan zat anda untuk tempoh ini. Tanpa defisit dan tanpa sasaran menurunkan berat badan. Anda boleh mengubahnya bila-bila masa di Profil.",
+    "pregnant": "Sedang mengandung",
+    "pregnantHint": "Kira minggu dan trimester secara automatik",
+    "breastfeeding": "Sedang menyusukan bayi",
+    "breastfeedingHint": "Sesuaikan dengan umur bayi",
+    "neither": "Bukan kedua-duanya"
+  },
+  "form": {
+    "pregnantTitle": "Tentang kehamilan anda",
+    "breastfeedingTitle": "Tentang penyusuan anda",
+    "dateKind": {
+      "label": "Anda tahu yang mana?",
+      "hpht": "LMP",
+      "hphtHint": "Hari pertama haid terakhir",
+      "hpl": "EDD",
+      "hplHint": "Tarikh jangkaan bersalin"
+    },
+    "date": {
+      "hpht": "Tarikh LMP",
+      "hpl": "Tarikh EDD",
+      "hphtHelp": "Kami kira minggu kehamilan anda daripada tarikh ini, dan dikemas kini setiap hari.",
+      "hplHelp": "Tarikh jangkaan bersalin daripada doktor atau bidan, contohnya daripada imbasan ultrasound. Minggu kehamilan anda dikira ke belakang daripada tarikh ini.",
+      "pick": "Pilih tarikh"
+    },
+    "preWeight": {
+      "label": "Berat badan sebelum mengandung",
+      "hint": "Dalam kg. Menjadi asas keperluan tenaga dan julat kenaikan berat anda.",
+      "hintOptional": "Pilihan. Jika kosong, kami guna berat badan anda sekarang."
+    },
+    "currentWeight": {
+      "label": "Berat badan anda sekarang",
+      "hint": "Dalam kg. Menjadi catatan timbangan pertama anda."
+    },
+    "fetuses": {
+      "label": "Bilangan janin",
+      "single": "Satu",
+      "twins": "Kembar"
+    },
+    "feeding": {
+      "label": "Cara menyusukan bayi",
+      "exclusive": "Susu ibu eksklusif",
+      "exclusiveHint": "Bayi hanya minum susu ibu",
+      "partial": "Sebahagian",
+      "partialHint": "Susu ibu serta susu formula atau makanan pelengkap"
+    },
+    "babyAge": {
+      "label": "Umur bayi",
+      "months": "{{months}} bulan",
+      "decrease": "Kurangkan umur bayi satu bulan",
+      "increase": "Tambah umur bayi satu bulan"
+    },
+    "conditions": {
+      "title": "Ada keadaan yang sudah diketahui?",
+      "optional": "Pilihan. Hanya untuk peringatan berunding, bukan untuk mengubah angka.",
+      "gestational_diabetes": "Diabetes gestasi",
+      "hypertension": "Hipertensi atau pra-eklampsia",
+      "anemia": "Anemia"
+    },
+    "save": "Simpan",
+    "continue": "Teruskan",
+    "error": {
+      "date": "Pilih tarikh dahulu.",
+      "weight": "Isi berat badan sebelum mengandung, antara 25 dan 250 kg.",
+      "female": "Mod ini hanya untuk profil perempuan."
+    }
+  },
+  "summary": {
+    "week": "Minggu {{week}}",
+    "weekDay": "Minggu {{week}} hari ke-{{day}}",
+    "trimester": "Trimester {{n}}",
+    "due": "EDD {{date}}",
+    "daysToDue": "{{days}} hari lagi menuju EDD",
+    "pastDue": "{{days}} hari melepasi EDD",
+    "babyAge": "Bayi {{months}} bulan",
+    "twins": "Kembar",
+    "feeding": {
+      "exclusive": "Susu ibu eksklusif",
+      "partial": "Susu ibu sebahagian"
+    }
+  },
+  "target": {
+    "title": "Keperluan anda hari ini",
+    "base": "Keperluan asas",
+    "baseHint": "Sebelum mengandung, daripada berat badan awal, ketinggian, umur dan aktiviti anda",
+    "add": "Tambahan AKG",
+    "total": "Sasaran hari ini",
+    "noDeficit": "Tanpa pengurangan kalori dan tanpa sasaran berat badan sepanjang mod ini.",
+    "eaten": "Sudah dimakan",
+    "progress": "{{pct}}% daripada keperluan anda",
+    "ofTarget": "{{eaten}} daripada {{target}} kcal",
+    "reached": "Keperluan anda hari ini sudah dipenuhi",
+    "kcal": "kcal"
+  },
+  "needs": {
+    "add": {
+      "t1": "Tambahan trimester 1",
+      "t2": "Tambahan trimester 2",
+      "t3": "Tambahan trimester 3",
+      "bf1": "Tambahan penyusuan, 6 bulan pertama",
+      "bf2": "Tambahan penyusuan, 6 bulan kedua"
+    },
+    "addBody": "Tambahan tenaga daripada AKG 2019 (Permenkes 28/2019) untuk peringkat ini.",
+    "baseName": "Keperluan sebelum mengandung",
+    "baseBody": "Tenaga harian untuk mengekalkan berat badan, daripada berat badan sebelum mengandung, ketinggian, umur dan aktiviti.",
+    "noDeficit": "Tiada pengurangan kalori dan tiada sasaran berat badan sepanjang mod ini."
+  },
+  "nutrients": {
+    "title": "Zat harian anda",
+    "source": "Angka daripada AKG 2019 (Permenkes 28/2019), sudah termasuk tambahan untuk peringkat ini.",
+    "trackedTitle": "Dipantau dalam JoyoRogo",
+    "guidanceTitle": "Beri perhatian",
+    "guidanceNote": "Makanan dalam JoyoRogo belum mencatat zat ini, jadi ini panduan sahaja, bukan angka yang kami kira daripada makanan anda.",
+    "base": "Asas {{base}}",
+    "plus": "tambahan {{add}}",
+    "protein": {
+      "name": "Protein",
+      "hint": "Telur masak penuh, ikan, ayam, tempe, tauhu, kekacang."
+    },
+    "fiber": {
+      "name": "Serat",
+      "hint": "Sayur, buah, kekacang, nasi perang. Membantu pencernaan."
+    },
+    "water": {
+      "name": "Air",
+      "hint": "Angka AKG 2019 ini termasuk air daripada makanan dan minuman lain; sasaran gelas anda dibundarkan daripada angka ini. Catat gelas air anda pada kad Air."
+    },
+    "iron": {
+      "name": "Zat besi",
+      "hint": "Daging merah, ikan, telur masak penuh, tempe, bayam. Vitamin C membantu penyerapan. Tentang pil tambah darah, tanya bidan atau doktor."
+    },
+    "folate": {
+      "name": "Folat",
+      "hint": "Sayur hijau, kekacang, oren, telur masak penuh. Suplemen asid folik ikut saranan doktor atau bidan."
+    },
+    "calcium": {
+      "name": "Kalsium",
+      "hint": "Susu berpasteur atau UHT, yogurt, ikan bilis, tauhu, tempe, sayur hijau."
+    },
+    "iodine": {
+      "name": "Iodin",
+      "hint": "Garam beriodin, ikan laut, telur masak penuh, susu."
+    },
+    "vitaminA": {
+      "name": "Vitamin A",
+      "hint": "Lobak merah, labu, keledek, sayur hijau, telur masak penuh. Elakkan suplemen vitamin A dos tinggi tanpa nasihat doktor."
+    },
+    "dha": {
+      "name": "DHA (omega-3)",
+      "hint": "Ikan laut rendah merkuri yang dimasak masak penuh, contohnya kembung, ikan bilis, sardin, salmon. Saranan minimum 200 mg DHA sehari (FAO/WHO 2010)."
+    },
+    "unit": {
+      "g": "g",
+      "ml": "ml",
+      "mg": "mg",
+      "mcg": "mcg",
+      "RE": "RE"
+    }
+  },
+  "gain": {
+    "title": "Kenaikan berat badan",
+    "subtitle": "Berbanding berat badan sebelum mengandung",
+    "preWeight": "Berat sebelum mengandung {{kg}} kg",
+    "bmi": "BMI sebelum mengandung {{bmi}} ({{category}})",
+    "category": {
+      "under": "kurus",
+      "normal": "normal",
+      "over": "berlebihan",
+      "obese": "obes"
+    },
+    "total": "Saranan IOM 2009 untuk seluruh kehamilan: {{min}} hingga {{max}} kg",
+    "totalTwins": "Saranan IOM 2009 untuk kembar (sementara): {{min}} hingga {{max}} kg",
+    "rate": "Trimester 2 dan 3, purata {{min}} hingga {{max}} kg seminggu",
+    "current": "Naik {{gain}} kg pada minggu {{week}}. Julat minggu ini {{min}} hingga {{max}} kg.",
+    "empty": "Timbang berat badan anda untuk mula melihat graf kenaikan.",
+    "weighIn": "Timbang sekarang",
+    "band": "Julat saranan",
+    "you": "Kenaikan anda",
+    "chartLabel": "Graf kenaikan berat badan mengikut minggu kehamilan berbanding julat saranan",
+    "axis": {
+      "week": "Minggu kehamilan",
+      "kg": "Naik (kg)"
+    },
+    "status": {
+      "within": "Kenaikan berat anda berada dalam julat saranan untuk minggu ini.",
+      "below": "Kenaikan berat anda sedikit di bawah julat untuk minggu ini. Belum tentu masalah; bincangkan dengan doktor atau bidan pada pemeriksaan seterusnya.",
+      "above": "Kenaikan berat anda sedikit di atas julat untuk minggu ini. Jangan kurangkan makan sendiri; bincangkan dahulu dengan doktor atau bidan."
+    },
+    "source": "Sumber: IOM 2009. Garis julat antara minggu ialah interpolasi kami antara 0,5 hingga 2 kg pada akhir trimester 1 dan jumlah ketika cukup bulan."
+  },
+  "flags": {
+    "title": "Catatan untuk anda",
+    "footer": "Ini peringatan, bukan larangan atau nasihat perubatan. Jika ragu, tanya doktor atau bidan.",
+    "alcohol": {
+      "title": "Mengandungi alkohol",
+      "body": "Semasa mengandung atau menyusukan bayi, lebih selamat tanpa alkohol. Jika sudah terlanjur, tidak perlu panik; ceritakan kepada doktor atau bidan jika anda bimbang."
+    },
+    "caffeine": {
+      "title": "Mengandungi kafein",
+      "body": "Anggaran {{mg}} mg kafein setiap hidangan. Had harian yang lazim disarankan ialah 200 mg, kira-kira dua cawan kopi."
+    },
+    "caffeineDay": "Kafein hari ini kira-kira {{mg}} mg daripada had {{limit}} mg",
+    "caffeineOver": "Kafein hari ini sudah kira-kira {{mg}} mg, melebihi had harian {{limit}} mg. Esok boleh dikurangkan perlahan-lahan.",
+    "rawMeat": {
+      "title": "Daging belum masak sepenuhnya",
+      "body": "Daging mentah atau separuh masak boleh membawa bakteria dan parasit, termasuk toksoplasma. Minta dimasak sehingga masak penuh."
+    },
+    "rawEgg": {
+      "title": "Telur belum masak sepenuhnya",
+      "body": "Telur mentah atau separuh masak berisiko salmonella. Masak sehingga kuning dan putihnya pejal."
+    },
+    "rawFish": {
+      "title": "Ikan atau kerang mentah",
+      "body": "Sushi, sashimi dan makanan laut mentah sebaiknya dielakkan semasa mengandung. Pilih yang dimasak masak penuh."
+    },
+    "mercuryFish": {
+      "title": "Ikan tinggi merkuri",
+      "body": "Yu, todak, marlin dan tuna segar mengandungi merkuri yang tinggi. Pilih ikan lain seperti kembung, salmon masak penuh, atau tuna dalam tin secukupnya."
+    },
+    "unpasteurized": {
+      "title": "Susu atau keju tidak dipasteur",
+      "body": "Produk tanpa pempasteuran boleh membawa listeria. Pilih yang berlabel berpasteur atau UHT."
+    },
+    "herbal": {
+      "title": "Jamu atau ramuan herba",
+      "body": "Bukan semua jamu terbukti selamat untuk ibu mengandung atau menyusukan bayi. Tanya doktor atau bidan dahulu sebelum minum."
+    }
+  },
+  "notes": {
+    "TWINS_ENERGY": "Mengandung kembar: AKG belum mempunyai angka tambahan khas untuk kembar, jadi kami guna angka kehamilan tunggal. Keperluan anda mungkin lebih tinggi; tanya doktor atau pakar pemakanan.",
+    "PARTIAL_ESTIMATE": "Penyusuan sebahagian: AKG tiada angka tersendiri. Kami guna tambahan AKG penuh sebagai anggaran; keperluan anda mungkin sedikit lebih rendah jika bayi turut minum susu formula atau makanan pelengkap. Tanya doktor atau bidan jika ragu.",
+    "OVERDUE": "LMP anda sudah lebih 42 minggu lalu. Semak semula tarikhnya, atau pilih Sudah bersalin jika bayi anda sudah lahir.",
+    "BABY_OVER_12": "AKG hanya mengira sehingga bayi berumur 12 bulan. Kami tetap menggunakan angka bulan ke-7 hingga 12.",
+    "TWINS_UNDERWEIGHT": "Untuk kembar dengan berat badan awal yang kurang, IOM belum mempunyai julat rasmi. Kami paparkan julat kembar berat badan normal sebagai panduan; tanya doktor.",
+    "CONSULT": "Anda mencatat keadaan tertentu. Angka di sini ialah panduan umum; ikuti nasihat doktor atau bidan yang memantau anda.",
+    "gestational_diabetes": "Diabetes gestasi: pengurusan karbohidrat perlu dibincangkan dengan doktor atau pakar pemakanan.",
+    "hypertension": "Hipertensi atau pra-eklampsia: pantau tekanan darah dan ikuti nasihat doktor, termasuk tentang garam.",
+    "anemia": "Anemia: tanya doktor atau bidan tentang pil tambah darah dan makanan kaya zat besi."
+  },
+  "home": {
+    "pregnant": "Minggu {{week}} · Trimester {{trimester}}",
+    "breastfeeding": "Menyusu · bayi {{months}} bulan",
+    "card": "Mengandung dan menyusu",
+    "weightTitle": "Kenaikan berat badan",
+    "seeAll": "Lihat butiran"
+  },
+  "settings": {
+    "title": "Mengandung dan menyusu",
+    "rowOff": "Tetapkan jika anda sedang mengandung atau menyusukan bayi",
+    "rowPregnant": "Mengandung · minggu {{week}}",
+    "rowBreastfeeding": "Menyusu · bayi {{months}} bulan",
+    "intro": "Sasaran anda tanpa defisit dan tanpa penurunan berat badan: keperluan harian ditambah angka daripada AKG 2019 untuk peringkat anda.",
+    "enable": "Aktifkan mod",
+    "edit": "Ubah data",
+    "turnOff": "Matikan mod",
+    "turnOffTitle": "Matikan mod ini?",
+    "turnOffBody": "Sasaran anda kembali kepada keperluan harian biasa, tanpa penurunan berat badan. Jika kelak anda mahu menurunkan berat badan, bincangkan dahulu dengan doktor atau bidan, kemudian tetapkan sasarannya di Profil.",
+    "turnOffConfirm": "Ya, matikan",
+    "saved": "Disimpan",
+    "turnedOff": "Mod dimatikan",
+    "hiddenNote": "Sasaran berat badan, tarikh sasaran, puasa dan streak disembunyikan semasa mod ini aktif.",
+    "ramadanNote": "Ibu mengandung dan menyusukan bayi dibenarkan tidak berpuasa. Jadual Ramadan tidak digunakan untuk anda secara automatik; bincang dengan doktor atau ustaz jika anda mahu berpuasa."
+  },
+  "end": {
+    "button": "Sudah bersalin",
+    "title": "Sudah bersalin?",
+    "body": "Semoga anda dan bayi sihat. Pilih yang paling sesuai, sasaran anda akan menyesuaikan diri.",
+    "birthDate": "Tarikh bersalin",
+    "breastfeeding": "Saya menyusukan bayi",
+    "breastfeedingHint": "Teruskan ke mod menyusu",
+    "none": "Saya tidak menyusukan bayi",
+    "noneHint": "Kembali kepada keperluan harian biasa",
+    "confirm": "Simpan",
+    "done": "Disimpan. Tahniah.",
+    "postpartum": {
+      "title": "Catatan selepas bersalin",
+      "body": "Tubuh anda perlukan masa untuk pulih, jadi tiada sasaran penurunan berat badan di sini. Jika kelak anda mahu menurunkan berat badan, bincangkan dahulu dengan doktor atau bidan, kemudian tetapkan sasaran yang lembut di Profil.",
+      "check": "Buat pemeriksaan selepas bersalin dan catat dalam buku rekod kesihatan ibu dan anak."
+    }
+  }
+}

@@ -42,6 +42,7 @@ import { Roadmap } from "@/components/landing/roadmap";
 import { ScanDemo } from "@/components/landing/scan-demo";
 import { BrowserShot, HeroShot, PhoneShot } from "@/components/landing/phone-frame";
 import { GITHUB_URL, GithubMark, PublicHeader } from "@/components/public-header";
+import { MyNotice } from "@/components/landing/my-notice";
 import { PublicFooter } from "@/components/public-footer";
 import { FounderPromo } from "@/components/founder-promo";
 import { Testimonials } from "@/components/testimonials";
@@ -453,6 +454,7 @@ function Landing() {
 
   return (
     <div className="marketing min-h-svh">
+      <MyNotice />
       <PublicHeader />
 
       <main>

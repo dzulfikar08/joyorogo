@@ -17,6 +17,8 @@ const config = hostConfig("https://joyorogo.com", "https://app.joyorogo.com");
 
 describe("areaOf", () => {
   test.each([
+    ["/my", "site"],
+    ["/my/", "site"],
     ["/", "site"],
     ["/harga", "site"],
     ["/harga/", "site"],
@@ -49,9 +51,10 @@ describe("areaOf", () => {
     expect(areaOf(path)).toBe(area);
   });
 
-  test("a segment only matches whole: /produk is not /pro, /blogger is not /blog", () => {
+  test("a segment only matches whole: /produk is not /pro, /blogger is not /blog, /mypage is not /my", () => {
     expect(areaOf("/produk")).toBe("shared");
     expect(areaOf("/blogger")).toBe("shared");
+    expect(areaOf("/mypage")).toBe("shared");
   });
 
   test("every top-level route of the SPA is classified", () => {
@@ -114,7 +117,7 @@ describe("hostRedirect on the site host", () => {
   });
 
   test("marketing, shared and static paths stay", () => {
-    for (const path of ["/", "/harga", "/panduan/ai", "/blog/", "/privasi", "/syarat", "/gabung/ABCD2345", "/u/budi", "/sw.js"]) {
+    for (const path of ["/", "/my", "/harga", "/panduan/ai", "/blog/", "/privasi", "/syarat", "/gabung/ABCD2345", "/u/budi", "/sw.js"]) {
       expect(hostRedirect(config, site, path)).toBeNull();
     }
   });
@@ -135,6 +138,7 @@ describe("hostRedirect on the app host", () => {
     );
     expect(hostRedirect(config, app, "/blog/judul/")).toBe("https://joyorogo.com/blog/judul/");
     expect(hostRedirect(config, app, "/privasi")).toBe("https://joyorogo.com/privasi");
+    expect(hostRedirect(config, app, "/my")).toBe("https://joyorogo.com/my");
     expect(hostRedirect(config, app, "/sitemap.xml")).toBe("https://joyorogo.com/sitemap.xml");
   });
 

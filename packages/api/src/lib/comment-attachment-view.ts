@@ -25,7 +25,8 @@ export type AttachmentFact = { key: AttachmentFactKey; params: Record<string, st
 
 type Stats = Record<string, number | string | null | undefined>;
 
-const tag = (locale: Locale) => (locale === "id" ? "id-ID" : "en-US");
+const TAGS: Record<Locale, string> = { id: "id-ID", en: "en-US", ms: "ms-MY" };
+const tag = (locale: Locale) => TAGS[locale];
 
 function num(stats: Stats, key: string): number | null {
   const value = stats[key];

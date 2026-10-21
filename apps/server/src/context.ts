@@ -1,6 +1,7 @@
 import type { ApiEnv } from "@joyorogo/api/context";
 import type { Context as ApiContext } from "@joyorogo/api/context";
-import { DEFAULT_LOCALE, LOCALE_HEADER, matchLocale } from "@joyorogo/i18n";
+import { DEFAULT_LOCALE, LOCALE_HEADER, matchLocale, resolveRegion } from "@joyorogo/i18n";
+import type { Region } from "@joyorogo/i18n";
 import type { Context as HonoContext } from "hono";
 
 import { createAuth, getDb } from "./services";
@@ -13,6 +14,14 @@ import { env as workerEnv } from "./env.server";
  */
 export function requestLocale(context: HonoContext) {
   return matchLocale(context.req.header(LOCALE_HEADER)) ?? DEFAULT_LOCALE;
+}
+
+/** Market of a plain Hono request: a Bahasa Melayu UI, else the network country (Cloudflare's CF-IPCountry). */
+export function requestRegion(context: HonoContext): Region {
+  return resolveRegion({
+    locale: requestLocale(context),
+    country: context.req.header("CF-IPCountry"),
+  });
 }
 
 export type CreateContextOptions = {
@@ -34,6 +43,7 @@ export async function createContext({ context }: CreateContextOptions): Promise<
     session,
     env: workerEnv as unknown as ApiEnv,
     locale: requestLocale(context),
+    region: requestRegion(context),
     clientIp: context.req.header("CF-Connecting-IP") ?? null,
     waitUntil: (promise) => context.executionCtx.waitUntil(promise),
     requestStartedAt,

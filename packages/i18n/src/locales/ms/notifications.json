@@ -1,0 +1,88 @@
+{
+  "title": "Pemberitahuan",
+  "intro": "Pilih berita yang boleh masuk ke pelayar dan telefon anda. Tetapan ini terpakai untuk akaun JoyoRogo dan JoyoFit.",
+  "categories": {
+    "social": {
+      "title": "Sosial",
+      "desc": "Kudos, komen, balasan, pengikut baharu, dan siaran baharu daripada orang yang anda ikuti."
+    },
+    "group": {
+      "title": "Kumpulan: cuit, catatan, cabaran",
+      "desc": "Cuitan, catatan daripada kawan kumpulan, ahli baharu, dan berita cabaran."
+    },
+    "meal": {
+      "title": "Peringatan makan",
+      "desc": "Jika seharian belum ada makanan dicatat, dan apabila streak anda hampir terputus."
+    },
+    "weigh": {
+      "title": "Peringatan timbang",
+      "desc": "Sekali seminggu jika anda belum menimbang."
+    },
+    "recap": {
+      "title": "Rumusan & sasaran",
+      "desc": "Rumusan mingguan sedia, sasaran kalori berubah, dan pelan makan minggu ini."
+    }
+  },
+  "quiet": {
+    "title": "Waktu senyap",
+    "desc": "Semasa waktu senyap pemberitahuan ditahan dan dihantar selepas tamat. Masa mengikut waktu tempatan.",
+    "start": "Mula",
+    "end": "Tamat"
+  },
+  "limits": "Ada had pemberitahuan sehari. Jika melebihi, bakinya diringkaskan menjadi satu pemberitahuan pada waktu malam.",
+  "devices": "Berdaftar: {{web}} pelayar, {{rogo}} telefon JoyoRogo, {{fit}} telefon JoyoFit.",
+  "status": {
+    "granted": "Pemberitahuan aktif pada peranti ini.",
+    "undetermined": "Pemberitahuan belum diaktifkan pada peranti ini.",
+    "denied": "Pemberitahuan disekat pada peranti ini. Aktifkan melalui tetapan sistem.",
+    "unsupported": "Peranti atau pelayar ini belum menyokong pemberitahuan.",
+    "unavailable": "Pemberitahuan belum tersedia pada pelayan ini."
+  },
+  "test": {
+    "button": "Hantar pemberitahuan ujian",
+    "sending": "Menghantar…",
+    "sent": "Dihantar. Semak pemberitahuan pada peranti anda.",
+    "skipped": "Belum ada peranti atau pelayar yang berdaftar. Aktifkan pemberitahuan dahulu.",
+    "failed": "Pemberitahuan ujian gagal dihantar. Cuba lagi sebentar nanti."
+  },
+  "saveFailed": "Tetapan pemberitahuan gagal disimpan.",
+  "web": {
+    "hubSubtitle": "Sosial, kumpulan, peringatan, waktu senyap",
+    "sections": {
+      "browser": "Pelayar ini",
+      "categories": "Berita yang masuk",
+      "quiet": "Waktu senyap",
+      "test": "Cuba hantar"
+    },
+    "enable": "Aktifkan pada pelayar ini",
+    "disable": "Matikan pada pelayar ini",
+    "working": "Memproses…",
+    "subscribed": "Pelayar ini sudah berdaftar untuk pemberitahuan.",
+    "notSubscribed": "Kebenaran sudah diberikan, tetapi pelayar ini belum berdaftar. Aktifkan semula untuk mendaftar.",
+    "iosInstall": "Pada iPhone atau iPad, pemberitahuan pelayar hanya boleh digunakan selepas JoyoRogo ditambah ke Skrin Utama (Kongsi, kemudian Tambah ke Skrin Utama).",
+    "toastEnabled": "Pemberitahuan pelayar aktif",
+    "toastDisabled": "Pemberitahuan pelayar dimatikan",
+    "quietAria": "Aktifkan waktu senyap",
+    "startAria": "Waktu senyap bermula",
+    "endAria": "Waktu senyap tamat",
+    "move": {
+      "title": "Pemberitahuan berpindah ke alamat baharu",
+      "body": "JoyoRogo kini ada di app.joyorogo.com. Aktifkan semula pemberitahuan di sini supaya berita daripada kawan dan peringatan anda tetap sampai.",
+      "action": "Aktifkan di sini"
+    }
+  },
+  "native": {
+    "hubSubtitle": "Sosial, kumpulan, peringatan, waktu senyap",
+    "enable": "Aktifkan pemberitahuan",
+    "openSettings": "Buka tetapan",
+    "reminderNote": "Peringatan daripada pelayan (belum catat makan, timbang mingguan) ditetapkan di Pemberitahuan. Jika peringatan makan atau timbang di sini aktif, yang daripada pelayan dilangkau supaya tidak berganda.",
+    "reminderNoteAction": "Buka Pemberitahuan",
+    "channel": {
+      "social": { "name": "Sosial", "description": "Kudos, komen, dan pengikut baharu" },
+      "group": { "name": "Kumpulan", "description": "Cuit, catatan, dan cabaran kumpulan" },
+      "meal": { "name": "Peringatan makan", "description": "Belum catat makan dan streak hampir terputus" },
+      "weigh": { "name": "Peringatan timbang", "description": "Peringatan timbang mingguan" },
+      "recap": { "name": "Rumusan & sasaran", "description": "Rumusan mingguan dan perubahan sasaran" }
+    }
+  }
+}

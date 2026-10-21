@@ -122,6 +122,14 @@ function TentangContent() {
           onPress={() => void WebBrowser.openBrowserAsync(`${serverUrl()}/privasi`)}
         />
       </Group>
+
+      <Card>
+        <Text style={styles.cardTitle}>{t("dataSources.title")}</Text>
+        <Text style={styles.note}>{t("dataSources.intro")}</Text>
+        <Text style={styles.note}>{t("dataSources.tkpi")}</Text>
+        <Text style={styles.note}>{t("dataSources.sgfoodid")}</Text>
+        <Text style={styles.note}>{t("dataSources.notice")}</Text>
+      </Card>
     </>
   );
 }

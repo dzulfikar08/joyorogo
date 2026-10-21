@@ -1,11 +1,12 @@
 import { z } from "zod";
-import { DEFAULT_LOCALE, getT } from "@joyorogo/i18n";
-import type { Locale } from "@joyorogo/i18n";
+import { DEFAULT_LOCALE, DEFAULT_REGION, getT } from "@joyorogo/i18n";
+import type { Locale, Region } from "@joyorogo/i18n";
 import { localNameRule, localNameShape } from "./ai-locale";
 import { ChatStreamDecoder } from "./chat-stream";
 import { resolveFoodKind } from "./food-kind";
 import type { FoodKind } from "./food-kind";
 import { ItemScanner, repairKeys, scanItems } from "./item-stream";
+import { regionFocus, regionRule } from "./region-prompt";
 import type { ItemScanEvent } from "./item-stream";
 import type { ScanFailReason } from "./scan-errors";
 import { CUP_CONFIDENCE, cupItem, guessCupChoice } from "./drink-options";
@@ -25,10 +26,11 @@ export const DEFAULT_VISION_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 // to an americano), so the prompt only asks for a cap, not for a verdict.
 /**
  * Indonesian prompt; for other locales the model also returns `localName` (see
- * ai-locale.ts) so food names and portions come back in the user's language.
+ * ai-locale.ts) so food names and portions come back in the user's language. A region other than
+ * Indonesia adds its dish names and serving defaults (region-prompt.ts); Indonesia's text is unchanged.
  */
-export function visionPrompt(locale: Locale = DEFAULT_LOCALE): string {
-  return `Anda adalah ahli gizi. Identifikasi makanan pada foto ini (fokus masakan Indonesia). Sebutkan SETIAP makanan atau minuman berbeda yang terlihat, termasuk yang kecil (mis. donat di samping segelas kopi), urut dari yang paling menonjol, maksimal 10 item.
+export function visionPrompt(locale: Locale = DEFAULT_LOCALE, region: Region = DEFAULT_REGION): string {
+  return `Anda adalah ahli gizi. Identifikasi makanan pada foto ini (${regionFocus(region)}). Sebutkan SETIAP makanan atau minuman berbeda yang terlihat, termasuk yang kecil (mis. donat di samping segelas kopi), urut dari yang paling menonjol, maksimal 10 item.
 Jawab HANYA JSON valid satu baris (tanpa indentasi, tanpa \`\`\`) tanpa teks lain, dengan bentuk persis:
 {"items":[{"name":"nama masakan",${localNameShape(locale)}"kind":"makanan|camilan|minuman","portion":"porsi, maks 3 kata","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":number,"box":[ymin,xmin,ymax,xmax]}]}
 Semua angka bulat kecuali confidence. Tidak ada makanan atau minuman di foto: {"items":[],"problem":"bukan_makanan"}. Foto terlalu gelap atau buram sampai makanan tidak bisa dikenali: {"items":[],"problem":"gelap"} atau {"items":[],"problem":"buram"}.
@@ -39,7 +41,7 @@ Aturan: ini bukan percakapan — jangan menjawab dengan tabel markdown. name dal
 ${PACKAGE_RULE}
 ${DRINK_RULE}
 ${SAUCE_RULE}
-${PRINTED_TEXT_RULE}`;
+${PRINTED_TEXT_RULE}${regionRule(region)}`;
 }
 
 /**
@@ -286,6 +288,7 @@ type VisionRunOptions = {
   mimeType: string;
   instruction?: string;
   locale?: Locale;
+  region?: Region;
   /** Eval-only: rewrites the base prompt (see analyzeFoodPhoto). Unset in production. */
   promptTransform?: (base: string) => string;
   /** Sampling temperature; unset = the model default (every production scan today). */
@@ -302,8 +305,8 @@ function visionRequest(opts: VisionRunOptions) {
             type: "text",
             text: [
               opts.promptTransform
-                ? opts.promptTransform(visionPrompt(opts.locale))
-                : visionPrompt(opts.locale),
+                ? opts.promptTransform(visionPrompt(opts.locale, opts.region))
+                : visionPrompt(opts.locale, opts.region),
               ...(opts.instruction ? [opts.instruction] : []),
             ].join("\n\n"),
           },
@@ -403,7 +406,7 @@ export async function runVisionStream(
           const name = (locale === DEFAULT_LOCALE ? event.name : event.localName)?.trim();
           if (name) onEvent({ type: "name", index: event.index, name: name.slice(0, 120) });
         } else {
-          const item = previewItem(event.raw, locale);
+          const item = previewItem(event.raw, locale, opts.region);
           if (item) onEvent({ type: "item", index: event.index, item });
         }
       }
@@ -665,12 +668,16 @@ export type StreamedItem = VisionAnalysis["items"][number];
  * result (calibration is per item) but without the whole-plate dedupe and
  * broth rules, which need every item. Null for a malformed or empty item.
  */
-export function previewItem(entry: unknown, locale: Locale = DEFAULT_LOCALE): StreamedItem | null {
+export function previewItem(
+  entry: unknown,
+  locale: Locale = DEFAULT_LOCALE,
+  region?: Region,
+): StreamedItem | null {
   const parsed = visionItemSchema.safeParse(entry);
   if (!parsed.success) return null;
   const bounded = boundItem(parsed.data);
   if (!isUsable(bounded)) return null;
-  return localizeName(calibrateRaw([bounded], locale)[0]!, locale);
+  return localizeName(calibrateRaw([bounded], locale, region ? { region } : undefined)[0]!, locale);
 }
 
 /**
@@ -750,6 +757,8 @@ export async function analyzeFoodPhoto(
     retry?: { hint?: string };
     /** Language of the item names and portions in the result; default Indonesian. */
     locale?: Locale;
+    /** The user's market: dish names, serving defaults and the nutrient table (default Indonesia). */
+    region?: Region;
     /** One line about the person (maternalPromptNote: Hamil/Menyusui), appended to the prompt. */
     userContext?: string;
     /** The user's registered plates as prompt text (dishwareInstruction); the answer then carries `plate`. */
@@ -799,6 +808,7 @@ export async function analyzeFoodPhoto(
             .filter(Boolean)
             .join("\n\n") || undefined,
         locale: opts.locale,
+        region: opts.region,
         promptTransform: opts.promptTransform,
         temperature: opts.temperature,
       };
@@ -818,7 +828,12 @@ export async function analyzeFoodPhoto(
       usage = extractUsage(result);
       const text = responseText(result);
       if (text === null) throw new Error("no text in response");
-      const answer = parseAnswer(text, finish, opts.locale, opts.calibration);
+      const answer = parseAnswer(
+        text,
+        finish,
+        opts.locale,
+        opts.region ? { ...opts.calibration, region: opts.region } : opts.calibration,
+      );
       found = answer.found;
       if (answer.items.length > 0) {
         if (answer.tooMany || answer.modelTooMany) {

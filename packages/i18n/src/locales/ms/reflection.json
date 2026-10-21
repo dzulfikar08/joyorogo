@@ -1,0 +1,308 @@
+{
+  "title": "Refleksi minggu ini",
+  "source": {
+    "ai": "Ditulis AI daripada angka mingguan anda",
+    "template": "Ringkasan automatik daripada angka mingguan anda"
+  },
+  "wins": "Yang sudah bagus",
+  "focus": "Fokus minggu depan",
+  "generating": "AI sedang menyusun refleksi anda...",
+  "locked": "Refleksi yang ditulis AI khas untuk pengguna Pro.",
+  "disclaimer": "Ini bukan nasihat perubatan. Jika ada keluhan, tanyalah doktor.",
+  "ongoing": "Dikira daripada hari yang sudah berlalu, jadi boleh berubah sehingga minggu ini tamat.",
+  "upsell": {
+    "title": "Mahu refleksi yang ditulis AI?",
+    "body": "Pro menulisnya dengan bahasa yang lebih peribadi daripada angka mingguan anda.",
+    "cta": "Lihat Pro"
+  },
+  "text": {
+    "winsIntro": "Berita baiknya:",
+    "focusIntro": "Yang perlu diberi perhatian:",
+    "closing": "Fokus minggu depan:",
+    "keepGoing": "Kekalkan rentak ini minggu depan.",
+    "maternalNote": "Angka-angka ini hanya gambaran, bukan sasaran yang perlu dikejar."
+  },
+  "facts": {
+    "LOG_STREAK": {
+      "streak": {
+        "title": "Rajin mencatat",
+        "text": "Anda mencatat makanan {{streakDays}} hari berturut-turut. Tabiat inilah yang menjadikan angka-angka lain boleh dipercayai."
+      },
+      "streak_gain": {
+        "title": "Sasaran makan tercapai",
+        "text": "Anda mencapai sasaran makan {{streakDays}} hari berturut-turut. Bagus untuk menaikkan berat badan dengan sihat."
+      },
+      "logged": {
+        "title": "Catatan lengkap",
+        "text": "Anda mencatat makanan {{loggedDays}} daripada {{judgedDays}} hari, jadi datanya cukup lengkap untuk dibaca."
+      },
+      "some": {
+        "title": "Sudah mula mencatat",
+        "text": "Anda mencatat makanan {{loggedDays}} hari minggu ini. Permulaan yang baik."
+      }
+    },
+    "LOG_GAPS": {
+      "gaps": {
+        "title": "Catatan masih berlubang",
+        "text": "Anda baru mencatat makanan {{loggedDays}} daripada {{judgedDays}} hari, jadi angka minggu ini belum tentu menggambarkan pemakanan anda yang sebenar.",
+        "advice": "Catat sekali sahaja sehari, walaupun hanya satu kali makan. Lebih baik kasar tetapi konsisten daripada terperinci tetapi jarang."
+      }
+    },
+    "WEIGHT_PACE": {
+      "projected": "Dengan kadar sekarang, sasaran anda tercapai kira-kira {{projectedDate}}.",
+      "on_pace": {
+        "title": "Berat turun pada kadar yang sesuai",
+        "text": "Trend berat badan anda turun kira-kira {{kgPerWeek}} kg seminggu, kadar yang sesuai."
+      },
+      "week_down": {
+        "title": "Berat turun minggu ini",
+        "text": "Trend berat badan anda turun kira-kira {{weekChangeKg}} kg minggu ini."
+      },
+      "behind": {
+        "title": "Penurunan lebih perlahan daripada sasaran",
+        "text": "Trend berat badan anda turun kira-kira {{kgPerWeek}} kg seminggu, sedangkan tarikh sasaran anda memerlukan kira-kira {{neededKgPerWeek}} kg seminggu.",
+        "advice": "Jangan kurangkan makanan secara drastik. Baiki satu perkara dahulu, contohnya hidangan makan malam atau minuman manis, kemudian tambah berjalan santai. Jika tarikh sasaran terasa terlalu singkat, alihkan tarikhnya di Profil."
+      },
+      "gaining": {
+        "title": "Trend berat sedang naik",
+        "text": "Trend berat badan anda naik kira-kira {{kgPerWeek}} kg seminggu, sedangkan sasaran anda ialah menurunkan berat.",
+        "advice": "Mulakan dengan makan hampir sasaran setiap hari dan timbang pada waktu yang sama. Satu minggu belum menentukan, lihat arah trendnya."
+      },
+      "flat": {
+        "title": "Berat belum bergerak",
+        "text": "Trend berat badan anda hampir mendatar, kira-kira {{kgPerWeek}} kg seminggu.",
+        "advice": "Semak dahulu sama ada catatan makanan anda sudah lengkap, termasuk snek dan minuman. Jika sudah, kurangkan sedikit hidangan atau tambah berjalan kaki."
+      },
+      "too_fast": {
+        "title": "Penurunan terlalu cepat",
+        "text": "Trend berat badan anda turun kira-kira {{kgPerWeek}} kg seminggu, lebih cepat daripada kadar yang selamat.",
+        "advice": "Makan mengikut sasaran, jangan kurang, dan cukupkan protein supaya yang turun ialah lemak, bukan otot. Jika badan terasa lemah atau pening, tanyalah doktor."
+      },
+      "steady": {
+        "title": "Berat stabil",
+        "text": "Trend berat badan anda stabil, kira-kira {{kgPerWeek}} kg seminggu. Sesuai untuk mengekalkan berat."
+      },
+      "drifting": {
+        "title": "Berat menyimpang daripada sasaran kekal",
+        "text": "Trend berat badan anda beralih kira-kira {{kgPerWeek}} kg seminggu sedangkan anda mahu mengekalkannya.",
+        "advice": "Lihat dahulu purata pemakanan anda berbanding sasaran. Perbezaan kecil setiap hari boleh terkumpul, jadi ubah hidangan atau pergerakan sedikit sahaja, jangan drastik."
+      },
+      "gain_on_pace": {
+        "title": "Berat naik pada kadar yang sesuai",
+        "text": "Trend berat badan anda naik kira-kira {{kgPerWeek}} kg seminggu, kadar yang sihat."
+      },
+      "gain_stalled": {
+        "title": "Berat belum naik",
+        "text": "Trend berat badan anda naik hanya kira-kira {{kgPerWeek}} kg seminggu.",
+        "advice": "Tambah satu snek padat kalori setiap hari, contohnya susu atau roti dengan mentega kacang, dan pastikan sasaran makan anda tercapai."
+      }
+    },
+    "WEIGH_INS": {
+      "regular": {
+        "title": "Rajin menimbang",
+        "text": "Anda menimbang berat badan {{count}} kali minggu ini, jadi trendnya boleh dipercayai."
+      },
+      "few": {
+        "title": "Timbang lebih kerap",
+        "text_other": "Anda baru menimbang berat badan {{count}} kali minggu ini.",
+        "advice": "Timbang 3 hingga 4 kali seminggu pada waktu yang sama, contohnya pagi selepas bangun tidur, supaya trendnya lebih jelas."
+      },
+      "none": {
+        "title": "Belum ada timbangan",
+        "text": "Minggu ini anda belum menimbang berat badan.",
+        "advice": "Cuba timbang beberapa kali seminggu pada waktu yang sama, contohnya pagi selepas bangun tidur, supaya trendnya kelihatan."
+      }
+    },
+    "MEASURE_ANOMALY": {
+      "waist": {
+        "title": "Angka lilit pinggang melonjak",
+        "text_other": "Lilit pinggang anda dicatat daripada {{fromCm}} cm kepada {{toCm}} cm dalam {{days}} hari. Perubahan sebesar itu terlalu cepat untuk tubuh, kemungkinan besar cara mengukur berbeza.",
+        "advice": "Ukur di titik yang sama (sejajar pusat), pada waktu pagi, selepas menghembus nafas, dan dengan kedudukan pita yang sama. Ukur semula jika ragu."
+      },
+      "weight": {
+        "title": "Angka berat melonjak",
+        "text_other": "Berat badan anda dicatat daripada {{fromKg}} kg kepada {{toKg}} kg dalam {{days}} hari. Perbezaan sebesar itu biasanya kerana waktu atau cara menimbang yang berbeza, bukan lemak.",
+        "advice": "Timbang pada waktu yang sama, sebelum makan, dengan pakaian yang serupa, supaya angka boleh dibandingkan."
+      }
+    },
+    "INTAKE_AVG_VS_TARGET": {
+      "on_target": {
+        "title": "Makan mengikut sasaran",
+        "text": "Purata pemakanan anda {{avgKcal}} kcal sehari, hampir dengan sasaran {{targetKcal}} kcal."
+      },
+      "over": {
+        "title": "Makan melebihi sasaran",
+        "text": "Purata pemakanan anda {{avgKcal}} kcal sehari, kira-kira {{diffKcal}} kcal ({{diffPct}}%) melebihi sasaran {{targetKcal}} kcal.",
+        "advice": "Pilih satu waktu makan yang paling mudah dikurangkan, biasanya makan malam atau snek, dan kurangkan sedikit sahaja. Perbezaan kecil setiap hari lebih tahan lama daripada berpantang sepenuhnya."
+      },
+      "under": {
+        "title": "Makan jauh di bawah sasaran",
+        "text": "Purata pemakanan anda {{avgKcal}} kcal sehari, jauh di bawah sasaran {{targetKcal}} kcal. Mungkin ada makanan yang belum dicatat, atau anda memang makan terlalu sedikit.",
+        "advice": "Catat semua makanan dan minuman, termasuk snek. Jika memang makan sedikit, jangan dipaksa lebih rendah daripada sasaran, badan perlukan tenaga untuk bergerak dan pulih."
+      },
+      "under_gain": {
+        "title": "Makan belum cukup untuk menaikkan berat",
+        "text": "Purata pemakanan anda {{avgKcal}} kcal sehari, di bawah sasaran menaikkan berat {{targetKcal}} kcal.",
+        "advice": "Tambah satu snek padat zat sehari, contohnya susu, kacang atau roti berintikan, dan jangan langkau hidangan utama."
+      },
+      "under_maternal": {
+        "title": "Pemakanan perlu dicukupkan",
+        "text": "Purata pemakanan anda {{avgKcal}} kcal sehari, di bawah keperluan anda {{targetKcal}} kcal.",
+        "advice": "Makan sedikit tetapi kerap dan pilih makanan padat zat. Jika sukar makan, beritahu doktor atau bidan."
+      }
+    },
+    "INTAKE_SWING": {
+      "swing": {
+        "title": "Pengambilan makanan naik turun antara hari",
+        "text": "Pemakanan anda berayun daripada {{minKcal}} hingga {{maxKcal}} kcal sehari, beza {{spreadKcal}} kcal.",
+        "advice": "Cuba diseimbangkan. Jika hari ini sudah banyak, jangan ganti dengan melangkau makan esok. Sediakan menu asas yang lebih kurang sama setiap hari."
+      },
+      "steady": {
+        "title": "Pengambilan makanan stabil",
+        "text": "Pemakanan anda stabil dari hari ke hari, sekitar {{minKcal}} hingga {{maxKcal}} kcal."
+      }
+    },
+    "PROTEIN_OK": {
+      "ok": {
+        "title": "Protein mencukupi",
+        "text": "Purata protein anda {{avgG}} g sehari, sudah mencapai sasaran {{targetG}} g."
+      }
+    },
+    "PROTEIN_LOW": {
+      "low": {
+        "title": "Protein masih kurang",
+        "text": "Purata protein anda {{avgG}} g sehari, sasaran {{targetG}} g (kurang kira-kira {{shortG}} g).",
+        "advice": "Tambah satu sumber protein pada setiap hidangan: telur, ikan, ayam tanpa kulit, tauhu atau tempe."
+      }
+    },
+    "FOOD_PATTERN": {
+      "fried": {
+        "title": "Banyak makanan goreng",
+        "text": "Ada {{count}} makanan goreng atau bersalut tepung dalam {{days}} hari, kira-kira {{kcalSharePct}}% daripada kalori yang dicatat.",
+        "advice": "Gantikan sebahagian dengan versi panggang, rebus atau kukus, contohnya ayam panggang, ikan bakar, tauhu atau tempe kukus. Jika goreng-gorengan, cukup sekeping dan toskan minyaknya."
+      },
+      "double_carb": {
+        "title": "Dua karbo dalam satu hidangan",
+        "text": "Ada {{count}} kali makan dengan dua sumber karbohidrat sekali gus (contohnya nasi dengan mi, kentang atau roti), tersebar dalam {{days}} hari.",
+        "advice": "Pilih satu sumber karbohidrat setiap kali makan, kemudian isikan selebihnya dengan sayur dan lauk protein. Nasi dengan mee goreng, contohnya, cukup salah satu."
+      },
+      "sweet": {
+        "title": "Banyak yang manis",
+        "text": "Ada {{count}} makanan atau minuman manis dalam {{days}} hari, kira-kira {{kcalSharePct}}% daripada kalori yang dicatat.",
+        "advice": "Gantikan minuman manis dengan teh atau kopi kosong atau air kosong, atau kurangkan gulanya separuh. Untuk pencuci mulut, kongsi dua dengan kawan."
+      }
+    },
+    "ACTIVE_WEEK": {
+      "active": {
+        "title": "Aktif secara tetap",
+        "text_other": "Anda bersenam sejumlah {{minutes}} minit minggu ini, tersebar dalam {{activeDays}} hari."
+      },
+      "maternal": {
+        "title": "Kekal bergerak",
+        "text": "Anda kekal bergerak minggu ini, sejumlah {{minutes}} minit. Teruskan yang terasa selesa untuk tubuh anda."
+      }
+    },
+    "RUN_EASY": {
+      "easy": {
+        "title": "Latihan di zon santai",
+        "text": "Kira-kira {{easySharePct}}% masa latihan anda berada di zon ringan hingga sederhana. Itu bagus untuk membina stamina tanpa menghabiskan tenaga."
+      }
+    },
+    "RUN_INTENSITY": {
+      "load": "Beban latihan anda minggu ini juga kira-kira {{loadRatio}} kali ganda daripada biasa.",
+      "loadAdvice": "Beri juga 1 hingga 2 hari rehat penuh minggu depan.",
+      "hr": "Degup jantung anda purata {{avgHrBpm}} dan sempat mencecah {{maxHrBpm}} bpm.",
+      "hard_run": {
+        "title": "Larian terlalu laju",
+        "text": "Larian anda menghabiskan {{z45Min}} minit di zon {{zoneFrom}} hingga {{zoneTo}}, kira-kira {{z45SharePct}}% daripada masa sesi. Itu zon yang berat.",
+        "advice": "Selang-seli lari dan berjalan, contohnya 1 minit lari perlahan kemudian 2 minit berjalan, ulang. Panduannya, anda masih boleh berbual sambil bergerak. Tambah tempoh dahulu, kemudian rentak."
+      },
+      "hard_other": {
+        "title": "Latihan terlalu berat",
+        "text": "Latihan anda menghabiskan {{z45Min}} minit di zon {{zoneFrom}} hingga {{zoneTo}}, kira-kira {{z45SharePct}}% daripada masa sesi. Itu zon yang berat.",
+        "advice": "Perlahankan rentak sehingga anda masih boleh berbual dalam ayat penuh. Tambah tempoh perlahan-lahan, kemudian rentak."
+      },
+      "hard_check_doctor": {
+        "title": "Intensiti tinggi, semak dengan doktor dahulu",
+        "text": "Latihan anda menghabiskan {{z45Min}} minit di zon {{zoneFrom}} hingga {{zoneTo}}, kira-kira {{z45SharePct}}% daripada masa sesi. Itu zon yang berat.",
+        "advice": "Degup jantung setinggi ini pada rentak yang berat perlu diberi perhatian. Semak dengan doktor dahulu sebelum menambah intensiti, kemudian mulakan dengan berjalan pantas atau selang-seli lari dan berjalan pada rentak yang masih membolehkan anda berbual. Jika ada sakit dada, sesak nafas atau pening, berhenti dan dapatkan pemeriksaan segera."
+      },
+      "hard_maternal": {
+        "title": "Intensiti perlu diturunkan",
+        "text": "Latihan anda menghabiskan {{z45Min}} minit di zon {{zoneFrom}} hingga {{zoneTo}}, kira-kira {{z45SharePct}}% daripada masa sesi. Itu zon yang berat.",
+        "advice": "Perlahankan rentak ke tahap yang masih membolehkan anda berbual dan pilih berjalan santai atau gerakan ringan. Tanyalah doktor atau bidan setakat mana latihan yang selamat untuk keadaan anda."
+      }
+    },
+    "LOAD_SPIKE": {
+      "spike": {
+        "title": "Beban latihan melonjak",
+        "text": "Beban latihan anda minggu ini kira-kira {{loadRatio}} kali ganda daripada biasa, jauh melebihi had munasabah kira-kira {{spikeAt}} kali.",
+        "advice": "Turunkan bebannya minggu depan: beri 1 hingga 2 hari rehat penuh dan jangan tambah jarak atau rentak serentak. Naikkan secara berperingkat."
+      }
+    },
+    "SLEEP_OK": {
+      "ok": {
+        "title": "Tidur cukup",
+        "text": "Purata tidur anda {{avgHours}} jam semalam. Itu cukup untuk pulih."
+      }
+    },
+    "SLEEP_SHORT": {
+      "short": {
+        "title": "Tidur kurang",
+        "text": "Purata tidur anda {{avgHours}} jam semalam (antara {{minHours}} dan {{maxHours}} jam), sedangkan anda perlukan kira-kira {{needHours}} jam.",
+        "advice": "Awalkan waktu tidur 15 minit setiap beberapa hari sehingga hampir dengan keperluan anda, dan kurangkan skrin serta kafein pada waktu malam. Kurang tidur menjadikan anda lebih kerap lapar dan pemulihan latihan lebih perlahan."
+      }
+    },
+    "STEPS_GOOD": {
+      "good": {
+        "title": "Langkah harian bagus",
+        "text": "Purata langkah anda {{avgSteps}} sehari."
+      }
+    },
+    "LOW_STEPS": {
+      "low": {
+        "title": "Langkah harian masih sedikit",
+        "text": "Purata langkah anda {{avgSteps}} sehari dalam {{days}} hari yang dibaca. Jika jam atau telefon tidak sentiasa dibawa, angkanya mungkin lebih rendah daripada hakikat.",
+        "advice": "Tambah berjalan kaki 10 minit selepas makan atau pilih tangga. Naikkan sedikit demi sedikit, jangan terus digandakan."
+      }
+    },
+    "SLEEP_FACTOR": {
+      "caffeine": {
+        "title": "Kopi petang dan tidur anda",
+        "text_maybe": "Mungkin ada kaitan: Pada {{exposed}} malam selepas anda minum kopi atau minuman berkafein dalam lingkungan 8 jam sebelum tidur, tidur anda purata {{minutes}} minit lebih pendek berbanding {{other}} malam tanpa itu.",
+        "text_leaning": "Coraknya cenderung sama: Pada {{exposed}} malam selepas anda minum kopi atau minuman berkafein dalam lingkungan 8 jam sebelum tidur, tidur anda purata {{minutes}} minit lebih pendek berbanding {{other}} malam tanpa itu.",
+        "advice": "Cuba awalkan kopi terakhir anda selama beberapa hari dan lihat sama ada tidur anda turut berubah."
+      },
+      "regularity": {
+        "title": "Waktu tidur yang beralih",
+        "text_maybe": "Mungkin ada kaitan: Pada {{exposed}} malam dengan waktu tidur beralih lebih daripada 1 jam daripada kebiasaan anda, tidur anda purata {{minutes}} minit lebih pendek berbanding {{other}} malam yang teratur.",
+        "text_leaning": "Coraknya cenderung sama: Pada {{exposed}} malam dengan waktu tidur beralih lebih daripada 1 jam daripada kebiasaan anda, tidur anda purata {{minutes}} minit lebih pendek berbanding {{other}} malam yang teratur.",
+        "advice": "Cuba tidur pada waktu yang lebih kurang sama beberapa malam berturut-turut dan lihat sama ada coraknya berubah."
+      },
+      "temperature": {
+        "title": "Bilik yang panas",
+        "text_maybe": "Mungkin ada kaitan: Pada {{exposed}} malam dengan suhu bilik melebihi {{value}} darjah C, anda terjaga purata {{minutes}} minit lebih lama berbanding {{other}} malam yang lebih sejuk.",
+        "text_leaning": "Coraknya cenderung sama: Pada {{exposed}} malam dengan suhu bilik melebihi {{value}} darjah C, anda terjaga purata {{minutes}} minit lebih lama berbanding {{other}} malam yang lebih sejuk.",
+        "advice": "Cuba sejukkan bilik beberapa malam, contohnya melalui pengudaraan atau kipas, dan lihat sama ada malam anda berubah."
+      },
+      "humidity": {
+        "title": "Bilik yang lembap",
+        "text_maybe": "Mungkin ada kaitan: Pada {{exposed}} malam dengan kelembapan bilik melebihi {{value}}%, anda terjaga purata {{minutes}} minit lebih lama berbanding {{other}} malam yang lebih kering.",
+        "text_leaning": "Coraknya cenderung sama: Pada {{exposed}} malam dengan kelembapan bilik melebihi {{value}}%, anda terjaga purata {{minutes}} minit lebih lama berbanding {{other}} malam yang lebih kering.",
+        "advice": "Cuba kurangkan kelembapan bilik beberapa malam, contohnya melalui pengudaraan, dan lihat sama ada malam anda berubah."
+      },
+      "dinner": {
+        "title": "Makan malam yang terlalu hampir waktu tidur",
+        "text_maybe": "Mungkin ada kaitan: Pada {{exposed}} malam dengan makan malam kurang daripada 3 jam sebelum tidur, anda terjaga purata {{minutes}} minit lebih lama berbanding {{other}} malam yang lain.",
+        "text_leaning": "Coraknya cenderung sama: Pada {{exposed}} malam dengan makan malam kurang daripada 3 jam sebelum tidur, anda terjaga purata {{minutes}} minit lebih lama berbanding {{other}} malam yang lain.",
+        "advice": "Cuba awalkan makan malam beberapa hari dan lihat sama ada malam anda terasa lebih tenang."
+      },
+      "workout": {
+        "title": "Latihan yang terlalu hampir waktu tidur",
+        "text_maybe": "Mungkin ada kaitan: Pada {{exposed}} malam selepas latihan 20 minit atau lebih yang tamat dalam 3 jam sebelum tidur, anda terjaga purata {{minutes}} minit lebih lama berbanding {{other}} malam yang lain.",
+        "text_leaning": "Coraknya cenderung sama: Pada {{exposed}} malam selepas latihan 20 minit atau lebih yang tamat dalam 3 jam sebelum tidur, anda terjaga purata {{minutes}} minit lebih lama berbanding {{other}} malam yang lain.",
+        "advice": "Cuba alihkan latihan sedikit lebih awal beberapa hari dan lihat sama ada malam anda berubah."
+      }
+    }
+  }
+}

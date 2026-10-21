@@ -88,6 +88,16 @@ export function AboutScreen() {
           title={t("hubWeb.about.refund")}
         />
       </ListGroup>
+
+      <SectionTitle className="mt-7">{t("dataSources.title")}</SectionTitle>
+      <div className="space-y-2 px-1 text-sm leading-relaxed text-muted-foreground">
+        <p>{t("dataSources.intro")}</p>
+        <p>{t("dataSources.tkpi")}</p>
+        <p>{t("dataSources.sgfoodid")}</p>
+        <p lang="en" className="text-xs">
+          {t("dataSources.notice")}
+        </p>
+      </div>
     </>
   );
 }

@@ -225,6 +225,7 @@ const EARLIER_FLAG = `Earlier in this conversation the person mentioned symptoms
 const LANGUAGE: Record<Locale, string> = {
   id: "Answer in casual Indonesian using \"kamu\". Write the energy unit as \"kkal\", never \"kcal\".",
   en: "Answer in plain, friendly English. Write the energy unit as \"kcal\".",
+  ms: "Answer in friendly Bahasa Melayu as written in Malaysia, not Indonesian (\"anda\", \"kalori\", \"makan tengah hari\", \"boleh\", \"percuma\"). Write the energy unit as \"kcal\".",
 };
 
 function fmt(n: number | null | undefined, unit = ""): string | null {

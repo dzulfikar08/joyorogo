@@ -1,0 +1,198 @@
+{
+  "goal": {
+    "title": "Matlamat anda",
+    "lose": "Turun Berat",
+    "maintain": "Jaga Berat",
+    "gain": "Naik Berat",
+    "hint": {
+      "lose": "Sasaran di bawah berat badan anda sekarang.",
+      "maintain": "Makan sebanyak keperluan harian anda supaya berat stabil.",
+      "gain": "Sasaran di atas berat badan anda sekarang. Anda makan sedikit melebihi keperluan harian."
+    },
+    "derivedGain": "Sasaran anda di atas berat sekarang, jadi JoyoRogo menggunakan mod Naik Berat.",
+    "maintainNote": "Berat sasaran mengikut berat badan anda sekarang.",
+    "maternalOff": "Mod Naik Berat dimatikan semasa anda mengandung atau menyusukan bayi."
+  },
+  "plan": {
+    "intro": "Sasaran makan anda = keperluan asas badan (BMR) ditambah lebihan kalori. Aktiviti sebenar ditambah di atasnya. Lebihannya dikira daripada rentak naik berat yang anda pilih melalui tarikh sasaran.",
+    "surplus": {
+      "label": "Lebihan untuk naik berat",
+      "name": "Tambahan makan",
+      "body": "Tambahan di atas BMR supaya berat naik perlahan. Jumlahnya dikira daripada perbezaan berat dan tarikh sasaran anda, dihadkan {{min}} hingga {{max}} kcal sehari."
+    },
+    "perDay": "+{{kcal}} kcal sehari",
+    "pace": "Kira-kira {{kg}} kg seminggu ({{pct}}% berat badan)",
+    "reach": "Dengan rentak ini sasaran anda tercapai kira-kira {{date}}.",
+    "protein": "Protein {{min}} hingga {{max}} g sehari. Sasarannya {{target}} g.",
+    "proteinHint": "Protein yang cukup, ditambah latihan beban, membantu tambahan berat menjadi otot dan bukan lemak sahaja.",
+    "leanNote": "Sebahagian tambahan berat tetap lemak. Rentak perlahan dan latihan beban menjadikan bahagian ototnya lebih besar.",
+    "estimate": "Satu kg berat badan dikira 7,700 kcal, itu anggaran umum. Hasil setiap orang berbeza, jadi lihat trend timbangan anda 2 hingga 3 minggu kemudian laraskan.",
+    "burnNote": "Senaman yang anda catat ditambah pada baki makan hari itu. Jika anda kerap berlatih berat dan berat anda belum naik selepas 2 hingga 3 minggu, tambah makan sedikit.",
+    "needs": {
+      "cutNone": "Tiada potongan",
+      "surplusRow": "Lebihan"
+    }
+  },
+  "today": {
+    "short": "Kurang {{kcal}} kcal lagi",
+    "reached": "Sasaran tercapai",
+    "over": "Lebih {{kcal}} kcal daripada sasaran",
+    "overHint": "Tidak mengapa, sesekali lebih masih munasabah. Esok kembali ke sasaran sahaja.",
+    "shortLabel": "Masih perlu",
+    "eatenOf": "{{eaten}} daripada {{target}} kcal",
+    "ringLabel": "Makan",
+    "tipShort": "Jika sukar dihabiskan, bahagikan kepada 5 atau 6 kali makan kecil. Tambah nasi, telur, tempe, atau avokado.",
+    "tipReached": "Bagus, keperluan anda hari ini sudah dipenuhi.",
+    "tipOver": "Sasaran anda sudah dilepasi. Tenang sahaja, badan anda boleh menggunakannya.",
+    "ideasTitle": "Idea untuk tambah kalori",
+    "ideasHint": "Makanan biasa yang padat kalori dan nutrien.",
+    "streak_other": "{{count}} hari berturut-turut makan hingga sasaran",
+    "streakRule": "Satu hari dikira jika anda makan sekurang-kurangnya 90% daripada sasaran.",
+    "progress": "Naik {{kg}} kg daripada {{start}} kg",
+    "toGo": "{{kg}} kg lagi ke sasaran",
+    "protein": "Protein",
+    "proteinOf": "{{eaten}} daripada {{target}} g",
+    "cardTitle": "Pelan Naik Berat",
+    "cardSummary": "Sasaran {{target}} kcal sehari: BMR {{tdee}} ditambah {{surplus}}."
+  },
+  "date": {
+    "hint": "Pilih tarikhnya, lebihan dan sasaran makan harian anda turut menyesuaikan diri.",
+    "ok": {
+      "lean_other": "Tepat. Naik {{kg}} kg dalam {{count}} hari, rentak {{perWeek}} kg seminggu ({{pct}}% berat badan), santai dan selamat.",
+      "brisk_other": "Boleh. Naik {{kg}} kg dalam {{count}} hari, rentak {{perWeek}} kg seminggu ({{pct}}%). Ini melebihi laluan lean bulk (0.25 hingga 0.5% seminggu), jadi sebahagian tambahannya mungkin menjadi lemak. Masih munasabah untuk pemula atau anda yang berat badannya kurang."
+    },
+    "fast": {
+      "title": "Tarikh ini menuntut kenaikan {{perWeek}} kg seminggu ({{pct}}% berat badan), terlalu pantas.",
+      "titleSurplus": "Tarikh ini menuntut tambahan ~{{surplus}} kcal sehari, melebihi had {{max}} kcal.",
+      "body_other": "Melebihi 1% berat badan seminggu, sebahagian besar tambahannya menjadi lemak dan perut mungkin tidak selesa. Naik {{kg}} kg dengan rentak yang lebih perlahan memerlukan kira-kira {{count}} hari.",
+      "useDate": "Guna tarikh yang lebih santai ({{date}})"
+    },
+    "slow": {
+      "title": "Tarikhnya agak jauh.",
+      "body": "Rentaknya perlahan, jadi JoyoRogo tetap menggunakan lebihan minimum {{surplus}} kcal sehari. Dengan itu sasaran anda tercapai kira-kira {{date}}.",
+      "useDate": "Guna {{date}}"
+    },
+    "preview": {
+      "changed": "Sasaran makan menjadi {{next}} kcal sehari (sekarang {{current}}), lebihan +{{surplus}}.",
+      "same": "Sasaran makan kekal {{kcal}} kcal sehari."
+    }
+  },
+  "target": {
+    "hint": "Di atas berat sekarang, jadi pelannya naik berat.",
+    "aboveHealthy": "Berat sasaran ini di atas julat berat sihat ({{min}} hingga {{max}} kg). Anda boleh teruskan, tetapi sebaiknya berbincang dahulu dengan doktor atau pakar pemakanan."
+  },
+  "notes": {
+    "disclaimer": "JoyoRogo bukan alat perubatan. Angkanya anggaran umum daripada cadangan pemakanan sukan, bukan nasihat doktor.",
+    "bmiLow": {
+      "title": "Berat badan anda di bawah julat yang disarankan",
+      "body": "BMI anda kira-kira {{bmi}}. Sebaiknya berjumpa doktor atau pakar pemakanan untuk memastikan tiada punca perubatan dan menyusun pelan naik berat yang selamat."
+    },
+    "rapidLoss": {
+      "title": "Berat anda menurun kebelakangan ini",
+      "body": "Trend berat badan anda menurun agak pantas walhal pelan anda naik berat. Jika tidak disengajakan, sila berjumpa doktor. Sementara itu, cuba makan dengan teratur hingga sasaran kcal setiap hari."
+    },
+    "aboveHealthy": {
+      "title": "Sasaran anda di atas julat berat sihat",
+      "body": "BMI sasaran kira-kira {{bmi}}, melebihi had sihat 25. Anda masih boleh teruskan. Jika matlamat anda menambah otot, berbincang dengan jurulatih atau pakar pemakanan supaya kenaikannya tepat."
+    }
+  },
+  "coach": {
+    "scanTitle": "Sesuai untuk sasaran anda",
+    "scanShort": "Anda masih perlukan {{kcal}} kcal hari ini, jadi ini membantu.",
+    "scanReached": "Sasaran hari ini sudah tercapai. Ini bonus jika anda memang lapar.",
+    "dayImpact": "Jumlah hari ini {{total}} daripada sasaran {{target}} kcal",
+    "dense": "Jika hidangan terasa banyak, pilih yang padat kalori: nasi, telur, tempe, kacang, avokado, atau susu.",
+    "strength": "Latihan beban: catat gerakan, set, ulangan, dan beban. Beban yang meningkat membantu tambahan berat menjadi otot.",
+    "surplusExplainer": {
+      "title": "Kenapa ada perkataan lebihan?",
+      "body": "Lebihan ialah tambahan kalori melebihi keperluan badan anda. Perbezaan inilah yang menaikkan berat. Anda tidak perlu mengiranya, cukup makan kira-kira sasaran."
+    },
+    "dailyTip": "Makan sedikit demi sedikit tetapi kerap lebih mudah daripada tiga kali makan besar."
+  },
+  "chart": {
+    "target": "Sasaran",
+    "band": "Laluan naik perlahan",
+    "bandRange": "{{min}} hingga {{max}} kg seminggu",
+    "start": "Mula",
+    "title": "Laluan naik berat",
+    "toGo": "{{kg}} kg lagi",
+    "gained": "Sudah naik {{kg}} kg"
+  },
+  "recap": {
+    "weightUp": "Naik {{kg}} kg minggu ini",
+    "weightDown": "Turun {{kg}} kg minggu ini. Semak semula sama ada makanan anda sudah mencapai sasaran.",
+    "weightSteady": "Berat stabil minggu ini",
+    "daysOnTarget": "{{on}} daripada {{total}} hari makan hingga sasaran",
+    "dayUnder": "Belum sampai sasaran",
+    "celebrate": {
+      "great": "Minggu yang hebat: anda makan secukupnya hampir setiap hari.",
+      "some": "Sudah ada kemajuan. Tambah satu snek padat nutrien supaya lebih kerap mencapai sasaran.",
+      "low": "Minggu ini masih kerap kurang daripada sasaran. Cuba pasang peringatan makan malam."
+    },
+    "shareLine": "Rumusan saya {{name}}: {{on}} daripada {{logged}} hari makan hingga sasaran, purata {{avg}} kcal sehari. Naik Berat bersama JoyoRogo."
+  },
+  "milestone": {
+    "gained": "Naik {{kg}} kg"
+  },
+  "share": {
+    "gained": "Sudah naik {{kg}} kg. Naik Berat dengan 3 angka sahaja di JoyoRogo.",
+    "progress": "Naik Berat dengan 3 angka sahaja: makan, bakar, tidur. JoyoRogo.",
+    "publicTitle": "Saya sudah naik {{kg}} kg dengan JoyoRogo",
+    "publicStart": "Saya sedang menaikkan berat badan bersama JoyoRogo"
+  },
+  "group": {
+    "gained": "naik {{kg}} kg",
+    "weekGained": "naik {{kg}} kg minggu ini",
+    "streak": "Makan hingga sasaran {{count}} hari berturut-turut"
+  },
+  "reminder": {
+    "label": "Peringatan jika masih kurang",
+    "hint": "Muncul pada waktu petang hanya jika anda masih di bawah sasaran kalori hari ini.",
+    "title": "Masih kurang {{kcal}} kcal hari ini",
+    "body": "Makan malam yang mencukupi membantu sasaran anda. Cuba tambah nasi, telur, atau tempe.",
+    "bodyShort": "Makan malam yang mencukupi membantu sasaran anda."
+  },
+  "estimate": {
+    "title": "Tentang anggaran kalori daripada foto",
+    "body": "Kalori daripada foto ialah anggaran, boleh tersasar ke atas atau ke bawah. Jika anda sedang menaikkan berat, angka yang terlalu tinggi menyebabkan anda makan kurang daripada yang dicatat. Lihat trend timbangan anda 2 hingga 3 minggu, bukan sehari, kemudian laraskan hidangan."
+  },
+  "nativeSetup": {
+    "needGainTarget": "Untuk Naik Berat, isi sasaran di atas berat badan anda sekarang.",
+    "needLoseTarget": "Untuk Turun Berat, isi sasaran di bawah berat badan anda sekarang."
+  },
+  "webToday": {
+    "explain": {
+      "formula": "Kurang = sasaran makan − sudah dimakan",
+      "example": "Hari ini: {{target}} − {{eaten}} = kurang {{left}} kcal",
+      "left": "Yang masih perlu anda makan hari ini supaya mencapai sasaran. Jika sudah sampai atau melebihi, tiada apa yang perlu dikejar."
+    },
+    "chart": {
+      "up": "Naik"
+    }
+  },
+  "nativeToday": {
+    "explain": {
+      "formula": "Masih perlu = sasaran makan − sudah dimakan",
+      "example": "Hari ini: {{target}} − {{eaten}} = kurang {{left}} kcal",
+      "exampleDone": "Hari ini: {{eaten}} daripada {{target}} kcal, sasaran tercapai",
+      "leftTitle": "Masih perlu",
+      "leftBody": "Yang masih perlu anda makan hari ini supaya mencapai sasaran. Jika sudah sampai atau melebihi, tiada apa yang perlu dikejar."
+    },
+    "story": {
+      "gained": "Naik"
+    },
+    "recap": {
+      "streakSub": "makan hingga sasaran tanpa putus",
+      "note": "Pengiraan daripada catatan anda sendiri, bukan penilaian perubatan. Mencapai sasaran bermaksud anda makan sekurang-kurangnya 90% daripada sasaran harian. Berat menggunakan trend (purata bergerak), jadi tidak terikut turun naik timbangan harian."
+    },
+    "reminder": {
+      "titleReached": "Semak makan malam anda",
+      "sheetTitle": "Masa peringatan jika masih kurang"
+    },
+    "calendarTarget": "Sasaran {{kcal}}",
+    "chart": {
+      "up": "Naik",
+      "detailLegend": "Garisan = trend (purata bergerak 7 hari), titik = timbangan harian. Bar = kalori harian yang dicatat (gelap = sudah sampai sasaran, cerah = belum); kawasan belang = hari yang belum dicatat. Kawasan hijau muda = laluan naik perlahan."
+    }
+  }
+}

@@ -7,3 +7,4 @@ Foto makanan dianalisis model visi AI (gemma-4-26b-a4b-it di Cloudflare Workers 
 - Berjalan di web (https://joyorogo.com), Android, dan iPhone (beta publik lewat TestFlight; versi App Store 1.0 sedang menunggu review Apple); antarmuka dalam Bahasa Indonesia.
 - Login menggunakan akun Google.
 - Dibuat di Malang, Indonesia oleh Dzulfikar.
+- Halaman Bahasa Melayu untuk pembaca Malaysia: https://joyorogo.com/my (anggaran kalori hidangan Malaysia dari foto, nilai dirujuk pada jadual makanan Malaysia yang dinyatakan sumbernya; sumber terbuka AGPL-3.0, foto tidak disimpan; tiada pensijilan atau label halal).

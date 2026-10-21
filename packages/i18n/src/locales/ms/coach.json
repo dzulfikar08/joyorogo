@@ -1,0 +1,16 @@
+{
+  "disclaimer": "Ini bukan nasihat perubatan.",
+  "docTooLarge": "Data coach terlalu besar untuk disimpan.",
+  "locked": "Tanya coach khas untuk pengguna Pro.",
+  "disabled": "Tanya coach dimatikan buat sementara di pelayan ini.",
+  "capReached": "Anda sudah menggunakan {{cap}} mesej Tanya coach hari ini. Cuba lagi esok.",
+  "failed": "Coach tidak dapat menjawab sekarang. Cuba lagi sebentar nanti.",
+  "timeout": "Coach mengambil masa terlalu lama untuk menjawab. Cuba hantar semula.",
+  "refuseLeak": "Itu di luar bidang yang boleh saya bantu. Tanyalah tentang latihan, pemulihan, tidur atau pemakanan ya.",
+  "safe": {
+    "injury": "Jika ada kecederaan atau sakit yang tajam atau tidak hilang, berhenti dahulu dan jangan paksa diri berlatih. Dapatkan pemeriksaan doktor atau ahli fisioterapi sebelum meneruskan. Saya tidak boleh menyusun latihan di sekitar kecederaan, jadi tunggu arahan mereka dahulu.",
+    "medical": "Gejala seperti sakit dada, sesak nafas, pening teruk atau pengsan perlu diperiksa doktor, bukan diagak melalui aplikasi. Berhenti berlatih dahulu dan jumpa doktor. Jika gejalanya teruk atau mendadak, segera ke jabatan kecemasan atau hubungi perkhidmatan kecemasan. Tentang ubat dan dos, tanya doktor atau ahli farmasi.",
+    "eatingDisorder": "Terima kasih kerana berkongsi. Saya tidak akan memberi nasihat untuk menyekat pemakanan. Corak pemakanan seperti ini sebaiknya dibincangkan dengan doktor, ahli psikologi atau orang dewasa yang anda percayai. Anda tidak keseorangan, dan bantuan sentiasa ada.",
+    "minorDiet": "Bagi mereka yang berumur di bawah 18 tahun, saya tidak memberi nasihat diet atau menyekat pemakanan. Tubuh yang sedang membesar perlu makan secukupnya. Jika anda bimbang tentang berat badan, bincanglah dengan ibu bapa atau doktor."
+  }
+}

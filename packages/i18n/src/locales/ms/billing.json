@@ -1,0 +1,271 @@
+{
+  "paywall": {
+    "title": "Jadi Pro",
+    "loadError": "Harga belum dapat dimuatkan.",
+    "loading": "Memuatkan tawaran Pro",
+    "bundle": "Pro merangkumi JoyoRogo + JoyoFit.",
+    "buy": "Jadi Pro",
+    "buyStore": "Langgan JoyoRogo Pro",
+    "opening": "Membuka pembayaran...",
+    "later": "Lain kali",
+    "noAutoRenew": "Tidak diperbaharui secara automatik.",
+    "playUnavailable": "Langganan belum tersedia di Google Play untuk akaun anda.",
+    "terms": "Terma",
+    "privacy": "Privasi",
+    "subhead": {
+      "onboarding": "Pelan harian anda sudah siap. Pro mendapat imbasan AI jauh lebih banyak setiap hari.",
+      "quota": "Had imbasan AI percuma hari ini sudah habis. Jadi Pro untuk terus mengimbas.",
+      "banner": "Imbasan AI percuma terhad setiap hari. Pro mendapat had jauh lebih besar.",
+      "profile": "Sokong JoyoRogo dan dapatkan had imbasan AI jauh lebih besar.",
+      "fitness": "Dapatkan saranan hidangan dan menu harian berdasarkan skor JoyoFit, sasaran anda dan makanan yang anda catat.",
+      "challenge": "Hanya Pro boleh membuat cabaran kumpulan. Anda tetap boleh menyertai cabaran kawan anda secara percuma.",
+      "joyofit": "Sandaran cloud JoyoFit termasuk dalam Pro, satu pakej dengan JoyoRogo.",
+      "scanleft": "Imbasan percuma anda hampir habis hari ini. Pro mendapat had jauh lebih besar.",
+      "chip": "Satu langganan untuk JoyoRogo dan JoyoFit. Inilah yang dibuka oleh Pro.",
+      "mealplan": "Menu harian dan mingguan yang sesuai dengan kalori dan protein anda, serta senarai belian dan resipi.",
+      "sleep": "Corak tidur yang dikaitkan dengan tabiat makan anda, dikira daripada data jam.",
+      "recap": "Refleksi mingguan yang ditulis AI berdasarkan angka anda sendiri.",
+      "workout": "Graf, pecahan dan zon latihan yang dikongsi kawan anda.",
+      "streak": "Streak {{days}} hari. Pro memberi had imbasan yang mencukupi untuk terus mencatat setiap hari."
+    }
+  },
+  "plan": {
+    "label": "Pilih tempoh Pro",
+    "yearly": "Tahunan",
+    "monthly": "Bulanan",
+    "save": "jimat {{amount}}",
+    "perMonth": "/bulan",
+    "perYear": "/tahun",
+    "equivalent": "Bersamaan {{price}}/bulan",
+    "savePercent": "Jimat {{percent}}%",
+    "chargeYearly": "{{price}} setahun.",
+    "chargeMonthly": "{{price}} sebulan."
+  },
+  "benefits": {
+    "scansUnlimited": "Imbasan AI tanpa had",
+    "scansCapped_other": "{{count}} imbasan AI sehari",
+    "advice": "Saranan makan daripada skor JoyoFit",
+    "backup": "Sandaran cloud JoyoFit",
+    "badge": "Lencana Pro pada profil anda",
+    "support": "Sokong pembangunan JoyoRogo",
+    "free_other": "Percuma sentiasa ada: {{count}} imbasan AI sehari, selamanya."
+  },
+  "value": {
+    "title": "Apa yang anda dapat dengan Pro",
+    "scans": "{{pro}} imbasan AI sehari, bukan {{free}}",
+    "scansUnlimited": "Imbasan AI tanpa had, bukan {{free}} sehari",
+    "mealPlan": "Pelan makan mingguan, resipi dan senarai belian daripada sasaran anda",
+    "advice": "Saranan hidangan dan menu harian daripada skor JoyoFit",
+    "sleep": "Pandangan tidur dan refleksi mingguan yang ditulis AI",
+    "cloud": "Tanya coach dan sandaran cloud dalam JoyoFit",
+    "challenge": "Cipta cabaran kumpulan sebagai hos"
+  },
+  "nudge": {
+    "chip": "Pro",
+    "chipLabel": "Lihat pelan JoyoRogo Pro",
+    "scanLeft": "Baki {{left}} daripada {{total}} imbasan percuma hari ini",
+    "scanLeftNone": "Imbasan percuma hari ini sudah habis",
+    "scanLeftAction": "Lihat Pro",
+    "streak": {
+      "title": "{{days}} hari berturut-turut mencatat",
+      "body": "Pro memberi had imbasan yang mencukupi untuk terus mencatat setiap hari, serta pelan makan dan saranan daripada JoyoFit.",
+      "cta": "Lihat Pro",
+      "dismiss": "Tutup"
+    },
+    "more": {
+      "title": "JoyoRogo Pro",
+      "bodyCapped": "{{pro}} imbasan AI sehari, pelan makan dan sandaran cloud JoyoFit.",
+      "bodyUnlimited": "Imbasan AI tanpa had, pelan makan dan sandaran cloud JoyoFit.",
+      "cta": "Lihat Pro"
+    }
+  },
+  "details": {
+    "title": "Cara bayar dan butiran",
+    "backup": "Sandaran cloud JoyoFit: langkah, degupan jantung, tidur dan latihan daripada jam.",
+    "stacks": "Pelan tahunan aktif 12 bulan dan disambung pada baki tempoh Pro anda.",
+    "later": "Anda boleh jadi Pro bila-bila masa daripada Profil.",
+    "stepsTitle": "Cara bayar",
+    "step": {
+      "web": {
+        "one": "Ketik \"Jadi Pro\".",
+        "two": "Pilih QRIS atau Pindahan Bank, kemudian bayar."
+      },
+      "store": {
+        "one": "Pilih Bulanan atau Tahunan, kemudian ketik \"Langgan JoyoRogo Pro\".",
+        "playTwo": "Bayar melalui Google Play.",
+        "appleTwo": "Bayar melalui App Store."
+      },
+      "done": "Pro aktif secara automatik selepas pembayaran."
+    },
+    "renewal": {
+      "playMonthly": "JoyoRogo Pro, langganan bulanan melalui Google Play. Diperbaharui secara automatik setiap bulan sehingga anda batalkan di Google Play > Langganan.",
+      "playYearly": "JoyoRogo Pro, langganan tahunan melalui Google Play. Diperbaharui secara automatik setiap tahun sehingga anda batalkan di Google Play > Langganan.",
+      "appleMonthly": "{{price}} sebulan, langganan App Store. Urus atau batalkan di Tetapan > Apple ID > Langganan.",
+      "appleYearly": "{{price}} setahun, langganan App Store. Urus atau batalkan di Tetapan > Apple ID > Langganan."
+    }
+  },
+  "renewal": {
+    "play": "Diperbaharui secara automatik. Batalkan bila-bila masa di Google Play.",
+    "apple": "Diperbaharui secara automatik kecuali dibatalkan sekurang-kurangnya 24 jam sebelum tempoh tamat."
+  },
+  "picker": {
+    "title": "Pilih cara bayar",
+    "description": "Pro aktif secara automatik selepas pembayaran diterima.",
+    "qris": {
+      "label": "QRIS",
+      "note": "Imbas guna e-dompet atau m-banking apa sahaja."
+    },
+    "transfer": {
+      "label": "Pindahan Bank",
+      "note": "Bayar melalui virtual account bank."
+    }
+  },
+  "promo": {
+    "headline": "Harga perkenalan Pro: {{price}}/bulan",
+    "eyebrow": "Harga perkenalan Pro",
+    "perMonth": "/bulan",
+    "wasPrice": "Harga biasa {{price}}",
+    "slots_other": "Untuk {{total}} pembeli pertama, baki <b>{{left}}</b> slot.",
+    "progress_other": "{{left}} daripada {{total}} slot harga perkenalan berbaki",
+    "details": "Butiran harga",
+    "then": "Selepas itu {{price}}/bulan.",
+    "locked": "Harga dikunci pada pembayaran web: pembeli awal terus membayar harga ini semasa pembaharuan."
+  },
+  "order": {
+    "missing": {
+      "title": "Pesanan tidak ditemui",
+      "text": "Pautan ini tidak membawa nombor pesanan.",
+      "action": "Lihat harga"
+    },
+    "checking": "Menyemak pembayaran",
+    "error": {
+      "title": "Status belum dapat dimuatkan",
+      "text": "{{message}} Pastikan anda log masuk dengan akaun yang sama semasa membayar.",
+      "retry": "Cuba lagi",
+      "signIn": "Log masuk"
+    },
+    "paid": {
+      "title": "Anda kini Pro",
+      "until": "Aktif sehingga {{date}}. Terima kasih kerana menyokong JoyoRogo.",
+      "thanks": "Terima kasih kerana menyokong JoyoRogo.",
+      "action": "Ke laman utama"
+    },
+    "failed": {
+      "title": "Pembayaran tidak selesai",
+      "text": "Pesanan ini telah tamat tempoh atau dibatalkan. Tiada dana yang ditolak.",
+      "action": "Bayar semula"
+    },
+    "pending": {
+      "title": "Menunggu pengesahan pembayaran",
+      "polling": "Halaman ini dikemas kini sendiri. Biasanya hanya beberapa saat selepas anda membayar.",
+      "stale": "Pengesahan belum diterima. Jika anda sudah membayar, semak semula sebentar lagi.",
+      "check": "Semak pembayaran",
+      "refresh": "Muat semula halaman",
+      "checkingNow": "Menyemak..."
+    },
+    "notPaidYet": "Belum ada pembayaran diterima. Cuba lagi sebentar.",
+    "notFoundError": "Pesanan tidak ditemui."
+  },
+  "cards": {
+    "freeScans_other": "Imbasan AI {{count}} kali sehari",
+    "proUnlimited": "Pro buka imbasan tanpa had.",
+    "proCapped_other": "Pro: {{count}} imbasan AI sehari.",
+    "applePrice": "{{price}}/bulan melalui App Store, diperbaharui secara automatik.",
+    "playPrice": "JoyoRogo Pro {{price}}/bulan melalui Google Play.",
+    "upgrade": "Naik taraf",
+    "checkPending": "Sudah bayar? Semak pembayaran",
+    "restore": "Pulihkan pembelian",
+    "manage": "Urus langganan",
+    "renew": "Perbaharui",
+    "activeTitle": "Pro aktif",
+    "activeUntil": {
+      "play": "Sehingga {{date}}. Langganan Google Play diurus dan dibatalkan di Play Store.",
+      "apple": "Sehingga {{date}}. Langganan App Store, urus di Tetapan > Apple ID > Langganan.",
+      "web": "Sehingga {{date}}. Tidak diperbaharui secara automatik."
+    }
+  },
+  "toast": {
+    "paidTitle": "Pembayaran diterima",
+    "paidBody": "Pro aktif. Terima kasih!",
+    "notPaidTitle": "Belum ada pembayaran diterima",
+    "notPaidBody": "Cuba lagi sebentar.",
+    "checkFailed": "Semakan pembayaran gagal",
+    "subscribedTitle": "Langganan aktif",
+    "subscribedBody": "JoyoRogo Pro aktif. Terima kasih!",
+    "waitingTitle": "Menunggu pembayaran",
+    "waitingPlay": "Pro aktif secara automatik selepas pembayaran di Google Play selesai.",
+    "waitingGeneric": "Pro aktif secara automatik selepas pembayaran selesai.",
+    "restoredTitle": "Pembelian dipulihkan",
+    "restoredBody": "JoyoRogo Pro aktif.",
+    "restoreRejectedTitle": "Tidak dapat dipulihkan",
+    "restoreRejectedApple": "Langganan ini sudah dipautkan ke akaun JoyoRogo lain.",
+    "noSubscriptionTitle": "Tiada langganan",
+    "noSubscriptionApple": "Apple ID ini belum mempunyai langganan Pro yang aktif.",
+    "noSubscriptionPlay": "Akaun Google Play ini belum mempunyai langganan Pro yang aktif.",
+    "restoreFailed": "Pemulihan gagal",
+    "payFailed": "Pembayaran gagal"
+  },
+  "error": {
+    "signIn": "Log masuk dahulu untuk melanggan.",
+    "checkFailed": "Pembayaran belum dapat disemak. Cuba lagi nanti.",
+    "checkoutFailed": "Pembayaran belum dapat diproses. Cuba lagi nanti.",
+    "statusFailed": "Status pembayaran belum dapat dimuatkan.",
+    "receiptInvalid": "Bukti pembelian tidak sah.",
+    "purchaseFailed": "Pembelian belum dapat diproses. Cuba lagi nanti.",
+    "appleUnavailable": "Pembelian melalui App Store tidak tersedia.",
+    "applePending": "Pembelian menunggu kelulusan App Store. Buka semula nanti selepas diluluskan.",
+    "playNoOffer": "Langganan belum tersedia di Google Play.",
+    "playAlready": "Anda sudah melanggan Pro di Google Play. Ketik \"Pulihkan pembelian\".",
+    "playInactive": "Pembelian belum aktif. Cuba lagi sebentar atau ketik \"Pulihkan pembelian\"."
+  },
+  "usd": {
+    "optionLabel": "Kad, dalam dolar AS",
+    "noteMonthly": "{{price}} sebulan, diperbaharui secara automatik. Batalkan bila-bila masa.",
+    "noteYearly": "{{price}} setahun, diperbaharui secara automatik. Batalkan bila-bila masa.",
+    "section": {
+      "eyebrow": "USD",
+      "title": "Bayar dalam dolar AS",
+      "subtitle": "Satu langganan kad, dibilkan oleh Polar. Pro yang sama seperti pelan rupiah.",
+      "yearly": "Tahunan",
+      "monthly": "Bulanan",
+      "perYear": "setahun",
+      "perMonth": "sebulan",
+      "equivalent": "Itu {{price}}/bulan",
+      "save": "Jimat {{amount}} ({{percent}}%)",
+      "buyYearly": "Langgan tahunan",
+      "buyMonthly": "Langgan bulanan",
+      "opening": "Membuka pembayaran...",
+      "note": "Dibilkan dalam USD oleh Polar, merchant of record kami. Cukai mungkin ditambah semasa pembayaran. Diperbaharui secara automatik sehingga anda batalkan; batalkan bila-bila masa daripada Profil atau portal pelanggan Polar.",
+      "rupiahHint": "Mahu bayar dalam rupiah? QRIS dan pindahan bank ada di bawah.",
+      "outsideLink": "Membayar dari luar Indonesia? Bayar dalam dolar AS",
+      "hide": "Sembunyikan harga dolar AS"
+    },
+    "paywall": {
+      "disclosure": "Pembayaran USD dibilkan setiap bulan atau tahun oleh Polar dan diperbaharui sehingga anda batalkan."
+    },
+    "success": {
+      "title": "Pembayaran diterima",
+      "confirming": "Mengaktifkan Pro. Ini mengambil masa beberapa saat.",
+      "timeout": "Masih mengesahkan. Pro aktif dalam masa seminit. Muat semula untuk menyemak.",
+      "refresh": "Muat semula"
+    },
+    "manage": {
+      "button": "Urus langganan",
+      "opening": "Membuka...",
+      "renews": "Pro diperbaharui pada {{date}}",
+      "renewsNoDate": "Pro diperbaharui secara automatik",
+      "canceled": "Dibatalkan: Pro kekal aktif sehingga {{date}}",
+      "canceledNoDate": "Dibatalkan: Pro kekal aktif sehingga tempoh tamat",
+      "pastDue": "Pembayaran gagal: kemas kini kad anda dalam portal",
+      "revoked": "Langganan ini telah tamat"
+    },
+    "error": {
+      "checkoutFailed": "Tidak dapat memulakan pembayaran. Cuba lagi nanti.",
+      "portalFailed": "Tidak dapat membuka portal langganan. Cuba lagi nanti."
+    }
+  },
+  "sandbox": {
+    "title": "Pembelian ujian",
+    "body": "Ini pembelian ujian daripada Apple (sandbox), jadi tidak dicaj. Pro aktif selama 24 jam."
+  }
+}

@@ -1,0 +1,167 @@
+{
+  "title": "Wawasan tidur",
+  "disclaimer": "Tabiat umum, bukan nasihat perubatan.",
+  "confidence": {
+    "maybe": "Mungkin",
+    "leaning": "Cenderung"
+  },
+  "ui": {
+    "compare": "{{exposed}} malam vs {{other}} malam",
+    "deleteData": "Padam data tidur",
+    "showNights": "Lihat malamnya",
+    "hideNights": "Tutup",
+    "sources": "Sumber",
+    "dismiss": "Sembunyikan",
+    "legendExposed": "Malam dengan tabiat ini",
+    "legendOther": "Malam tanpa",
+    "general": "Umum",
+    "personal": "Milik anda",
+    "progress": "Kemajuan",
+    "empty": "Belum ada corak yang cukup jelas. Teruskan memakai jam tangan anda, corak akan muncul apabila malam terkumpul.",
+    "needsNights": "Perlukan {{need}} malam lagi daripada jam tangan untuk membandingkan malam anda (sekarang {{have}}).",
+    "lockedTeaser_one": "{{count}} corak ditemui, buka dengan Pro",
+    "lockedTeaser_other": "{{count}} corak ditemui, buka dengan Pro",
+    "lockedCta": "Lihat Pro",
+    "lastNight": "Malam terakhir",
+    "asleep": "Tidur",
+    "awake": "Terjaga",
+    "awakenings": "Terjaga semula",
+    "hrv": "HRV",
+    "rhr": "Denyutan rehat",
+    "deep": "Lena",
+    "rem": "REM",
+    "regularity": "Keteraturan 7 malam",
+    "regularitySd": "Waktu tidur anda beralih purata {{minutes}} minit",
+    "durationHm": "{{h}} j {{m}} min",
+    "durationM": "{{m}} min",
+    "off": {
+      "title": "Wawasan tidur",
+      "body": "Padankan tidur daripada jam tangan dengan catatan makan dan latihan anda, kemudian lihat apa yang mungkin berkaitan dengan malam yang lebih baik atau lebih teruk. Memerlukan data malam daripada jam tangan melalui JoyoFit.",
+      "enable": "Aktifkan"
+    },
+    "settings": {
+      "title": "Hari bebas",
+      "body": "Digunakan untuk membandingkan waktu tidur hari bekerja dan hari cuti. Ubah jika anda bekerja syif.",
+      "days": [
+        "Aha",
+        "Isn",
+        "Sel",
+        "Rab",
+        "Kha",
+        "Jum",
+        "Sab"
+      ]
+    },
+    "room": "Bilik semalam",
+    "roomValue": "{{temp}} °C, {{rh}} %"
+  },
+  "consent": {
+    "title": "Wawasan tidur",
+    "switch": "Hantar data tidur daripada JoyoFit",
+    "summary": "Jika diaktifkan, JoyoFit menghantar satu ringkasan setiap malam ke akaun anda supaya JoyoRogo boleh memadankannya dengan catatan makan dan latihan anda.",
+    "fieldsTitle": "Apa yang dihantar setiap malam",
+    "fields": "Waktu mula dan bangun, tempoh tidur dan terjaga, bilangan terjaga semula, jumlah peringkat tidur (jika jam tangan anda mempunyainya), skor tidur daripada jam tangan, HRV dan denyutan rehat malam itu, dan waktu tidur siang. Jika anda memasang termometer bilik di JoyoFit: purata, terendah dan tertinggi suhu dan kelembapan bilik semasa tidur.",
+    "notSent": "Tidak dihantar: denyutan jantung atau SpO2 setiap minit, lokasi, nama makanan kepada model AI, dan malam sebelum anda mengaktifkan ini.",
+    "retention": "Disimpan selama 90 malam paling lama. Hasil pengiraan hanyalah cache dan dijana semula.",
+    "delete": "Mematikan suis ini terus memadam semua data malam, cache dan corak yang disembunyikan. \"Padam semua data\" juga memadamnya.",
+    "shared": "Tidak dikongsi ke kumpulan, suapan atau penyambung AI.",
+    "enabledToast": "Wawasan tidur aktif",
+    "disabledToast": "Wawasan tidur dimatikan dan data malam dipadam",
+    "offConfirmTitle": "Matikan dan padam?",
+    "offConfirmBody": "Semua data malam yang disimpan akan dipadam sekarang.",
+    "offConfirm": "Matikan dan padam"
+  },
+  "general": {
+    "caffeine": {
+      "text": "Kopi atau minuman berkafein terakhir anda dalam 7 hari ini dicatat pada pukul {{time}}, kira-kira {{hours}} jam sebelum anda tidur. Kafein biasanya mengambil masa kira-kira 5 jam untuk berkurang separuh, tetapi setiap orang berbeza (1,5 hingga 9,5 jam).",
+      "sourceLabel": "IOM: Caffeine for the Sustainment of Mental Task Performance"
+    },
+    "alcohol": {
+      "text": "Alkohol mungkin membuat anda cepat terlelap, tetapi kajian umum mencatatkan tidur separuh kedua lebih terganggu dan REM lebih sedikit. Ini petua umum, bukan hasil daripada data anda.",
+      "sourceLabel": "Ebrahim 2013, Alcohol and sleep I"
+    },
+    "regularity": {
+      "text": "Waktu tidur anda beralih purata {{minutes}} minit antara malam pada minggu ini. Waktu tidur yang konsisten biasanya lebih membantu daripada mengejar tempoh.",
+      "sourceLabel": "Windred 2024, Sleep regularity"
+    },
+    "jetlag": {
+      "text": "Titik tengah tidur anda pada hari bebas kira-kira {{minutes}} minit lebih {{direction}} berbanding hari bekerja. Peralihan sebegini sering dipanggil social jetlag.",
+      "later": "lewat",
+      "earlier": "awal",
+      "sourceLabel": "Wittmann 2006, Social jetlag"
+    },
+    "room": {
+      "text": "Semalam anda tidur di bilik bersuhu kira-kira {{temp}} °C dan kelembapan {{rh}} %. Cuaca panas dan lembap biasanya membuat anda lebih kerap terjaga dan mengurangkan tidur lena, tetapi had selesa setiap orang berbeza kerana selimut dan pakaian turut mempengaruhi.",
+      "sourceLabel": "Okamoto-Mizuno 2012, Effects of thermal environment on sleep"
+    }
+  },
+  "personal": {
+    "caffeine": {
+      "shorter": "Pada {{exposed}} malam selepas anda minum kopi atau minuman berkafein dalam lingkungan 8 jam sebelum tidur, anda tidur purata {{minutes}} minit lebih singkat berbanding {{other}} malam tanpa itu.",
+      "longer": "Pada {{exposed}} malam selepas anda minum kopi atau minuman berkafein dalam lingkungan 8 jam sebelum tidur, anda tidur purata {{minutes}} minit lebih lama berbanding {{other}} malam tanpa itu.",
+      "sourceLabel": "Drake 2013, Caffeine effects on sleep"
+    },
+    "dinner": {
+      "more": "Pada {{exposed}} malam dengan makan malam kurang daripada 3 jam sebelum tidur, anda terjaga purata {{minutes}} minit lebih lama berbanding {{other}} malam lain.",
+      "less": "Pada {{exposed}} malam dengan makan malam kurang daripada 3 jam sebelum tidur, anda terjaga purata {{minutes}} minit lebih singkat berbanding {{other}} malam lain.",
+      "sourceLabel": "Duan 2021, Dinner timing and sleep"
+    },
+    "workout": {
+      "more": "Pada {{exposed}} malam selepas latihan berat 20 minit atau lebih yang tamat dalam 3 jam sebelum tidur, anda terjaga purata {{minutes}} minit lebih lama berbanding {{other}} malam lain.",
+      "less": "Pada {{exposed}} malam selepas latihan berat 20 minit atau lebih yang tamat dalam 3 jam sebelum tidur, anda terjaga purata {{minutes}} minit lebih singkat berbanding {{other}} malam lain.",
+      "sourceLabel": "Stutz 2019, Effects of evening exercise on sleep"
+    },
+    "regularity": {
+      "shorter": "Pada {{exposed}} malam dengan waktu tidur beralih lebih daripada 1 jam daripada kebiasaan anda, anda tidur purata {{minutes}} minit lebih singkat berbanding {{other}} malam yang teratur.",
+      "longer": "Pada {{exposed}} malam dengan waktu tidur beralih lebih daripada 1 jam daripada kebiasaan anda, anda tidur purata {{minutes}} minit lebih lama berbanding {{other}} malam yang teratur.",
+      "sourceLabel": "Windred 2024, Sleep regularity"
+    },
+    "tail": {
+      "maybe": "Mungkin ada kaitan, tetapi {{total}} malam belum cukup untuk memastikannya.",
+      "leaning": "Coraknya cenderung sama pada {{total}} malam, tetapi ini tetap bukan bukti sebab-akibat."
+    },
+    "temperature": {
+      "more": "Pada {{exposed}} malam dengan bilik melebihi {{value}} °C (satu pertiga malam paling panas anda), anda terjaga purata {{minutes}} minit lebih lama berbanding {{other}} malam yang lebih sejuk.",
+      "less": "Pada {{exposed}} malam dengan bilik melebihi {{value}} °C (satu pertiga malam paling panas anda), anda terjaga purata {{minutes}} minit lebih singkat berbanding {{other}} malam yang lebih sejuk.",
+      "sourceLabel": "Okamoto-Mizuno 2012, Effects of thermal environment on sleep"
+    },
+    "humidity": {
+      "more": "Pada {{exposed}} malam dengan kelembapan bilik melebihi {{value}} % (satu pertiga malam paling lembap anda), anda terjaga purata {{minutes}} minit lebih lama berbanding {{other}} malam yang lebih kering.",
+      "less": "Pada {{exposed}} malam dengan kelembapan bilik melebihi {{value}} % (satu pertiga malam paling lembap anda), anda terjaga purata {{minutes}} minit lebih singkat berbanding {{other}} malam yang lebih kering.",
+      "sourceLabel": "Okamoto-Mizuno 2012, Effects of thermal environment on sleep"
+    }
+  },
+  "progress": {
+    "nights": "Perlukan {{need}} malam lagi daripada jam tangan untuk membandingkan malam anda (sekarang {{have}} daripada {{total}}).",
+    "caffeine": "Perlukan {{need}} malam lagi {{what}} untuk membandingkan malam anda.",
+    "caffeineWhat": {
+      "exposed": "dengan kopi petang",
+      "other": "tanpa kopi petang, dengan pemakanan lengkap dicatat"
+    },
+    "dinner": "Perlukan {{need}} malam lagi {{what}} untuk membandingkan malam anda.",
+    "dinnerWhat": {
+      "exposed": "dengan makan malam kurang daripada 3 jam sebelum tidur",
+      "other": "dengan makan malam lebih awal"
+    },
+    "workout": "Perlukan {{need}} malam lagi {{what}} untuk membandingkan malam anda.",
+    "workoutWhat": {
+      "exposed": "selepas latihan malam",
+      "other": "tanpa latihan malam"
+    },
+    "regularity": "Perlukan {{need}} malam lagi {{what}} untuk membandingkan malam anda.",
+    "regularityWhat": {
+      "exposed": "dengan waktu tidur beralih lebih daripada 1 jam",
+      "other": "dengan waktu tidur teratur"
+    },
+    "temperature": "Perlukan {{need}} malam lagi {{what}} untuk membandingkan malam anda.",
+    "temperatureWhat": {
+      "exposed": "dengan data suhu bilik yang lebih panas daripada biasa",
+      "other": "dengan data suhu bilik yang lebih sejuk"
+    },
+    "humidity": "Perlukan {{need}} malam lagi {{what}} untuk membandingkan malam anda.",
+    "humidityWhat": {
+      "exposed": "dengan data kelembapan bilik yang lebih tinggi daripada biasa",
+      "other": "dengan data kelembapan bilik yang lebih rendah"
+    }
+  }
+}

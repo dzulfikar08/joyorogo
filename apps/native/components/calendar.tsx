@@ -27,9 +27,11 @@ function daysInMonth(monthIso: string): number {
   ).getUTCDate();
 }
 
+const CALENDAR_TAG = { id: "id-ID", en: "en-US", ms: "ms-MY" } as const;
+
 /** Weekday headers, Monday first, in the active language. */
 function weekdayLabels(): string[] {
-  const format = new Intl.DateTimeFormat(getActiveLocale() === "en" ? "en-US" : "id-ID", {
+  const format = new Intl.DateTimeFormat(CALENDAR_TAG[getActiveLocale()], {
     weekday: "short",
     timeZone: "UTC",
   });

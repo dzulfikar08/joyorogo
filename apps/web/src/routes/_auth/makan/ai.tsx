@@ -33,7 +33,7 @@ import {
   suggestMealNow,
 } from "@joyorogo/api/lib/engine";
 import { isHeavyDish } from "@joyorogo/api/lib/food-kind";
-import { indomieLine, randomFact } from "@joyorogo/api/lib/facts";
+import { equivalentLine, randomFact } from "@joyorogo/api/lib/facts";
 import { scanFailReason } from "@joyorogo/api/lib/scan-errors";
 import type { ScanFailReason } from "@joyorogo/api/lib/scan-errors";
 import { analyzeStreaming } from "@joyorogo/api/lib/scan-live";
@@ -1173,7 +1173,7 @@ function AiFoodPage() {
                   className="mr-1 inline size-4 align-text-bottom"
                   aria-hidden
                 />
-                {indomieLine(totalKcal)}
+                {equivalentLine(totalKcal)}
               </p>
             </>
           )}

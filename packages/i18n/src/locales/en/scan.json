@@ -132,9 +132,21 @@
       "pecelLele": "1 serving of pecel lele",
       "bubur": "1 bowl of bubur ayam",
       "ketoprak": "1 serving of ketoprak",
-      "pisangGoreng": "1 fried banana",
+      "pisangGoreng": "1 serving of pisang goreng (100 g)",
       "seblak": "1 serving of seblak, level 3",
-      "cireng": "1 cireng rujak (5 pcs)"
+      "cireng": "1 cireng rujak (5 pcs)",
+      "nasiLemak": "1 plate of nasi lemak with egg, anchovies and sambal",
+      "rotiCanai": "1 piece of roti canai",
+      "miloAis": "1 iced Milo",
+      "charKueyTeow": "1 plate of char kuey teow",
+      "meeGorengMamak": "1 plate of mee goreng mamak",
+      "laksa": "1 bowl of laksa",
+      "cendol": "1 bowl of cendol",
+      "karipap": "1 curry puff",
+      "nasiAyam": "1 plate of chicken rice",
+      "satay": "1 serving of chicken satay (10 sticks)",
+      "kuihLapis": "1 piece of kuih lapis",
+      "nasiLemakAyam": "1 plate of nasi lemak with fried chicken"
     }
   },
   "reaction": {
@@ -200,7 +212,9 @@
       "items_one": "Save {{count}} item",
       "items_other": "Save {{count}} items",
       "pickOne": "Select at least one item"
-    }
+    },
+    "rotiCanai_one": "About {{packs}} piece of roti canai",
+    "rotiCanai_other": "About {{packs}} pieces of roti canai"
   },
   "feedback": {
     "title": "Is this accurate?",

@@ -7,12 +7,12 @@
 // filter is plain JS inlined in <head> right before the tag (analyticsTag in
 // render.ts), and nothing in the bundle needs to cooperate.
 //
-// Pageviews and events pass only on the marketing funnel (landing, pricing,
+// Pageviews and events pass only on the marketing funnel (landing, the Malaysian landing /my, pricing,
 // sign-up, payment, privacy, blog) and the public community pages (/u/<handle>
 // profiles, /p/<id> posts). In-app screens (Beranda, Makan, ...) are not
 // tracked. Conversions (`t: "c"`: onboarding_complete, founder_purchase) pass
 // wherever they fire.
-export const TRACKED_PATHS = /^\/(?:$|harga|login|pembayaran|privasi|syarat|pengembalian-dana|blog|u\/|p\/)/;
+export const TRACKED_PATHS = /^\/(?:$|my(?:\/|$)|harga|login|pembayaran|privasi|syarat|pengembalian-dana|blog|u\/|p\/)/;
 
 // /gabung/<kode> is a capability link: whoever holds the code can join the
 // group. /gabung pageviews are dropped by TRACKED_PATHS; this also covers the

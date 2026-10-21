@@ -2,7 +2,10 @@
 // kcal/fiber values are rounded from TKPI (Tabel Komposisi Pangan Indonesia)
 // style food-composition data plus pubchem-class nutrient entries; the point
 // is a plausible band per dish, not lab precision.
+import type { Region } from "@joyorogo/i18n";
+
 import { foodKind } from "./food-kind";
+import { MYFCD_DISHES } from "./myfcd-dishes";
 import { lookupTkpi2019, portionFromTkpi2019 } from "./tkpi2019";
 
 export type TdpiDish = {
@@ -442,23 +445,44 @@ function normalize(s: string): string {
     .trim();
 }
 
-const INDEX = TKPI_DISHES.flatMap((dish) => [
-  { key: normalize(dish.name), dish },
-  ...dish.aliases.map((a) => ({ key: normalize(a), dish })),
-]).filter((e) => e.key.length >= 4);
+type DishIndex = Array<{ key: string; dish: TdpiDish }>;
 
-function matchDish(name: string): TdpiDish | undefined {
-  return matchEntry(name)?.dish;
+function buildIndex(dishes: readonly TdpiDish[]): DishIndex {
+  return dishes
+    .flatMap((dish) => [
+      { key: normalize(dish.name), dish },
+      ...dish.aliases.map((a) => ({ key: normalize(a), dish })),
+    ])
+    .filter((e) => e.key.length >= 4);
 }
 
-function matchEntry(name: string): { dish: TdpiDish; key: string } | undefined {
+const INDEX = buildIndex(TKPI_DISHES);
+
+/**
+ * Malaysia: the Malaysian table first, then the Indonesian one, so a dish both know ("nasi lemak" is
+ * an alias of nasi uduk in TKPI) resolves to its Malaysian row while a nasi padang plate in Kuala
+ * Lumpur still finds its Indonesian one. Equal keys: the first entry wins (matchEntry takes only a
+ * strictly longer key), which is why the Malaysian rows come first.
+ */
+const MY_INDEX: DishIndex = [...buildIndex(MYFCD_DISHES), ...INDEX];
+
+/** The dish library for a region (docs/marketing/malaysia-plan.md, "Food data"). Default: Indonesia. */
+function indexFor(region: Region | undefined): DishIndex {
+  return region === "MY" ? MY_INDEX : INDEX;
+}
+
+function matchDish(name: string, index: DishIndex = INDEX): TdpiDish | undefined {
+  return matchEntry(name, index)?.dish;
+}
+
+function matchEntry(name: string, index: DishIndex = INDEX): { dish: TdpiDish; key: string } | undefined {
   const q = normalize(name);
   // A name that is itself a library key ("coca cola") must not be pulled to a
   // longer key that merely contains it ("coca cola zero").
-  const exact = INDEX.find((entry) => entry.key === q);
+  const exact = index.find((entry) => entry.key === q);
   if (exact) return { dish: exact.dish, key: exact.key };
   let best: { dish: TdpiDish; key: string; len: number } | undefined;
-  for (const entry of INDEX) {
+  for (const entry of index) {
     const key = entry.key;
     if (q.includes(key)) {
       // User/model named the dish (or a superset of it) — always safe.
@@ -479,9 +503,9 @@ function matchEntry(name: string): { dish: TdpiDish; key: string } | undefined {
  */
 const BARE_INGREDIENT_KEYS = new Set(["tahu", "tempe", "kerupuk", "perkedel", "sambal"]);
 
-function isCompoundOfIngredient(name: string): boolean {
+function isCompoundOfIngredient(name: string, index: DishIndex): boolean {
   const q = normalize(name);
-  const hit = matchEntry(name);
+  const hit = matchEntry(name, index);
   return hit !== undefined && BARE_INGREDIENT_KEYS.has(hit.key) && q !== hit.key;
 }
 
@@ -490,12 +514,19 @@ function isCompoundOfIngredient(name: string): boolean {
  * it to either one (longest key wins: "telur ceplok") would clamp a whole
  * plate into an egg's kcal band, so combinations skip both lookup stages.
  */
-function isCombination(name: string): boolean {
+function isCombination(name: string, index: DishIndex): boolean {
   const q = normalize(name);
-  const hits: Array<{ start: number; end: number; dish: TdpiDish }> = [];
-  for (const entry of INDEX) {
+  let hits: Array<{ start: number; end: number; dish: TdpiDish }> = [];
+  for (const entry of index) {
     const start = q.indexOf(entry.key);
     if (start !== -1) hits.push({ start, end: start + entry.key.length, dish: entry.dish });
+  }
+  // The Malaysian table names whole plates that contain another row's name ("nasi lemak ayam goreng" holds
+  // "nasi lemak" and "ayam goreng"): a key inside a longer matched key is part of that dish, not a second one.
+  if (index === MY_INDEX) {
+    hits = hits.filter(
+      (a) => !hits.some((b) => b !== a && b.start <= a.start && a.end <= b.end && b.end - b.start > a.end - a.start),
+    );
   }
   return hits.some((a) =>
     hits.some((b) => a.dish !== b.dish && (a.end <= b.start || b.end <= a.start)),
@@ -511,10 +542,10 @@ const PLAIN_RICE = /^(nasi( (putih|uduk|kuning|liwet|merah|hangat|biasa|pulen))*
  * dish's name; anything else is its own normalized name (a longer name that only
  * contains a library key, like "tempe mendoan", stays separate).
  */
-export function canonicalFood(name: string): string {
+export function canonicalFood(name: string, region?: Region): string {
   const q = normalize(name);
   if (PLAIN_RICE.test(q)) return "nasi";
-  const exact = INDEX.find((entry) => entry.key === q);
+  const exact = indexFor(region).find((entry) => entry.key === q);
   return exact ? normalize(exact.dish.name) : q;
 }
 
@@ -523,9 +554,10 @@ export function canonicalFood(name: string): string {
  * when the library has no single dish for it. For callers that swapped a dish
  * and need a number the model did not give (ai.correctScan renames).
  */
-export function libraryKcal(name: string, grams: number): number | undefined {
-  if (isCombination(name)) return undefined;
-  const dish = matchDish(name);
+export function libraryKcal(name: string, grams: number, region?: Region): number | undefined {
+  const index = indexFor(region);
+  if (isCombination(name, index)) return undefined;
+  const dish = matchDish(name, index);
   return dish ? Math.round((dish.kcalPer100g * grams) / 100) : undefined;
 }
 
@@ -589,13 +621,20 @@ function bandFor(dish: TdpiDish, grams: number, slack = 0): [number, number] {
   return [Math.round(min * ratio * (1 - slack)), Math.round(max * ratio * (1 + slack))];
 }
 
-/**
- * Eval harness only (scripts/eval-scans.ts); production never passes it.
- * `bandSlack` widens a matched dish's kcal band by that share on both sides
- * (0.5 = from half the minimum to 1.5 times the maximum; Infinity = no band, the
- * model's kcal stands apart from the density cap and the Atwater guard).
- */
-export type CalibrateOptions = { bandSlack?: number };
+export type CalibrateOptions = {
+  /**
+   * Eval harness only (scripts/eval-scans.ts); production never passes it.
+   * Widens a matched dish's kcal band by that share on both sides (0.5 = from half the
+   * minimum to 1.5 times the maximum; Infinity = no band, the model's kcal stands apart
+   * from the density cap and the Atwater guard).
+   */
+  bandSlack?: number;
+  /**
+   * The user's market (i18n `Region`). `MY` looks dishes up in the Malaysian table first
+   * (lib/myfcd-dishes.ts) and then in TKPI; unset = Indonesia, TKPI only.
+   */
+  region?: Region;
+};
 
 export type CalibratedItem = {
   name: string;
@@ -697,9 +736,11 @@ function capDensity(item: CalibratedItem): CalibratedItem {
 }
 
 function calibrateOne({ drink, asSeen, ...item }: CalibratableItem, options: CalibrateOptions): CalibratedItem {
-  const combination = isCombination(item.name);
-  const generic = combination || isCondimentedDish(item.name) || isCompoundOfIngredient(item.name);
-  const dish = generic ? undefined : matchDish(item.name);
+  const index = indexFor(options.region);
+  const combination = isCombination(item.name, index);
+  const generic =
+    combination || isCondimentedDish(item.name) || isCompoundOfIngredient(item.name, index);
+  const dish = generic ? undefined : matchDish(item.name, index);
   if (!dish) {
     // Second stage: the full TKPI 2019 table (~1.1k bahan) — official
     // per-100 g numbers from Kemenkes, recomputed for the estimated portion.

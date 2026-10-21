@@ -1,3 +1,5 @@
+import type { Region } from "@joyorogo/i18n";
+
 import { calibrateItems, libraryKcal } from "./tkpi";
 
 /** The food_log columns a recalculation reads. */
@@ -61,15 +63,18 @@ export function userEdited(row: Pick<RecalcRow, "name" | "grams" | "kcal" | "ite
  * 300 kcal for 50 g becomes 125 rather than the band's edge. Macros follow the
  * energy only when they no longer fit it. A skip reason when the row stays as is.
  */
-export function recalcRow(row: RecalcRow): RecalcValues | RecalcSkip {
+export function recalcRow(row: RecalcRow, region?: Region): RecalcValues | RecalcSkip {
   if (row.source !== "ai") return "source";
   if (userEdited(row)) return "edited";
   const grams = row.grams;
   if (grams === null || !(grams > 0)) return "no_grams";
 
-  const [calibrated] = calibrateItems([{ name: row.name, grams, kcal: row.kcal }]);
+  const [calibrated] = calibrateItems(
+    [{ name: row.name, grams, kcal: row.kcal }],
+    region ? { region } : undefined,
+  );
   let kcal = calibrated?.kcal ?? row.kcal;
-  if (kcal !== row.kcal) kcal = libraryKcal(row.name, grams) ?? kcal;
+  if (kcal !== row.kcal) kcal = libraryKcal(row.name, grams, region) ?? kcal;
   kcal = Math.round(kcal);
   if (kcal === Math.round(row.kcal)) return "unchanged";
 

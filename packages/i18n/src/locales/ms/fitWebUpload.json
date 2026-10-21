@@ -1,0 +1,127 @@
+{
+  "title": "Muat naik",
+  "subtitle": "Masukkan latihan daripada fail dan urus watchface anda.",
+  "tabs": {
+    "label": "Jenis muat naik",
+    "workouts": "Latihan",
+    "watchfaces": "Watchface"
+  },
+  "workouts": {
+    "title": "Fail latihan",
+    "intro": "Pilih fail .fit, .gpx atau .tcx daripada jam, head unit atau aplikasi lain. Fail dibaca dalam pelayar anda; yang dimuat naik hanyalah latihan hasil bacaan.",
+    "drop": {
+      "title": "Seret fail ke sini",
+      "or": "atau",
+      "button": "Pilih fail",
+      "hint": "FIT, GPX, TCX. Maksimum {{mb}} MB setiap fail.",
+      "active": "Lepas untuk membaca"
+    },
+    "list": {
+      "label": "Fail yang dipilih",
+      "summary": "{{done}} daripada {{total}} selesai"
+    },
+    "format": {
+      "fit": "FIT",
+      "gpx": "GPX",
+      "tcx": "TCX"
+    },
+    "meta": {
+      "points_other": "{{count}} titik",
+      "noAnalysis": "Tanpa graf",
+      "thinned": "Titik dikurangkan",
+      "at": "{{date}} · {{time}}"
+    },
+    "state": {
+      "reading": "Membaca",
+      "ready": "Sedia dimuat naik",
+      "uploading": "Memuat naik",
+      "created": "Disimpan di cloud",
+      "updated": "Dikemas kini di cloud",
+      "unchanged": "Sudah ada, tiada perubahan"
+    },
+    "collision": {
+      "duplicate": "Sudah ada latihan dengan masa mula yang sama ({{name}}). Fail ini dilangkau supaya tidak menimpanya.",
+      "overlap": "Masanya bertindih dengan {{name}} ({{date}}). Fail ini dilangkau."
+    },
+    "notes": {
+      "noAnalysis": "Fail ini tidak mempunyai data yang cukup untuk graf. Angka ringkasan tetap disimpan.",
+      "thinned": "Titik rakaman dikurangkan supaya muat di cloud.",
+      "analysis": "Graf, zon dan split dikira daripada fail ini. Perbandingan dengan latihan lain muncul selepas JoyoFit di telefon anda mengira semula."
+    },
+    "errors": {
+      "unsupported": "Jenis fail ini belum disokong. Guna .fit, .gpx atau .tcx.",
+      "empty": "Fail ini kosong.",
+      "too-large": "Fail ini terlalu besar.",
+      "not-fit": "Ini bukan fail FIT yang sah.",
+      "corrupt": "Fail FIT ini rosak atau tidak lengkap.",
+      "not-activity": "Fail FIT ini bukan latihan (mungkin tetapan atau laluan).",
+      "no-session": "Tiada ringkasan latihan dalam fail ini.",
+      "no-points": "Tiada titik rakaman bermasa dalam fail ini.",
+      "bad-xml": "Fail XML ini tidak sah.",
+      "invalid": "Latihan ini tidak lulus semakan format.",
+      "paywall": "Memuat naik latihan memerlukan JoyoRogo Pro.",
+      "unauthorized": "Sesi anda tamat. Log masuk semula, kemudian cuba muat naik lagi.",
+      "deleted": "Latihan dengan masa mula ini pernah anda padam daripada cloud, jadi tidak dimuat naik semula.",
+      "quota": "Storan cloud akaun anda penuh.",
+      "network": "Tidak dapat menghubungi pelayan. Cuba lagi.",
+      "server": "Pelayan gagal menyimpan latihan ini. Cuba lagi."
+    },
+    "action": {
+      "upload_other": "Muat naik {{count}} latihan",
+      "clear": "Kosongkan senarai",
+      "retry": "Cuba lagi",
+      "open": "Buka latihan",
+      "pricing": "Lihat harga Pro",
+      "select": "Pilih {{name}}",
+      "remove": "Buang {{name}}"
+    }
+  },
+  "watchfaces": {
+    "title": "Pustaka watchface",
+    "intro": "Muat naik watchface .hwt ke akaun anda. Di JoyoFit pada telefon anda, buka Watchface kemudian Dari web, dan pasang ke jam dari sana.",
+    "drop": {
+      "title": "Seret watchface ke sini",
+      "active": "Lepas untuk memuat naik",
+      "or": "atau",
+      "button": "Pilih watchface",
+      "hint": "Fail .hwt. Maksimum {{mb}} MB setiap fail, sehingga {{max}} watchface."
+    },
+    "list": {
+      "label": "Watchface dalam pustaka anda",
+      "count_other": "{{count}} watchface",
+      "emptyTitle": "Pustaka anda masih kosong",
+      "emptyBody": "Muat naik fail .hwt di atas, kemudian pasang daripada JoyoFit di telefon anda: Watchface, Dari web."
+    },
+    "row": {
+      "added": "Ditambah {{date}}"
+    },
+    "state": {
+      "uploading": "Memuat naik dan menyemak",
+      "saved": "Disimpan dalam pustaka",
+      "existing": "Sudah ada dalam pustaka"
+    },
+    "errors": {
+      "extension": "Pilih fail berakhiran .hwt.",
+      "empty": "Fail ini kosong.",
+      "too_large": "Fail ini melebihi {{mb}} MB.",
+      "invalid_hwt": "Ini bukan watchface .hwt yang sah ({{reason}}).",
+      "invalid_hwt_plain": "Ini bukan watchface .hwt yang sah.",
+      "library_full": "Pustaka anda penuh (maksimum {{max}} watchface). Padam satu dahulu.",
+      "paywall": "Memuat naik watchface memerlukan JoyoRogo Pro. Yang sedia ada masih boleh dimuat turun dan dipadam.",
+      "unauthorized": "Sesi anda tamat. Log masuk semula, kemudian cuba muat naik lagi.",
+      "network": "Tidak dapat menghubungi pelayan. Cuba lagi.",
+      "server": "Pelayan gagal menyimpan watchface ini. Cuba lagi.",
+      "download": "Watchface ini belum dapat dimuat turun. Cuba lagi.",
+      "delete": "Watchface ini belum dapat dipadam. Cuba lagi."
+    },
+    "action": {
+      "download": "Muat turun",
+      "delete": "Padam",
+      "confirm": "Padam {{name}} daripada pustaka?",
+      "confirmYes": "Ya, padam",
+      "cancel": "Batal",
+      "pricing": "Lihat harga Pro",
+      "dismiss": "Tutup mesej"
+    }
+  }
+}

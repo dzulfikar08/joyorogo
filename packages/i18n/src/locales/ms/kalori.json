@@ -1,0 +1,183 @@
+{
+  "title": "Cara JoyoRogo mengira sasaran makan anda",
+  "subtitle": "Bermula daripada BMR, tahap aktiviti, sehingga pergerakan tambahan daripada jam atau telefon. Lengkap dengan contoh angka dan sumbernya.",
+  "toc": "Kandungan halaman",
+  "related": "Baca juga",
+  "why": {
+    "title": "BMR dan TDEE, apa bezanya?",
+    "p1": "BMR ialah tenaga yang digunakan badan anda ketika benar-benar berehat: untuk bernafas, mengepam jantung dan mengekalkan suhu badan. Angkanya dikira daripada berat, tinggi, umur dan jantina dengan formula Mifflin-St Jeor (1990).",
+    "p2": "TDEE ialah jumlah tenaga yang anda bakar dalam sehari, iaitu BMR ditambah pergerakan harian dan tenaga untuk mencerna makanan. Jika anda makan sebanyak TDEE, berat anda akan kekal. JoyoRogo menggunakan TDEE sebagai titik permulaan, kemudian menolak defisit jika anda mahu menurunkan berat, atau menambah lebihan jika anda mahu menaikkannya.",
+    "p3": "Dahulu kami hanya menggunakan BMR sebagai titik permulaan. Hasilnya terlalu rendah untuk hampir semua orang, kerana pergerakan harian dan tenaga untuk mencerna makanan belum dikira."
+  },
+  "formula": {
+    "title": "TDEE = BMR × pengali",
+    "p1": "TDEE diperoleh daripada BMR didarab pengali aktiviti, iaitu angka piawai yang lazim digunakan, daripada 1.2 hingga 1.9 bergantung pada seberapa aktif kehidupan harian anda. Tahapnya anda pilih sendiri. Itu titik permulaan: jika catatan dan timbangan anda mencukupi, penentukuran automatik akan melaraskannya berdasarkan kemajuan anda (lihat bahagian Penentukuran automatik).",
+    "p2": "Mencerna dan menyerap makanan juga memerlukan tenaga. Ini dipanggil kesan terma makanan (TEF), kira-kira 5 hingga 15% daripada perbelanjaan tenaga harian (Westerterp 2004). JoyoRogo menggunakan angka 10%. Oleh kerana pengali dikira daripada jumlah perbelanjaan tenaga, TEF sudah termasuk di dalamnya, jadi tidak ditambah lagi.",
+    "chart": "Contoh untuk tahap {{level}} (pengali {{factor}}): TDEE terdiri daripada BMR, pergerakan harian yang sudah termasuk dalam pengali, dan kesan makanan.",
+    "chartLabel": "Carta bar bertindan: BMR {{bmr}} kcal, pergerakan harian {{move}} kcal, kesan makanan {{tef}} kcal, jumlah TDEE {{tdee}} kcal.",
+    "bmr": "BMR (badan berehat)",
+    "move": "Pergerakan harian (sudah dalam pengali)",
+    "tef": "Kesan makanan (kira-kira 10% daripada TDEE)",
+    "total": "TDEE"
+  },
+  "levels": {
+    "title": "Lima tahap aktiviti",
+    "intro": "Setiap tahap mempunyai pengali piawai. Berikut penerangan dan contoh bagi setiap tahap, beserta nilai TDEE untuk contoh di bawah.",
+    "tip": "Keliru memilih antara dua tahap? Pilih yang lebih rendah, kemudian pantau sama ada berat anda turun mengikut rancangan. Aplikasi juga akan memberi cadangan berdasarkan bilangan langkah dan trend berat anda (lihat di bawah). Aplikasi turut melaraskan sasaran anda daripada trend berat melalui penentukuran automatik (lihat di bawah).",
+    "gymTitle": "Kerja duduk, tetapi rajin bersenam",
+    "gymBody": "Jika harian anda bekerja di pejabat dan anda ke gim 3 hingga 5 kali seminggu, pilih \"Hampir sentiasa duduk\". Tahap ini hanya menilai kehidupan harian anda di luar latihan. Sesi gim dicatat sebagai senaman dan ditambah secara berasingan di atas sasaran anda, jadi tidak perlu menaikkan tahap. Menaikkannya malah menyebabkan gim anda dikira dua kali. Sasaran anda boleh diubah pada bila-bila masa di Profil > Sasaran.",
+    "chart": "Semakin tinggi tahapnya, semakin besar TDEE-nya. Bahagian yang lebih gelap ialah BMR, sama untuk semua tahap.",
+    "chartLabel": "Carta bar TDEE untuk kelima-lima tahap.",
+    "bmrLegend": "BMR",
+    "restLegend": "Tambahan daripada pengali"
+  },
+  "credit": {
+    "title": "Data jam dan telefon hanya menambah, tidak pernah mengurangkan",
+    "p1": "Pengali anda sudah merangkumi purata pergerakan harian. Oleh itu, data daripada jam, telefon atau aplikasi Health tidak dikira dari sifar. Yang ditambah hanyalah pergerakan terukur yang melebihi pergerakan yang sudah ada dalam pengali anda.",
+    "p2": "Pergerakan yang sudah ada dalam pengali = TDEE − BMR − 10% TDEE (bahagian kesan makanan). Untuk contoh tahap {{level}}, angkanya kira-kira {{included}} kcal.",
+    "p3": "Lebihan itu kemudian didarab dengan peratusan yang anda tetapkan (lalai {{pct}}%), dan tambahan sehari dihadkan (lalai {{cap}} kcal). Peratusan sengaja di bawah 100 kerana jam tangan belum tepat mengukur tenaga: daripada 7 jam tangan yang diuji, tiada satu pun yang ralatnya di bawah 20% (Shcherbina et al. 2017). Latihan yang anda catat di luar jam, misalnya secara manual, dikira dengan cara yang sama.",
+    "chart": "Tiga contoh hari untuk tahap {{level}}. Garisan putus-putus menunjukkan pergerakan yang sudah ada dalam pengali ({{included}} kcal). Hanya bahagian di atas garisan yang ditambah.",
+    "chartLabel": "Carta tiga hari: pergerakan terukur {{a}}, {{b}} dan {{c}} kcal berbanding garisan {{included}} kcal.",
+    "legendBelow": "Sudah ada dalam pengali, tidak ditambah",
+    "legendAbove": "Melebihi pengali, ditambah",
+    "line": "Garisan pengali: {{kcal}} kcal",
+    "measured": "Terukur {{kcal}} kcal",
+    "added": "+{{kcal}} kcal",
+    "none": "Tiada tambahan",
+    "days": {
+      "desk": "Telefon di atas meja",
+      "normal": "Hari biasa",
+      "busy": "Hari sibuk"
+    },
+    "deskTitle": "Jika telefon ditinggalkan di atas meja",
+    "deskBody": "Angka pergerakan yang kecil kerana telefon tidak dibawa tidak lagi dianggap sebagai hari yang santai. Jika pergerakan terukur masih di bawah yang sudah ada dalam pengali anda, tambahannya sifar dan sasaran anda kekal sama dengan sasaran asas. Data jam atau telefon tidak akan pernah menurunkan sasaran anda."
+  },
+  "calibration": {
+    "title": "Penentukuran automatik",
+    "lead": "Jika catatan makan dan timbangan anda cukup lengkap, JoyoRogo mengukur berapa kalori yang sebenarnya dibakar badan anda, kemudian menggunakannya untuk sasaran anda menggantikan tekaan formula. Ciri ini dihidupkan secara lalai.",
+    "steps": {
+      "log": {
+        "title": "Catat makan dan timbang",
+        "body": "Secara tetap, sehingga data mencukupi."
+      },
+      "measure": {
+        "title": "Diukur setiap Isnin",
+        "body": "Daripada {{window}} hari terakhir, kekal sehingga Isnin berikutnya."
+      },
+      "adjust": {
+        "title": "Sasaran dilaraskan",
+        "body": "Dikekalkan dalam ±15% daripada formula."
+      }
+    },
+    "stepsLabel": "Tiga langkah penentukuran",
+    "gateTitle": "Syarat untuk bermula",
+    "gate": {
+      "days": "Makan dicatat pada sekurang-kurangnya {{days}} daripada {{window}} hari terakhir (hari di bawah {{minKcal}} kcal dianggap belum dicatat)",
+      "weighIns": "Sekurang-kurangnya {{count}} timbangan",
+      "span": "Timbangan pertama hingga terakhir merentasi sekurang-kurangnya {{span}} hari"
+    },
+    "gateNote": "Sebelum syarat itu dipenuhi, sasaran anda kekal daripada formula. Kemajuannya boleh dilihat di Profil, Sasaran & badan.",
+    "guardTitle": "Had ±15%",
+    "exampleIntro": "Contoh untuk tahap {{level}}: formula memberikan TDEE {{formula}} kcal, jadi hadnya {{min}} hingga {{max}} kcal. Hasil ukuran di luar had ditarik ke had.",
+    "chartLabel": "Tiga hasil ukuran berbanding had ±15% daripada formula {{formula}} kcal: {{rows}}",
+    "measured": "Terukur",
+    "used": "Digunakan",
+    "formula": "Formula {{kcal}}",
+    "band": "Had ±15%: {{min}} hingga {{max}}",
+    "within": "Dalam had",
+    "capped": "Dihadkan",
+    "itemsTitle": "Yang perlu anda tahu",
+    "items": {
+      "measure": {
+        "title": "Cara mengukur",
+        "body": "Purata makan anda ditambah tenaga yang keluar mengikut trend berat (7,700 kcal setiap kg), ditolak purata latihan yang dicatat. Hasilnya ialah TDEE harian anda di luar latihan, pengganti BMR × pengali tahap."
+      },
+      "strava": {
+        "title": "Strava tidak digunakan",
+        "body": "Latihan daripada Strava tidak digunakan dalam pengukuran."
+      },
+      "credit": {
+        "title": "Tidak dikira dua kali",
+        "body": "Pergerakan yang terukur sudah ada dalam TDEE hasil penentukuran. Jam dan telefon hanya menambah sasaran jika pergerakan anda melebihi itu: TDEE terukur − BMR − 10% TDEE."
+      },
+      "maternal": {
+        "title": "Mengandung dan Menyusu",
+        "body": "Mod ini tidak menggunakan penentukuran, kerana berat badan memang dijangka berubah."
+      },
+      "off": {
+        "title": "Boleh dimatikan",
+        "body": "Matikan di Profil, Sasaran & badan, dan sasaran anda kembali kepada formula tulen."
+      },
+      "notice": {
+        "title": "Berita di Laman Utama",
+        "body": "Jika sasaran anda berubah {{kcal}} kcal atau lebih akibat penentukuran, Laman Utama akan memaklumkan anda."
+      }
+    },
+    "note": "Angka 7,700 kcal setiap kg hanyalah anggaran (Hall et al. 2011), dan hasilnya bergantung pada kelengkapan catatan anda. Itulah sebabnya ada had ±15% dan pengukuran mingguan.",
+    "cta": "Tetapkan penentukuran"
+  },
+  "manual": {
+    "title": "Guna TDEE sendiri",
+    "lead": "Jika anda sudah tahu keperluan kalori harian (TDEE) daripada sumber lain, anda boleh mengisinya sendiri di Profil, Sasaran & badan. Isi angka antara {{min}} dan {{max}} kcal.",
+    "itemsTitle": "Yang perlu anda tahu",
+    "items": {
+      "base": {
+        "title": "Digunakan sebagai asas",
+        "body": "Angka anda menggantikan BMR × pengali tahap (dan penentukuran). Defisit atau lebihan untuk matlamat anda, tambahan senaman, pelarasan Mengandung / Menyusu dan had makan minimum tetap dikira di atasnya, sama seperti untuk TDEE kiraan kami."
+      },
+      "reference": {
+        "title": "Dibandingkan dengan kiraan kami",
+        "body": "Kiraan kami dipaparkan di sebelah isian anda beserta perbezaannya. Anda mendapat amaran, tetapi tidak disekat, jika angka anda di bawah BMR kami atau melebihi 1.5 kali TDEE kami."
+      },
+      "calibration": {
+        "title": "Penentukuran hanya mencadangkan",
+        "body": "Penentukuran tidak mengubah angka anda. Jika selama dua minggu berturut-turut hasil ukuran menyimpang lebih daripada 10% daripada angka anda, kad cadangan dengan angka hasil ukuran akan muncul. Pilih \"Guna angka ini\" atau \"Biarkan\"; tiada apa-apa berubah tanpa pilihan anda. Selepas \"Biarkan\", cadangan itu tidak muncul lagi selama 28 hari."
+      },
+      "back": {
+        "title": "Kembali ke automatik",
+        "body": "Tekan \"Kembali ke kiraan automatik\" pada bila-bila masa. Tahap aktiviti dan penentukuran terus berfungsi semula."
+      }
+    },
+    "cta": "Isi TDEE sendiri"
+  },
+  "recommend": {
+    "title": "Cadangan supaya lebih tepat",
+    "intro": "Tahap yang anda pilih ialah anggaran terbaik anda. Dua perkara berikut membantu menyemaknya. Kedua-duanya hanya cadangan dengan butang Guna, dan tidak pernah digunakan secara automatik. Daripada trend berat badan, penentukuran automatik sudah berfungsi terus; cadangan tahap daripada trend hanya muncul jika anda mematikan penentukuran.",
+    "stepsTitle": "Daripada bilangan langkah anda",
+    "stepsBody": "Jika akaun anda sudah mempunyai data langkah sekurang-kurangnya 5 hari dalam 14 hari terakhir, puratanya dipadankan dengan indeks langkah Tudor-Locke & Bassett (2004). Semasa orientasi, cadangan ini hanya muncul jika datanya sudah tersedia.",
+    "stepsHeader": {
+      "steps": "Langkah sehari",
+      "level": "Tahap"
+    },
+    "stepsRows": {
+      "r1": "Kurang daripada 5,000",
+      "r2": "5,000 hingga 7,499",
+      "r3": "7,500 hingga 9,999",
+      "r4": "10,000 hingga 12,499",
+      "r5": "12,500 atau lebih"
+    },
+    "trendTitle": "Daripada trend berat badan anda (penentukuran mati)",
+    "trendBody": "Bahagian ini hanya muncul jika anda mematikan penentukuran automatik. Selepas sekurang-kurangnya 3 minggu anda tetap menimbang dan mencatat makan (sekurang-kurangnya 70% hari dicatat), JoyoRogo mengira berapa kalori yang sebenarnya dibakar badan anda: purata pengambilan makanan anda, dilaraskan dengan perubahan berat anda, kemudian ditolak purata latihan yang dicatat. Hasilnya dibahagikan dengan BMR kemudian dipadankan dengan tahap terdekat. Jadi anda boleh membandingkan angka hasil ukuran dengan angka daripada formula.",
+    "trendNote": "Angka 7,700 kcal setiap kg hanya anggaran, kerana badan turut menyesuaikan diri apabila berat berubah (Hall et al. 2011). Oleh itu, hasilnya tetap berupa cadangan, bukan keputusan muktamad."
+  },
+  "example": {
+    "title": "Contoh pengiraan",
+    "intro": "Lelaki 26 tahun, tinggi 171.5 cm, berat 107.7 kg, mahu mencapai 78 kg pada 4 Jun 2027, dikira pada 19 Oktober 2026. BMR = 10 × 107.7 + 6.25 × 171.5 − 5 × 26 + 5 = {{bmr}} kcal. Defisit yang diperlukan {{raw}} kcal sehari, kemudian dihadkan kepada {{deficit}}.",
+    "level": "Tahap",
+    "factor": "Pengali",
+    "tdee": "TDEE",
+    "target": "Sasaran makan",
+    "floorNote": "Pada tahap paling rendah, TDEE ditolak defisit menghasilkan nilai di bawah had minimum makan untuk lelaki ({{floor}} kcal), jadi sasarannya dinaikkan kepada {{floor}} kcal.",
+    "oldNote": "Dengan cara lama (BMR ditolak defisit), sasarannya {{old}} kcal untuk semua tahap.",
+    "calNote": "Angka dalam jadual ini daripada formula tulen. Selepas data anda mencukupi, penentukuran automatik boleh melaraskannya sehingga 15% ke atas atau ke bawah."
+  },
+  "cta": {
+    "title": "Cuba dalam akaun anda",
+    "body": "Buka Profil, kemudian Sasaran & badan. Pilih tahap anda dan lihat sasaran untuk setiap pilihan.",
+    "action": "Buka tetapan tahap"
+  },
+  "sources": {
+    "title": "Sumber",
+    "intro": "Semua sumber sudah kami semak terus pada halaman asalnya."
+  }
+}

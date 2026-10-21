@@ -5,6 +5,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Asset } from "expo-media-library";
 import type { ComponentProps } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DEFAULT_LOCALE, matchLocale } from "@joyorogo/i18n";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -257,7 +258,7 @@ export function StoryShareSheet({
   const profile = useQuery({ ...orpc.profile.myProfile.queryOptions(), enabled: open });
   const isPro = profile.data?.tier === "founder";
   const firstName = session?.user.name?.trim().split(/\s+/)[0] || null;
-  const locale = i18n.language === "en" ? "en" : "id";
+  const locale = matchLocale(i18n.language) ?? DEFAULT_LOCALE;
 
   // Pro removes the mark; a free user always gets it, whatever was saved.
   const effective: StickerPrefsState = { ...prefs, watermark: isPro ? prefs.watermark : true };

@@ -128,6 +128,7 @@ export function promptStrings(facts: PromptFacts): string[] {
 const LANGUAGE: Record<Locale, string> = {
   id: 'Indonesian, casual, addressing the person as "kamu" (never "Anda"); write the energy unit as "kkal", never "kcal"',
   en: 'English, casual, addressing the person as "you"; write the energy unit as "kcal"',
+  ms: 'Bahasa Melayu as written in Malaysia, not Indonesian, friendly, addressing the person as "anda"; write the energy unit as "kcal"',
 };
 
 const MATERNAL_RULE =
@@ -257,6 +258,7 @@ const LEAK = /\b(FACTS|JSON)\b|\b[A-Z]{3,}_[A-Z_]{2,}\b/;
 const STOPWORDS: Record<Locale, ReadonlySet<string>> = {
   id: new Set(["yang", "dan", "di", "ke", "dari", "untuk", "kamu", "ini", "itu", "dengan", "pada", "juga", "sudah", "masih", "bisa", "tapi", "kalau", "per", "hari", "minggu"]),
   en: new Set(["the", "and", "to", "of", "you", "your", "is", "are", "a", "in", "for", "this", "that", "with", "on", "it", "but", "if", "week", "day"]),
+  ms: new Set(["yang", "dan", "di", "ke", "daripada", "untuk", "anda", "ini", "itu", "dengan", "pada", "juga", "sudah", "masih", "boleh", "tetapi", "jika", "hari", "minggu"]),
 };
 
 export type RecapRejection = "empty" | "length" | "causal" | "emoji" | "markdown" | "forbidden" | "leak" | "number" | "structure" | "language";
@@ -314,7 +316,7 @@ export function validateRecapText(raw: string, ctx: RecapValidationContext): Rec
   if (unknown.length > 0) return fail("number", `numbers not in FACTS: ${unknown.join(", ")}`);
 
   const tokens = text.toLowerCase().match(/[a-z]+/g) ?? [];
-  const other: Locale = ctx.locale === "id" ? "en" : "id";
+  const other: Locale = ctx.locale === "en" ? "id" : "en";
   const own = tokens.filter((w) => STOPWORDS[ctx.locale].has(w)).length;
   const foreign = tokens.filter((w) => STOPWORDS[other].has(w)).length;
   if (own < 8 || own < foreign * 2) return fail("language", `not written in ${ctx.locale}`);

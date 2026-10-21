@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { DEFAULT_LOCALE } from "@joyorogo/i18n";
-import type { Locale } from "@joyorogo/i18n";
+import type { Locale, Region } from "@joyorogo/i18n";
 
 import { localNameRule, localNameShape } from "./ai-locale";
 import { resolveFoodKind } from "./food-kind";
@@ -190,7 +190,7 @@ type Row = {
   removed?: boolean;
 };
 
-function applyRename(row: Row, op: Extract<Op, { op: "rename" }>): Row | null {
+function applyRename(row: Row, op: Extract<Op, { op: "rename" }>, region?: Region): Row | null {
   const old = row.item;
   // The weight is the model's estimate for the NEW food (or the amount the user
   // stated). The old weight was a guess for a different food, so it never carries
@@ -206,7 +206,7 @@ function applyRename(row: Row, op: Extract<Op, { op: "rename" }>): Row | null {
   // under-count what the owner eats. Without either, the old kcal stands in
   // and calibration bounds it by the new dish's band.
   const fromModel = op.kcal100 !== undefined ? op.kcal100 * at : op.kcal;
-  const fromLibrary = libraryKcal(op.name, grams ?? 100);
+  const fromLibrary = libraryKcal(op.name, grams ?? 100, region);
   // A weight set on a rename still scales that stand-in (old kcal * grams / old grams).
   const carried =
     grams !== undefined && old.grams
@@ -341,6 +341,7 @@ export function applyCorrection(
   current: readonly CorrectionItemInput[],
   answer: string,
   locale: Locale = DEFAULT_LOCALE,
+  region?: Region,
 ): CorrectionPatch {
   let rawOps: unknown[];
   try {
@@ -391,7 +392,7 @@ export function applyCorrection(
       applied += 1;
       continue;
     }
-    const next = op.op === "rename" ? applyRename(row, op) : applyPortion(row, op);
+    const next = op.op === "rename" ? applyRename(row, op, region) : applyPortion(row, op);
     if (!next) continue;
     rows[at] = next;
     applied += 1;
@@ -407,6 +408,7 @@ export function applyCorrection(
       ...item,
       drink: resolveFoodKind(item.name, kind) === "minuman",
     })),
+    region ? { region } : undefined,
   );
   const calibrated = new Map(touched.map((row, i) => [row, fixed[i]!]));
   const local = locale !== DEFAULT_LOCALE;
@@ -457,6 +459,8 @@ export async function correctScanItems(
     text: string;
     model?: string;
     locale?: Locale;
+    /** The user's market: which dish table renamed foods are looked up in (default Indonesia). */
+    region?: Region;
     timeouts?: [number, number];
     schedule?: ScheduleTimeout;
     /** The scan photo, when still stored: lets a renamed food be re-weighed from what is on the plate. */
@@ -487,7 +491,7 @@ export async function correctScanItems(
       );
       const text = responseText(result);
       if (text === null) throw new Error("no text in response");
-      const patch = applyCorrection(opts.items, text, opts.locale);
+      const patch = applyCorrection(opts.items, text, opts.locale, opts.region);
       return { patch, model, usage: extractUsage(result) };
     } catch (error) {
       if (error instanceof CorrectionError && error.reason !== "unclear") throw error;

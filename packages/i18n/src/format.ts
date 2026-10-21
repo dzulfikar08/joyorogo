@@ -1,4 +1,6 @@
 import { getT } from "./core";
+import { DEFAULT_DAY_ZONE } from "./day-zone";
+import type { DayZone } from "./day-zone";
 import { DEFAULT_LOCALE } from "./locale";
 import type { Locale } from "./locale";
 
@@ -21,6 +23,7 @@ export function getActiveLocale(): Locale {
 const INTL_TAG: Record<Locale, string> = {
   id: "id-ID",
   en: "en-US",
+  ms: "ms-MY",
 };
 
 const numberFormats = new Map<string, Intl.NumberFormat>();
@@ -68,12 +71,17 @@ export function fmtPercent(n: number, locale: Locale = activeLocale): string {
   return `${fmtInt(n, locale)}%`;
 }
 
-/** "Rp15.000" (id) / "Rp15,000" (en). Rupiah is the only currency; the symbol is brand-fixed. */
+/** "Rp15.000" (id) / "Rp15,000" (en). The symbol is brand-fixed. */
 export function fmtIdr(n: number, locale: Locale = activeLocale): string {
   return `Rp${fmtInt(n, locale)}`;
 }
 
-/** Energy unit shown to people: "kkal" in Indonesian, "kcal" in English. Parsers still accept both. */
+/** "RM49.90" / "RM50". Ringgit symbol is brand-fixed like Rp: no space, whole ringgit without decimals. */
+export function fmtMyr(n: number, locale: Locale = activeLocale): string {
+  return `RM${Number.isInteger(n) ? fmtInt(n, locale) : fmtDecimal(n, 2, locale)}`;
+}
+
+/** Energy unit shown to people: "kkal" in Indonesian, "kcal" in English and Malay (Malaysian labels print kcal). Parsers still accept both. */
 export function kcalUnit(locale: Locale = activeLocale): string {
   return locale === "id" ? "kkal" : "kcal";
 }
@@ -165,18 +173,23 @@ export function timeAgo(at: Date | string, locale: Locale = activeLocale): strin
   );
 }
 
-const CLOCK_FORMATS: Partial<Record<Locale, Intl.DateTimeFormat>> = {};
+const CLOCK_FORMATS = new Map<string, Intl.DateTimeFormat>();
 
-/** Wall-clock time in WIB from a Date: "13.05" (id) / "01:05 PM" (en). */
-export function fmtClock(at: Date, locale: Locale = activeLocale): string {
-  let format = CLOCK_FORMATS[locale];
+/** Wall-clock time in a day zone (WIB unless told otherwise, see day-zone.ts): "13.05" (id) / "01:05 PM" (en). */
+export function fmtClock(
+  at: Date,
+  locale: Locale = activeLocale,
+  zone: DayZone = DEFAULT_DAY_ZONE,
+): string {
+  const key = `${locale}:${zone}`;
+  let format = CLOCK_FORMATS.get(key);
   if (!format) {
     format = new Intl.DateTimeFormat(INTL_TAG[locale], {
       hour: "2-digit",
       minute: "2-digit",
-      timeZone: "Asia/Jakarta",
+      timeZone: zone,
     });
-    CLOCK_FORMATS[locale] = format;
+    CLOCK_FORMATS.set(key, format);
   }
   return format.format(at);
 }

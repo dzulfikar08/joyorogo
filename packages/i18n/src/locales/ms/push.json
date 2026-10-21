@@ -1,0 +1,114 @@
+{
+  "fasting": {
+    "open": {
+      "title": "Tetingkap makan dibuka",
+      "body": "Masa untuk makan pertama. Baki {{kcal}} kcal untuk hari ini."
+    },
+    "meal": {
+      "title": "Waktu {{meal}}",
+      "body": "{{Meal}} pada {{time}}. Baki {{kcal}} kcal dalam tetingkap ini."
+    },
+    "lastMeal": {
+      "body": "30 minit lagi tetingkap ditutup. Baki {{kcal}} kcal dalam tetingkap ini."
+    },
+    "close30": {
+      "title": "30 minit lagi tetingkap ditutup",
+      "body": "Baki {{kcal}} kcal belum digunakan. Isi sekarang atau simpan untuk esok."
+    },
+    "mealKind": {
+      "buka": "Berbuka puasa",
+      "camilan": "Snek",
+      "terakhir": "Makan terakhir"
+    }
+  },
+  "notify": {
+    "test": {
+      "title": "Pemberitahuan ujian",
+      "body": "Jika anda membaca ini, pemberitahuan JoyoRogo sudah berfungsi."
+    },
+    "social": {
+      "kudos": {
+        "title": "{{name}} memberi semangat"
+      },
+      "comment": {
+        "title": "{{name}} mengulas",
+        "attachment": "Menghantar lampiran"
+      },
+      "reply": {
+        "title": "{{name}} membalas komen anda"
+      },
+      "follow": {
+        "title": "{{name}} mula mengikut anda",
+        "body": "Lihat profilnya."
+      },
+      "post": {
+        "title": "{{name}} berkongsi hantaran baharu"
+      }
+    },
+    "group": {
+      "poke": {
+        "title": "{{name}} mencuit anda",
+        "body": "Semangat catat kalori hari ini!"
+      },
+      "note": {
+        "title": "Catatan daripada {{name}}"
+      },
+      "challengeNew": {
+        "title": "Cabaran baharu di {{group}}"
+      },
+      "challengeJoin": {
+        "title": "{{name}} menyertai cabaran anda"
+      },
+      "challengeEnd": {
+        "title": "Cabaran tamat",
+        "body": "{{title}}: lihat siapa yang menang."
+      },
+      "memberJoin": {
+        "title": "{{name}} menyertai {{group}}",
+        "body": "Sapa ahli baharu."
+      }
+    },
+    "meal": {
+      "noon": {
+        "title": "Belum ada makanan dicatat",
+        "body": "Waktu makan tengah hari sudah lepas. Catat apa yang anda makan, satu foto sudah cukup."
+      },
+      "evening": {
+        "title": "Hari ini belum ada catatan makan",
+        "body": "Catat sekarang supaya sasaran anda kekal tepat."
+      },
+      "streak": {
+        "title": "Streak {{n}} hari boleh terputus",
+        "body": "Catat satu makanan atau timbangan sebelum tengah malam."
+      }
+    },
+    "weigh": {
+      "title": "Sudah {{n}} hari belum menimbang",
+      "body": "Timbang sebentar supaya trend berat anda kekal tepat."
+    },
+    "recap": {
+      "weekly": {
+        "title": "Rumusan minggu lalu sudah sedia",
+        "body": "Lihat ringkasan makan, senaman dan berat anda."
+      },
+      "calibration": {
+        "title": "Sasaran makan anda diselaraskan",
+        "body": "Kini {{toKcal}} kcal sehari, sebelum ini {{fromKcal}} kcal."
+      },
+      "plan": {
+        "title": "Menu minggu ini sudah sedia",
+        "body": "Pelan makan anda ada di Pelan makan."
+      }
+    },
+    "digest": {
+      "social": {
+        "title": "{{n}} lagi pemberitahuan sosial",
+        "body": "Kudos, komen dan hantaran baharu hari ini."
+      },
+      "group": {
+        "title": "{{n}} lagi cuitan dan catatan",
+        "body": "Buka peti masuk kumpulan untuk melihatnya."
+      }
+    }
+  }
+}

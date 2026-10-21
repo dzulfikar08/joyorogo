@@ -1,0 +1,850 @@
+{
+  "language": {
+    "title": "Bahasa",
+    "caption": "Bahasa paparan aplikasi.",
+    "groupLabel": "Bahasa aplikasi",
+    "saveError": "Bahasa belum disimpan dalam akaun anda. Cuba lagi nanti."
+  },
+  "section": {
+    "plan": "Pelan",
+    "personal": "Data peribadi",
+    "feed": "Feed komuniti",
+    "integrations": "Integrasi",
+    "appearance": "Paparan",
+    "ramadan": "Mod Ramadan",
+    "fasting": "Puasa berselang",
+    "reminders": "Peringatan",
+    "shopping": "Belanja makanan",
+    "appIphone": "Aplikasi iPhone",
+    "appAndroid": "Aplikasi Android",
+    "privacy": "Privasi"
+  },
+  "hub": {
+    "groups": {
+      "account": "Akaun",
+      "body": "Sasaran & badan",
+      "connections": "Sambungan",
+      "community": "Pemberitahuan & komuniti",
+      "app": "Aplikasi"
+    },
+    "summary": {
+      "proUntil": "Pro aktif hingga {{date}}",
+      "pro": "Pro aktif",
+      "freeScans": "Percuma · {{count}} imbasan AI sehari",
+      "free": "Percuma"
+    },
+    "rows": {
+      "account": {
+        "title": "Akaun",
+        "subtitle": "Foto profil dan e-mel"
+      },
+      "subscription": {
+        "title": "Langganan",
+        "subtitle": "Kuota imbasan AI dan Pro",
+        "valuePro": "Pro",
+        "valueFree": "Percuma"
+      },
+      "body": {
+        "title": "Sasaran & badan",
+        "subtitle": "Matlamat, berat sasaran, keperluan harian, data peribadi"
+      },
+      "meals": {
+        "title": "Makan & puasa",
+        "subtitle": "Puasa berselang, Ramadan, anggaran belanja"
+      },
+      "strava": {
+        "title": "Strava",
+        "subtitle": "Import aktiviti ke jurnal",
+        "valueConnected": "Bersambung"
+      },
+      "healthAndroid": {
+        "title": "Health Connect",
+        "subtitle": "Langkah, tidur, senaman, dan nutrisi"
+      },
+      "healthIos": {
+        "title": "Apple Health",
+        "subtitle": "Langkah, tidur, senaman, dan nutrisi"
+      },
+      "ai": {
+        "subtitle": "Guna data JoyoRogo dalam Claude atau ChatGPT"
+      },
+      "reminders": {
+        "title": "Peringatan",
+        "subtitle": "Makan, minum, timbang"
+      },
+      "feed": {
+        "title": "Feed komuniti",
+        "subtitle": "Nama pengguna, profil awam, akaun disekat"
+      },
+      "display": {
+        "title": "Paparan & bahasa",
+        "subtitle": "Tema cerah atau gelap, bahasa aplikasi"
+      },
+      "privacy": {
+        "title": "Privasi & data",
+        "subtitle": "Kongsi kemajuan, foto asal, padam data"
+      },
+      "about": {
+        "title": "Tentang",
+        "subtitle": "Versi, kemas kini, dasar privasi"
+      }
+    }
+  },
+  "hubNative": {
+    "signOut": {
+      "confirmTitle": "Log keluar dari JoyoRogo?",
+      "confirmMessage": "Anda perlu log masuk semula untuk membuka data anda. Data anda kekal selamat dalam akaun anda."
+    },
+    "about": {
+      "version": "Versi"
+    },
+    "strava": {
+      "connectLabel": "Sambung dengan Strava",
+      "poweredByLabel": "Powered by Strava"
+    },
+    "health": {
+      "unsupported": "Segerak kesihatan belum tersedia pada peranti ini."
+    }
+  },
+  "hubWeb": {
+    "title": "Profil",
+    "back": "Profil",
+    "groups": {
+      "community": "Komuniti"
+    },
+    "rows": {
+      "about": {
+        "subtitle": "Pasang aplikasi, dasar privasi, terma"
+      }
+    },
+    "account": {
+      "email": "E-mel"
+    },
+    "signOut": {
+      "confirmTitle": "Log keluar dari JoyoRogo?",
+      "confirmBody": "Anda perlu log masuk semula untuk membuka data anda pada peranti ini."
+    },
+    "about": {
+      "legal": "Peraturan dan dasar",
+      "terms": "Terma penggunaan",
+      "refund": "Dasar bayaran balik"
+    }
+  },
+  "state": {
+    "saving": "Menyimpan..."
+  },
+  "toast": {
+    "saved": "Tetapan disimpan"
+  },
+  "profile": {
+    "loading": "Memuatkan profil",
+    "emailFallback": "Log masuk melalui Google",
+    "badge": {
+      "free": "Percuma"
+    },
+    "gender": {
+      "male": "Lelaki",
+      "female": "Perempuan"
+    },
+    "personal": {
+      "gender": "Jantina",
+      "birthYear": "Tahun lahir",
+      "height": "Tinggi",
+      "startWeight": "Berat awal",
+      "currentWeight": "Berat terkini",
+      "currentWeightNone": "belum ada",
+      "note": "Data peribadi ditetapkan semasa orientasi. Berat terkini mengikut timbangan anda di halaman Berat."
+    },
+    "photo": {
+      "label": "Foto profil",
+      "change": "Tukar foto",
+      "remove": "Padam foto",
+      "camera": "Kamera",
+      "gallery": "Galeri",
+      "updated": "Foto profil dikemas kini",
+      "removeConfirm": {
+        "title": "Padam foto profil?",
+        "message": "Foto yang anda muat naik dipadam. Jika akaun Google anda ada foto, foto itu akan digunakan semula."
+      },
+      "error": {
+        "tooLarge": "Foto terlalu besar, maksimum 5 MB.",
+        "unreadable": "Foto tidak dapat dibaca, cuba yang lain.",
+        "noCanvas": "Pelayar ini tidak menyokong pemprosesan imej.",
+        "uploadFailed": "Gagal menukar foto",
+        "processFailed": "Foto tidak dapat diproses",
+        "empty": "Foto kosong"
+      }
+    }
+  },
+  "pro": {
+    "free": {
+      "scansPerDay_other": "{{count}} imbasan AI sehari",
+      "proUnlimited": "Pro: imbasan AI tanpa had.",
+      "proCapped_other": "Pro: {{count}} imbasan AI sehari.",
+      "upgrade": "Naik taraf"
+    },
+    "pending": {
+      "note": "Ada pembayaran Pro yang belum selesai.",
+      "check": "Sudah bayar? Semak pembayaran",
+      "checking": "Menyemak...",
+      "none": "Tiada pembayaran yang menunggu.",
+      "notPaid": "Belum ada pembayaran diterima. Cuba lagi sebentar.",
+      "paid": "Pembayaran diterima. Pro aktif!"
+    },
+    "active": {
+      "title": "Pro aktif",
+      "until": "Hingga {{date}}. Tidak diperbaharui secara automatik.",
+      "renew": "Perbaharui",
+      "opening": "Membuka..."
+    }
+  },
+  "plan": {
+    "recalcNote": "Ubah sasaran dan angka harian dikira semula secara automatik.",
+    "targetWeight": {
+      "title": "Berat sasaran",
+      "subtitle": "Ubah angka sasaran anda",
+      "hint": "Angka harian dikira semula secara automatik.",
+      "inputLabel": "Berat sasaran (kg)",
+      "healthyRange": "Berat sihat untuk ketinggian anda: {{min}}-{{max}} kg",
+      "belowRange": "Di bawah julat berat sihat. Anda boleh teruskan, tetapi jaga kesihatan anda.",
+      "error": "Berat sasaran mesti 25-400 kg."
+    },
+    "datePace": {
+      "title": "Tarikh sasaran anda tidak tercapai dengan rentak yang selamat",
+      "lose": {
+        "body_other": "Menurunkan {{kg}} kg memerlukan kira-kira {{count}} hari dengan defisit selamat maksimum 1,000 kcal sehari. Dengan rentak itu anda sampai kira-kira {{date}}."
+      },
+      "gain": {
+        "body_other": "Menaikkan {{kg}} kg dengan rentak selamat memerlukan kira-kira {{count}} hari. Dengan rentak itu anda sampai kira-kira {{date}}."
+      },
+      "use": "Guna tarikh {{date}}",
+      "saved": "Tarikh sasaran dikemas kini.",
+      "passed": {
+        "title": "Tarikh sasaran anda sudah berlalu",
+        "lose": {
+          "body_other": "Masih ada {{kg}} kg lagi untuk diturunkan. Dengan defisit selamat maksimum 1,000 kcal sehari, ia memerlukan kira-kira {{count}} hari, jadi anda sampai kira-kira {{date}}."
+        },
+        "gain": {
+          "body_other": "Masih ada {{kg}} kg lagi untuk dinaikkan. Dengan rentak selamat, ia memerlukan kira-kira {{count}} hari, jadi anda sampai kira-kira {{date}}."
+        }
+      }
+    },
+    "targetDate": {
+      "title": "Tarikh sasaran",
+      "subtitle": "Bila anda hendak sampai",
+      "hint": "Pilih tarikhnya, sasaran makan harian anda turut menyesuaikan diri.",
+      "error": "Pilih tarikh esok atau selepasnya.",
+      "tooFast": {
+        "title": "Tarikh ini menuntut defisit ~{{deficit}} kcal sehari, melebihi had selamat.",
+        "body_other": "JoyoRogo mengehadkan defisit sekitar 1,000 kcal sehari. Menurunkan {{kg}} kg dengan rentak itu memerlukan kira-kira {{count}} hari.",
+        "useDate_other": "Guna tarikh realistik (+{{count}} hari)"
+      },
+      "pickLabel": "Pilih tarikh sasaran",
+      "prevMonth": "Bulan sebelumnya",
+      "nextMonth": "Bulan berikutnya",
+      "quick": {
+        "month1": "1 bulan",
+        "month3": "3 bulan",
+        "month6": "6 bulan",
+        "year1": "1 tahun"
+      },
+      "daysAway_other": "{{count}} hari lagi",
+      "preview": {
+        "changed": "Sasaran makan menjadi {{next}} kcal sehari (sekarang {{current}}).",
+        "same": "Sasaran makan kekal {{kcal}} kcal sehari."
+      },
+      "slow": {
+        "title": "Tarikhnya agak jauh.",
+        "body": "Rentaknya santai, jadi JoyoRogo tetap menggunakan defisit minimum {{deficit}} kcal sehari. Dengan itu sasaran anda tercapai kira-kira {{date}}.",
+        "useDate": "Guna {{date}}"
+      },
+      "maintenance": "Berat anda sudah mencapai sasaran, jadi tarikh ini belum mengubah angka harian anda. Tarikh baharu digunakan jika berat sasaran anda lebih rendah daripada berat sekarang.",
+      "previewFailed": "Belum dapat mengira angka harian. Anda masih boleh menyimpan tarikhnya.",
+      "ok_other": "Tepat. Turun {{kg}} kg dalam {{count}} hari, rentak {{perWeek}} kg seminggu, selamat."
+    },
+    "activity": {
+      "title": "Tahap aktiviti",
+      "subtitle": "Setakat mana aktifnya hari-hari anda"
+    },
+    "sleepTarget": {
+      "title": "Sasaran tidur",
+      "subtitle": "Cadangan untuk orang dewasa: 7-9 jam semalam.",
+      "lowNote": "Masih dalam had munasabah NSF (6-10 jam), tetapi di bawah cadangan minimum 7 jam.",
+      "option": "{{hours}} jam",
+      "group": "Pilih sasaran tidur semalam"
+    },
+    "numbers": {
+      "eat": "Makan",
+      "burn": "Bakar",
+      "sleep": "Tidur",
+      "unitHours": "jam",
+      "perDay": "kcal/hari",
+      "perNight": "jam/malam"
+    },
+    "note": {
+      "MAINTENANCE": "Berat anda sudah dalam julat sihat; pelannya menjaga berat, bukan menurun.",
+      "BELOW_HEALTHY_RANGE": "Berat sasaran anda di bawah julat berat sihat untuk ketinggian anda. Pertimbangkan untuk menaikkannya.",
+      "PLAN_CLAMPED": "Pelan diselaraskan supaya selamat, defisit harian dihadkan.",
+      "GAIN": "Pelannya menaikkan berat: anda makan sedikit melebihi keperluan harian (TDEE tambah lebihan)."
+    },
+    "noteShort": {
+      "MAINTENANCE": "Berat sudah mencapai sasaran. Pelan sekarang menjaga berat.",
+      "BELOW_HEALTHY_RANGE": "Berat sasaran di bawah julat sihat. Naikkan sedikit supaya selamat.",
+      "PLAN_CLAMPED": "Pelan diselaraskan supaya selamat. Defisit kalori dihadkan.",
+      "GAIN": "Pelan naik berat: sasaran makan = TDEE tambah lebihan."
+    },
+    "summary": {
+      "target": "Berat sasaran {{kg}} kg pada {{date}}.",
+      "withRange": "Berat sasaran {{kg}} kg pada {{date}}. Julat sihat untuk ketinggian anda: {{min}}-{{max}} kg."
+    },
+    "empty": {
+      "title": "Belum ada pelan",
+      "body": "Anda belum melengkapkan data peribadi. Isi orientasi untuk mendapat pelan harian.",
+      "cta": "Isi Orientasi"
+    },
+    "toast": {
+      "updated": "Pelan dikemas kini"
+    },
+    "needs": {
+      "title": "Keperluan harian anda",
+      "row": "Keperluan harian anda",
+      "rowValue": "TDEE {{kcal}}",
+      "intro": "Langkah demi langkah, daripada badan anda hingga sasaran makan hari ini.",
+      "unit": "kcal sehari",
+      "bmr": {
+        "label": "BMR",
+        "name": "Badan berehat",
+        "body": "Tenaga yang digunakan badan anda ketika berehat sepenuhnya: bernafas, jantung, menjaga suhu. Dikira daripada berat, tinggi, umur, dan jantina."
+      },
+      "activity": {
+        "label": "Pengganda aktiviti",
+        "name": "Pergerakan harian",
+        "body": "BMR didarab dengan pengganda tahap yang anda pilih ({{level}}). Merangkumi berjalan, kerja, kerja rumah, dan kesan makan, di luar senaman yang anda catat."
+      },
+      "tdee": {
+        "label": "TDEE",
+        "name": "Jumlah keperluan",
+        "body": "Jumlah tenaga yang dibakar badan anda sehari. Makan sebanyak ini, berat badan anda kekal."
+      },
+      "cut": {
+        "label": "Dikurangkan untuk turun berat",
+        "name": "Potongan makan",
+        "body": "Potongan daripada TDEE supaya badan menggunakan simpanan lemak. Jumlahnya dikira daripada perbezaan berat dan tarikh sasaran anda. Seluruh potongan diambil daripada makan."
+      },
+      "cutNone": {
+        "label": "Tiada potongan",
+        "name": "Menjaga berat",
+        "body": "Berat anda sudah mencapai sasaran, jadi anda makan sebanyak TDEE untuk menjaganya. Pergerakan melebihi pengganda anda ditambah di atasnya."
+      },
+      "target": {
+        "label": "Sasaran makan",
+        "name": "Catuan makan anda",
+        "body": "Angka yang anda lihat di Laman Utama."
+      },
+      "burnNote": "Seluruh defisit pelan anda, kira-kira {{deficit}} kcal sehari, diambil daripada makan. Senaman yang anda catat ditambah pada baki makan hari itu."
+    }
+  },
+  "exerciseCredit": {
+    "enabled": {
+      "title": "Tambah pergerakan ekstra",
+      "hint": "Pergerakan yang diukur jam atau Health melebihi apa yang sudah ada pada tahap aktiviti anda, dan senaman yang dicatat di luar jumlah jam, menambah catuan makan anda hari itu. Pergerakan yang rendah tidak pernah mengurangkan sasaran anda."
+    },
+    "pct": {
+      "title": "Berapa peratus dikira",
+      "hint": "Jam dan aplikasi sering melebih-lebihkan kalori. 75% ialah titik tengah yang selamat.",
+      "value": "{{pct}}%",
+      "aria": "Peratusan aktiviti yang dikira"
+    },
+    "cap": {
+      "title": "Had tambahan sehari",
+      "hint": "Tambahan aktiviti tidak akan melebihi angka ini.",
+      "kcal": "{{kcal}} kcal",
+      "none": "Tanpa had",
+      "aria": "Had tambahan aktiviti sehari"
+    }
+  },
+  "theme": {
+    "label": "Tema paparan",
+    "light": "Cerah",
+    "dark": "Gelap",
+    "system": "Sistem",
+    "hint": "Mod gelap mengikut tetapan sistem anda jika memilih Sistem."
+  },
+  "ramadan": {
+    "option": {
+      "auto": "Automatik",
+      "on": "Aktif",
+      "off": "Mati"
+    },
+    "hint": {
+      "auto": "Slot makan mengikut kalendar Hijrah.",
+      "on": "Slot makan menjadi sahur & berbuka.",
+      "off": "Jadual makan biasa."
+    },
+    "hintNative": "Slot makan bertukar menjadi sahur & berbuka; angka harian dibahagi ke tetingkap makan.",
+    "toast": "Mod Ramadan diubah"
+  },
+  "fasting": {
+    "pattern": {
+      "label": "Corak puasa berselang",
+      "off": "Mati"
+    },
+    "window": {
+      "label": "Tetingkap makan dibuka"
+    },
+    "notify": {
+      "title": "Pemberitahuan peringatan",
+      "hint": "Web Push apabila tetingkap dibuka, waktu makan, dan 30 minit sebelum tutup.",
+      "aria": "Pemberitahuan peringatan puasa berselang"
+    },
+    "hint": {
+      "off": "Pilih corak 16:8, 18:6, 20:4, atau OMAD untuk bermula. Mod Ramadan tetap diutamakan.",
+      "window": "Puasa {{fast}} jam, makan dalam tetingkap {{eat}} jam.",
+      "omad": "Sekali makan sehari dalam tetingkap ±1 jam.",
+      "nativeOn": "{{label}}: pemberitahuan muncul apabila tetingkap dibuka, waktu makan, dan 30 minit sebelum tutup."
+    },
+    "error": {
+      "unsupported": "Pelayar ini belum menyokong pemberitahuan tolak.",
+      "denied": "Kebenaran pemberitahuan tidak diberikan.",
+      "serverNotReady": "Pelayan belum bersedia menghantar pemberitahuan. Cuba lagi nanti.",
+      "noKeys": "Pelayar tidak menghantar kunci langganan.",
+      "failed": "Gagal memasang pemberitahuan."
+    },
+    "toast": {
+      "saved": "Tetapan puasa disimpan"
+    }
+  },
+  "strava": {
+    "status": {
+      "checking": "Menyemak status...",
+      "checkingCard": "Menyemak status Strava...",
+      "loadingNative": "Memuatkan status Strava…",
+      "error": "Gagal menyemak status: {{error}}",
+      "notConfiguredServer": "Sambungan aktif selepas kelayakan Strava ditetapkan pada pelayan.",
+      "comingSoon": "Akan datang: aktiviti Strava masuk ke angka bakar secara automatik.",
+      "idle": "Aktiviti Strava masuk ke Burn secara automatik.",
+      "connectHintNative": "Sambungkan akaun Strava untuk mengimport aktiviti senaman anda secara automatik.",
+      "connected": "Bersambung.",
+      "connectedAthlete": "Bersambung (ID atlet {{id}}).",
+      "sectionConnected": "Bersambung",
+      "sectionConnectedAthlete": "Bersambung · ID atlet {{id}}",
+      "synced": "{{imported}} diimport, {{skipped}} dilangkau."
+    },
+    "action": {
+      "sync": "Segerak",
+      "syncing": "Menyegerak...",
+      "syncNative": "Segerakkan",
+      "disconnect": "Putuskan",
+      "disconnectStrava": "Putuskan Strava",
+      "disconnecting": "Memutuskan...",
+      "connect": "Sambung",
+      "connecting": "Membuka Strava...",
+      "connectNative": "Sambung"
+    },
+    "toast": {
+      "synced_other": "Strava: {{count}} aktiviti diimport, {{skipped}} dilangkau.",
+      "disconnected": "Strava diputuskan.",
+      "connected": "Strava bersambung."
+    },
+    "callback": {
+      "title": "Strava tidak bersambung",
+      "denied": "Strava menolak sambungan: {{error}}",
+      "noCode": "Strava tidak menghantar kod kebenaran. Cuba sambung semula dari halaman Profil.",
+      "back": "Kembali ke Profil",
+      "connecting": "Menyambungkan Strava..."
+    },
+    "error": {
+      "noCode": "Strava tidak memulangkan kod kebenaran."
+    },
+    "retention": {
+      "text": "Mengikut peraturan Strava, senaman yang diimport daripada Strava hanya disimpan 7 hari, kemudian dipadam secara automatik. Kalori bakar untuk hari yang lebih lama tidak lagi merangkumkannya.",
+      "healthAlternative": "Supaya kalori bakar kekal tersimpan, guna Health Connect di Android atau Apple Health di iPhone melalui aplikasi JoyoRogo. Banyak aplikasi senaman dan jam boleh menulis latihan ke sana, contohnya Strava, Garmin, Samsung Health, dan JoyoFit untuk jam Huawei. Semak tetapan setiap aplikasi.",
+      "healthAlternativeNative": "Supaya kalori bakar kekal tersimpan, sambungkan {{health}} di Profil. Banyak aplikasi senaman dan jam boleh menulis latihan ke sana, contohnya Strava, Garmin, Samsung Health, dan JoyoFit untuk jam Huawei. Semak tetapan setiap aplikasi.",
+      "connectHealth": "Sambungkan {{health}}",
+      "noticeTitle": "Import Strava disimpan 7 hari",
+      "understood": "Faham"
+    }
+  },
+  "reminders": {
+    "permissionOff": {
+      "message": "Pemberitahuan JoyoRogo dimatikan dalam sistem, jadi peringatan di bawah tidak muncul.",
+      "action": "Aktifkan pemberitahuan"
+    },
+    "meal": {
+      "replacedByFasting": "Diganti jadual puasa",
+      "aria": "Peringatan {{meal}}",
+      "sheetTitle": "Masa {{meal}}",
+      "fastingNote": "Pemberitahuan puasa berselang aktif, jadi peringatan makan menggunakan jadual puasa dan masa di atas tidak digunakan."
+    },
+    "water": {
+      "title": "Air minuman",
+      "summary_other": "{{count}} kali sehari, setiap {{hours}} jam",
+      "aria": "Peringatan minum air",
+      "start": "Mula",
+      "end": "Tamat",
+      "sheetStart": "Mula minum",
+      "sheetEnd": "Tamat minum",
+      "interval_other": "{{count}} jam"
+    },
+    "weighIn": {
+      "title": "Timbang",
+      "aria": "Peringatan timbang",
+      "sheetTitle": "Masa timbang"
+    },
+    "window": {
+      "openTitle": "Tetingkap makan dibuka",
+      "closeTitle": "Tetingkap makan ditutup",
+      "needPattern": "Pilih corak puasa dahulu di Puasa Berselang",
+      "openSubtitle": "Ikut jadual puasa, waktu tempatan",
+      "closeSubtitle": "Puasa bermula, waktu tempatan",
+      "openAria": "Peringatan tetingkap makan dibuka",
+      "closeAria": "Peringatan tetingkap makan ditutup",
+      "openDuplicateNote": "Pemberitahuan puasa berselang sudah mengingatkan apabila tetingkap dibuka, jadi peringatan buka di sini tidak dihantar dua kali."
+    },
+    "footnote": "Peringatan ialah pemberitahuan pada peranti ini, jadi tidak berpindah ke telefon lain atau web. Peringatan makan dan timbang dilangkau jika hari ini sudah dicatat semasa JoyoRogo terakhir dibuka atau anda mencatat dalam aplikasi. Catatan daripada peranti lain hanya dibaca selepas aplikasi dibuka semula. Peringatan minum sentiasa muncul mengikut jadual.",
+    "webNote": "Peringatan catat makan, minum air, dan timbang terdapat dalam aplikasi Android dan iOS: buka Profil dalam aplikasi, kemudian tetapkan masa setiap peringatan di bahagian Peringatan. Peringatan itu disimpan dalam telefon anda, bukan dalam akaun, jadi tidak muncul di web. Pemberitahuan puasa berselang di atas masih boleh dihidupkan dalam pelayar.",
+    "error": {
+      "invalidTime": "Masa tidak sah",
+      "startBeforeEnd": "Masa mula mesti sebelum masa tamat.",
+      "endAfterStart": "Masa tamat mesti selepas masa mula."
+    },
+    "permission": {
+      "askTitle": "Benarkan peringatan?",
+      "blockedTitle": "Pemberitahuan dimatikan",
+      "later": "Lain kali",
+      "openSettings": "Buka Tetapan",
+      "allow": "Benarkan",
+      "askMessage": "JoyoRogo menghantar peringatan catat makan, minum, timbang, dan tetingkap puasa pada masa yang anda pilih. Pemberitahuan hanya untuk itu, tiada iklan. Selepas ini sistem akan meminta kebenaran sekali.",
+      "blockedMessage": "Android atau iOS tidak lagi memaparkan permintaan kebenaran untuk JoyoRogo. Hidupkan pemberitahuan JoyoRogo dalam Tetapan, kemudian kembali ke sini dan aktifkan peringatannya semula."
+    },
+    "timePicker": {
+      "hour": "Jam",
+      "minute": "Minit",
+      "hourAria": "Jam {{value}}",
+      "minuteAria": "Minit {{value}}"
+    },
+    "notification": {
+      "channel": {
+        "meals": {
+          "name": "Peringatan makan",
+          "description": "Ingatkan catat sarapan, makan tengah hari, makan malam."
+        },
+        "water": {
+          "name": "Peringatan minum",
+          "description": "Ingatkan minum air sepanjang hari."
+        },
+        "weighin": {
+          "name": "Peringatan timbang",
+          "description": "Ingatkan timbang berat badan."
+        },
+        "fasting": {
+          "name": "Puasa berselang",
+          "description": "Tetingkap makan dibuka, ditutup, dan waktu makan."
+        }
+      },
+      "meal": {
+        "sarapan": {
+          "title": "Jom sarapan dulu",
+          "body": "Catat sarapan anda supaya kalori harian anda sentiasa terpantau."
+        },
+        "makan_siang": {
+          "title": "Masa makan tengah hari",
+          "body": "Jangan lupa catat makan tengah hari anda sebelum terlupa."
+        },
+        "makan_malam": {
+          "title": "Masa makan malam",
+          "body": "Catat makan malam anda supaya pelan harian anda tepat."
+        }
+      },
+      "weighIn": {
+        "title": "Timbang pagi",
+        "body": "Satu langkah kecil: catat berat badan anda hari ini."
+      },
+      "water": {
+        "title": "Masa minum",
+        "body": "Segelas air sekarang. Catat di kartu Air minuman jika sudah."
+      },
+      "windowOpen": {
+        "title": "Tetingkap makan dibuka",
+        "body": "Anda boleh mula makan. Tetingkap ditutup pukul {{time}}."
+      },
+      "windowClose": {
+        "title": "Tetingkap makan ditutup",
+        "body": "Puasa bermula. Tetingkap makan dibuka semula pukul {{time}}."
+      }
+    }
+  },
+  "privacy": {
+    "policy": "Dasar privasi",
+    "share": {
+      "titleWeb": "Kemajuan awam",
+      "titleNative": "Kongsi kemajuan",
+      "hintWeb": "Berat awal ke berat sekarang sahaja. Tanpa e-mel, tanpa data makanan.",
+      "hintNative": "Halaman awam ringkas berisi trend berat anda; tanpa nama atau e-mel.",
+      "copyLink": "Salin pautan",
+      "copied": "Pautan disalin, tinggal tampal di Threads.",
+      "toastOn": "Halaman awam diaktifkan.",
+      "toastOff": "Halaman awam dimatikan."
+    },
+    "keepPhotos": {
+      "title": "Simpan foto asal",
+      "label": "Foto asal",
+      "onWeb": "Boleh dilihat semula dalam diari, hanya oleh anda.",
+      "offWeb": "Mati: hanya potongan setiap makanan disimpan.",
+      "onNative": "Foto asal setiap imbasan yang anda simpan boleh dilihat semula dalam diari. Hanya anda yang boleh membukanya. Mematikan ini memadam semua foto asal yang tersimpan.",
+      "offNative": "Hanya potongan setiap makanan disimpan sebagai pelekat. Foto asalnya dibuang selepas dianalisis.",
+      "toast": "Foto asal akan disimpan mulai imbasan seterusnya.",
+      "confirm": {
+        "title": "Matikan simpan foto asal?",
+        "descriptionWeb": "Foto asal yang sudah tersimpan turut dipadam secara kekal.",
+        "bodyWeb": "Catatan makan dan pelekat setiap makanan kekal ada. Hanya foto asalnya yang dipadam.",
+        "actionWeb": "Ya, matikan dan padam foto asal",
+        "messageNative": "Foto asal yang sudah tersimpan turut dipadam secara kekal. Catatan makan dan pelekat setiap makanan kekal ada.",
+        "actionNative": "Ya, matikan dan padam"
+      }
+    },
+    "wipe": {
+      "title": "Padam semua data saya",
+      "subtitleWeb": "Profil, berat, makanan, senaman, tidur. Kekal.",
+      "subtitleNative": "Kekal: profil, berat, makanan, senaman, tidur",
+      "confirmTitle": "Padam semua data?",
+      "confirmDescription": "Tindakan ini kekal dan tidak boleh dibatalkan.",
+      "confirmBodyWeb": "Semua catatan dipadam: profil, berat, makanan, senaman, tidur. Akaun anda masih boleh digunakan, tetapi anda bermula semula dari kosong.",
+      "confirmMessageNative": "Profil, berat, makanan, senaman, dan tidur dipadam secara kekal. Akaun anda masih boleh digunakan.",
+      "confirmAction": "Ya, padam semua data saya",
+      "deleting": "Memadam...",
+      "deletingNative": "Memadam…",
+      "done": "Semua data anda sudah dipadam.",
+      "failed": "Pemadaman gagal. Cuba lagi nanti.",
+      "failedTitle": "Gagal memadam"
+    }
+  },
+  "account": {
+    "signOut": "Log keluar",
+    "signingOut": "Log keluar...",
+    "delete": {
+      "title": "Padam akaun",
+      "subtitle": "Kekal: akaun dan semua data anda hilang",
+      "confirmTitle": "Padam akaun?",
+      "confirmMessage": "Akaun dan semua data anda (profil, catatan, foto, siaran, kumpulan) dipadam secara kekal dan tidak boleh dipulihkan. Anda perlu daftar semula jika mahu menggunakan JoyoRogo.",
+      "failedTitle": "Gagal memadam akaun",
+      "noAppleCode": "Apple tidak menghantar kod kebenaran. Cuba lagi."
+    }
+  },
+  "app": {
+    "install": {
+      "title": "Pasang pada skrin utama",
+      "subtitle": "Aplikasi web dengan akaun yang sama, dibuka skrin penuh."
+    },
+    "googlePlay": {
+      "title": "JoyoRogo di Google Play",
+      "subtitle": "Guna akaun yang sama."
+    },
+    "appStore": {
+      "title": "JoyoRogo di App Store",
+      "subtitle": "Untuk iPhone, akaun yang sama."
+    }
+  },
+  "feed": {
+    "handle": {
+      "title": "Handle & bio",
+      "none": "Belum ada handle",
+      "label": "Handle",
+      "placeholderWeb": "cth. ali_senaman",
+      "placeholderNative": "nama_anda",
+      "hint": "Huruf kecil, nombor, dan garis bawah; 3-20 aksara.",
+      "description": "Pautan profil anda: joyorogo.com/u/handle",
+      "error": "Handle 3-20 aksara, hanya huruf kecil, nombor, dan _."
+    },
+    "bio": {
+      "label": "Bio",
+      "labelCount": "Bio · {{length}}/{{max}}",
+      "placeholderWeb": "Ceritakan sasaran anda secara ringkas...",
+      "placeholderNative": "Ceritakan perjalanan anda"
+    },
+    "public": {
+      "title": "Profil awam",
+      "subtitleWeb": "Siaran awam dipaparkan di Teroka dan profil /u/handle",
+      "subtitleNative": "Siaran awam dipaparkan di Teroka",
+      "requiredNative": "Wajib dihidupkan untuk siaran awam di Teroka",
+      "on": "Hidup",
+      "off": "Mati",
+      "toastOn": "Profil awam dihidupkan.",
+      "toastOff": "Profil awam dimatikan."
+    },
+    "visibility": {
+      "labelWeb": "Penonton lalai semasa berkongsi",
+      "aria": "Keterlihatan lalai",
+      "label": "Keterlihatan lalai",
+      "group": "Kawan kumpulan",
+      "groupShort": "Kumpulan",
+      "public": "Awam",
+      "publicNeeded": "Awam memerlukan Profil awam dihidupkan; siaran kumpulan tetap kelihatan kepada rakan sepasukan."
+    },
+    "blocked": {
+      "title": "Akaun disekat",
+      "rowNative": "Sekat",
+      "none": "Belum ada yang disekat",
+      "hiddenCount_other": "{{count}} akaun disembunyikan",
+      "blockedCount_other": "{{count}} akaun disekat",
+      "description": "Siaran dan komen mereka disembunyikan, begitu juga sebaliknya.",
+      "emptyWeb": "Belum ada akaun yang disekat.",
+      "emptyNative": "Belum ada akaun yang anda sekat. Sekatan menyembunyikan kandungan dua hala.",
+      "unblock": "Nyahsekat",
+      "unblocked": "Sekatan dibuka.",
+      "you": "{{name}} (anda)",
+      "profileAria": "Profil {{name}}"
+    },
+    "maps": {
+      "title": "Peta laluan dalam siaran",
+      "subtitle": "Senaman berGPS dipaparkan dengan peta laluan. Garisan dipermudah dan 200 m awal dan akhir dipotong.",
+      "toastOn": "Peta laluan dipaparkan dalam siaran anda.",
+      "toastOff": "Peta laluan disembunyikan daripada semua siaran anda."
+    },
+    "sheetTitleNative": "Tetapan feed",
+    "saved": "Tetapan feed disimpan.",
+    "saveFailed": "Gagal menyimpan"
+  },
+  "health": {
+    "noteIos": "Sumber utama aktiviti anda: senaman, langkah, jarak, kalori aktif, dan tidur 7 hari terakhir daripada aplikasi Health. Selepas kebenaran diberikan melalui butang di bawah, segerak berjalan secara automatik setiap kali anda membuka aplikasi.",
+    "noteAndroid": "Sumber utama aktiviti anda: senaman, langkah, jarak, kalori aktif, dan tidur 7 hari terakhir. Selepas kebenaran diberikan, segerak berjalan secara automatik setiap kali anda membuka aplikasi.",
+    "syncButton": "Benarkan & segerak 7 hari",
+    "nutritionNote": "Tulis makanan anda (kalori, protein, karbo, lemak, serat) ke Health Connect supaya boleh dibaca aplikasi lain. Makanan baharu, suntingan, dan pemadaman turut disegerakkan secara automatik selepas kebenaran diberikan.",
+    "nutritionButton": "Benarkan & tulis nutrisi 30 hari",
+    "summary": {
+      "workouts_other": "{{count}} latihan diimport (7 hari terakhir)",
+      "activityDays_other": "{{count}} hari aktiviti",
+      "sleepNights_other": "{{count}} malam tidur",
+      "skipped_other": "{{count}} pendua dilangkau",
+      "iosEmpty": "Tiada data dibaca. Semak kebenaran di Tetapan > Health > Akses Data & Peranti, kemudian cuba lagi."
+    },
+    "nutritionWritten_other": "{{count}} makanan 30 hari terakhir ditulis ke Health Connect."
+  },
+  "update": {
+    "title": "Kemas kini aplikasi",
+    "installed": "Versi dipasang: {{name}} ({{code}})",
+    "checking": "Menyemak kemas kini…",
+    "upToDate": "Sudah versi terkini.",
+    "available": "Versi {{name}} ({{code}}) · {{size}} sedia dipasang.",
+    "install": "Kemas kini",
+    "downloading": "Memuat turun {{percent}}%",
+    "check": "Semak kemas kini",
+    "checkingShort": "Menyemak…",
+    "banner": {
+      "title": "Versi baharu tersedia",
+      "body": "JoyoRogo {{name}} sedia dipasang.",
+      "bodyPlain": "Ada kemas kini JoyoRogo yang sedia dimuat turun.",
+      "failed": "Gagal memulakan kemas kini. Cuba lagi.",
+      "update": "Kemas kini",
+      "later": "Lain kali",
+      "downloadingTitle": "Memuat turun kemas kini…",
+      "downloadingPercent": "{{percent}}%",
+      "readyTitle": "Kemas kini sedia dipasang",
+      "readyBody": "Mulakan semula JoyoRogo untuk menggunakan versi baharu.",
+      "restart": "Mulakan semula"
+    },
+    "gate": {
+      "ota": "Mengemas kini…",
+      "block": {
+        "title": "Kemas kini dahulu",
+        "body": "Versi JoyoRogo pada telefon anda sudah ketinggalan. Pembaikan yang sudah dikeluarkan hanya digunakan selepas aplikasi dikemas kini.",
+        "how": {
+          "android": "Buka Play Store, kemudian ketik Kemas kini.",
+          "ios": "Buka TestFlight, kemudian ketik Kemas kini."
+        },
+        "update": "Kemas kini sekarang",
+        "testing": "Buka halaman ujian",
+        "recheck": "Semak semula",
+        "rechecking": "Menyemak…",
+        "stillOld": "Versi anda belum yang terkini. Selesaikan kemas kini dahulu, kemudian ketik Semak semula.",
+        "openFailed": "Kedai aplikasi belum dapat dibuka. Sila buka Play Store atau TestFlight sendiri."
+      },
+      "banner": {
+        "title": "Ada versi baharu",
+        "body": "Kemas kini JoyoRogo untuk mendapat pembaikan terkini.",
+        "update": "Kemas kini",
+        "later": "Lain kali"
+      }
+    },
+    "error": {
+      "offline": "Tidak dapat bersambung ke pelayan. Semak sambungan internet anda.",
+      "rejected": "Pelayan menolak permintaan kemas kini (HTTP {{status}}).",
+      "invalidResponse": "Jawapan pelayan tidak sah. Cuba lagi.",
+      "checkFailed": "Semakan kemas kini gagal. Cuba lagi.",
+      "downloadFailed": "Muat turun gagal. Semak sambungan internet anda kemudian cuba lagi.",
+      "verifyFailed": "Gagal menyemak fail yang dimuat turun. Cuba lagi.",
+      "invalidFile": "Fail yang dimuat turun tidak sah. Cuba lagi."
+    },
+    "ota": {
+      "title": "Kemas kini pantas",
+      "running": "Berjalan: kemas kini {{id}} ({{date}})",
+      "embedded": "Berjalan: versi terbina dalam aplikasi",
+      "emergency": "Berjalan: versi terbina dalam (kemas kini terakhir gagal dimuatkan)",
+      "detail": "Saluran {{channel}} · runtime {{runtime}}",
+      "upToDate": "Kemas kini pantas sudah yang terkini.",
+      "checking": "Menyemak kemas kini pantas…",
+      "downloading": "Memuat turun kemas kini pantas {{percent}}%",
+      "downloadingPlain": "Memuat turun kemas kini pantas…",
+      "ready": "Kemas kini pantas sedia. Mulakan semula untuk menggunakannya, atau ia aktif apabila aplikasi dibuka semula.",
+      "restart": "Mulakan semula",
+      "error": "Gagal menyemak kemas kini pantas. Aplikasi terus menggunakan versi sekarang."
+    }
+  },
+  "dishware": {
+    "title": "Pinggan saya",
+    "intro": "Daftarkan pinggan dan mangkuk yang biasa anda guna, sekali sahaja. Saiznya menjadi rujukan apabila AI menganggar hidangan daripada foto, jadi gramnya lebih hampir dengan realiti. Makan di tempat lain? Tidak mengapa, imbas seperti biasa.",
+    "empty": "Belum ada pinggan. Tambah satu, cukup sekali.",
+    "add": "Tambah pinggan/mangkuk",
+    "slots": "{{used}} daripada {{max}} pinggan",
+    "full": "Sudah {{max}} pinggan. Padam satu jika mahu menambah yang lain.",
+    "form": {
+      "title": "Pinggan atau mangkuk baharu",
+      "photo": "Foto dari atas",
+      "photoHint": "Pinggan atau mangkuk yang kosong, difoto tepat dari atas. AI menulis cirinya sekali, supaya nanti dapat mengenali pinggan anda dalam foto makanan.",
+      "takePhoto": "Ambil foto",
+      "retake": "Tukar foto",
+      "name": "Nama",
+      "namePlaceholder": "Pinggan makan putih",
+      "kind": "Jenis",
+      "diameter": "Diameter (cm)",
+      "length": "Panjang (cm)",
+      "width": "Lebar (cm)",
+      "diameterHelp": "Ukur guna pembaris, atau letak kad ATM di sebelahnya.",
+      "measureCard": "Ukur daripada kad ATM",
+      "measuring": "Membaca foto...",
+      "save": "Simpan pinggan",
+      "saving": "Menyimpan...",
+      "cancel": "Batal"
+    },
+    "kind": {
+      "flat": "Pinggan rata",
+      "bowl": "Mangkuk",
+      "rattan": "Pinggan rotan",
+      "lunchbox": "Kotak makanan"
+    },
+    "measure": {
+      "result": "Anggaran daripada kad: {{cm}} cm. Semak dengan pembaris jika boleh, kemudian ubah angkanya jika berbeza.",
+      "noCard": "Kad belum kelihatan jelas dalam foto. Letakkan kad rata di sebelah pinggan, kemudian ambil foto semula, atau taip diameternya sahaja.",
+      "failed": "Foto belum dapat dibaca. Cuba foto semula dari atas dengan cahaya yang cukup."
+    },
+    "fromCard": "daripada kad",
+    "size": "{{cm}} cm",
+    "sizeBox": "{{length}} x {{width}} cm",
+    "edit": "Ubah",
+    "delete": "Padam",
+    "deleteConfirm": "Padam {{name}}? Foto dan ukurannya turut dipadam.",
+    "saved": "Pinggan disimpan.",
+    "removed": "Pinggan dipadam.",
+    "error": {
+      "save": "Gagal menyimpan pinggan.",
+      "remove": "Gagal memadam pinggan."
+    }
+  },
+  "dataSources": {
+    "title": "Sumber data makanan",
+    "intro": "Angka daripada AI sentiasa anggaran. Jika hidangan anda ada dalam jadual di bawah, anggaran itu diselaraskan dengan jadual tersebut.",
+    "tkpi": "Hidangan Indonesia: Jadual Komposisi Makanan Indonesia (TKPI) 2019, Kementerian Kesihatan Indonesia.",
+    "sgfoodid": "Hidangan Malaysia: Singapore Food Insights Database (SG FoodID), Health Promotion Board. Notis sumber dalam bahasa asalnya:",
+    "notice": "Contains information from Singapore Food Insights Database (SG FoodID) accessed on 2026-10-21 from Health Promotion Board which is made available under the terms found at https://pphtpc.hpb.gov.sg/web/sgfoodid. The information contained within this dataset is provided on an \"as-is\" basis. The data, including but not limited to nutritional information, is subject to inherent limitations. No warranty or representation is made as to the accuracy or completeness of the data contained herein."
+  }
+}

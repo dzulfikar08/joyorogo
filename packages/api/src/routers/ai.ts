@@ -413,6 +413,7 @@ async function runAnalyzeFood(
       mimeType: input.mimeType,
       model: context.env.AI_VISION_MODEL || undefined,
       locale: context.locale,
+      region: context.region,
       userContext: (await userNote) ?? undefined,
       dishware: (await reference)?.instruction,
       memory: (await memory)?.block,
@@ -710,6 +711,7 @@ export const aiRouter = {
           model: context.env.AI_VISION_MODEL || undefined,
           retry: { hint: input.hint },
           locale: context.locale,
+          region: context.region,
           userContext: (await userNote) ?? undefined,
           dishware: (await reference)?.instruction,
           memory: (await memory)?.block,
@@ -1027,6 +1029,7 @@ export const aiRouter = {
           text: (transcript ?? input.text ?? "").slice(0, 300),
           model: context.env.AI_CORRECT_MODEL || undefined,
           locale: context.locale,
+          region: context.region,
         });
       } catch (error) {
         failure =
@@ -1191,6 +1194,7 @@ export const aiRouter = {
           referenceDate: input.date,
           model: context.env.AI_VISION_MODEL || undefined,
           locale: context.locale,
+          region: context.region,
           now,
           reference: pointed ? { rows: pointed.rows, target } : undefined,
         });

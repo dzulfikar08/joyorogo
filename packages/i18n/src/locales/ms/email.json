@@ -1,0 +1,32 @@
+{
+  "shell": {
+    "footer": "JoyoRogo: pembantu pemakanan keluarga"
+  },
+  "plan": {
+    "monthly": "bulanan",
+    "yearly": "tahunan"
+  },
+  "receipt": {
+    "subject": "Pembayaran Pro JoyoRogo diterima",
+    "title": "Terima kasih kerana menjadi Pro!",
+    "intro": "Hai {{name}}, pembayaran {{amount}} untuk langganan Pro {{plan}} sudah kami terima.",
+    "active": "Status Pro anda aktif sehingga {{until}} (waktu tempatan).",
+    "capUnlimited": "Sepanjang menjadi Pro, anda boleh mengimbas makanan tanpa had harian.",
+    "capLimited_other": "Sepanjang menjadi Pro, anda boleh mengimbas makanan sehingga {{count}} imbasan AI sehari.",
+    "cta": "Mula imbas",
+    "textLink": "Buka {{url}} untuk mula mengimbas."
+  },
+  "ending": {
+    "subject": "Pro anda berakhir {{until}}",
+    "intro": "Hai {{name}}, tempoh Pro anda akan berakhir pada {{until}} (waktu tempatan).",
+    "renew": "Perbaharui sekarang supaya imbasan pemakanan harian anda tidak terhenti.",
+    "lockedPrice": "Harga terkunci anda masih {{price}}/bulan.",
+    "cta": "Perbaharui Pro"
+  },
+  "expired": {
+    "subject": "Pro anda sudah berakhir",
+    "intro": "Hai {{name}}, tempoh Pro anda sudah berakhir, jadi imbasan pemakanan harian kembali kepada had pengguna percuma.",
+    "reactivate": "Aktifkan semula Pro pada bila-bila masa untuk terus mengimbas tanpa bimbang.",
+    "cta": "Aktifkan Pro"
+  }
+}

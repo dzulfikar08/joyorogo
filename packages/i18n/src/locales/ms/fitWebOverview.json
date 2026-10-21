@@ -1,0 +1,82 @@
+{
+  "title": "Ringkasan",
+  "subtitle": "{{from}} hingga {{to}}",
+  "empty": {
+    "title": "Belum ada data dalam julat ini",
+    "body": "Segerakkan JoyoFit pada telefon anda (Tetapan, kemudian Segerak awan). Latihan, tidur dan pemulihan akan muncul di sini selepas disegerakkan."
+  },
+  "tiles": {
+    "workouts": "Latihan",
+    "distance": "Jarak",
+    "elevation": "Pendakian {{value}} m",
+    "strain": "Strain",
+    "recovery": "Recovery",
+    "hrv": "HRV",
+    "restingHr": "Degup rehat",
+    "vo2max": "VO2max",
+    "vo2maxUnit": "ml/kg/min",
+    "sleep": "Tidur",
+    "perNight": "semalam",
+    "hoursUnit": "jam",
+    "noPrevious": "Belum ada perbandingan",
+    "average": "purata"
+  },
+  "load": {
+    "title": "Beban latihan",
+    "subtitle": "Strain harian (0 hingga 21) dan nisbah beban 7 hari berbanding 28 hari.",
+    "strain": "Strain",
+    "ratio": "Nisbah beban",
+    "latest": "Nisbah terkini {{ratio}}: {{band}}",
+    "band": {
+      "under": "di bawah kebiasaan",
+      "steady": "stabil",
+      "high": "meningkat",
+      "spike": "melonjak"
+    },
+    "aria": "Graf strain harian, purata {{avg}} daripada 21",
+    "empty": "Belum ada strain atau nisbah beban dalam julat ini."
+  },
+  "recovery": {
+    "title": "Pemulihan",
+    "subtitle": "Recovery (daripada HRV semalam) dan purata HRV semalam.",
+    "recovery": "Recovery",
+    "hrv": "HRV",
+    "aria": "Graf recovery harian, purata {{avg}} peratus",
+    "empty": "Belum ada data recovery atau HRV dalam julat ini."
+  },
+  "heart": {
+    "title": "Degup rehat dan kecergasan",
+    "subtitle": "Degup jantung rehat dan anggaran VO2max.",
+    "resting": "Degup rehat",
+    "vo2max": "VO2max",
+    "aria": "Graf degup rehat harian, purata {{avg}} bpm",
+    "empty": "Belum ada data degup rehat atau VO2max dalam julat ini."
+  },
+  "sleep": {
+    "title": "Tidur",
+    "subtitle": "Jam tidur setiap malam.",
+    "hours": "Tidur",
+    "more": "Lihat butiran",
+    "average": "Purata {{value}}",
+    "aria": "Graf jam tidur semalam, purata {{avg}}",
+    "empty": "Belum ada data tidur dalam julat ini."
+  },
+  "volume": {
+    "title": "Volum mingguan",
+    "subtitle": "Masa atau jarak seminggu, dipisahkan mengikut senaman.",
+    "metric": "Ukuran volum",
+    "time": "Masa",
+    "distance": "Jarak",
+    "hoursUnit": "jam",
+    "week": "Minggu {{date}}",
+    "total": "Jumlah",
+    "none": "Tiada latihan",
+    "aria": "Graf volum mingguan daripada {{n}} latihan",
+    "empty": "Belum ada latihan dalam julat ini."
+  },
+  "recent": {
+    "title": "Latihan terkini",
+    "all": "Semua latihan",
+    "empty": "Belum ada latihan dalam julat ini."
+  }
+}

@@ -68,6 +68,13 @@ const SHORT_NAMES: Record<
     range: (a, b, sameMonth) =>
       sameMonth ? `${a.month} ${a.day}–${b.day}` : `${a.month} ${a.day}–${b.month} ${b.day}`,
   },
+  ms: {
+    months: ["Jan", "Feb", "Mac", "Apr", "Mei", "Jun", "Jul", "Ogo", "Sep", "Okt", "Nov", "Dis"],
+    weekdays: ["Aha", "Isn", "Sel", "Rab", "Kha", "Jum", "Sab"],
+    format: ({ weekday, day, month }) => `${weekday}, ${day} ${month}`,
+    range: (a, b, sameMonth) =>
+      sameMonth ? `${a.day}–${b.day} ${b.month}` : `${a.day} ${a.month}–${b.day} ${b.month}`,
+  },
 };
 
 type ShortDay = { weekday: string; day: number; month: string };

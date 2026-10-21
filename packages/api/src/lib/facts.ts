@@ -15,19 +15,34 @@ type FactSpec = {
   minutes: number;
 };
 
-/** One pack of Indomie Mi Goreng (85 g), the label's 380 kcal: the unit of the scan result's "Setara N bungkus Indomie". */
+/** One pack of Indomie Mi Goreng (85 g), the label's 380 kcal: the unit of the Indonesian scan result's "Setara N bungkus Indomie". */
 export const INDOMIE_PACK_KCAL = 380;
 
-/** How many Indomie packs `kcal` is, to one decimal (0 below 0.05). */
-export function indomiePacks(kcal: number): number {
-  return Math.round((Math.max(0, kcal) / INDOMIE_PACK_KCAL) * 10) / 10;
+/**
+ * One roti canai (71 g, HPB SG FoodID F05030010 "Plain prata", 347 kcal per 100 g): the unit of the Bahasa Melayu
+ * scan result's "Bersamaan N keping roti canai". A single piece, sold everywhere in Malaysia, and in the dish data
+ * (lib/myfcd-dishes.ts; facts.test.ts keeps the two equal). Not imported from there: the dish table is 200 rows
+ * and this module ships in the app bundles.
+ */
+export const ROTI_CANAI_PIECE_KCAL = 246;
+
+/** What the scan result compares a total to: a pack of Indomie for Indonesia, a piece of roti canai for Malaysia. */
+function equivalentUnit(locale: Locale): { kcal: number; key: "result.indomie" | "result.rotiCanai" } {
+  return locale === "ms"
+    ? { kcal: ROTI_CANAI_PIECE_KCAL, key: "result.rotiCanai" }
+    : { kcal: INDOMIE_PACK_KCAL, key: "result.indomie" };
 }
 
-/** "Setara 1,5 bungkus Indomie" in the requested language; null when it would round to zero. */
-export function indomieLine(kcal: number, locale: Locale = getActiveLocale()): string | null {
-  const packs = indomiePacks(kcal);
-  if (packs <= 0) return null;
-  return getT(locale, "scan")("result.indomie", { count: packs, packs: fmtNumber(packs, 1, locale) });
+/** How many of the locale's reference unit `kcal` is, to one decimal (0 below 0.05). */
+export function equivalentUnits(kcal: number, locale: Locale = getActiveLocale()): number {
+  return Math.round((Math.max(0, kcal) / equivalentUnit(locale).kcal) * 10) / 10;
+}
+
+/** "Setara 1,5 bungkus Indomie" / "Bersamaan 1.5 keping roti canai" in the requested language; null when it would round to zero. */
+export function equivalentLine(kcal: number, locale: Locale = getActiveLocale()): string | null {
+  const units = equivalentUnits(kcal, locale);
+  if (units <= 0) return null;
+  return getT(locale, "scan")(equivalentUnit(locale).key, { count: units, packs: fmtNumber(units, 1, locale) });
 }
 
 export const FOOD_FACTS = [
@@ -57,6 +72,30 @@ export const FOOD_FACTS = [
   { id: "cireng", kcal: 380, kind: "walk", minutes: 45 },
 ] as const satisfies readonly FactSpec[];
 
+/**
+ * The Bahasa Melayu pool: Malaysian dishes at the weights of the HPB SG FoodID entries behind lib/myfcd-dishes.ts
+ * (kcal rounded to 5; facts.test.ts checks each against that table). No pork dish: these show to everyone, and
+ * the product never labels food halal or not (docs/marketing/malaysia-plan.md). Effort minutes use the same
+ * rough rates as the pool above (about 11 kcal a minute running, 7.5 walking, 10 cycling).
+ */
+export const FOOD_FACTS_MY = [
+  { id: "nasiLemak", kcal: 630, kind: "run", minutes: 55 },
+  { id: "rotiCanai", kcal: 245, kind: "walk", minutes: 35 },
+  { id: "miloAis", kcal: 290, kind: "walk", minutes: 40 },
+  { id: "charKueyTeow", kcal: 975, kind: "run", minutes: 90 },
+  { id: "meeGorengMamak", kcal: 830, kind: "bike", minutes: 85 },
+  { id: "laksa", kcal: 415, kind: "walk", minutes: 55 },
+  { id: "cendol", kcal: 345, kind: "walk", minutes: 45 },
+  { id: "karipap", kcal: 290, kind: "run", minutes: 25 },
+  { id: "nasiAyam", kcal: 510, kind: "run", minutes: 45 },
+  { id: "satay", kcal: 545, kind: "walk", minutes: 70 },
+  { id: "pisangGoreng", kcal: 235, kind: "walk", minutes: 30 },
+  { id: "kuihLapis", kcal: 120, kind: "walk", minutes: 15 },
+  { id: "nasiLemakAyam", kcal: 905, kind: "run", minutes: 80 },
+] as const satisfies readonly FactSpec[];
+
+const POOLS = { id: FOOD_FACTS, en: FOOD_FACTS, ms: FOOD_FACTS_MY } as const;
+
 export type FoodFact = {
   /** Dish and portion, in the requested language. */
   text: string;
@@ -65,7 +104,7 @@ export type FoodFact = {
   move: string;
 };
 
-function localize(spec: (typeof FOOD_FACTS)[number], locale: Locale): FoodFact {
+function localize(spec: (typeof FOOD_FACTS)[number] | (typeof FOOD_FACTS_MY)[number], locale: Locale): FoodFact {
   const t = getT(locale, "scan");
   const duration =
     spec.minutes < 60
@@ -85,10 +124,12 @@ function localize(spec: (typeof FOOD_FACTS)[number], locale: Locale): FoodFact {
 export function pickFact(date: string, locale: Locale = getActiveLocale()): FoodFact {
   let hash = 0;
   for (const ch of date) hash = (hash * 31 + ch.charCodeAt(0)) % 100000;
-  return localize(FOOD_FACTS[hash % FOOD_FACTS.length]!, locale);
+  const pool: ReadonlyArray<(typeof FOOD_FACTS)[number] | (typeof FOOD_FACTS_MY)[number]> = POOLS[locale];
+  return localize(pool[hash % pool.length]!, locale);
 }
 
 /** Random fact — for loading screens where variety beats determinism. */
 export function randomFact(locale: Locale = getActiveLocale()): FoodFact {
-  return localize(FOOD_FACTS[Math.floor(Math.random() * FOOD_FACTS.length)]!, locale);
+  const pool: ReadonlyArray<(typeof FOOD_FACTS)[number] | (typeof FOOD_FACTS_MY)[number]> = POOLS[locale];
+  return localize(pool[Math.floor(Math.random() * pool.length)]!, locale);
 }

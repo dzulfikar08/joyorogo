@@ -1,0 +1,768 @@
+{
+  "diary": {
+    "header": {
+      "loading": "Memuatkan catatan makan"
+    },
+    "summary": {
+      "unit": "kcal",
+      "over": "Lebih {{kcal}}",
+      "ofTarget": "daripada {{kcal}}"
+    },
+    "quick": {
+      "label": "Catat pantas",
+      "photo": "Foto",
+      "barcode": "Kod bar",
+      "story": "Cerita",
+      "recent": "Terakhir dicatat · ketik untuk catat ke {{meal}}"
+    },
+    "macro": {
+      "protein": "Protein",
+      "carbs": "Karbo",
+      "fat": "Lemak",
+      "fiber": "Serat"
+    },
+    "story": {
+      "title": "Ceritakan makanan anda",
+      "sheetDescription": "Boleh beberapa waktu makan sekali gus, termasuk semalam. Anda semak dahulu sebelum disimpan.",
+      "saved_other": "{{count}} makanan dicatat ke {{days}}.",
+      "daysJoin": " dan ",
+      "dismiss": "Tutup pemberitahuan"
+    },
+    "favorites": {
+      "title": "Kegemaran",
+      "inlineHint": "Kegemaran · ketik untuk catat ke {{meal}}",
+      "inlineHintOnDate": "Kegemaran · ketik untuk catat ke {{meal}}, {{date}}",
+      "sheetHint": "Ketik untuk terus masuk ke {{meal}}.",
+      "sheetInlineHint": "Kegemaran · ketik untuk masuk ke {{meal}}"
+    },
+    "empty": {
+      "titleToday": "Belum ada catatan hari ini",
+      "titleDay": "Belum ada catatan pada hari ini"
+    },
+    "list": {
+      "sectionAria": "{{meal}}, jumlah {{kcal}} kcal",
+      "addTo": "Tambah {{meal}}",
+      "slotEmpty": "Belum ada catatan. Tekan Tambah di atas, atau imbas fotonya.",
+      "slotEmptyIcon": "Belum ada catatan. Tekan tambah di atas, atau imbas fotonya.",
+      "slotNoKind": "Tiada {{kind}} pada waktu makan ini.",
+      "dayEmpty": "Belum ada catatan pada hari ini.",
+      "dayAria": "Catatan {{date}}"
+    },
+    "kind": {
+      "makanan": "makanan",
+      "camilan": "snek",
+      "minuman": "minuman",
+      "lainnya": "lain-lain"
+    },
+    "mealShort": {
+      "sarapan": "Sarapan",
+      "makan_siang": "Tengah hari",
+      "makan_malam": "Malam",
+      "snack": "Snek",
+      "sahur": "Sahur",
+      "berbuka": "Berbuka"
+    },
+    "sheet": {
+      "addTo": "Tambah ke {{meal}}",
+      "addFood": "Tambah Makanan",
+      "descToday": "Masuk ke catatan hari ini.",
+      "descDate": "Masuk ke catatan {{date}}.",
+      "recentTitle": "Terakhir dicatat",
+      "quickAdd": "Catat pantas",
+      "manualToggle": "Sudah tahu kalorinya? Isi sendiri",
+      "manualToggleShort": "Isi kalori sendiri",
+      "saving": "Menyimpan...",
+      "field": {
+        "name": "Nama makanan",
+        "namePlaceholder": "Nasi lemak",
+        "caloriesNative": "Kalori (kcal)",
+        "protein": "Protein (g)",
+        "carbs": "Karbo (g)",
+        "fat": "Lemak (g)",
+        "price": "Harga sepinggan (RM, pilihan)",
+        "priceNative": "Harga pinggan ini (RM, pilihan)",
+        "pricePlaceholder": "cth. {{example}}",
+        "priceA11y": "Harga pinggan ini dalam ringgit",
+        "place": "Tempat (pilihan)",
+        "placePlaceholder": "Restoran Pak Ali",
+        "placePlaceholderNative": "Kedai Kak Siti",
+        "placeA11y": "Tempat membeli"
+      },
+      "macrosToggle": "+ Protein / karbo / lemak (pilihan)",
+      "macrosToggleNative": "Tambah butiran makro (pilihan)",
+      "scanPhoto": {
+        "title": "Imbas guna foto",
+        "subtitle": "AI mengira kalorinya, anda semak dahulu."
+      },
+      "scanBarcode": {
+        "title": "Imbas kod bar pembungkusan",
+        "subtitle": "Ambil nilai pemakanan daripada Open Food Facts."
+      },
+      "shareTitle": "Kongsi makanan ini",
+      "shareProtein": "P {{g}}g"
+    },
+    "error": {
+      "foodName": "Isi nama makanan dahulu.",
+      "kcalNumber": "Isi jumlah kalori (nombor).",
+      "priceNumber": "Harga tidak sah (nombor ringgit).",
+      "nameMissing": "Isi dahulu nama makanannya.",
+      "kcalMissing": "Isi jumlah kalorinya, contoh: 350.",
+      "priceInvalid": "Harga pinggan mestilah nombor ringgit yang sah, contoh: 12.",
+      "saveFailed": "Gagal menyimpan."
+    },
+    "toast": {
+      "logged": "{{name}} dicatat",
+      "movedTo": "Dialihkan ke {{target}}",
+      "plateUpdated": "Pinggan dikemas kini",
+      "entryFallback": "Catatan"
+    }
+  },
+  "kind": {
+    "makanan": "Makanan",
+    "camilan": "Snek",
+    "minuman": "Minuman",
+    "lainnya": "Lain-lain",
+    "all": "Semua"
+  },
+  "foodRow": {
+    "fromAi": "Daripada imbasan AI",
+    "delete": "Padam {{name}}"
+  },
+  "viewSwitcher": {
+    "label": "Paparan Makan",
+    "view": {
+      "daftar": "Senarai",
+      "kalender": "Kalendar",
+      "stiker": "Foto",
+      "tempat": "Tempat"
+    }
+  },
+  "kindChips": {
+    "label": "Jenis catatan"
+  },
+  "calendar": {
+    "label": "Kalendar catatan",
+    "prevMonth": "Bulan sebelumnya",
+    "nextMonth": "Bulan seterusnya",
+    "weekday": {
+      "mon": "I",
+      "tue": "S",
+      "wed": "R",
+      "thu": "K",
+      "fri": "J",
+      "sat": "S",
+      "sun": "A"
+    },
+    "dayWithEntries_other": "{{date}}, {{count}} catatan, {{kcal}}",
+    "dayEmpty": "{{date}}, belum ada catatan",
+    "status": {
+      "within": "menepati sasaran",
+      "over": "melebihi sasaran",
+      "under": "di bawah sasaran"
+    },
+    "budget": "Sasaran {{kcal}} sehari",
+    "stats": {
+      "logged_other": "{{n}} hari dicatat",
+      "within_other": "{{n}} menepati sasaran",
+      "over_other": "{{n}} melebihi sasaran",
+      "under_other": "{{n}} di bawah sasaran",
+      "average": "Purata {{kcal}} sehari"
+    },
+    "legend": {
+      "within": "Menepati sasaran",
+      "over": "Melebihi sasaran",
+      "under": "Di bawah sasaran",
+      "logged": "Dicatat",
+      "none": "Belum dicatat"
+    },
+    "day": {
+      "empty": "Belum ada catatan pada hari ini.",
+      "open": "Buka dalam Senarai",
+      "ofTarget": "{{eaten}} daripada {{target}} kcal"
+    },
+    "monthLong": {
+      "jan": "Januari",
+      "feb": "Februari",
+      "mar": "Mac",
+      "apr": "April",
+      "may": "Mei",
+      "jun": "Jun",
+      "jul": "Julai",
+      "aug": "Ogos",
+      "sep": "September",
+      "oct": "Oktober",
+      "nov": "November",
+      "dec": "Disember"
+    }
+  },
+  "photos": {
+    "tile": {
+      "label": "{{name}}, {{kcal}}, {{date}}"
+    },
+    "range": "{{from}} - {{to}}",
+    "span": {
+      "label": "Julat foto",
+      "minggu": "Minggu",
+      "bulan": "Bulan"
+    },
+    "count_other": "{{n}} makanan berfoto",
+    "average": "Purata {{kcal}} setiap makanan",
+    "prevWeek": "Minggu sebelumnya",
+    "nextWeek": "Minggu seterusnya",
+    "prevMonth": "Bulan sebelumnya",
+    "nextMonth": "Bulan seterusnya",
+    "loading": "Memuatkan makanan berfoto...",
+    "empty": {
+      "title": "Belum ada makanan berfoto",
+      "body": "Imbas foto pinggan anda, nanti fotonya muncul di sini bersama kalori dan proteinnya."
+    }
+  },
+  "fitnessCard": {
+    "aria": "JoyoFit: {{summary}}. Buka butiran",
+    "title": "JoyoFit",
+    "metric": {
+      "recovery": "Pemulihan",
+      "strain": "Strain",
+      "readiness": "Kesiapsiagaan"
+    },
+    "verdict": {
+      "hardDay": "Hari yang berat, perlukan lebih tenaga",
+      "lowRecovery": "Pemulihan rendah, rehat dahulu",
+      "shortSleep": "Tidur kurang, rehat dahulu",
+      "strained": "Tubuh terbeban, rehat dahulu"
+    },
+    "sheet": {
+      "title": "Kecergasan daripada JoyoFit",
+      "explainTitle": "Cara membaca angkanya",
+      "open": "Buka JoyoFit"
+    },
+    "explain": {
+      "recovery": "Setakat mana tubuh anda telah pulih. Di bawah 34% rendah, 67% ke atas baik.",
+      "strain": "Seberapa berat hari ini untuk tubuh anda, skala 0 hingga 21. Mulai 14 dikira hari yang berat.",
+      "readiness": "Kesiapsiagaan tubuh anda menurut JoyoFit: Bersedia, Seimbang, Terbeban atau Keletihan."
+    },
+    "left": {
+      "kcal": "Baki kcal",
+      "protein": "Baki protein",
+      "carbs": "Baki karbo"
+    },
+    "pick": {
+      "protein": "P {{g}}",
+      "carbs": "K {{g}}",
+      "database": "daripada pangkalan data JoyoRogo",
+      "history_other": "{{n}}x dalam catatan anda"
+    },
+    "picksTitle": "Pilihan untuk hari ini",
+    "readiness": {
+      "primed": "Bersedia",
+      "balanced": "Seimbang",
+      "strained": "Terbeban",
+      "runDown": "Keletihan"
+    },
+    "hint": {
+      "hardDay": "Hari ini berat untuk tubuh anda, jadi keperluan tenaga dan karbohidrat lebih tinggi daripada biasa. Cukupkan juga cecair.",
+      "rest": {
+        "lowRecovery": "Pemulihan anda rendah: utamakan protein, cecair dan tidur malam ini.",
+        "shortSleep": "Tidur anda kurang: utamakan protein, cecair dan tidur malam ini.",
+        "strained": "Tubuh anda sedang terbeban: utamakan protein, cecair dan tidur malam ini."
+      }
+    },
+    "teaser": {
+      "title": "Cadangan makan daripada skor JoyoFit",
+      "body": "Pro mendapat cadangan saiz hidangan dan menu hari ini, dikira daripada skor anda, sasaran harian anda dan makanan yang sudah anda catat.",
+      "action": "Buka dengan Pro"
+    }
+  },
+  "snackAdvice": {
+    "kcal": "{{n}} kcal",
+    "joinLast": "{{list}} dan {{last}}",
+    "verdict": {
+      "aman": "Selamat",
+      "hati-hati": "Berhati-hati",
+      "lewat": "Melebihi sasaran"
+    },
+    "spareNoun": {
+      "makanan": "makan sekarang",
+      "camilan": "snek",
+      "minuman": "minuman",
+      "lainnya": "yang ini"
+    },
+    "swap": {
+      "generic": {
+        "makanan": "Cuba nasi separuh hidangan, lauk yang dipanggang atau direbus, dan lebih banyak sayur.",
+        "camilan": "Cuba buah yang dipotong, yogurt tawar, atau tauhu dan tempe kukus.",
+        "minuman": "Cuba air kosong, teh o kosong, atau kopi tanpa gula."
+      },
+      "label": "Tukar kepada yang lebih ringan",
+      "idea": "Tukar kepada {{name}} (kira-kira {{kcal}})."
+    },
+    "summary": {
+      "outsideWindow": "Di luar tetingkap makan IF ({{window}}).",
+      "overNoRoom": "Sasaran hari ini sudah digunakan.",
+      "overSome": "Melebihi sasaran hari ini.",
+      "reserve": {
+        "safe": "Masih muat sebelum {{upcoming}}.",
+        "some": "Muat, tetapi mengurangkan catuan {{upcoming}}.",
+        "none": "Menggunakan catuan {{upcoming}}."
+      },
+      "simple": "Masih muat dalam sasaran hari ini."
+    },
+    "reason": {
+      "windowClosed": "Tetingkap makan IF anda sedang tutup, jadi ini di luar jadual. Kalorinya tetap dikira ke hari ini.",
+      "overNoRoom": "Sasaran hari ini sudah dipenuhi, jadi ini menambah di atasnya.",
+      "overSome": "Baki hari ini tidak cukup untuk ini, jadi jumlahnya melebihi sasaran.",
+      "surplus": "Jumlah hari ini melebihi keperluan harian anda (TDEE), jadi berat belum menurun hari ini.",
+      "thinDeficit": "Memang melebihi sasaran, tetapi masih di bawah keperluan harian anda (TDEE). Anda tetap boleh menyimpannya.",
+      "reserve": {
+        "safe": "Baki hari ini diperuntukkan dahulu untuk {{upcoming}}, dan masih ada ruang untuk {{noun}}.",
+        "some": "Baki hari ini diperuntukkan dahulu untuk {{upcoming}}, jadi ruang untuk {{noun}} terhad.",
+        "none": "Baki hari ini diperuntukkan dahulu untuk {{upcoming}}, jadi belum ada ruang untuk {{noun}}."
+      },
+      "simple": "Tiada makan lain yang perlu diperuntukkan, jadi baki hari ini terus digunakan."
+    },
+    "half": {
+      "label": "Separuh hidangan"
+    },
+    "lighterNext": {
+      "label": "Ringankan {{upcoming}}"
+    },
+    "dayImpact": {
+      "noTarget": "Jumlah hari itu menjadi {{total}}.",
+      "withTarget": "Jumlah hari itu menjadi {{total}} daripada sasaran {{target}}."
+    },
+    "card": {
+      "lighterLine": "{{label}}.",
+      "aria": "Cadangan sebelum disimpan: {{title}}",
+      "ariaFull": "Cadangan sebelum disimpan: {{title}}. {{summary}} {{figures}}",
+      "why": "Mengapa?",
+      "remainingToday": "Baki hari ini",
+      "needLater": "Diperlukan nanti",
+      "mealsAhead": "Makan lagi",
+      "none": "tiada",
+      "afterThis": "Selepas ini",
+      "over": "lebih {{kcal}}",
+      "undoHalf": "Kembalikan hidangan penuh",
+      "halfButton": "Separuh hidangan · {{kcal}}",
+      "halfResult": "Hasilnya: {{verdict}}",
+      "note": "Sekadar panduan, anda tetap boleh menyimpannya."
+    },
+    "kindCycle": {
+      "aria": "Jenis: {{current}}. Ketik untuk tukar kepada {{next}}."
+    },
+    "kindPicker": {
+      "label": "Jenis makanan"
+    }
+  },
+  "daySwitcher": {
+    "label": "Pilih hari",
+    "prev": "Hari sebelumnya",
+    "next": "Hari seterusnya",
+    "backToToday": "Kembali ke hari ini"
+  },
+  "sheetActions": {
+    "removeFavorite": "Buang daripada Kegemaran",
+    "addFavorite": "Simpan ke Kegemaran",
+    "share": "Kongsi"
+  },
+  "favorites": {
+    "toast": {
+      "saved": "{{name}} masuk Kegemaran",
+      "relogged": "{{name}} dicatat ke {{meal}}",
+      "nameEmpty": "Nama tidak boleh kosong"
+    },
+    "deletedLabel": "{{name}} daripada Kegemaran",
+    "itemCount_other": "{{count}} item",
+    "manage": "Urus",
+    "sheet": {
+      "title": "Urus Kegemaran",
+      "description": "Tukar nama atau padam. Padam boleh dibatalkan dalam beberapa saat.",
+      "empty": "Belum ada kegemaran. Tekan bintang pada makanan atau pinggan untuk menyimpannya.",
+      "newName": "Nama baharu untuk {{name}}",
+      "saveName": "Simpan nama {{name}}",
+      "rename": "Tukar nama {{name}}",
+      "remove": "Buang {{name}} daripada Kegemaran"
+    }
+  },
+  "portionSheet": {
+    "title": "Ubah hidangan",
+    "name": "Nama",
+    "weightLabel": "Berat (g)",
+    "kcalLabel": "Kalori (kcal)",
+    "link": {
+      "linkedAria": "Berat dan kalori dipautkan, ketik untuk meleraikan",
+      "unlinkedAria": "Berat dan kalori terlerai, ketik untuk memautkan",
+      "linked": "Dipautkan",
+      "unlinked": "Terlerai"
+    },
+    "portion": "Hidangan",
+    "customMultiplier": "Gandaan hidangan sendiri",
+    "hint": {
+      "unlinked": "Terlerai: kalori yang anda taip kekal, walaupun berat diubah. Makro mengikut kalori.",
+      "linked": "Makro turut berubah mengikut hidangan. Harga pinggan tidak berubah."
+    },
+    "loggedOn": "Dicatat pada",
+    "pickDate": "Pilih tarikh, dipilih {{date}}",
+    "movedHint": "Akan dialihkan ke {{date}}.",
+    "slotMovedHint": "Akan dialihkan ke {{meal}}.",
+    "slotHint": "Alihkan ke waktu makan lain jika tersalah slot.",
+    "saving": "Menyimpan...",
+    "toast": {
+      "movedDay": "Dialihkan ke {{date}}",
+      "movedSlot": "Dialihkan ke {{meal}}",
+      "updated": "{{name}} dikemas kini"
+    },
+    "nameAria": "Nama makanan",
+    "weightAria": "Berat dalam gram",
+    "kcalAria": "Kalori dalam kcal"
+  },
+  "story": {
+    "copy": {
+      "title": "Ulang makanan",
+      "hint": "Ketik untuk salin, atau taip: sama seperti tengah hari tadi.",
+      "chipToday": "Sama seperti {{meal}} tadi",
+      "chipDay": "{{meal}} {{day}}",
+      "copiedFrom": "Disalin daripada {{label}}. Semak dahulu sebelum disimpan.",
+      "empty": "Belum ada catatan {{what}}.",
+      "emptyAny": "Belum ada makanan dicatat yang boleh disalin.",
+      "suggest": "Yang paling hampir: {{label}}, {{kcal}} kcal.",
+      "suggestAction": "Salin yang itu",
+      "emptied": "Semua makanan anda keluarkan, jadi tiada yang disalin.",
+      "failed": "Gagal menyalin. Cuba lagi."
+    },
+    "joinLast": "{{list}} dan {{last}}",
+    "error": {
+      "generic": "Gagal menghubungi AI. Cuba lagi.",
+      "micDenied": "Kebenaran mikrofon ditolak. Taip sahaja cerita anda, atau benarkan mikrofon dalam tetapan pelayar.",
+      "micDeniedNative": "Kebenaran mikrofon ditolak. Taip sahaja cerita anda, atau benarkan mikrofon dalam Tetapan.",
+      "tooShort": "Rakamannya terlalu pendek. Tekan mikrofon, ceritakan, kemudian tekan Selesai.",
+      "empty": "Tulis dahulu makanannya, contohnya: nasi lemak 1 bungkus.",
+      "kcalInvalid": "Kalori untuk \"{{name}}\" tidak sah.",
+      "priceInvalid": "Harga pinggan tidak sah (nombor ringgit).",
+      "recordStopFailed": "Rakaman gagal dihentikan. Cuba lagi.",
+      "recordProcessFailed": "Rakaman gagal diproses. Cuba lagi.",
+      "recordFailed": "Rakaman gagal. Cuba lagi.",
+      "recordStartFailed": "Rakaman tidak dapat dimulakan. Cuba lagi.",
+      "saveFailed": "Gagal menyimpan."
+    },
+    "toast": {
+      "saved_other": "{{count}} makanan dicatat ke {{days}}.",
+      "show": "Lihat",
+      "savedShort_other": "{{count}} makanan dicatat"
+    },
+    "listening": "Mendengar rakaman…",
+    "thinking": "AI sedang mengira kalori…",
+    "eta": "Biasanya 2 hingga 6 saat.",
+    "cancelRequest": "Batal",
+    "youSaid": "Anda kata",
+    "editStory": "Ubah cerita",
+    "portionDefault": "1 hidangan",
+    "kcalAria": "Kalori {{name}}",
+    "plateName": "Nama pinggan",
+    "priceLabel": "Harga (RM)",
+    "pricePlaceholder": "cth. {{example}}",
+    "total": "Jumlah",
+    "saving": "Menyimpan...",
+    "saveAll_other": "Simpan {{count}} makanan",
+    "inputLabel": "Ceritakan makanan anda",
+    "recording": "Merakam {{time}}",
+    "recordingHint": "Sebut makanan, hidangan dan waktunya. Maksimum 1 minit.",
+    "placeholder": {
+      "meal": "Contoh: mee goreng mamak 1 pinggan, teh tarik 1 gelas",
+      "day": "Contoh: semalam pagi nasi lemak dengan telur goreng, tengah hari nasi kandar lauk ayam goreng"
+    },
+    "record": "Rakam suara",
+    "calculate": "Kira kalori",
+    "plateTitle": "Pinggan: {{label}}",
+    "platePriceLabel": "Harga pinggan ini (RM)",
+    "card": {
+      "template": {
+        "photo": {
+          "label": "Foto",
+          "hint": "Foto anda jadi latar, angka di bawah."
+        },
+        "sticker": {
+          "label": "Pelekat",
+          "hint": "PNG lutsinar, tampal di atas foto story anda."
+        },
+        "brand": {
+          "label": "Kad",
+          "hint": "Kad JoyoRogo penuh, tinggal siarkan."
+        }
+      },
+      "eyebrow": {
+        "meal": "Makan hari ini",
+        "workout": "Sesi latihan",
+        "recap": "Rumusan minggu",
+        "progress": "Kemajuan hari ini",
+        "challenge": "Cabaran kumpulan"
+      },
+      "volume": "Jumlah volum",
+      "duration": "Tempoh",
+      "setsDone": "Set selesai",
+      "sets": "Set",
+      "records": "Rekod",
+      "unit": {
+        "minutes": "minit",
+        "sets_other": "set",
+        "new": "baharu",
+        "days_other": "hari",
+        "people_other": "orang"
+      },
+      "ofValue": "daripada {{value}}",
+      "targetValue": "sasaran {{value}}",
+      "streak": "Berturutan",
+      "lost": "Turun",
+      "fromStartWeight": "daripada berat awal",
+      "onTarget": "Menepati sasaran",
+      "ofLogged_other": "daripada {{count}} dicatat",
+      "exercise": "Senaman",
+      "minutesValue_other": "{{n}} minit",
+      "weight": "Berat",
+      "weeklyTrend": "trend mingguan",
+      "bestDay": "Hari terbaik",
+      "daysHit": "Hari sasaran tercapai",
+      "startingSoon": "Cabaran akan bermula tidak lama lagi",
+      "bestStreak": "Streak terbaik",
+      "rank": "Kedudukan",
+      "participants": "Peserta",
+      "avgPerDay": "Purata sehari",
+      "ofKcal": "daripada {{n}} kcal",
+      "ofKcalTarget": "daripada {{n}} kcal sasaran",
+      "newRecords": "Rekod baharu",
+      "trend": {
+        "down": "Turun {{kg}} kg minggu ini",
+        "up": "Naik {{kg}} kg minggu ini",
+        "steady": "Stabil minggu ini"
+      },
+      "canvasUnsupported": "Pelayar tidak menyokong canvas.",
+      "share": {
+        "meal": "{{name}}, {{kcal}} kcal. Tahu apa yang boleh dimakan hari ini? Semak JoyoRogo.",
+        "workout": "Baru selesai latihan: {{name}}. Catat latihan anda di JoyoRogo.",
+        "recap": "Rumusan saya {{name}}: {{on}} daripada {{logged}} hari menepati sasaran, purata {{avg}} kcal sehari. Catat makanan anda di JoyoRogo.",
+        "lost": "Sudah turun {{kg}} kg. Turunkan berat dengan 3 angka sahaja di JoyoRogo.",
+        "progress": "Turunkan berat dengan 3 angka sahaja: makan, bakar, tidur. JoyoRogo.",
+        "period": "Kemajuan saya {{days}} hari: makan dicatat {{logged}} daripada {{judged}} hari. Catat makanan anda di JoyoRogo."
+      }
+    },
+    "share": {
+      "shareToStory": "Kongsi ke Story",
+      "makeImageFailed": "Gagal membuat gambar.",
+      "targets": "Kongsi melalui",
+      "instagram": "Instagram",
+      "copy": "Salin",
+      "save": "Simpan",
+      "more": "Lain-lain",
+      "copied": "Gambar disalin",
+      "copyUnsupported": "Pelayar ini belum boleh menyalin gambar. Guna Simpan sahaja ya.",
+      "copyFailed": "Gagal menyalin gambar.",
+      "saved": "Gambar disimpan",
+      "savedWebBody": "Semak folder Muat Turun anda.",
+      "savedNativeBody": "Semak galeri anda.",
+      "saveFailed": "Gagal menyimpan gambar.",
+      "continue": "Teruskan",
+      "notNow": "Nanti sahaja",
+      "saveAskTitle": "Simpan ke galeri",
+      "saveAskBody": "Supaya gambar story anda boleh disimpan, JoyoRogo memerlukan kebenaran untuk menambah gambar ke galeri anda. Foto lain tidak dibaca.",
+      "instagramAskTitle": "Buka di Instagram",
+      "instagramAskBody": "Instagram menerima gambar daripada galeri, jadi JoyoRogo menyimpannya di sana dahulu, kemudian membukanya di Instagram. Anda boleh memilih Story di sana.",
+      "photosBlockedTitle": "Akses galeri dimatikan",
+      "photosBlockedBody": "Hidupkan akses foto untuk JoyoRogo dalam Tetapan, kemudian cuba lagi.",
+      "openSettings": "Buka Tetapan",
+      "shareFailed": "Gagal berkongsi.",
+      "preparing": "Menyediakan…",
+      "pickTemplate": "Pilih rupa story",
+      "preview": "Pratonton {{name}}",
+      "changePhoto": "Tukar foto",
+      "usePhoto": "Guna foto saya",
+      "shareFailedTitle": "Gagal berkongsi",
+      "shareFailedBody": "Cuba lagi sebentar nanti ya.",
+      "photoFailedTitle": "Foto gagal dimuatkan",
+      "photoFailedBody": "Semak sambungan anda atau pilih foto lain, kemudian cuba lagi.",
+      "captureFailedTitle": "Gambar story belum siap",
+      "captureFailedBody": "Pratonton selamat, tetapi gambarnya gagal dibuat. Cuba lagi ya."
+    }
+  },
+  "plate": {
+    "belanja": {
+      "title": "Belanja makan",
+      "todayLine": "Belanja makan hari ini: {{amount}}",
+      "budgetLeft": {
+        "day": "Baki bajet harian: {{amount}}",
+        "month": "Baki bajet bulanan: {{amount}}"
+      },
+      "weekMeta": "Minggu ini {{amount}}",
+      "todayMeta": "Hari ini {{amount}}",
+      "leftMeta": {
+        "day": "Baki harian {{amount}}",
+        "month": "Baki bulanan {{amount}}"
+      },
+      "thisWeek": "Minggu ini",
+      "thisMonth": "Bulan ini",
+      "bestValue": "Nilai terbaik",
+      "bestValueHint": "Protein bagi setiap {{price}}, daripada pinggan yang pernah anda catat harganya.",
+      "proteinOf": "{{g}} protein",
+      "perPrice": "{{g}} bagi {{price}}",
+      "empty": "Catat harga pinggan anda semasa mengimbas atau menulis makanan, nanti menu paling jimat muncul di sini.",
+      "leftShort": "Baki {{amount}}",
+      "overBudget": {
+        "day": "Lebih {{amount}} daripada bajet harian",
+        "month": "Lebih {{amount}} daripada bajet bulanan"
+      },
+      "budgetNote": {
+        "day": "Baki bajet: {{amount}} (sehari)",
+        "month": "Baki bajet: {{amount}} (sebulan)"
+      },
+      "avg30": "Purata 30 hari terakhir",
+      "proteinPerPrice": "{{g}} protein bagi {{price}}",
+      "emptyNative": "Belum ada harga dicatat. Isi \"Harga sepinggan\" semasa mengimbas atau mencatat makanan.",
+      "compactOver": "melebihi bajet {{amount}}",
+      "compactLeft": "baki bajet {{amount}}"
+    },
+    "budget": {
+      "title": "Bajet belanja makan",
+      "hint": "Had perbelanjaan makan. Baki bajet dipaparkan di sebelah baki kalori.",
+      "limit": "Had (RM)",
+      "placeholder": "cth. {{example}}",
+      "periodLabel": "Tempoh bajet",
+      "period": {
+        "day": "Harian",
+        "month": "Bulanan"
+      },
+      "saved": "Bajet disimpan",
+      "invalid": "Isi nombor ringgit yang sah, atau biarkan kosong.",
+      "saving": "Menyimpan...",
+      "remove": "Padam bajet",
+      "native": {
+        "note": "Pilihan. Supaya anda tahu baki bajet makan anda setiap hari atau setiap bulan.",
+        "amount": "Jumlah (RM)",
+        "amountHint": "Biarkan kosong untuk mematikan bajet.",
+        "amountAria": "Jumlah bajet belanja makan",
+        "perDay": "Sehari",
+        "perMonth": "Sebulan",
+        "invalid": "Isi nombor ringgit yang sah, contoh: 30.",
+        "save": "Simpan Bajet"
+      }
+    },
+    "mealSlot": {
+      "label": "Waktu makan"
+    },
+    "calendar": {
+      "title": "Pilih tarikh",
+      "range": "Antara {{from}} dan hari ini."
+    },
+    "header": {
+      "title": "Pinggan: {{name}}",
+      "noPrice": "Tiada harga",
+      "editPrice": "Ubah harga {{name}}",
+      "editAria": "Ubah pinggan {{name}}"
+    },
+    "toast": {
+      "movedDay": "Dialihkan ke {{date}}",
+      "movedSlot": "Dialihkan ke {{meal}}",
+      "updated": "Pinggan dikemas kini"
+    },
+    "edit": {
+      "title": "Ubah pinggan",
+      "invalidPrice": "Harga tidak sah.",
+      "name": "Nama pinggan",
+      "namePlaceholder": "Nasi kandar",
+      "place": "Tempat (pilihan)",
+      "placePlaceholder": "Restoran Pak Ali",
+      "price": "Harga sepinggan (RM)",
+      "pricePlaceholder": "cth. {{example}}",
+      "loggedOn": "Dicatat pada",
+      "pickDate": "Pilih tarikh, dipilih {{date}}",
+      "movedHint_other": "Akan dialihkan ke {{date}} bersama {{count}} catatannya.",
+      "dateHint": "Alihkan pinggan ini ke hari lain jika tersalah hari.",
+      "slotMovedHint_other": "Pinggan dan {{count}} catatannya dialihkan ke {{meal}}.",
+      "slotHint": "Alihkan pinggan ini jika tersalah waktu makan.",
+      "saving": "Menyimpan...",
+      "move": "Alihkan"
+    },
+    "dateSheet": {
+      "title": "Pilih tarikh",
+      "prevMonth": "Bulan sebelumnya",
+      "nextMonth": "Bulan seterusnya",
+      "weekday": {
+        "mon": "Is",
+        "tue": "Sl",
+        "wed": "R",
+        "thu": "K",
+        "fri": "J",
+        "sat": "S",
+        "sun": "A"
+      },
+      "limit": "Paling jauh {{date}}, maksimum hari ini."
+    },
+    "fields": {
+      "title": "Pinggan ini",
+      "priceAria": "Harga sepinggan dalam ringgit",
+      "nameHint": "Supaya harga yang sama tidak perlu diisi semula.",
+      "placePlaceholder": "Kedai Kak Siti",
+      "placeAria": "Tempat membeli"
+    },
+    "editNative": {
+      "priceAria": "Harga pinggan dalam ringgit",
+      "movedHint": "Akan dialihkan ke {{date}} ({{relative}}).",
+      "slotMovedHint": "Pinggan dan semua isinya dialihkan ke {{meal}}.",
+      "hasLocation": "Pinggan ini mempunyai lokasi tersimpan, hanya anda yang boleh melihatnya.",
+      "removeLocation": "Padam lokasi",
+      "needPlace": "Isi nama tempat dahulu supaya lokasinya boleh disimpan."
+    },
+    "recalc": {
+      "action": "Kira semula kalori",
+      "title": "Kira semula kalori",
+      "description": "Kalori setiap makanan dikira semula daripada nama dan beratnya. Yang anda ubah sendiri tidak disentuh.",
+      "loading": "Mengira semula…",
+      "change": "{{from}} → {{to}} kcal",
+      "total": "Jumlah pinggan",
+      "saving": "Menyimpan…",
+      "done": "Kalori pinggan dikemas kini",
+      "error": "Belum dapat mengira semula. Cuba lagi sebentar nanti."
+    }
+  },
+  "guidance": {
+    "headline": {
+      "fuel": "Hari yang berat, karbohidrat perlu lebih",
+      "recover": "Tubuh anda perlukan pemulihan",
+      "fuel_recover": "Hari yang berat dan tubuh belum pulih",
+      "steady": "Skor hari ini seimbang"
+    },
+    "reason": {
+      "recovery": "pemulihan {{pct}}%",
+      "sleep": "tidur {{pct}}% daripada keperluan",
+      "condition": "keadaan {{state}}"
+    },
+    "noAdjust": "Tiada pelarasan daripada skor hari ini. Ikut sasaran harian anda.",
+    "noTarget": {
+      "hard": "Strain {{strain}} tinggi: keperluan tenaga dan karbohidrat anda lebih tinggi daripada biasa. Cukupkan juga cecair.",
+      "rest": "{{reasons}}. Utamakan protein, cecair dan rehat hari ini.",
+      "profile": "Isi profil dan sasaran harian anda supaya hidangan dan menu boleh dikira daripada angka anda sendiri."
+    },
+    "rest": {
+      "main": "{{reasons}}. Utamakan protein dan cecair. Jangan makan di bawah sasaran hari ini.",
+      "protein": "Protein: sudah {{eaten}} g daripada sasaran {{target}} g, baki {{left}} g.",
+      "proteinDone": "Sasaran protein hari ini sudah tercapai."
+    },
+    "hard": {
+      "carbsLeft": "Strain {{strain}}: sasaran karbohidrat anda hari ini {{goal}} g ({{target}} g + {{boost}} g). Sudah {{eaten}} g, baki {{left}} g. Cukupkan juga cecair.",
+      "carbsDone": "Strain {{strain}}: sasaran karbohidrat anda hari ini {{goal}} g ({{target}} g + {{boost}} g). Sudah tercapai. Cukupkan juga cecair."
+    },
+    "room": {
+      "withBoost": "Baki kcal hari ini {{room}} kcal, termasuk {{boost}} kcal daripada tambahan karbohidrat.",
+      "plain": "Baki kcal hari ini {{room}} kcal.",
+      "full": "Sasaran kcal hari ini sudah dipenuhi, jadi tiada makanan tambahan disyorkan."
+    },
+    "basis": {
+      "base": "Asas: sasaran harian anda {{kcal}} kcal, protein {{protein}} g dan karbohidrat {{carbs}} g (angka yang sama dengan bar dalam diari), ditolak yang sudah anda catat hari ini.",
+      "boost": "Tambahan karbohidrat {{pct}}% ialah peraturan JoyoRogo untuk strain {{from}} ke atas, bukan pengiraan kalori daripada jam tangan."
+    }
+  },
+  "eatenAt": {
+    "label": "Waktu makan",
+    "now": "Sekarang",
+    "clear": "Padam waktu makan",
+    "sheetTitle": "Waktu makan",
+    "hint": "Pilihan. Digunakan untuk melihat corak makan malam dan tidur anda."
+  }
+}

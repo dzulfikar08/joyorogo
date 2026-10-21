@@ -9,6 +9,8 @@
  * - `{nama}` is the recipient's first name ("kamu" when unknown; "there" in an English mail)
  */
 
+import type { Locale } from "@joyorogo/i18n";
+
 export type Campaign = {
   id: string;
   subject: string;
@@ -26,9 +28,10 @@ export type RenderedMail = { subject: string; html: string; text: string };
 export const FALLBACK_NAME = "kamu";
 
 /** Footer wording and the unknown-name fallback per mail language; the body is written per language by the caller. */
-const LOCALE_COPY: Record<"id" | "en", { fallbackName: string; unsubscribe: string; unsubscribeLink: string }> = {
+const LOCALE_COPY: Record<Locale, { fallbackName: string; unsubscribe: string; unsubscribeLink: string }> = {
   id: { fallbackName: FALLBACK_NAME, unsubscribe: "Tidak mau terima email seperti ini lagi?", unsubscribeLink: "Berhenti berlangganan" },
   en: { fallbackName: "there", unsubscribe: "Don't want emails like this anymore?", unsubscribeLink: "Unsubscribe" },
+  ms: { fallbackName: "kawan", unsubscribe: "Tidak mahu menerima e-mel seperti ini lagi?", unsubscribeLink: "Berhenti melanggan" },
 };
 
 /** Text-node escaping; the URL patterns below stop at `"`, so a matched URL is attribute-safe too. */
@@ -112,7 +115,7 @@ export type RenderInput = {
   name: string | null | undefined;
   unsubscribeUrl: string;
   /** Mail language: footer wording and the name fallback. Default "id". */
-  locale?: "id" | "en";
+  locale?: Locale;
   /** Value for `{tanggal}`, e.g. "18 November 2026". */
   date?: string;
 };

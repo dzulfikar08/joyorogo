@@ -24,12 +24,12 @@ export type CupSizeId = (typeof CUP_SIZES)[number]["id"];
 type Per100 = { kcal: number; protein: number; carbs: number; fat: number };
 
 export const CUP_DRINKS = [
-  { id: "coke", names: { id: "Coca-Cola", en: "Coca-Cola" }, per100: { kcal: 42, protein: 0, carbs: 10.6, fat: 0 } },
-  { id: "coke_zero", names: { id: "Coke Zero", en: "Coke Zero" }, per100: { kcal: 0.3, protein: 0, carbs: 0, fat: 0 } },
-  { id: "sprite", names: { id: "Sprite", en: "Sprite" }, per100: { kcal: 40, protein: 0, carbs: 10, fat: 0 } },
-  { id: "iced_tea", names: { id: "Es teh manis", en: "Iced sweet tea" }, per100: { kcal: 30, protein: 0, carbs: 7.5, fat: 0 } },
-  { id: "coffee", names: { id: "Es kopi susu", en: "Iced milk coffee" }, per100: { kcal: 55, protein: 1.5, carbs: 7.5, fat: 2 } },
-  { id: "water", names: { id: "Air mineral", en: "Mineral water" }, per100: { kcal: 0, protein: 0, carbs: 0, fat: 0 } },
+  { id: "coke", names: { id: "Coca-Cola", en: "Coca-Cola", ms: "Coca-Cola" }, per100: { kcal: 42, protein: 0, carbs: 10.6, fat: 0 } },
+  { id: "coke_zero", names: { id: "Coke Zero", en: "Coke Zero", ms: "Coke Zero" }, per100: { kcal: 0.3, protein: 0, carbs: 0, fat: 0 } },
+  { id: "sprite", names: { id: "Sprite", en: "Sprite", ms: "Sprite" }, per100: { kcal: 40, protein: 0, carbs: 10, fat: 0 } },
+  { id: "iced_tea", names: { id: "Es teh manis", en: "Iced sweet tea", ms: "Teh ais manis" }, per100: { kcal: 30, protein: 0, carbs: 7.5, fat: 0 } },
+  { id: "coffee", names: { id: "Es kopi susu", en: "Iced milk coffee", ms: "Kopi susu ais" }, per100: { kcal: 55, protein: 1.5, carbs: 7.5, fat: 2 } },
+  { id: "water", names: { id: "Air mineral", en: "Mineral water", ms: "Air mineral" }, per100: { kcal: 0, protein: 0, carbs: 0, fat: 0 } },
 ] as const satisfies ReadonlyArray<{
   id: string;
   names: Record<Locale, string>;

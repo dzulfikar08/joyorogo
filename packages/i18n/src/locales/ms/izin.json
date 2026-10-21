@@ -1,0 +1,54 @@
+{
+  "meta": "Benarkan akses ke JoyoRogo",
+  "loading": "Menyemak permintaan",
+  "signedOut": {
+    "title": "Log masuk dahulu untuk teruskan",
+    "body": "{{name}} ({{host}}) meminta kebenaran membaca data anda di JoyoRogo. Log masuk ke akaun JoyoRogo anda, kemudian anda boleh melihat apa yang diminta sebelum membenarkan.",
+    "cta": "Log masuk ke JoyoRogo"
+  },
+  "invalid": {
+    "title": "Permintaan ini tidak dapat digunakan",
+    "body": "Alamat halaman ini tidak lengkap atau tidak sah. Mulakan semula daripada aplikasi AI: padam penyambung JoyoRogo di sana, tambah semula, kemudian tekan Connect.",
+    "expiredTitle": "Permintaan ini sudah tamat tempoh",
+    "expiredBody": "Permintaan kebenaran hanya sah selama 10 minit. Mulakan semula daripada aplikasi AI dengan menekan Connect pada penyambung JoyoRogo.",
+    "guide": "Lihat panduan penyambungan"
+  },
+  "client": {
+    "asks": "{{name}} meminta kebenaran membaca data anda",
+    "unknown": "Aplikasi AI",
+    "via": "Akan kembali ke {{hosts}}",
+    "site": "Laman aplikasi: {{host}}",
+    "verify": "Nama ini dihantar oleh aplikasi itu sendiri. Benarkan hanya jika alamat tujuan di atas memang aplikasi yang anda gunakan.",
+    "loadError": "Maklumat aplikasi belum dapat dimuatkan. Cuba lagi.",
+    "retry": "Cuba lagi"
+  },
+  "account": "Log masuk sebagai {{email}}",
+  "scopes": {
+    "title": "Yang boleh dibaca",
+    "offline": "Kekal bersambung 30 hari, sehingga anda memutuskannya.",
+    "none": "Aplikasi ini tidak meminta kebenaran membaca sebarang data."
+  },
+  "notes": {
+    "readOnly": "Baca sahaja, tidak boleh mengubah atau memadam apa-apa dalam akaun anda.",
+    "dataFlow": "Data anda dihantar kepada aplikasi AI ini dan penyedia pilihan anda, hanya apabila anda bertanya dalam akaun anda di sana. Dasar privasi mereka terpakai untuk data itu.",
+    "disconnect": "Anda boleh memutuskannya pada bila-bila masa di Sambungan AI, dan akses terhenti serta-merta.",
+    "health": "Data kesihatan di sini bukan nasihat perubatan."
+  },
+  "pro": {
+    "body": "Sambungan AI ialah ciri JoyoRogo Pro. Anda masih boleh menyambungkannya sekarang, tetapi aplikasi AI hanya dapat membaca data anda selepas Pro diaktifkan.",
+    "cta": "Lihat JoyoRogo Pro"
+  },
+  "actions": {
+    "allow": "Benarkan",
+    "deny": "Tolak",
+    "working": "Sebentar"
+  },
+  "error": {
+    "consent": "Kebenaran belum dapat disimpan. Cuba lagi, atau mulakan semula daripada aplikasi AI.",
+    "expired": "Permintaan ini sudah tamat tempoh. Mulakan semula daripada aplikasi AI."
+  },
+  "footer": {
+    "guide": "Panduan sambungan AI",
+    "privacy": "Privasi"
+  }
+}

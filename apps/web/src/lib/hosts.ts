@@ -17,6 +17,7 @@ export const APP_SEGMENTS: readonly string[] = [
   "login",
   "onboarding",
   "beranda",
+  "beranda-kartu",
   "berat",
   "feed",
   "founder",
@@ -36,9 +37,10 @@ export const APP_SEGMENTS: readonly string[] = [
   "pembayaran",
 ];
 
-/** Marketing pages and the generated files that belong to them (blog, sitemap, llms.txt). */
+/** Marketing pages and the generated files that belong to them (blog, sitemap, llms.txt). `my` is the Malaysian landing. */
 export const SITE_SEGMENTS: readonly string[] = [
   "harga",
+  "my",
   "panduan",
   "blog",
   "privasi",

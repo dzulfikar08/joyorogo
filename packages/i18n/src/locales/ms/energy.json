@@ -1,0 +1,235 @@
+{
+  "pickRule": "Pilih berdasarkan rutin harian anda, tanpa mengira senaman yang anda catat. Senaman yang dicatat (atau dibaca daripada jam) ditambah secara berasingan di atas sasaran anda. Jika anda turut memilih tahap lebih tinggi kerana bersenam, kalorinya akan dikira dua kali. Ragu-ragu? Pilih yang lebih rendah.",
+  "pickTitle": "Setakat mana aktifnya hari-hari anda?",
+  "levels": {
+    "sedentary": {
+      "name": "Hampir sentiasa duduk",
+      "desc": "Anda duduk hampir sepanjang hari dan jarang berjalan jauh.",
+      "example": "Kerja pejabat atau kerja dari rumah, belajar di kampus, ke mana-mana naik kenderaan. Berjalan hanya sekitar rumah atau pejabat."
+    },
+    "light": {
+      "name": "Bergerak ringan",
+      "desc": "Anda bergerak ringan setiap hari dan berdiri atau berjalan sebahagian hari.",
+      "example": "Guru, juruwang, pekerja kedai, suri rumah yang mengemas sepanjang hari, berjalan ke kedai atau stesen setiap hari."
+    },
+    "moderate": {
+      "name": "Agak aktif",
+      "desc": "Anda berdiri atau berjalan hampir sepanjang hari, atau kerja anda agak fizikal.",
+      "example": "Pelayan restoran, jururawat, tukang masak, penghantar yang kerap naik turun motosikal, petugas lapangan."
+    },
+    "active": {
+      "name": "Sangat aktif",
+      "desc": "Kerja anda berat dari segi fizikal hampir sepanjang hari.",
+      "example": "Buruh binaan, petani, buruh angkat barang, pekerja gudang yang sentiasa mengangkat barang."
+    },
+    "very_active": {
+      "name": "Amat aktif",
+      "desc": "Beban fizikal harian anda sangat berat, setara atlet.",
+      "example": "Pekerja lombong atau penuai secara manual lebih 10 jam, atlet profesional dengan beban harian sangat tinggi."
+    }
+  },
+  "factor": "Pengali {{factor}}",
+  "current": "Dipilih",
+  "impact": {
+    "target": "Sasaran makan: {{kcal}} kcal sehari",
+    "tdee": "Keperluan keseluruhan (TDEE) {{kcal}} kcal",
+    "current": "Ini pilihan anda sekarang",
+    "up": "{{kcal}} kcal lebih banyak daripada pilihan anda sekarang",
+    "down": "{{kcal}} kcal lebih sedikit daripada pilihan anda sekarang",
+    "same": "Sama dengan pilihan anda sekarang",
+    "floor": "Mencapai had makan minimum, jadi tahap ini belum menambah sasaran anda."
+  },
+  "maternalNote": "Anda menggunakan mod Mengandung / Menyusu, jadi sasarannya dikira dengan pengali khas mod itu. Angka pada setiap pilihan sudah menggunakannya.",
+  "included": "Pengali ini sudah merangkumi kira-kira {{kcal}} kcal pergerakan harian (di luar kesan makanan). Jam dan Health hanya menambah sasaran anda jika pergerakan melebihi angka itu.",
+  "saved": "Tahap aktiviti disimpan",
+  "recommend": {
+    "title": "Lebih tepat",
+    "intro": "Dua cara untuk memastikan tahap anda sesuai. Ini cuma cadangan: tidak pernah diterapkan secara automatik.",
+    "apply": "Guna",
+    "applying": "Menyimpan...",
+    "same": "Sama dengan pilihan anda sekarang.",
+    "suggest": "Cadangan: {{level}}",
+    "empty": "Belum ada cadangan. Cadangan daripada langkah muncul selepas ada data langkah sekurang-kurangnya 5 hari dalam 14 hari terakhir. Cadangan daripada berat badan muncul selepas sekurang-kurangnya 3 minggu timbangan dan catatan makan yang tetap (70% hari dicatat).",
+    "emptyAuto": "Belum ada cadangan. Cadangan daripada langkah muncul selepas ada data langkah sekurang-kurangnya 5 hari dalam 14 hari terakhir. Daripada trend berat badan, penentukuran automatik terus melaraskan sasaran anda.",
+    "steps": {
+      "title": "Daripada langkah kaki anda",
+      "body": "Purata {{steps}} langkah sehari dalam {{days}} hari terakhir. Menurut indeks langkah Tudor-Locke & Bassett (2004), itu termasuk tahap {{level}}.",
+      "bounds": "Bawah 5,000 langkah: hampir sentiasa duduk. 5,000 hingga 7,499: ringan. 7,500 hingga 9,999: agak aktif. 10,000 hingga 12,499: sangat aktif. 12,500 ke atas: amat aktif."
+    },
+    "calibration": {
+      "title": "Daripada trend berat badan anda",
+      "body": "Daripada catatan makan dan timbangan anda dalam {{days}} hari terakhir ({{logged}} hari dicatat), tubuh anda membakar kira-kira {{measured}} kcal sehari di luar senaman. Formula dengan tahap anda sekarang menunjukkan {{formula}} kcal. Itu paling hampir dengan tahap {{level}} (pengali {{factor}}).",
+      "measured": "Diukur: {{kcal}} kcal",
+      "formula": "Formula: {{kcal}} kcal",
+      "note": "Hasilnya bergantung pada kelengkapan catatan anda. Angka 7,700 kcal setiap kg hanyalah anggaran, kerana tubuh menyesuaikan diri apabila berat berubah (Hall et al. 2011)."
+    }
+  },
+  "credit": {
+    "title": "Senaman dan pergerakan tambahan",
+    "how": "Sasaran anda sudah merangkumi purata pergerakan harian mengikut tahap anda (kira-kira {{kcal}} kcal). Jam atau Health hanya menambah sasaran jika pergerakan terukur anda pada hari itu melebihi angka itu, dan tidak pernah mengurangkannya. Latihan yang anda catat di luar jumlah jam juga ditambah.",
+    "deskNote": "Contoh: telefon yang ditinggalkan atas meja hanya mencatat kira-kira 10 kcal, jadi sasaran anda kekal sama.",
+    "pct": {
+      "title": "Peratusan yang dikira",
+      "body": "Berapa peratus daripada lebihan pergerakan yang boleh anda makan. Daripada 7 jam tangan yang diuji, tiada satu pun yang ralat tenaganya di bawah 20% (Shcherbina et al. 2017), jadi 75% ialah titik tengah yang selamat.",
+      "example": "Contohnya lebihan pergerakan 400 kcal: dengan {{pct}}% anda mendapat tambahan {{added}} kcal."
+    },
+    "cap": {
+      "title": "Had tambahan",
+      "body": "Tambahan sehari tidak akan melepasi angka ini, walaupun jam mencatat lebih. Ini melindungi daripada bacaan yang tersasar atau hari senaman yang melampau.",
+      "example": "Dengan had {{cap}} kcal, sebesar mana pun lebihannya, tambahan berhenti pada {{cap}} kcal.",
+      "exampleNone": "Tanpa had, {{pct}}% penuh daripada lebihan pergerakan ditambah."
+    },
+    "off": "Ciri tambahan ini dimatikan, jadi sasaran anda hanya daripada tahap anda. Pergerakan tambahan tidak menambah apa-apa."
+  },
+  "sources": {
+    "title": "Sumber",
+    "intro": "Dari mana angka-angka ini datang.",
+    "open": "Buka sumber",
+    "items": {
+      "mifflin": {
+        "ref": "Mifflin MD dkk. A new predictive equation for resting energy expenditure in healthy individuals. Am J Clin Nutr 1990;51(2):241-247.",
+        "use": "Formula BMR: keperluan tubuh ketika berehat."
+      },
+      "fao": {
+        "ref": "FAO/WHO/UNU. Human energy requirements: report of a Joint FAO/WHO/UNU Expert Consultation. FAO Food and Nutrition Technical Report Series 1, Roma, 2004.",
+        "use": "Jumlah perbelanjaan tenaga sebagai gandaan BMR (PAL) dan julat tahap aktiviti. Pengali 1.2 hingga 1.9 ialah pengali piawai yang lazim digunakan bersama BMR; yang dirujuk daripada laporan ini ialah konsepnya."
+      },
+      "westerterp": {
+        "ref": "Westerterp KR. Diet induced thermogenesis. Nutr Metab (Lond) 2004;1:5.",
+        "use": "Kesan haba makanan kira-kira 5 hingga 15% daripada perbelanjaan harian (digunakan 10%). Sudah termasuk dalam pengali, jadi tidak ditambah lagi."
+      },
+      "shcherbina": {
+        "ref": "Shcherbina A dkk. Accuracy in wrist-worn, sensor-based measurements of heart rate and energy expenditure in a diverse cohort. J Pers Med 2017;7(2):3.",
+        "use": "Tiada satu pun daripada 7 jam tangan yang diuji mempunyai ralat tenaga di bawah 20%. Oleh itu hanya sebahagian pergerakan dikira, dan hanya untuk menambah sasaran."
+      },
+      "tudor": {
+        "ref": "Tudor-Locke C, Bassett DR Jr. How many steps/day are enough? Preliminary pedometer indices for public health. Sports Med 2004;34(1):1-8.",
+        "use": "Indeks langkah sehari untuk cadangan tahap daripada langkah kaki anda."
+      },
+      "hall": {
+        "ref": "Hall KD dkk. Quantification of the effect of energy imbalance on bodyweight. Lancet 2011;378(9793):826-837.",
+        "use": "Perubahan berat akibat perbezaan tenaga bersifat dinamik, jadi 7,700 kcal setiap kg hanya anggaran. Oleh itu cadangan daripada trend berat badan hanyalah cadangan."
+      }
+    }
+  },
+  "notice": {
+    "title": "Sasaran makan anda kini menggunakan pergerakan harian",
+    "body": "Dahulu sasaran makan hanya daripada BMR, keperluan tubuh ketika diam. Kini daripada TDEE: BMR didarab pengali tahap aktiviti anda, sudah termasuk pergerakan harian dan kesan makanan. Tahap anda dipindahkan secara automatik daripada pilihan lama, jadi semak sama ada ia sudah sesuai.",
+    "change": "Sasaran asas: {{old}} → {{new}} kcal sehari",
+    "same": "Sasaran asas anda tidak berubah: {{new}} kcal sehari",
+    "level": "Tahap anda sekarang: {{level}} (pengali {{factor}})",
+    "hint": "Pilih berdasarkan hari-hari anda tanpa senaman yang anda catat. Senaman ditambah secara berasingan.",
+    "action": "Tetapkan tahap aktiviti",
+    "dismiss": "Tutup"
+  },
+  "needs": {
+    "formula": "BMR {{bmr}} × {{factor}} = TDEE {{tdee}}",
+    "included": "Pengali {{factor}} sudah merangkumi kira-kira {{kcal}} kcal pergerakan harian di luar kesan makanan. Hanya pergerakan terukur melebihi angka itu yang menambah sasaran anda.",
+    "extra": {
+      "label": "Pergerakan melebihi pengali",
+      "name": "Tambahan hari ini",
+      "body": "Hari ini pergerakan anda melebihi yang sudah ada dalam pengali anda. {{pct}}% daripada lebihannya ditambah pada jatah makan anda.",
+      "labelCalibrated": "Pergerakan melebihi TDEE terukur",
+      "bodyCalibrated": "Hari ini pergerakan anda melebihi yang sudah terukur dalam TDEE anda. {{pct}}% daripada lebihannya ditambah pada jatah makan anda.",
+      "labelManual": "Pergerakan melebihi TDEE anda",
+      "bodyManual": "Hari ini pergerakan anda melebihi yang sudah ada dalam TDEE yang anda isi. {{pct}}% daripada lebihannya ditambah pada jatah makan anda."
+    },
+    "none": "Belum ada pergerakan melebihi pengali hari ini, jadi belum ada yang ditambah.",
+    "noneCalibrated": "Belum ada pergerakan melebihi TDEE terukur hari ini, jadi belum ada yang ditambah.",
+    "calibrated": "Penentukuran automatik: formula {{formula}}, terukur {{measured}}, digunakan {{used}} kcal",
+    "formulaCalibrated": "BMR {{bmr}} + pergerakan harian terukur {{move}} = TDEE {{tdee}}",
+    "includedCalibrated": "TDEE terukur anda sudah merangkumi kira-kira {{kcal}} kcal pergerakan harian di luar kesan makanan. Hanya pergerakan terukur melebihi angka itu yang menambah sasaran anda.",
+    "manual": "TDEE sendiri: anda mengisi {{used}} kcal, kiraan kami {{computed}} kcal.",
+    "formulaManual": "BMR {{bmr}} + pergerakan harian {{move}} = TDEE {{tdee}} (isian anda)",
+    "includedManual": "TDEE yang anda isi sudah merangkumi pergerakan harian anda. Hanya pergerakan terukur melebihi angka itu yang menambah sasaran anda.",
+    "noneManual": "Belum ada pergerakan melebihi TDEE anda hari ini, jadi belum ada yang ditambah."
+  },
+  "auto": {
+    "title": "Penentukuran automatik",
+    "toggle": "Laraskan sasaran saya mengikut kemajuan",
+    "toggleOn": "Sasaran anda menggunakan keperluan kalori yang diukur daripada tubuh anda.",
+    "toggleOnPending": "Dihidupkan. Sasaran anda akan dilaraskan secara automatik apabila data mencukupi.",
+    "toggleOff": "Sasaran anda menggunakan formula tulen: BMR × pengali tahap aktiviti.",
+    "explain": "Setiap Isnin, JoyoRogo mengukur keperluan kalori anda daripada 28 hari catatan makan dan timbangan. Hasilnya dijaga dalam lingkungan ±15% daripada formula, dengan tahap anda sebagai asas.",
+    "learn": "Ketahui cara ia berfungsi",
+    "maternal": "Mod Mengandung / Menyusu tidak menggunakan penentukuran: berat badan memang dijangka berubah.",
+    "progress": {
+      "days": "Hari dicatat",
+      "weighIns": "Timbangan",
+      "span": "Julat timbangan",
+      "value": "{{value}}/{{needed}}",
+      "valueDays": "{{value}}/{{needed}} hari"
+    },
+    "status": {
+      "offTitle": "Mati",
+      "off": "Penentukuran dimatikan. Sasaran anda daripada formula tulen, TDEE {{formula}} kcal.",
+      "offBody": "Sasaran anda daripada formula tulen, TDEE {{formula}} kcal.",
+      "offMeasured": "Jika dihidupkan, tubuh anda terukur kira-kira {{measured}} kcal (formula {{formula}}).",
+      "collectingTitle": "Mengumpul data",
+      "collecting": "Penentukuran sedang mengumpul data: {{logged}}/{{loggedNeeded}} hari dicatat, {{count}}/{{needed}} timbangan, julat {{span}}/{{spanNeeded}} hari.",
+      "collectingHint": "Sasaran anda masih daripada formula. Teruskan mencatat makan dan menimbang berat badan, penentukuran berjalan sendiri apabila data mencukupi.",
+      "waitingTitle": "Data sudah mencukupi",
+      "waitingBody": "Penentukuran mula berkuat kuasa {{date}}.",
+      "waiting": "Data anda sudah mencukupi. Penentukuran mula berkuat kuasa {{date}}.",
+      "activeTitle": "Aktif",
+      "activeBody": "Formula {{formula}} → digunakan {{used}} kcal",
+      "activeMeasured": "Terukur {{measured}} kcal, masih dalam had ±15%.",
+      "clamped": "Terukur {{measured}} kcal, di luar had ±15%, jadi angka had yang digunakan.",
+      "held": "Diukur daripada 28 hari sebelum {{date}}. Dikemas kini lagi {{next}}.",
+      "manualTitle": "Guna TDEE sendiri",
+      "manualBody": "Sasaran anda dibina daripada TDEE yang anda isi sendiri. Penentukuran tetap mengukur ({{measured}} kcal) tetapi tidak mengubah angka anda.",
+      "manualBodyNoMeasure": "Penentukuran tetap mengukur, tetapi tidak mengubah angka anda."
+    },
+    "toggleManual": "Sasaran anda menggunakan TDEE yang anda isi sendiri. Penentukuran hanya memberi cadangan, tidak mengubah angka anda."
+  },
+  "calNotice": {
+    "title": "Sasaran anda dilaraskan",
+    "body": "Penentukuran automatik menukar sasaran asas anda daripada {{old}} kepada {{new}} kcal sehari.",
+    "hint": "Diukur daripada catatan makan dan timbangan anda. Anda boleh mematikannya dalam tetapan.",
+    "action": "Tetapkan penentukuran",
+    "learn": "Ketahui",
+    "dismiss": "Tutup"
+  },
+  "readMore": "Baca penerangan lengkap",
+  "manual": {
+    "title": "Guna TDEE sendiri",
+    "subtitle": "Sudah tahu keperluan kalori harian anda dari tempat lain? Isi sendiri. Sasaran defisit atau surplus, tambahan senaman dan had makan minimum tetap dikira di atasnya.",
+    "label": "TDEE anda (kcal sehari)",
+    "placeholder": "Contoh: 2250",
+    "reference": "Kiraan kami: {{kcal}} kcal",
+    "diff": {
+      "more": "Angka anda {{kcal}} kcal melebihi kiraan kami.",
+      "less": "Angka anda {{kcal}} kcal kurang daripada kiraan kami.",
+      "same": "Sama dengan kiraan kami."
+    },
+    "save": "Simpan TDEE saya",
+    "saved": "TDEE anda disimpan.",
+    "reset": "Kembali kepada kiraan automatik",
+    "resetDone": "Kembali kepada kiraan automatik.",
+    "active": "Sasaran anda dibina daripada TDEE {{kcal}} kcal yang anda isi sendiri.",
+    "activeCalibration": "Penentukuran automatik tidak mengubah angka anda. Jika data menunjukkan angka anda tersasar, kami hanya mencadangkan.",
+    "rowValue": "{{kcal}} kcal",
+    "rowOff": "Automatik",
+    "error": {
+      "range": "Isi nombor bulat antara {{min}} dan {{max}} kcal.",
+      "empty": "Isi TDEE anda dahulu."
+    },
+    "warn": {
+      "BELOW_BMR": "Angka anda di bawah BMR kiraan kami ({{bmr}} kcal). Tubuh jarang membakar sesedikit itu, sila semak semula. Masih boleh disimpan.",
+      "ABOVE_RANGE": "Angka anda melebihi 1.5× kiraan kami ({{kcal}} kcal). Sila semak semula. Masih boleh disimpan."
+    },
+    "levelNote": "Anda menggunakan TDEE sendiri, jadi tahap aktiviti tidak mengubah sasaran anda.",
+    "onboardingLink": "Sudah tahu TDEE anda? Isi sendiri",
+    "onboardingHide": "Tutup",
+    "suggest": {
+      "title": "Angka anda nampaknya tersasar",
+      "body": "Dua minggu berturut-turut, catatan makan dan timbangan anda menunjukkan tubuh anda membakar kira-kira {{measured}} kcal sehari, berbeza lebih 10% daripada TDEE {{manual}} kcal yang anda isi.",
+      "hint": "Hanya cadangan. Angka anda tidak berubah jika anda tidak memilihnya.",
+      "accept": "Guna angka ini",
+      "dismiss": "Biarkan",
+      "accepted": "TDEE ditukar kepada {{kcal}} kcal.",
+      "dismissed": "Baik, angka anda dibiarkan."
+    },
+    "learn": "Ketahui"
+  }
+}

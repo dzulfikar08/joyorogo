@@ -1,0 +1,208 @@
+{
+  "page": {
+    "title": "Imbas kod bar",
+    "subtitle": "Angka pemakanan pada bungkusan daripada pangkalan data produk JoyoRogo.",
+    "resultTitle": "Hasil kod bar",
+    "backToScanner": "Kembali ke pengimbas"
+  },
+  "camera": {
+    "open": "Buka kamera",
+    "close": "Tutup kamera",
+    "preview": "Pratonton kamera untuk membaca kod bar",
+    "aim": "Halakan kamera ke kod bar pada bungkusan",
+    "notes": "Catatan kamera",
+    "privacyWeb": "Gambar diproses dalam pelayar anda dan tidak dihantar.",
+    "privacyNative": "JoyoRogo memerlukan kebenaran kamera untuk membaca kod bar pada bungkusan. Kod bar dibaca pada peranti anda; fotonya tidak dihantar ke mana-mana.",
+    "unsupported": "Kamera tidak tersedia dalam pelayar ini.",
+    "unsupportedDetail": "Pelayar ini belum dapat membaca kod bar melalui kamera (disokong pada Chrome di Android). Taip nombor yang tertera di bawah kod bar, atau gunakan aplikasi JoyoRogo di telefon.",
+    "permissionTitle": "Kamera diperlukan",
+    "grant": "Teruskan",
+    "orType": "Atau taip nombornya:",
+    "error": {
+      "denied": "Kebenaran kamera ditolak. Benarkan kamera dalam tetapan pelayar, atau taip nombornya.",
+      "failed": "Kamera tidak dapat dibuka. Taip nombor kod bar di bawah."
+    }
+  },
+  "entry": {
+    "number": "Nombor kod bar",
+    "type": "Taip nombor kod bar",
+    "search": "Cari",
+    "invalid": "Nombor kod bar tidak sah. Semak semula angkanya (8, 12 atau 13 digit)."
+  },
+  "lookup": {
+    "searching": "Mencari {{code}}…",
+    "failed": {
+      "title": "Carian gagal",
+      "fallback": "Pangkalan data produk tidak dapat dihubungi buat masa ini."
+    },
+    "notFound": {
+      "title": "Produk ini belum ada dalam pangkalan data",
+      "body": "Kod bar {{code}} belum didaftarkan. Ambil foto label pemakanan, angkanya akan disimpan dan boleh digunakan oleh semua pengguna JoyoRogo."
+    },
+    "incomplete": {
+      "body": "{{reason}} Ambil foto label pemakanan supaya angkanya lengkap, atau isi kalori sendiri.",
+      "reason": {
+        "no_kcal": "Produk ini belum mempunyai data kalori.",
+        "implausible": "Angka pemakanan yang direkodkan nampak ganjil, jadi kami tidak menggunakannya."
+      }
+    }
+  },
+  "fallback": {
+    "photo": "Foto produk, AI menganggar",
+    "photoNote": "AI menganggar daripada foto, bukan membaca angka pada label. Jika anda ada angka daripada label, isi sendiri.",
+    "notes": "Tentang anggaran AI",
+    "manual": "Isi kalori sendiri",
+    "scanAnother": "Imbas kod bar lain",
+    "label": "Foto label pemakanan",
+    "labelNote": "Cukup ambil foto jadual \"Maklumat Pemakanan\" pada bungkusan. Angkanya dibaca secara automatik, anda semak dahulu, kemudian disimpan untuk semua pengguna."
+  },
+  "manual": {
+    "name": "Nama makanan",
+    "namePlaceholder": "Nama produk",
+    "kcal": "Kalori (kcal)",
+    "nameRequired": "Isi nama makanan dahulu.",
+    "kcalRequired": "Isi jumlah kalori, contohnya: 350."
+  },
+  "result": {
+    "per100": "Setiap 100 {{unit}}",
+    "perServing": "Setiap hidangan ({{size}})",
+    "unknownProduct": "Kod bar {{code}}",
+    "notes": "Sumber & catatan",
+    "missing": "Data {{fields}} belum ada untuk produk ini; yang kosong dicatat sebagai tidak diketahui, bukan sifar.",
+    "sugar": "Gula {{value}} g setiap 100 {{unit}}",
+    "sources": {
+      "off": "Sumber: Open Food Facts, pangkalan data komuniti. Angkanya mungkin berbeza daripada label bungkusan anda; semak semula jika ragu.",
+      "labelPhoto": "Sumber: label bungkusan yang difoto oleh seorang pengguna JoyoRogo. Belum ada yang mengesahkan, jadi padankan dengan bungkusan anda.",
+      "labelPhotoConfirmed": "Sumber: label bungkusan yang difoto oleh pengguna JoyoRogo, disahkan oleh {{count}} orang.",
+      "other": "Sumber: {{source}}. Angkanya mungkin berbeza daripada label bungkusan anda; semak semula jika ragu.",
+      "offLink": "Lihat produk ini di Open Food Facts",
+      "usda": "Sumber: USDA FoodData Central (data awam kerajaan AS). Angkanya mungkin berbeza daripada label bungkusan anda; semak semula jika ragu."
+    },
+    "community": {
+      "prompt": "Angka ini daripada pengguna lain. Sama dengan bungkusan di tangan anda?",
+      "confirm": "Sama",
+      "wrong": "Ada yang berbeza",
+      "confirming": "Menyimpan...",
+      "confirmed": "Terima kasih kerana menyemak. Angka ini kini disahkan oleh {{count}} pengguna.",
+      "outvoted": "Terima kasih. Angka ini sudah disahkan oleh pengguna lain, jadi semakan anda tidak mengubahnya."
+    }
+  },
+  "macro": {
+    "protein": "protein",
+    "carbs": "karbohidrat",
+    "fat": "lemak",
+    "fiber": "serat"
+  },
+  "quantity": {
+    "label": "Berapa banyak yang anda makan ({{unit}})",
+    "aria": "Sukatan dalam {{unit}}",
+    "serving": "1 hidangan · {{size}}",
+    "hundred": "100 {{unit}}",
+    "range": "Isi sukatan antara 1 dan {{max}} {{unit}}."
+  },
+  "total": {
+    "label": "Yang dicatat"
+  },
+  "meal": {
+    "label": "Waktu makan"
+  },
+  "save": {
+    "button": "Catat",
+    "buttonTo": "Catat ke {{meal}}",
+    "saving": "Menyimpan...",
+    "failed": "Gagal menyimpan. Cuba lagi.",
+    "toast": "{{name}} dicatat ke {{meal}}."
+  },
+  "done": {
+    "title": "Dicatat!",
+    "text": "{{name}} ({{kcal}}) sudah masuk ke {{meal}}.",
+    "viewList": "Lihat senarai makanan",
+    "scanAgain": "Imbas lagi"
+  },
+  "errors": {
+    "invalidCode": "Nombor kod bar tidak sah. Semak semula angkanya (8, 12 atau 13 digit).",
+    "sourcesUnavailable": "Pangkalan data produk tidak dapat dihubungi buat masa ini. Cuba lagi sebentar atau isi secara manual.",
+    "implausible": "Angkanya tidak munasabah (lebih daripada 900 kcal atau lebih daripada 100 g setiap 100 g). Semak semula, terutamanya \"setiap hidangan\" atau \"setiap 100\".",
+    "energyMismatch": "Tenaga tidak sepadan dengan protein, karbohidrat dan lemaknya. Semak semula angkanya, atau simpan jika memang begitu pada labelnya.",
+    "servingRequired": "Isi saiz hidangan supaya angkanya dapat dikira setiap 100.",
+    "nameInvalid": "Nama produk tidak sah. Gunakan nama yang tertera pada bungkusan, tanpa pautan.",
+    "alreadyKnown": "Produk ini sudah mempunyai angka pemakanan lengkap, jadi tidak perlu difoto.",
+    "contributionLimit": "Had harian untuk menambah produk sudah habis. Cuba lagi esok.",
+    "notConfirmable": "Produk ini belum dapat disahkan.",
+    "aiUnavailable": "Pembaca label tidak tersedia buat masa ini. Isi angkanya sendiri.",
+    "labelLimit": "Had {{count}} foto label sehari sudah habis. Isi angkanya sendiri atau cuba lagi esok.",
+    "labelUnclear": "Label kurang jelas dibaca. Ambil foto semula dengan lebih dekat dan tanpa silau, atau isi angkanya sendiri.",
+    "labelNotLabel": "Itu nampaknya bukan jadual \"Maklumat Pemakanan\". Foto bahagian jadual, atau isi angkanya sendiri.",
+    "labelTimeout": "Membaca label mengambil masa terlalu lama. Cuba lagi, atau isi angkanya sendiri.",
+    "labelFailed": "Label gagal dibaca. Cuba lagi, atau isi angkanya sendiri."
+  },
+  "label": {
+    "title": "Foto label pemakanan",
+    "intro": "Ambil foto jadual \"Maklumat Pemakanan\" pada bungkusan. Angkanya dibaca secara automatik, anda semak dahulu sebelum disimpan.",
+    "privacy": "Foto hanya dibaca kemudian dipadam. Yang disimpan hanyalah nama dan angka pemakanan, dikongsi kepada semua pengguna JoyoRogo.",
+    "permission": {
+      "title": "Kamera untuk memotret label",
+      "body": "JoyoRogo memerlukan kamera untuk memotret jadual pemakanan pada bungkusan. Foto dihantar sekali untuk dibaca, kemudian dipadam.",
+      "continue": "Teruskan",
+      "denied": "Kebenaran kamera ditolak. Buka tetapan telefon untuk membenarkan kamera, atau pilih foto daripada galeri."
+    },
+    "capture": {
+      "label": "Foto jadual pemakanan",
+      "labelHint": "Pastikan jadual \"Maklumat Pemakanan\" jelas kelihatan dan tidak silau.",
+      "front": "Foto bahagian depan bungkusan",
+      "frontHint": "Pilihan, untuk mengisi nama dan jenama secara automatik.",
+      "take": "Ambil foto",
+      "choose": "Pilih daripada galeri",
+      "retake": "Ambil semula",
+      "remove": "Padam foto",
+      "read": "Baca label",
+      "reading": "Membaca label…",
+      "needLabel": "Ambil foto jadual pemakanan dahulu.",
+      "photoAlt": "Foto {{what}}",
+      "manual": "Isi angkanya sendiri",
+      "labelWhat": "jadual pemakanan",
+      "frontWhat": "bahagian depan bungkusan"
+    },
+    "form": {
+      "title": "Semak angkanya",
+      "hint": "Padankan dengan label pada bungkusan. Betulkan jika ada yang tersalah baca.",
+      "name": "Nama produk",
+      "namePlaceholder": "Keropok Udang Pedas",
+      "brand": "Jenama",
+      "quantity": "Kandungan bersih",
+      "serving": "Saiz hidangan ({{unit}})",
+      "unit": "Unit",
+      "basis": "Angka pada label setiap",
+      "basisServing": "Hidangan",
+      "basisPer100": "100 {{unit}}",
+      "kcal": "Jumlah tenaga (kcal)",
+      "protein": "Protein (g)",
+      "carbs": "Jumlah karbohidrat (g)",
+      "fat": "Jumlah lemak (g)",
+      "fiber": "Serat pemakanan (g)",
+      "sugar": "Gula (g)",
+      "preview": "Bersamaan {{kcal}} kcal setiap 100 {{unit}}",
+      "save": "Simpan untuk semua pengguna",
+      "saving": "Menyimpan...",
+      "unusual": "Sudah sepadan dengan label, simpan",
+      "nameRequired": "Isi nama produk.",
+      "kcalRequired": "Isi jumlah tenaga, contohnya: 150.",
+      "servingRequired": "Isi saiz hidangan, atau tukar kepada \"setiap 100\" jika label menggunakannya.",
+      "numberInvalid": "Isi nombor sahaja, contohnya: 12.5."
+    },
+    "warning": {
+      "no_serving_size": "Saiz hidangan tidak dapat dibaca. Isi daripada label.",
+      "no_energy": "Jumlah tenaga tidak dapat dibaca. Isi daripada label.",
+      "columns_disagree": "Lajur \"setiap hidangan\" dan \"setiap 100\" tidak sepadan. Semak semula yang mana anda salin.",
+      "energy_mismatch": "Tenaga tidak sepadan dengan protein, karbohidrat dan lemaknya. Semak semula angkanya.",
+      "implausible": "Angkanya tidak munasabah. Semak semula angkanya, termasuk \"setiap hidangan\" atau \"setiap 100\"."
+    },
+    "thanks": {
+      "title": "Terima kasih!",
+      "saved": "Terima kasih, kini semua pengguna JoyoRogo boleh mengimbas produk ini.",
+      "confirmed": "Terima kasih, angka anda sepadan dengan pengguna lain. Produk ini kini disahkan oleh {{count}} orang dan semua pengguna JoyoRogo boleh mengimbasnya.",
+      "outvoted": "Terima kasih. Angka anda berbeza daripada yang sudah disahkan pengguna lain, jadi belum digunakan. Jika semakin ramai yang sama, angkanya akan diganti.",
+      "continue": "Catat makanan"
+    }
+  }
+}

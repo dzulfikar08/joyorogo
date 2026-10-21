@@ -22,6 +22,13 @@ export type PolarEnv = {
   /** Displayed prices in US cents. The charge is the Polar product's price: keep them equal. */
   POLAR_PRICE_MONTHLY_USD_CENTS?: string;
   POLAR_PRICE_YEARLY_USD_CENTS?: string;
+  /**
+   * Malaysian ringgit prices in sen, shown on /api/config for Malaysian visitors. Set both, and only after the same
+   * MYR prices exist on the two Polar products: Polar charges the product's price in the buyer's currency, these only
+   * advertise it (docs/marketing/malaysia-plan.md, "Payments"). Unset = no ringgit price is shown.
+   */
+  POLAR_PRICE_MONTHLY_MYR_SEN?: string;
+  POLAR_PRICE_YEARLY_MYR_SEN?: string;
 };
 
 export type PolarConfig = {
@@ -30,6 +37,8 @@ export type PolarConfig = {
   baseUrl: string;
   productIds: Record<FounderPlan, string>;
   priceUsdCents: Record<FounderPlan, number>;
+  /** Advertised MYR prices in sen; null = none (both env vars must be set). */
+  priceMyrSen?: Record<FounderPlan, number> | null;
 };
 
 function cents(name: string, raw: string | undefined, fallback: number): number {
@@ -40,6 +49,18 @@ function cents(name: string, raw: string | undefined, fallback: number): number 
     throw new Error(`${name} must be a whole number of US cents > 0, got "${raw}"`);
   }
   return Number(value);
+}
+
+function optionalSen(name: string, raw: string | undefined): number | null {
+  return raw?.trim() ? cents(name, raw, 0) : null;
+}
+
+/** Both MYR prices or neither: a lone monthly price would leave the yearly card without a ringgit amount. */
+function myrPrices(env: PolarEnv): Record<FounderPlan, number> | null {
+  const monthly = optionalSen("POLAR_PRICE_MONTHLY_MYR_SEN", env.POLAR_PRICE_MONTHLY_MYR_SEN);
+  const yearly = optionalSen("POLAR_PRICE_YEARLY_MYR_SEN", env.POLAR_PRICE_YEARLY_MYR_SEN);
+  if (monthly === null || yearly === null) return null;
+  return { monthly, yearly };
 }
 
 /** Null until the token, webhook secret and both product ids are set: USD checkout stays off. */
@@ -58,6 +79,7 @@ export function polarConfig(env: PolarEnv): PolarConfig | null {
       monthly: cents("POLAR_PRICE_MONTHLY_USD_CENTS", env.POLAR_PRICE_MONTHLY_USD_CENTS, DEFAULT_MONTHLY_USD_CENTS),
       yearly: cents("POLAR_PRICE_YEARLY_USD_CENTS", env.POLAR_PRICE_YEARLY_USD_CENTS, DEFAULT_YEARLY_USD_CENTS),
     },
+    priceMyrSen: myrPrices(env),
   };
 }
 
@@ -173,6 +195,11 @@ export async function createCheckout(
     name: string;
     successUrl: string;
     returnUrl: string;
+    /**
+     * The buyer's IP (CF-Connecting-IP). Polar picks the presentment currency (MYR for Malaysia) and the tax
+     * jurisdiction from it; without it Polar sees our Worker and would show the default currency.
+     */
+    customerIp?: string | null;
   },
 ): Promise<{ url: string }> {
   const checkout = await call<{ url?: unknown }>(config, "/v1/checkouts/", {
@@ -183,6 +210,7 @@ export async function createCheckout(
     success_url: params.successUrl,
     return_url: params.returnUrl,
     locale: "en",
+    ...(params.customerIp ? { customer_ip_address: params.customerIp } : {}),
     metadata: { app: "joyorogo", user_id: params.userId, plan: params.plan },
   });
   if (typeof checkout.url !== "string") throw new Error("polar checkout answered without a url");

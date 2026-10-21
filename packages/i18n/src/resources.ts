@@ -84,6 +84,49 @@ import enFitWebUpload from "./locales/en/fitWebUpload.json";
 import enFitWebConnect from "./locales/en/fitWebConnect.json";
 import enMealPlan from "./locales/en/mealPlan.json";
 
+import msAuth from "./locales/ms/auth.json";
+import msBerat from "./locales/ms/berat.json";
+import msBilling from "./locales/ms/billing.json";
+import msCommon from "./locales/ms/common.json";
+import msEmail from "./locales/ms/email.json";
+import msErrors from "./locales/ms/errors.json";
+import msMakan from "./locales/ms/makan.json";
+import msTidur from "./locales/ms/tidur.json";
+import msOlahraga from "./locales/ms/olahraga.json";
+import msOnboarding from "./locales/ms/onboarding.json";
+import msNotifications from "./locales/ms/notifications.json";
+import msPush from "./locales/ms/push.json";
+import msSettings from "./locales/ms/settings.json";
+import msScan from "./locales/ms/scan.json";
+import msBarcode from "./locales/ms/barcode.json";
+import msVarperut from "./locales/ms/varperut.json";
+import msFeed from "./locales/ms/feed.json";
+import msPlace from "./locales/ms/place.json";
+import msChallenge from "./locales/ms/challenge.json";
+import msMisc from "./locales/ms/misc.json";
+import msTips from "./locales/ms/tips.json";
+import msHome from "./locales/ms/home.json";
+import msGrup from "./locales/ms/grup.json";
+import msCoach from "./locales/ms/coach.json";
+import msMaternal from "./locales/ms/maternal.json";
+import msGain from "./locales/ms/gain.json";
+import msJam from "./locales/ms/jam.json";
+import msKoneksi from "./locales/ms/koneksi.json";
+import msIzin from "./locales/ms/izin.json";
+import msPanduanAi from "./locales/ms/panduanAi.json";
+import msSticker from "./locales/ms/sticker.json";
+import msEnergy from "./locales/ms/energy.json";
+import msKalori from "./locales/ms/kalori.json";
+import msReflection from "./locales/ms/reflection.json";
+import msSleepInsights from "./locales/ms/sleepInsights.json";
+import msFitWeb from "./locales/ms/fitWeb.json";
+import msFitWebOverview from "./locales/ms/fitWebOverview.json";
+import msFitWebWorkouts from "./locales/ms/fitWebWorkouts.json";
+import msFitWebSleep from "./locales/ms/fitWebSleep.json";
+import msFitWebUpload from "./locales/ms/fitWebUpload.json";
+import msFitWebConnect from "./locales/ms/fitWebConnect.json";
+import msMealPlan from "./locales/ms/mealPlan.json";
+
 import type { Locale } from "./locale";
 
 /** Indonesian is the source: its JSON shapes the key types. */
@@ -181,7 +224,52 @@ const en: typeof id = {
   mealPlan: enMealPlan,
 };
 
-export const resources = { id, en } satisfies Record<Locale, typeof id>;
+const ms: typeof id = {
+  auth: msAuth,
+  berat: msBerat,
+  billing: msBilling,
+  common: msCommon,
+  email: msEmail,
+  errors: msErrors,
+  makan: msMakan,
+  tidur: msTidur,
+  olahraga: msOlahraga,
+  onboarding: msOnboarding,
+  notifications: msNotifications,
+  push: msPush,
+  settings: msSettings,
+  scan: msScan,
+  barcode: msBarcode,
+  varperut: msVarperut,
+  feed: msFeed,
+  place: msPlace,
+  challenge: msChallenge,
+  misc: msMisc,
+  tips: msTips,
+  home: msHome,
+  grup: msGrup,
+  coach: msCoach,
+  maternal: msMaternal,
+  gain: msGain,
+  jam: msJam,
+  koneksi: msKoneksi,
+  izin: msIzin,
+  panduanAi: msPanduanAi,
+  sticker: msSticker,
+  energy: msEnergy,
+  kalori: msKalori,
+  reflection: msReflection,
+  sleepInsights: msSleepInsights,
+  fitWeb: msFitWeb,
+  fitWebOverview: msFitWebOverview,
+  fitWebWorkouts: msFitWebWorkouts,
+  fitWebSleep: msFitWebSleep,
+  fitWebUpload: msFitWebUpload,
+  fitWebConnect: msFitWebConnect,
+  mealPlan: msMealPlan,
+};
+
+export const resources = { id, en, ms } satisfies Record<Locale, typeof id>;
 
 export type Resources = typeof id;
 export type Namespace = keyof Resources;

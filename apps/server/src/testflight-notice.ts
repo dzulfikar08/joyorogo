@@ -62,6 +62,18 @@ If you want to subscribe for real right now, you can do it at [joyorogo.com/harg
 Best,
 Dzulfikar, JoyoRogo`,
   },
+  ms: {
+    id: "testflight-purchase",
+    subject: "Tentang pembelian Pro anda di TestFlight",
+    body: `Hai {nama},
+
+Terima kasih kerana mencuba Pro di TestFlight! Pembelian di TestFlight ialah simulasi Apple, jadi anda tidak dicaj dan Pro aktif selama 24 jam.
+
+Kalau anda mahu melanggan sekarang, boleh lewat [joyorogo.com/harga](${PRICING_URL}) (kad bayaran), dan Pro terus aktif di iPhone juga. Atau tunggu JoyoRogo dilancarkan di App Store.
+
+Salam,
+Dzulfikar, JoyoRogo`,
+  },
 };
 
 export type TestflightNoticeConfig = {

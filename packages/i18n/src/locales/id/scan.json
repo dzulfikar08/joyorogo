@@ -129,9 +129,21 @@
       "pecelLele": "1 porsi pecel lele",
       "bubur": "1 mangkuk bubur ayam",
       "ketoprak": "1 porsi ketoprak",
-      "pisangGoreng": "1 batang pisang goreng",
+      "pisangGoreng": "1 porsi pisang goreng (100 g)",
       "seblak": "1 porsi seblak level 3",
-      "cireng": "1 cireng rujak (5 pcs)"
+      "cireng": "1 cireng rujak (5 pcs)",
+      "nasiLemak": "1 porsi nasi lemak dengan telur, ikan bilis, dan sambal",
+      "rotiCanai": "1 lembar roti canai",
+      "miloAis": "1 gelas Milo es",
+      "charKueyTeow": "1 porsi char kuey teow",
+      "meeGorengMamak": "1 porsi mee goreng mamak",
+      "laksa": "1 mangkuk laksa",
+      "cendol": "1 mangkuk cendol",
+      "karipap": "1 karipap",
+      "nasiAyam": "1 porsi nasi ayam",
+      "satay": "1 porsi sate ayam (10 tusuk)",
+      "kuihLapis": "1 potong kue lapis",
+      "nasiLemakAyam": "1 porsi nasi lemak ayam goreng"
     }
   },
   "reaction": {
@@ -191,7 +203,8 @@
       "saving": "Menyimpan...",
       "items_other": "Simpan {{count}} item",
       "pickOne": "Pilih minimal satu item"
-    }
+    },
+    "rotiCanai_other": "Setara {{packs}} lembar roti canai"
   },
   "feedback": {
     "title": "Hasilnya akurat?",

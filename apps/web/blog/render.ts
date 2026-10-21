@@ -14,7 +14,7 @@ import { ANDROID_ROBOT_PATH, ANDROID_ROBOT_VIEWBOX } from "../src/lib/android-ro
 import { APPLE_LOGO_PATH, APPLE_LOGO_VIEWBOX } from "../src/lib/apple-logo.ts";
 import { ANDROID_ROBOT_CREDIT } from "../src/lib/credits.ts";
 import { JOYOROGO_TESTFLIGHT_URL } from "../src/lib/testflight.ts";
-import { ogImageTags, PUBLIC_PATHS, type ShareImage } from "./pages.ts";
+import { LANDING_ALTERNATES, ogImageTags, PUBLIC_PATHS, type ShareImage } from "./pages.ts";
 import {
   CATEGORIES,
   CATEGORY_BLURB,
@@ -661,21 +661,27 @@ ${items}
 `;
 }
 
-/** Whole-site sitemap: public app pages plus every post. */
+/** Whole-site sitemap: public app pages plus every post. The two landings list each other as hreflang alternates. */
 export function renderSitemap(posts: Post[], cfg: BlogConfig): string {
   const newest = posts.reduce((max, p) => (p.updated > max ? p.updated : max), "");
   const urls = [
-    ...PUBLIC_PATHS.filter((p) => !PAGES[p].noindex).map((loc) => ({ loc, lastmod: PAGES[loc].lastmod ?? "" })),
-    { loc: "/blog/", lastmod: newest },
-    ...posts.map((p) => ({ loc: `/blog/${p.slug}/`, lastmod: p.updated })),
+    ...PUBLIC_PATHS.filter((p) => !PAGES[p].noindex).map((loc) => ({
+      loc: loc as string,
+      lastmod: PAGES[loc].lastmod ?? "",
+      alternates: LANDING_ALTERNATES.some((alt) => alt.path === loc) ? LANDING_ALTERNATES : [],
+    })),
+    { loc: "/blog/", lastmod: newest, alternates: [] },
+    ...posts.map((p) => ({ loc: `/blog/${p.slug}/`, lastmod: p.updated, alternates: [] })),
   ];
   return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${urls
-  .map(
-    (u) =>
-      `  <url><loc>${cfg.siteUrl}${u.loc}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ""}</url>`,
-  )
+  .map((u) => {
+    const alternates = u.alternates
+      .map((alt) => `<xhtml:link rel="alternate" hreflang="${alt.hreflang}" href="${cfg.siteUrl}${alt.path}"/>`)
+      .join("");
+    return `  <url><loc>${cfg.siteUrl}${u.loc}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ""}${alternates}</url>`;
+  })
   .join("\n")}
 </urlset>
 `;

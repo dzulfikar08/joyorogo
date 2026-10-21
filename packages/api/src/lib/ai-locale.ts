@@ -9,6 +9,20 @@ import type { Locale } from "@joyorogo/i18n";
 const LANGUAGE_NAME: Record<Locale, string> = {
   id: "Indonesian",
   en: "English",
+  ms: "Malay (Bahasa Melayu, Malaysian usage: kalori, makan tengah hari, hidangan, kedai mamak)",
+};
+
+/** Examples of a dish with a common name in the language, and the rule for a dish that has none. */
+const NAME_EXAMPLES: Record<Locale, { translated: string; kept: string }> = {
+  id: { translated: "", kept: "" },
+  en: {
+    translated: '"Fried chicken", "Iced sweet tea"',
+    kept: 'masakan khas Indonesia tanpa padanan umum tulis apa adanya (mis. "Nasi goreng", "Gado-gado", "Rendang")',
+  },
+  ms: {
+    translated: '"Ayam goreng", "Teh ais manis", "Nasi putih"',
+    kept: 'masakan khas tanpa padanan umum tulis apa adanya (mis. "Gado-gado", "Rendang", "Nasi lemak")',
+  },
 };
 
 /**
@@ -24,7 +38,8 @@ export function localNameShape(locale: Locale): string {
 export function localNameRule(locale: Locale): string {
   if (locale === DEFAULT_LOCALE) return "";
   const language = LANGUAGE_NAME[locale];
-  return `\nUser language: ${language}. "name" tetap nama masakan Bahasa Indonesia seperti aturan di atas (dipakai untuk mencocokkan database gizi). Isi "localName" dengan nama dalam ${language}: makanan yang punya nama umum dalam ${language} pakai nama itu (mis. "Fried chicken", "Iced sweet tea"); masakan khas Indonesia tanpa padanan umum tulis apa adanya (mis. "Nasi goreng", "Gado-gado", "Rendang"). "portion" juga dalam ${language}.`;
+  const examples = NAME_EXAMPLES[locale];
+  return `\nUser language: ${language}. "name" tetap nama masakan Bahasa Indonesia seperti aturan di atas (dipakai untuk mencocokkan database gizi). Isi "localName" dengan nama dalam ${language}: makanan yang punya nama umum dalam ${language} pakai nama itu (mis. ${examples.translated}); ${examples.kept}. "portion" juga dalam ${language}.`;
 }
 
 /** Name the model should whisper-transcribe as; ISO 639-1 equals our locale codes. */

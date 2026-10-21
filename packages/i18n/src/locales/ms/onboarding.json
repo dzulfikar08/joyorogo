@@ -1,0 +1,111 @@
+{
+  "action": {
+    "next": "Teruskan",
+    "save": "Simpan & lihat hasil",
+    "saving": "Menyimpan...",
+    "openHome": "Buka Laman Utama",
+    "inviteFriends": "Jemput kawan"
+  },
+  "loading": "Menyemak profil",
+  "progress": "Langkah {{step}} daripada {{total}}",
+  "info": {
+    "title": "Maklumat lanjut"
+  },
+  "question": {
+    "birth": {
+      "title": "Bila anda dilahirkan?",
+      "hint": "Untuk mengira keperluan kalori anda.",
+      "label": "Tahun lahir",
+      "unit": "tahun"
+    },
+    "gender": {
+      "title": "Jantina anda?",
+      "hint": "Keperluan kalori lelaki dan perempuan berbeza."
+    },
+    "height": {
+      "title": "Berapa tinggi anda?",
+      "label": "Tinggi badan (cm)"
+    },
+    "weight": {
+      "title": "Berat badan anda sekarang?",
+      "hint": "Ini menjadi timbangan pertama anda.",
+      "label": "Berat badan (kg)",
+      "why": "Angka ini menjadi titik permulaan perjalanan anda dan timbangan pertama anda. Anda boleh mengemas kininya setiap hari di halaman Berat."
+    },
+    "activity": {
+      "title": "Seaktif mana hari-hari anda?",
+      "hint": "Di luar senaman."
+    },
+    "target": {
+      "title": "Berat sasaran anda?",
+      "label": "Berat sasaran (kg)",
+      "healthyRange": "Berat sihat untuk ketinggian anda: {{min}}-{{max}} kg",
+      "belowRange": "Di bawah julat berat yang sihat. Anda boleh teruskan, tetapi jaga kesihatan anda."
+    },
+    "date": {
+      "title": "Bila anda mahu mencapainya?",
+      "label": "Tarikh sasaran",
+      "hint": "Format TAHUN-BULAN-TARIKH, contoh 2026-12-15",
+      "why": "Penurunan berat yang selamat ialah kira-kira 0,5 hingga 1 kg seminggu."
+    },
+    "goal": {
+      "title": "Apakah sasaran anda?"
+    }
+  },
+  "error": {
+    "birthYear": "Tahun lahir mesti antara 1930 dan 2020.",
+    "gender": "Pilih jantina dahulu.",
+    "height": "Tinggi badan mesti 100-250 cm.",
+    "weight": "Berat badan mesti 25-400 kg.",
+    "targetWeight": "Berat sasaran mesti 25-400 kg.",
+    "targetDatePast": "Tarikh sasaran mesti belum berlalu.",
+    "targetDateFormat": "Isi tarikh dengan format TAHUN-BULAN-TARIKH, contoh 2026-12-15.",
+    "incomplete": "Ada data yang belum lengkap. Ulang langkah sebelumnya."
+  },
+  "tooFast": {
+    "title": "Defisit ~{{kcal}}/hari, melebihi had selamat.",
+    "detail_other": "JoyoRogo mengehadkan defisit pada ~{{cap}}/hari. Menurunkan {{kg}} kg pada kadar itu mengambil masa kira-kira {{count}} hari (baru ±{{reach}} kg menjelang {{date}}).",
+    "cta_other": "Guna tarikh yang realistik (+{{count}} hari)"
+  },
+  "guide": {
+    "activity": "Keliru memilih tahap? Baca cara kami mengira sasaran anda",
+    "result": "Lihat cara sasaran anda dikira",
+    "later": "Sasaran anda boleh diubah pada bila-bila masa di Profil > Sasaran, dan dikalibrasi secara automatik setiap minggu berdasarkan perubahan berat anda."
+  },
+  "result": {
+    "title": "Pelan harian anda sudah siap",
+    "subtitle": "Timbangan pertama anda sudah dicatat hari ini.",
+    "belowRange": "Berat sasaran anda di bawah julat sihat ({{min}}-{{max}} kg). Ubah pada bila-bila masa di Profil.",
+    "aboutTitle": "Tentang pelan anda",
+    "meaning": {
+      "eat": "Makan: bajet makanan anda sehari.",
+      "burn": "Bakar: kcal yang dibakar melalui senaman setiap hari.",
+      "sleep": "Tidur: jam tidur setiap malam supaya pemulihan terjaga."
+    }
+  },
+  "invite": {
+    "title": "Jemput kawan",
+    "createdTitle": "Kumpulan anda sudah siap",
+    "createdCaption": "Hantar jemputan, kawan yang menyertai akan terus kelihatan dalam kumpulan.",
+    "whyTitle": "Mengapa jemput kawan?",
+    "why": "Mencatat kalori lebih mudah jika ada yang menyemak. Buat kumpulan kecil, hantar pautannya dan saling cuit jika ada yang terlupa.",
+    "nameLabel": "Nama kumpulan",
+    "create": "Buat kumpulan",
+    "creating": "Membuat kumpulan…",
+    "existingLabel": "Kumpulan sedia ada",
+    "existingTitle": "Atau kongsi kumpulan yang sudah anda sertai",
+    "share": "Kongsi",
+    "shareInvite": "Kongsi jemputan",
+    "openGroup": "Buka kumpulan",
+    "later": "Nanti sahaja, buka Laman Utama",
+    "skip": "Langkau, buka Laman Utama",
+    "code": "Kod {{code}}",
+    "defaultName": "Berdiet bersama {{name}}",
+    "defaultNameBare": "Berdiet bersama",
+    "toast": {
+      "copied": "Teks jemputan disalin, tinggal tampal di WhatsApp.",
+      "shareFailed": "Gagal berkongsi. Cuba lagi sebentar nanti ya.",
+      "createFailed": "Gagal membuat kumpulan"
+    }
+  }
+}

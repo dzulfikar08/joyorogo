@@ -1,0 +1,197 @@
+{
+  "trend": {
+    "stable": "Berat stabil",
+    "down": "Turun {{kg}} kg/minggu",
+    "up": "Naik {{kg}} kg/minggu"
+  },
+  "page": {
+    "title": "Berat badan",
+    "titleShort": "Berat",
+    "weigh": "Timbang",
+    "weighNow": "Timbang sekarang",
+    "shareSticker": "Kongsi pelekat berat",
+    "share": "Siarkan ke suapan",
+    "loading": "Memuatkan sejarah berat"
+  },
+  "empty": {
+    "title": "Belum ada catatan berat",
+    "body": "Timbang diri anda, kemudian simpan melalui butang Timbang. Graf, trend dan sejarah akan muncul selepas catatan pertama.",
+    "bodyNative": "Simpan timbangan pertama anda untuk mula melihat trend dan unjuran sasaran."
+  },
+  "hero": {
+    "trendLabel": "Berat trend",
+    "scale": "Timbangan terakhir {{kg}} kg · {{date}}",
+    "goalReached": "Sasaran berat sudah dicapai. Kekalkan rentak ini.",
+    "weighToday": "Timbang hari ini",
+    "trendExplain": "Trend = purata bergerak 7 hari. Lebih stabil berbanding timbangan harian.",
+    "goalLabel": "Sasaran",
+    "goalValue": "{{kg}} kg · baki {{left}} kg",
+    "goalValueReached": "{{kg}} kg · tercapai"
+  },
+  "bmi": {
+    "category": {
+      "under": "Kurang",
+      "ideal": "Ideal",
+      "over": "Berlebihan berat",
+      "obese": "Obesiti"
+    },
+    "label": "BMI",
+    "value": "{{value}} · {{category}}"
+  },
+  "chart": {
+    "rangeLabel": "Julat graf",
+    "range": {
+      "d7": "7H",
+      "d30": "30H",
+      "d90": "90H",
+      "all": "Semua"
+    },
+    "rangeLast_other": "{{count}} hari terakhir",
+    "rangeDays_other": "{{count}} hari",
+    "sinceStart": "sejak permulaan",
+    "a11yPointer": "Graf trend berat badan, {{range}}. Gerakkan kursor untuk melihat setiap catatan.",
+    "a11yTouch": "Graf trend berat badan, {{range}}. Leret untuk melihat setiap catatan.",
+    "target": "Sasaran {{kg}}",
+    "emptyTitle": "Belum ada catatan {{range}}.",
+    "emptyBody": "Pilih julat yang lebih panjang, atau catat berat anda untuk mula mengisi graf.",
+    "emptyAction": "Catat berat",
+    "tomorrow": "Timbang lagi esok untuk mula melihat garisan trend."
+  },
+  "stats": {
+    "change": "Perubahan",
+    "pace": "Kadar",
+    "projection": "Anggaran capai sasaran",
+    "projectionValue": "±{{month}}"
+  },
+  "projection": {
+    "setTarget": "tetapkan sasaran di Profil",
+    "reached": "sudah dicapai, kekalkan rentak",
+    "toward": "anggaran jika kadar ini berterusan ke {{kg}} kg",
+    "needMore": "perlu lebih banyak catatan",
+    "steady": "rentak sedang stabil",
+    "away": "rentak terkini menjauhi sasaran"
+  },
+  "legend": {
+    "weight": "Timbangan harian",
+    "trend": "Trend (purata 7 hari)",
+    "unlogged": "Belum dicatat",
+    "kcalTarget": "Sasaran kalori",
+    "goal": "Sasaran berat",
+    "kcalOver": "Kalori (gelap = melebihi sasaran)",
+    "kcalGain": "Kalori (gelap = capai sasaran)"
+  },
+  "kcal": {
+    "none": "Belum ada kalori dicatat",
+    "summary_other": "Dicatat {{tracked}} daripada {{count}} hari · purata {{avg}}",
+    "title": "Kalori masuk setiap hari",
+    "titleWeekly": "Purata kalori setiap minggu",
+    "target": "Sasaran {{kcal}}",
+    "a11y": "Graf kalori masuk, satu bar setiap hari atau setiap minggu"
+  },
+  "detail": {
+    "title": "Butiran",
+    "trustTrend": "Angka trend lebih boleh dipercayai berbanding timbangan harian.",
+    "legend": "Garisan tebal = trend (purata bergerak 7 hari), titik = timbangan harian, garisan putus-putus = sasaran berat. Mula tempoh dan Sekarang menggunakan trend, bukan satu timbangan.",
+    "weekly": "Julat panjang dipuratakan setiap minggu mengikut hari yang dicatat."
+  },
+  "tip": {
+    "scale": "Timbangan",
+    "trend": "Trend",
+    "kcal": "Kalori",
+    "kcalPerDay": "Kalori/hari",
+    "notLogged": "tidak dicatat",
+    "kcalValueGaps_other": "{{kcal}} · {{count}} kosong",
+    "vsPrev": "berbanding sebelumnya",
+    "first": "pertama",
+    "same": "sama"
+  },
+  "history": {
+    "scale": "daripada timbangan",
+    "bodyFat": "Lemak {{pct}}%",
+    "bodyMuscle": "Otot {{pct}}%",
+    "title": "Sejarah",
+    "first": "catatan pertama",
+    "same": "sama seperti sebelumnya",
+    "delta": "{{delta}} kg daripada sebelumnya",
+    "showAll": "Papar semua ({{count}})",
+    "showLess": "Papar lebih sedikit"
+  },
+  "sheet": {
+    "title": "Timbang hari ini",
+    "titleDay": "Timbang {{day}}",
+    "description": "Satu catatan sehari. Menyimpan semula akan menimpa angka tadi.",
+    "hintToday": "Satu catatan sehari. Menyimpan semula akan menimpa catatan hari ini.",
+    "hintDay": "Satu catatan sehari. Menyimpan semula akan menimpa catatan {{day}}.",
+    "weightLabel": "Berat badan (kg)",
+    "saving": "Menyimpan..."
+  },
+  "toast": {
+    "logged": "Berat dicatat: {{kg}} kg",
+    "waistLogged": "Ukur lilit pinggang dicatat: {{cm}} cm"
+  },
+  "error": {
+    "weightRange": "Isi berat badan antara {{min}} dan {{max}} kg."
+  },
+  "share": {
+    "title": "Kongsi kemajuan berat",
+    "titleNative": "Semak masuk berat badan",
+    "preview": "Semak masuk terakhir · {{kg}} kg",
+    "previewNative": "{{kg}} kg",
+    "previewTrend": "{{kg}} kg · trend {{trend}} kg"
+  },
+  "waist": {
+    "title": "Ukur lilit pinggang",
+    "inputLabel": "Ukur lilit pinggang (cm)",
+    "placeholder": "cth. 85",
+    "saving": "Menyimpan...",
+    "loggedToday": "Disimpan untuk hari ini",
+    "latest": "Terkini",
+    "error": {
+      "range": "Isi ukur lilit pinggang antara {{min}} dan {{max}} cm."
+    },
+    "sinceFirst": "{{delta}} cm sejak ukuran pertama",
+    "status": {
+      "high": "Nisbah ukur lilit pinggang kepada tinggi {{ratio}}: risiko tinggi. Semak gula darah dan tekanan darah di klinik kesihatan atau doktor.",
+      "above": "Melebihi had sihat. Turun beberapa cm sahaja sudah mengurangkan risiko.",
+      "below": "Di bawah had sihat. Kekalkan."
+    },
+    "about": {
+      "title": "Penerangan & cara mengukur",
+      "intro": "Berat badan tidak membezakan lemak dan otot. Ukur lilit pinggang menunjukkan lemak di sekeliling organ dalaman, yang paling berkait dengan diabetes dan penyakit jantung."
+    },
+    "standard": {
+      "title": "Piawaian",
+      "cutoff": "Had obesiti pusat untuk orang Asia: lelaki 90 cm, perempuan 80 cm.",
+      "cutoffYours": "Had anda {{cm}} cm.",
+      "ratio": "Nisbah ukur lilit pinggang kepada tinggi badan sebaiknya di bawah 0,5. Untuk tinggi {{height}} cm, kekalkan ukur lilit pinggang di bawah {{half}} cm.",
+      "source": "Sumber: WHO Asia Pasifik (2000), Kemenkes RI, WHO Expert Consultation (2008), NICE (2022)."
+    },
+    "guide": {
+      "title": "Cara mengukur",
+      "step1": "Berdiri tegak, kaki rapat, lengan santai di sisi badan.",
+      "step2": "Raba tulang rusuk paling bawah dan puncak tulang pinggul. Lilitkan pita pengukur tepat di tengah-tengah keduanya.",
+      "step3": "Pita mendatar selari dengan lantai, melekat pada kulit tetapi tidak menekan.",
+      "step4": "Baca angka di hujung hembusan nafas biasa. Jangan tahan nafas atau sedut perut.",
+      "tip": "Ukur pada waktu pagi sebelum makan. Seminggu sekali sudah memadai."
+    },
+    "illustration": {
+      "alt": "Ilustrasi: pita pengukur dililit di tengah antara tulang rusuk paling bawah dan puncak tulang pinggul",
+      "ribs": "Tulang rusuk paling bawah",
+      "measureHere": "Ukur di sini:",
+      "middle": "tengah-tengahnya",
+      "pelvis": "Puncak tulang pinggul"
+    }
+  },
+  "period": {
+    "title": "Tempoh",
+    "start": "Mula tempoh",
+    "now": "Sekarang",
+    "trendOn": "trend, {{date}}",
+    "changePct": "{{pct}}%",
+    "perWeek": "seminggu",
+    "paceNeeds": "perlukan data 7 hari",
+    "needMore": "Perlukan sekurang-kurangnya 2 timbangan dalam tempoh ini untuk mengira perubahan.",
+    "startsLate": "Timbangan dalam tempoh ini bermula pada {{date}}.",
+    "share": "Kongsi kemajuan"
+  }
+}

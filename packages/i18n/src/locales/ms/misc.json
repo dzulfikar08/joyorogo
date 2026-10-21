@@ -1,0 +1,242 @@
+{
+  "errorScreen": {
+    "updateBody": "JoyoRogo baru sahaja dikemas kini. Muat semula halaman untuk menggunakan versi terkini.",
+    "crashBody": "Ada sesuatu yang tidak kena di pihak kami. Jangan risau, data anda selamat. Cuba lagi, atau muat semula halaman jika masih ralat.",
+    "reloadNow": "Muat semula sekarang",
+    "reloadPage": "Muat semula halaman",
+    "home": "Ke Laman Utama",
+    "details": "Butiran teknikal"
+  },
+  "notFound": {
+    "title": "Halaman tidak ditemui",
+    "body": "Halaman yang anda cari tiada atau sudah dipindahkan. Jom kembali ke Laman Utama.",
+    "home": "Ke Laman Utama"
+  },
+  "state": {
+    "loadFailed": "Gagal memuatkan",
+    "loadFailedData": "Gagal memuatkan data"
+  },
+  "optimistic": {
+    "saveFailed": "Gagal menyimpan",
+    "deleteFailed": "Gagal memadam"
+  },
+  "macro": {
+    "kcal": "Kalori",
+    "grams": "Berat",
+    "progress": "{{label}}: {{eaten}} daripada {{budget}} {{unit}}",
+    "summaryTitle": "Ringkasan kalori hari ini",
+    "eatenOf": "Dimakan {{eaten}} daripada {{budget}} kcal",
+    "over": "Lebih {{kcal}}",
+    "ofTarget": "daripada {{kcal}}"
+  },
+  "mascot": {
+    "alt": {
+      "alert": "Joyo terkejut dengan mata terbeliak",
+      "cheer": "Joyo menggenggam tangan, bersemangat",
+      "determined": "Joyo dengan pandangan penuh azam",
+      "gas": "Joyo menggenggam tangan dengan tulisan Gas",
+      "happy": "Joyo ketawa gembira",
+      "head": "Kepala Joyo",
+      "hero": "Joyo berdiri gagah",
+      "icon": "Ikon JoyoRogo",
+      "love": "Joyo memeluk hati",
+      "mantap": "Joyo mengangkat ibu jari dengan tulisan Mantap",
+      "on-it": "Joyo menaip pada komputer riba dengan tulisan On it",
+      "peek": "Joyo mengintai dari bawah",
+      "ready": "Joyo berdiri bersedia beraksi",
+      "relax": "Joyo bersantai",
+      "sleepy": "Joyo tidur bergelung",
+      "surprised": "Joyo terkejut",
+      "wink": "Joyo mengenyit mata",
+      "working": "Joyo bekerja dengan komputer riba"
+    }
+  },
+  "iosInstall": {
+    "title": "Pasang di iPhone",
+    "description": "Cuba aplikasi iPhone melalui TestFlight, atau pasang aplikasi web ke Skrin Utama supaya terbuka skrin penuh seperti aplikasi. Akaun dan datanya sama.",
+    "copy": "Salin pautan",
+    "copied": "Disalin",
+    "copiedStatus": "Pautan disalin",
+    "addToHome": "Tambah ke Skrin Utama",
+    "wrongBrowser": {
+      "title": "Buka dahulu di Safari",
+      "body": "Anda sedang menggunakan pelayar lain atau berada dalam aplikasi (Instagram, TikTok dan sebagainya). Menu pasang ke Skrin Utama paling lengkap di Safari. Salin pautan ini, buka Safari, tampal pada ruang alamat."
+    },
+    "notIphone": {
+      "title": "Panduan ini untuk iPhone",
+      "body": "Buka pautan ini daripada iPhone anda, di Safari. Hantar kepada diri sendiri melalui WhatsApp atau salin dahulu."
+    },
+    "testflight": {
+      "title": "Cuba aplikasi iPhone (beta awam, TestFlight)",
+      "step1": "Pasang TestFlight daripada App Store, jika belum ada.",
+      "step2": "Buka pautan jemputan di iPhone, ketik Terima, kemudian Pasang JoyoRogo.",
+      "open": "Buka TestFlight",
+      "note": "Masih beta, jadi mungkin ada yang belum sempurna. Versi App Store 1.0 sedang menunggu semakan Apple. Akaunnya sama dengan versi web.",
+      "orWeb": "Atau guna versi web"
+    },
+    "steps": {
+      "safari": {
+        "title": "Buka di Safari",
+        "body": "Buka app.joyorogo.com di Safari. Pelayar dalam aplikasi seperti Instagram atau TikTok tiada menu pasang."
+      },
+      "share": {
+        "title": "Ketik Kongsi",
+        "body": "Ketik ikon Kongsi, kotak dengan anak panah ke atas, pada bar bawah Safari. Di iPad ia ada pada bar atas. Tidak kelihatan? Ketik butang tiga titik dahulu."
+      },
+      "add": {
+        "title": "Tambah ke Skrin Utama",
+        "body": "Leret menu ke bawah sehingga jumpa Tambah ke Skrin Utama, ketik, kemudian ketik Tambah di penjuru kanan atas."
+      }
+    },
+    "doneNote": "Siap. Buka JoyoRogo daripada ikonnya di Skrin Utama; jika diminta log masuk, guna akaun Google yang sama. Peringatan melalui pemberitahuan di iPhone memerlukan iOS 16.4 ke atas dan JoyoRogo dibuka daripada Skrin Utama.",
+    "notesTitle": "Catatan",
+    "gotIt": "Faham",
+    "signUp": "Daftar dengan Google",
+    "banner": {
+      "title": "Pasang JoyoRogo pada skrin utama",
+      "body": "Terbuka skrin penuh, tanpa bar Safari."
+    }
+  },
+  "recap": {
+    "title": "Rumusan mingguan",
+    "subtitleOngoing": "{{range}} · masih berjalan",
+    "prevWeek": "Minggu sebelumnya",
+    "nextWeek": "Minggu seterusnya",
+    "loading": "Memuatkan rumusan mingguan",
+    "empty": {
+      "titleNone": "Belum ada catatan pada minggu ini",
+      "titleNoFood": "Belum ada makanan yang dicatat",
+      "bodyPast": "Rumusan dikira daripada hari yang sudah berlalu. Semak lagi esok.",
+      "bodyLog": "Catat makanan anda beberapa hari, nanti rumusannya muncul di sini."
+    },
+    "avg": {
+      "label": "Purata sehari",
+      "aria": "Purata {{avg}} daripada sasaran {{target}} kcal",
+      "note_other": "Sasaran makan anda {{target}} kcal. Dikira daripada {{count}} hari yang anda catat."
+    },
+    "daily": "Harian",
+    "unit": {
+      "day_other": "hari"
+    },
+    "stat": {
+      "onTarget": {
+        "label": "Menepati sasaran",
+        "sub_other": "daripada {{count}} hari dicatat"
+      },
+      "protein": {
+        "sub": "purata, sasaran {{target}} g",
+        "none": "belum ada data protein"
+      },
+      "streak": {
+        "label": "Berturut-turut",
+        "sub": "mencatat tanpa putus"
+      },
+      "exercise": {
+        "sub_other": "{{minutes}} minit, {{count}} sesi",
+        "none": "belum ada sesi"
+      },
+      "weight": {
+        "label": "Berat (trend)",
+        "none": "perlu 2 kali menimbang",
+        "range": "{{from}} ke {{to}} kg"
+      },
+      "bestDay": {
+        "label": "Hari terbaik",
+        "sub": "{{kcal}} kcal, paling hampir sasaran antara hari yang menepati sasaran",
+        "none": "belum ada hari yang menepati sasaran"
+      }
+    },
+    "share": "Kongsi rumusan ke Story",
+    "note": {
+      "title": "Cara mengira",
+      "body": "Kiraan daripada catatan anda sendiri, bukan penilaian perubatan. Menepati sasaran bermaksud pengambilan sehari berada antara separuh sasaran dan 5% melebihi sasaran. Berat menggunakan trend (purata bergerak), jadi tidak terikut turun naik timbangan harian.",
+      "ongoing": "Minggu ini dikira sehingga semalam; hari ini belum dinilai."
+    },
+    "chart": {
+      "aria": "Pengambilan harian berbanding sasaran {{target}} kcal",
+      "day": "{{day}}: {{kcal}} kcal, {{status}}",
+      "status": {
+        "on_target": "menepati sasaran",
+        "over": "melebihi sasaran",
+        "under": "jauh di bawah sasaran, mungkin belum lengkap dicatat",
+        "empty": "tiada catatan makan",
+        "pending": "belum dinilai"
+      },
+      "legend": {
+        "onTarget": "Menepati sasaran",
+        "over": "Melebihi sasaran",
+        "under": "Kurang daripada separuh sasaran",
+        "target": "Sasaran"
+      }
+    }
+  },
+  "inbox": {
+    "subtitleWeb": "Cuit dan catatan daripada kawan sekumpulan.",
+    "subtitleNative": "Cuit dan catatan daripada kawan kumpulan anda.",
+    "loading": "Memuatkan peti masuk",
+    "markAllRead": "Tandakan dibaca",
+    "unread": "Belum dibaca",
+    "error": {
+      "markRead": "Gagal menandakan dibaca",
+      "send": "Gagal menghantar"
+    },
+    "empty": {
+      "titleWeb": "Masih sunyi",
+      "titleNative": "Belum ada apa-apa",
+      "bodyWeb": "Cuit dan catatan daripada ahli kumpulan akan muncul di sini.",
+      "bodyNative": "Cuit dan catatan daripada kawan kumpulan akan muncul di sini."
+    },
+    "item": {
+      "pokeTitle": "{{name}} mencuit anda",
+      "noteTitle": "Catatan daripada {{name}}",
+      "pokeSubtitle": "mencuit anda",
+      "noteSubtitle": "menghantar catatan",
+      "pokeBack": "Cuit balik",
+      "pokeBackAria": "Cuit balik {{name}}",
+      "reply": "Balas catatan",
+      "replyAria": "Balas catatan daripada {{name}}"
+    },
+    "toast": {
+      "pokeSent": "Cuit balik dihantar",
+      "noteSent": "Catatan balasan dihantar",
+      "delivered": "Mesej masuk ke peti masuk kawan anda."
+    },
+    "footnote": "50 mesej terakhir. Ketik mesej untuk menandakannya dibaca.",
+    "sheet": {
+      "title": "Balas catatan {{name}}",
+      "titleFallback": "Balas catatan",
+      "description": "Hantar catatan balasan dalam kumpulan {{group}}.",
+      "textAria": "Isi catatan balasan",
+      "placeholderWeb": "Tulis catatan semangat…",
+      "placeholderNative": "Tulis catatan balasan…",
+      "send": "Hantar balasan",
+      "sending": "Menghantar…",
+      "sendCount": "Hantar ({{count}}/140)",
+      "fieldLabel": "Mesej",
+      "fieldHint": "Maksimum 140 huruf, dihantar melalui pemberitahuan."
+    },
+    "suggestion": {
+      "log": "Semangat catat kalori hari ini!",
+      "water": "Jangan lupa minum air.",
+      "walk": "Jom berjalan 10 minit bersama!"
+    }
+  },
+  "widget": {
+    "progress": "KEMAJUAN HARI INI",
+    "protein": "PROTEIN",
+    "inbox": "PETI MASUK",
+    "over": " kcal lebih",
+    "left": " kcal berbaki",
+    "eaten": "{{eaten}} / {{target}} kcal",
+    "photoLabel": "Catat makanan dengan foto",
+    "noNews": "Belum ada berita baharu",
+    "signIn": "Log masuk dahulu",
+    "signInBody": "Buka JoyoRogo untuk melihat kemajuan anda di sini.",
+    "setTarget": "Tetapkan sasaran anda dahulu dalam aplikasi.",
+    "joinGroup": "Sertai kumpulan dahulu dalam aplikasi.",
+    "fasting": {
+      "window": "Tetingkap makan sehingga {{close}} · baki {{kcal}} kcal",
+      "next": "Makan lagi {{open}} · baki {{kcal}} kcal"
+    }
+  }
+}

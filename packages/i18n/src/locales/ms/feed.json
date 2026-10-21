@@ -1,0 +1,705 @@
+{
+  "tab": {
+    "following": "Mengikuti",
+    "explore": "Terokai",
+    "tips": "Petua",
+    "label": "Pilih tab feed"
+  },
+  "header": {
+    "compose": "Buat hantaran",
+    "notifications": "Pemberitahuan",
+    "notificationsUnread_other": "Pemberitahuan, {{count}} belum dibaca"
+  },
+  "list": {
+    "loading": "Memuatkan feed",
+    "more": "Muatkan lagi",
+    "end": "Anda sudah sampai ke penghujung feed.",
+    "empty": {
+      "following": {
+        "title": "Feed anda masih sunyi",
+        "body": "Ikuti orang daripada profilnya, atau kongsi log melalui Kongsi ke feed."
+      },
+      "explore": {
+        "title": "Belum ada hantaran awam",
+        "body": "Hantaran awam daripada semua pengguna muncul di sini."
+      }
+    }
+  },
+  "notif": {
+    "title": "Pemberitahuan",
+    "markRead": "Tandakan sudah dibaca",
+    "list": "Senarai pemberitahuan",
+    "empty": {
+      "title": "Belum ada pemberitahuan",
+      "body": "Semangat, komen dan pengikut baharu muncul di sini."
+    },
+    "text": {
+      "kudos": "{{name}} memberi semangat",
+      "comment": "{{name}} mengulas",
+      "commentExcerpt": "{{name}}: {{excerpt}}",
+      "reply": "{{name}} membalas komen anda",
+      "replyExcerpt": "{{name}} membalas: {{excerpt}}",
+      "follow": "{{name}} mula mengikut anda"
+    },
+    "onPost": {
+      "kudos": "{{name}} memberi semangat pada \"{{post}}\"",
+      "comment": "{{name}} mengulas pada \"{{post}}\"",
+      "reply": "{{name}} membalas komen anda pada \"{{post}}\""
+    },
+    "deletedPost": "hantaran yang sudah dipadam"
+  },
+  "visibility": {
+    "publik": "Awam",
+    "grup": "Kumpulan",
+    "friends": "Kawan kumpulan",
+    "label": {
+      "publik": "Hantaran awam",
+      "grup": "Kawan kumpulan sahaja"
+    }
+  },
+  "kind": {
+    "makan": "Makan",
+    "latihan": "Latihan",
+    "berat": "Berat",
+    "cerita": "Cerita"
+  },
+  "post": {
+    "weightTitle": "Check-in berat badan",
+    "showMore": "Selengkapnya",
+    "showLess": "Tutup",
+    "actions": "Tindakan hantaran",
+    "openProfile": "Profil {{name}}",
+    "open": "Buka hantaran {{title}}",
+    "photoAlt": "Foto makanan",
+    "stickerAlt": "Pelekat makanan",
+    "kudos": {
+      "give": "Beri semangat",
+      "remove": "Batalkan semangat",
+      "label": "Semangat",
+      "sent": "Semangat dihantar",
+      "empty": "Belum ada yang memberi semangat. Jadilah yang pertama."
+    },
+    "comments": {
+      "view": "Lihat komen"
+    },
+    "chip": {
+      "minutes": "{{n}} minit",
+      "minutesShort": "{{n}} min",
+      "sets_other": "{{count}} set",
+      "reps_other": "{{count}} ulangan",
+      "volume": "{{kg}} kg keseluruhan",
+      "down": "Turun {{kg}} kg",
+      "up": "Naik {{kg}} kg",
+      "protein": "P {{g}}g",
+      "carbs": "K {{g}}g",
+      "fat": "L {{g}}g",
+      "fiber": "Serat {{g}}g"
+    }
+  },
+  "comments": {
+    "title": "Komen",
+    "own": "Komen pada hantaran anda",
+    "other": "Pada hantaran {{name}}",
+    "empty": {
+      "title": "Belum ada komen",
+      "body": "Jadi yang pertama memberi semangat melalui komen.",
+      "short": "Belum ada komen. Mulakan perbualan."
+    },
+    "list": "Senarai komen",
+    "delete": "Padam komen",
+    "placeholder": "Tulis komen...",
+    "label": "Tulis komen",
+    "send": "Hantar komen",
+    "sendShort": "Hantar",
+    "field": "Komen · {{n}}/{{max}}",
+    "signIn": "<link>Log masuk</link> untuk turut berkomen.",
+    "toast": {
+      "sent": "Komen dihantar"
+    },
+    "undoLabel": "Komen",
+    "reply": "Balas",
+    "replyingTo": "Membalas {{name}}",
+    "replyPlaceholder": "Tulis balasan...",
+    "cancelReply": "Batalkan balasan",
+    "viewReplies_other": "Lihat {{count}} balasan",
+    "hideReplies": "Sembunyikan balasan",
+    "moreReplies": "Lihat balasan lain",
+    "moreComments": "Lihat komen lain",
+    "deleted": "Komen ini telah dipadam.",
+    "attach": {
+      "add": "Lampirkan",
+      "photo": "Foto",
+      "gallery": "Galeri",
+      "camera": "Kamera",
+      "fromApp": "Daripada aplikasi",
+      "remove": "Padam lampiran",
+      "uploading": "Memuat naik foto...",
+      "photoAlt": "Foto dalam komen",
+      "photoError": "Foto gagal diproses. Cuba foto lain.",
+      "cameraDenied": "Kebenaran kamera belum diberikan. Aktifkan dalam tetapan telefon.",
+      "pickerTitle": "Lampirkan daripada aplikasi",
+      "loading": "Memuatkan...",
+      "mapOff": "Peta anda dimatikan dalam tetapan, jadi belum ada laluan yang boleh dilampirkan.",
+      "kind": {
+        "workout": "Latihan",
+        "food": "Makanan",
+        "weight": "Berat",
+        "recap": "Rumusan",
+        "route": "Laluan"
+      },
+      "empty": {
+        "workout": "Belum ada latihan yang boleh dilampirkan.",
+        "food": "Belum ada catatan makan yang boleh dilampirkan.",
+        "weight": "Belum ada catatan berat yang boleh dilampirkan.",
+        "recap": "Belum ada rumusan mingguan. Catat makanan anda dahulu.",
+        "route": "Belum ada laluan daripada JoyoFit yang boleh dilampirkan."
+      },
+      "title": {
+        "weight": "Check-in berat badan",
+        "recap": "Rumusan minggu {{range}}"
+      },
+      "cardLabel": "Lampiran: {{title}}"
+    },
+    "fact": {
+      "duration": "{{value}} min",
+      "distance": "{{value}} km",
+      "kcal": "{{value}} kcal",
+      "heartRate": "{{value}} bpm",
+      "protein": "P {{value}}g",
+      "carbs": "K {{value}}g",
+      "fat": "L {{value}}g",
+      "items_other": "{{count}} item",
+      "weight": "{{value}} kg",
+      "delta": "{{value}} kg dari awal",
+      "avgKcal": "Purata {{value}} daripada {{target}} kcal",
+      "onTarget": "{{days}} daripada {{total}} hari mengikut sasaran",
+      "streak_other": "{{count}} hari berturut-turut",
+      "exercise": "{{value}} min senaman",
+      "weightChange": "{{value}} kg minggu ini"
+    }
+  },
+  "menu": {
+    "report": {
+      "title": "Laporkan hantaran",
+      "subtitle": "Disemak oleh pasukan JoyoRogo"
+    },
+    "block": {
+      "title": "Sekat {{name}}",
+      "subtitle": "Sembunyikan kandungan antara satu sama lain",
+      "note": "Menyekat juga memutuskan hubungan mengikut dua hala."
+    },
+    "delete": {
+      "title": "Padam hantaran",
+      "subtitle": "Semangat dan komen turut hilang"
+    },
+    "undoLabel": "Hantaran",
+    "toast": {
+      "reported": "Laporan dihantar, terima kasih.",
+      "blocked": "Pengguna disekat.",
+      "mapShown": "Peta dipaparkan.",
+      "mapHidden": "Peta disembunyikan."
+    },
+    "mapShow": {
+      "title": "Papar peta",
+      "subtitle": "Laluan dipermudah, 200 m awal dan akhir dipotong"
+    },
+    "mapHide": {
+      "title": "Sembunyikan peta",
+      "subtitle": "Hantaran ini dipaparkan tanpa peta laluan"
+    }
+  },
+  "report": {
+    "ask": "Mengapa anda melaporkan hantaran ini?",
+    "reasonLabel": "Sebab",
+    "reason": {
+      "spam": "Spam atau promosi",
+      "kasar": "Kandungan kasar",
+      "salah_info": "Maklumat mengelirukan",
+      "lainnya": "Lain-lain"
+    },
+    "note": "Catatan tambahan (pilihan)",
+    "noteCount": "Catatan (pilihan) · {{n}}/{{max}}",
+    "notePlaceholder": "Terangkan secara ringkas...",
+    "noteDetail": "Tambah butiran jika perlu",
+    "send": "Hantar laporan",
+    "sending": "Menghantar..."
+  },
+  "confirm": {
+    "deletePost": {
+      "title": "Padam hantaran ini?",
+      "message": "Hantaran, semangat dan komennya akan hilang untuk semua orang."
+    },
+    "block": {
+      "title": "Sekat {{name}}?",
+      "message": "Kandungan anda berdua akan disembunyikan dan hubungan ikut diputuskan. Boleh dibuka melalui senarai sekatan di Profil.",
+      "action": "Sekat"
+    },
+    "deleteComment": {
+      "title": "Padam komen ini?",
+      "message": "Komen akan dipadam untuk semua orang."
+    }
+  },
+  "composer": {
+    "title": "Buat hantaran",
+    "storyLabel": "Cerita anda",
+    "placeholder": "Ada cerita hari ini? Ceritakan perjalanan anda...",
+    "label": "Tulis hantaran",
+    "photos": "Foto dilampirkan",
+    "photo": "Foto {{n}}",
+    "removePhoto": "Buang foto {{n}}",
+    "addPhoto": "Foto",
+    "addPhotoCount": "Foto ({{n}}/{{max}})",
+    "addFromGallery": "Tambah foto daripada galeri",
+    "audience": "Khalayak hantaran",
+    "submit": "Hantar",
+    "busy": {
+      "preparing": "Menyediakan...",
+      "processing": "Memproses foto...",
+      "uploading": "Memuat naik foto {{n}}/{{total}}...",
+      "sharing": "Berkongsi..."
+    },
+    "error": {
+      "maxPhotos_other": "Maksimum {{count}} foto bagi setiap hantaran.",
+      "processFile": "Gagal memproses {{name}}.",
+      "processFailed": "Foto tidak dapat diproses",
+      "empty": "Tulis cerita dahulu atau lampirkan satu foto.",
+      "shareFailed": "Hantaran gagal dikongsi",
+      "noCanvas": "Pelayar tidak menyokong pemprosesan imej.",
+      "emptyPhoto": "Foto kosong"
+    },
+    "toast": {
+      "posted": "Hantaran dikongsi"
+    },
+    "fallbackName": "Anda"
+  },
+  "share": {
+    "title": "Kongsi ke feed",
+    "caption": "Kapsyen (pilihan)",
+    "captionCount": "Kapsyen (pilihan) · {{n}}/{{max}}",
+    "captionPlaceholder": "Ceritakan prosesnya...",
+    "audience": "Siapa yang boleh melihat",
+    "audienceLabel": "Khalayak hantaran",
+    "hint": {
+      "grup": "Hanya kawan dalam satu Kumpulan dan anda.",
+      "publik": "Semua orang di tab Terokai dan profil awam anda."
+    },
+    "needPublic": "Hidupkan \"Profil awam\" dalam Tetapan feed dahulu untuk memilih Awam.",
+    "submit": "Kongsi",
+    "toast": {
+      "shared": "Dah muncul di feed, semangat!"
+    },
+    "error": "Gagal berkongsi."
+  },
+  "handle": {
+    "title": "Pilih nama pengguna",
+    "body": "Nama sementara: {{handle}}. Ini menjadi pautan profil anda.",
+    "placeholder": "cth. ali_senaman",
+    "label": "Nama pengguna",
+    "checking": "Menyemak...",
+    "free": "Tersedia",
+    "own": "Ini sudah menjadi nama anda.",
+    "saving": "Menyimpan...",
+    "later": "Nanti sahaja",
+    "toast": {
+      "saved": "Nama pengguna disimpan."
+    },
+    "error": {
+      "save": "Gagal menyimpan"
+    }
+  },
+  "photo": {
+    "viewer": "Foto {{n}} daripada {{total}}",
+    "viewerNative": "Pemapar foto",
+    "close": "Tutup pemapar",
+    "prev": "Foto sebelumnya",
+    "next": "Foto seterusnya",
+    "open": "Buka foto {{n}}",
+    "alt": "Foto {{n}} daripada hantaran"
+  },
+  "profile": {
+    "pageTitle": "Profil JoyoRogo",
+    "loading": "Memuatkan profil",
+    "follow": "Ikut",
+    "following": "Mengikuti",
+    "unfollow": "Berhenti ikut",
+    "toast": {
+      "followed": "Anda mengikuti {{name}}",
+      "unfollowed": "Berhenti mengikuti {{name}}"
+    },
+    "fallbackName": "akaun ini",
+    "copyLink": "Salin pautan profil",
+    "linkCopied": "Pautan disalin.",
+    "notFound": {
+      "title": "Profil tidak ditemui",
+      "body": "Pautannya salah, atau pemiliknya menutup profilnya."
+    },
+    "stats": {
+      "posts": "Hantaran",
+      "followers": "Pengikut",
+      "following": "Mengikuti"
+    },
+    "private": {
+      "title": "Profil ini persendirian",
+      "web": "{{name}} tidak berkongsi kemajuannya secara awam.",
+      "native": "Akaun ini persendirian. Hanya rakan sekumpulan yang boleh melihat aktivitinya."
+    },
+    "empty": {
+      "title": "Belum ada hantaran",
+      "self": "Kongsi makanan, latihan atau kemajuan berat anda melalui butang Kongsi ke feed.",
+      "other": "Hantaran awamnya akan muncul di sini."
+    },
+    "older": "Hantaran yang lebih lama boleh dibuka daripada feed.",
+    "noFollowers": "Belum ada pengikut.",
+    "noFollowing": "Belum mengikuti sesiapa.",
+    "open": "Profil {{name}}"
+  },
+  "watch": {
+    "badge": "JoyoFit",
+    "chip": {
+      "distance": "{{km}} km",
+      "avgHr": "Purata {{bpm}} bpm",
+      "maxHr": "Maks {{bpm}} bpm",
+      "pace": "{{pace}} /km",
+      "speed": "{{kmh}} km/j",
+      "elev": "Naik {{m}} m"
+    },
+    "hrTitle": "Degupan jantung",
+    "routeTitle": "Laluan",
+    "lockedTitle": "Analisis latihan untuk Pro",
+    "lockedBody": "Naik taraf ke Pro untuk melihat graf, split dan zon latihan yang dikongsi orang lain.",
+    "lockedCta": "Lihat pelan Pro",
+    "loadFailed": "Butiran latihan gagal dimuatkan.",
+    "map": {
+      "alt": "Peta laluan {{title}}",
+      "title": "Laluan",
+      "start": "Mula",
+      "finish": "Tamat",
+      "hint": "Garisan dipermudah. 200 m pertama dan terakhir tidak dipaparkan."
+    }
+  },
+  "analysis": {
+    "distance": "Jarak",
+    "movingTime": "Masa bergerak",
+    "time": "Masa",
+    "pace": "Pace",
+    "speed": "Kelajuan",
+    "avgPace": "Pace purata",
+    "avgSpeed": "Kelajuan purata",
+    "elevation": "Ketinggian",
+    "elevationGain": "Pendakian",
+    "calories": "Kalori",
+    "energy": "Tenaga",
+    "perHour": "Sejam",
+    "fat": "Lemak",
+    "carbs": "Karbohidrat",
+    "avgHr": "HR purata",
+    "maxHr": "HR maks",
+    "avgCadence": "Kadens purata",
+    "maxCadence": "Kadens maks",
+    "stepLength": "Panjang langkah",
+    "hr": "Degupan jantung",
+    "cadence": "Kadens",
+    "power": "Kuasa",
+    "movingElapsed": "Bergerak {{moving}} / Keseluruhan {{elapsed}}",
+    "map": {
+      "aria": "Peta laluan",
+      "unavailable": "Peta tidak dapat dipaparkan pada peranti ini."
+    },
+    "chart": {
+      "metric": "Metrik graf",
+      "hint": "Seret pada graf untuk melihat butirannya.",
+      "distance": "Jarak",
+      "time": "Masa",
+      "aria": "Graf {{metric}}, daripada {{from}} hingga {{to}} {{unit}}. Gunakan butang anak panah kiri dan kanan untuk menyusuri latihan."
+    },
+    "splits": {
+      "title": "Split",
+      "km": "Km",
+      "elev": "Tinggi",
+      "hr": "HR",
+      "cad": "Kad"
+    },
+    "hrZones": {
+      "title": "Zon degupan jantung",
+      "z1": "Z1 Pemulihan",
+      "z2": "Z2 Daya tahan",
+      "z3": "Z3 Tempo",
+      "z4": "Z4 Ambang",
+      "z5": "Z5 Anaerobik",
+      "range": "{{from}}-{{to}} bpm",
+      "below": "Di bawah {{bpm}} bpm: {{time}}",
+      "maxFromAge": "HR maks {{bpm}} bpm (daripada umur anda)",
+      "maxFromSetting": "HR maks {{bpm}} bpm (tetapan anda)"
+    },
+    "paceZones": {
+      "title": "Zon pace",
+      "recovery": "Pemulihan",
+      "endurance": "Daya tahan",
+      "tempo": "Tempo",
+      "threshold": "Ambang",
+      "vo2": "VO2 maks",
+      "range": "{{from}}-{{to}} /km",
+      "slower": "Lebih perlahan daripada {{pace}} /km",
+      "faster": "Lebih pantas daripada {{pace}} /km",
+      "thresholdPace": "Anggaran pace ambang {{pace}} /km"
+    },
+    "efforts": {
+      "title": "Usaha terbaik",
+      "names": {
+        "400m": "400 m",
+        "1k": "1 km",
+        "1mi": "1 batu",
+        "5k": "5 km",
+        "10k": "10 km",
+        "half": "Half marathon"
+      },
+      "pace": "{{pace}} /km",
+      "at": "pada {{distance}}",
+      "pr": "PR",
+      "second": "ke-2",
+      "third": "ke-3",
+      "note": "Dibandingkan dengan latihan serupa milik anda dalam 120 hari terakhir."
+    },
+    "effort": {
+      "title": "Relative effort",
+      "outOf": "daripada 21",
+      "aria": "Relative effort {{strain}} daripada 21",
+      "band": {
+        "light": "Ringan",
+        "moderate": "Sederhana",
+        "hard": "Berat",
+        "max": "Habis-habisan"
+      },
+      "addedToDay": "Menambah {{value}} kepada strain hari ini",
+      "explain": "Relative Effort di sini ialah strain JoyoFit: skor 0 hingga 21 berdasarkan berapa lama degupan jantung anda berada dalam setiap zon."
+    },
+    "load": {
+      "title": "Beban latihan",
+      "thisWorkout": "Latihan ini",
+      "last7": "7 hari terakhir",
+      "weeklyAvg": "Purata mingguan",
+      "wording": {
+        "under": "Rendah",
+        "steady": "Stabil",
+        "high": "Tinggi",
+        "spike": "Lonjakan"
+      },
+      "explain": {
+        "under": "7 hari terakhir anda lebih ringan daripada minggu biasa.",
+        "steady": "7 hari terakhir anda sama seperti minggu biasa.",
+        "high": "7 hari terakhir anda lebih berat daripada biasa. Beri perhatian pada pemulihan anda.",
+        "spike": "Lonjakan besar berbanding minggu biasa. Berehat dahulu beberapa hari."
+      },
+      "noHistory": "Belum cukup latihan sebelum ini untuk dibandingkan dengan minggu biasa anda.",
+      "aerobic": "Kesan aerobik",
+      "anaerobic": "Kesan anaerobik",
+      "recovery": "Pemulihan",
+      "hours": "{{hours}} jam",
+      "watchLoad": "Beban jam"
+    },
+    "laps": {
+      "title": "Pusingan",
+      "lap": "Pusingan",
+      "avgHr": "HR",
+      "maxHr": "Maks",
+      "cad": "Kad",
+      "gain": "Naik"
+    },
+    "comparison": {
+      "title": "Berbanding sebelum ini",
+      "byDistance": "Jarak serupa",
+      "byDuration": "Tempoh serupa",
+      "date": "Tarikh",
+      "thisWorkout": "Yang ini",
+      "vsPrevious": "berbanding yang serupa terakhir",
+      "vsAverage": "berbanding purata",
+      "faster": "{{value}} s/km lebih pantas",
+      "slower": "{{value}} s/km lebih perlahan",
+      "fasterKmh": "{{value}} km/j lebih pantas",
+      "slowerKmh": "{{value}} km/j lebih perlahan",
+      "samePace": "Pace sama",
+      "sameHr": "Degupan jantung sama",
+      "hrDelta": "HR {{value}} bpm"
+    },
+    "ui": {
+      "section": {
+        "charts": "Graf",
+        "comparison": "Berbanding latihan serupa"
+      },
+      "unit": {
+        "km": "km",
+        "m": "m",
+        "kmh": "km/j",
+        "perKm": "/km",
+        "bpm": "bpm",
+        "spm": "spm",
+        "rpm": "rpm",
+        "w": "W",
+        "kcal": "kcal",
+        "kcalPerHour": "kcal/j",
+        "hours": "jam",
+        "g": "g",
+        "time": "masa"
+      },
+      "summary": {
+        "time": "Masa",
+        "elapsed": "Keseluruhan {{time}}",
+        "maxHr": "maks {{value}} bpm",
+        "maxCadence": "maks {{value}}",
+        "power": "Kuasa purata",
+        "normalizedPower": "NP {{value}} W",
+        "fuel": "Anggaran bahan api",
+        "fat": "lemak {{value}} g",
+        "carbs": "karbohidrat {{value}} g",
+        "a11y": "Ringkasan latihan"
+      },
+      "chart": {
+        "hint": "Sentuh dan seret graf untuk melihat butiran latihan anda",
+        "clear": "Padam penanda",
+        "a11y": "Graf {{metric}}. Leret ke atas atau ke bawah untuk menggerakkan penanda.",
+        "noData": "Data belum cukup untuk graf ini."
+      },
+      "splits": {
+        "pace": "Pace",
+        "speed": "Kelajuan",
+        "a11yRowPace": "Split {{label}}, {{value}} setiap kilometer",
+        "a11yRowSpeed": "Split {{label}}, {{value}} kilometer sejam",
+        "a11yHint": "Menggerakkan penanda pada graf dan peta"
+      },
+      "zone": {
+        "recovery": "Pemulihan",
+        "endurance": "Daya tahan",
+        "tempo": "Tempo",
+        "threshold": "Ambang",
+        "vo2": "Anaerobik / VO2 max"
+      },
+      "zones": {
+        "maxHrAge": "HR maks {{value}} bpm (daripada umur anda)",
+        "maxHrSetting": "HR maks {{value}} bpm (tetapan anda)",
+        "hrNote": "Zon 1 hingga 5 ialah 50-60, 60-70, 70-80, 80-90 dan 90-100 peratus daripada degupan jantung maksimum anda. Peratusan menunjukkan bahagian masa dalam setiap zon.",
+        "below": "Di bawah zon 1: {{time}}",
+        "thresholdPace": "Pace ambang {{pace}} /km",
+        "slowerThan": "lebih perlahan daripada {{pace}}",
+        "fasterThan": "lebih pantas daripada {{pace}}",
+        "zoneLabel": "Z{{n}} {{name}}",
+        "a11yRow": "Zon {{n}}, {{name}}, {{range}}, {{time}}, {{percent}} peratus"
+      },
+      "best": {
+        "note": "Bahagian terpantas bagi setiap jarak dalam latihan ini. Disusun berdasarkan latihan serupa anda dalam 120 hari terakhir.",
+        "a11yRow": "{{label}}, {{time}}, {{pace}} setiap kilometer",
+        "a11yRank": "kedudukan {{rank}}"
+      },
+      "effort": {
+        "addedToDay": "+{{value}} kepada beban hari ini",
+        "explain": "Relative Effort ialah beban latihan ini dalam JoyoFit pada skala 0 hingga 21: semakin lama jantung anda bekerja pada tahap tinggi, semakin besar angkanya (TRIMP {{trimp}}).",
+        "a11y": "Relative effort {{value}} daripada 21, {{band}}"
+      },
+      "load": {
+        "trimp": "TRIMP",
+        "verdictText": {
+          "under": "Lebih ringan daripada minggu biasa anda.",
+          "steady": "Sama seperti minggu biasa anda.",
+          "high": "Lebih berat daripada minggu biasa anda.",
+          "spike": "Lonjakan besar berbanding minggu biasa anda. Selitkan beberapa hari santai."
+        },
+        "ratio": "{{percent}}% daripada purata mingguan anda",
+        "recoveryHours": "{{value}} jam",
+        "a11y": "Beban latihan {{verdict}}"
+      },
+      "laps": {
+        "time": "Masa",
+        "dist": "Jarak",
+        "pace": "Pace",
+        "speed": "Kelajuan",
+        "hr": "HR",
+        "cad": "Kad"
+      },
+      "compare": {
+        "thisWorkout": "Latihan ini",
+        "previous": "Sebelumnya",
+        "average": "Purata {{n}}",
+        "vsPrevious": "berbanding sebelumnya",
+        "vsAverage": "berbanding purata",
+        "dist": "Jarak",
+        "time": "Masa",
+        "pace": "Pace",
+        "speed": "Kelajuan",
+        "hr": "HR purata",
+        "basisDistance": "Berbanding {{n}} latihan terakhir anda dengan jarak serupa (beza maksimum 20%).",
+        "basisDistanceOne": "Berbanding latihan terakhir anda dengan jarak serupa (beza maksimum 20%).",
+        "basisDuration": "Berbanding {{n}} latihan terakhir anda dengan tempoh serupa (beza maksimum 25%).",
+        "basisDurationOne": "Berbanding latihan terakhir anda dengan tempoh serupa (beza maksimum 25%)."
+      },
+      "note": {
+        "effort": "Setiap minit degupan jantung dikira mengikut zon tempat ia berada (Edwards TRIMP) kemudian jumlahnya dipetakan ke skala 0 hingga 21. Hasilnya bergantung pada degupan jantung maksimum anda, jadi isi dalam profil supaya lebih tepat.",
+        "load": "Beban menggunakan Edwards TRIMP: minit dalam setiap zon degupan jantung didarab nombor zonnya. Jumlah 7 hari terakhir sudah termasuk latihan ini; purata mingguan ialah purata 28 hari sebelumnya.",
+        "threshold": "Pace ambang dianggar daripada usaha terbaik anda pada 1 batu, 5 km, 10 km dan half marathon, kemudian diperlahankan kepada usaha satu jam. Zon ditentukan sebagai bahagian daripada pace itu."
+      },
+      "empty": {
+        "noSeries": "Graf, peta dan split tidak tersedia untuk latihan ini kerana tiada sampel terperinci yang dirakam."
+      },
+      "basic": {
+        "noData": "Tiada degupan jantung atau laluan yang dikongsi bersama latihan ini.",
+        "hrChart": "Graf degupan jantung",
+        "hrRange": "{{min}} hingga {{max}} bpm",
+        "routeA11y": "Peta laluan latihan"
+      }
+    }
+  },
+  "postPage": {
+    "title": "Hantaran JoyoRogo",
+    "loading": "Memuatkan hantaran",
+    "notFound": {
+      "title": "Hantaran tidak ditemui",
+      "body": "Mungkin sudah dipadam, atau hanya kelihatan kepada kawan sekumpulannya."
+    }
+  },
+  "sticker": {
+    "view": "Lihat pelekat {{name}}",
+    "sticker": "Pelekat {{name}}",
+    "photo": "Foto asal {{name}}",
+    "toSticker": "Lihat pelekat",
+    "toPhoto": "Lihat foto asal",
+    "photoFailed": "Foto asal gagal dimuatkan."
+  },
+  "server": {
+    "comment": {
+      "deleted": "Komen ini telah dipadam."
+    },
+    "error": {
+      "postNotFound": "Hantaran tidak ditemui.",
+      "handleTaken": "Handle sudah digunakan, cuba yang lain.",
+      "handleTakenShort": "Sudah digunakan, cuba yang lain.",
+      "handleFormat": "Handle 3-20 aksara, hanya huruf kecil, nombor dan _",
+      "postQuota": "Kuota berkongsi hari ini habis.",
+      "onboardingRequired": "Lengkapkan orientasi dahulu.",
+      "publicProfileRequired": "Aktifkan Profil awam dahulu dalam tetapan.",
+      "storyEmpty": "Tulis cerita dahulu atau lampirkan satu foto.",
+      "photoMissing": "Ada foto yang tidak ditemui, cuba lampirkan semula.",
+      "pickFood": "Pilih makanan dahulu.",
+      "foodNotFound": "Catatan makan tidak ditemui.",
+      "pickWeight": "Pilih catatan berat dahulu.",
+      "weightNotFound": "Catatan berat tidak ditemui.",
+      "pickWorkout": "Pilih latihan dahulu.",
+      "workoutNotFound": "Catatan latihan tidak ditemui.",
+      "analysisMismatch": "Analisis latihan tidak sepadan dengan latihan ini. Kemas kini JoyoFit kemudian cuba lagi.",
+      "photoStorageUnavailable": "Storan foto belum tersedia.",
+      "photoSaveFailed": "Gagal menyimpan foto.",
+      "profileNotFound": "Profil tidak ditemui.",
+      "followSelf": "Tidak boleh mengikut diri sendiri.",
+      "followUnavailable": "Tidak boleh mengikut pengguna ini.",
+      "followLimit": "Had mengikut dicapai.",
+      "commentQuota": "Kuota komen hari ini habis.",
+      "notYourComment": "Bukan komen anda.",
+      "blockSelf": "Tidak boleh menyekat diri sendiri.",
+      "reportOne": "Laporkan satu kandungan sahaja.",
+      "reportQuota": "Kuota laporan hari ini habis.",
+      "commentNotFound": "Komen tidak ditemui.",
+      "commentEmpty": "Tulis komen atau lampirkan sesuatu dahulu.",
+      "attachmentNotFound": "Yang anda mahu lampirkan tidak ditemui.",
+      "attachmentMapOff": "Peta anda dimatikan dalam tetapan, jadi laluan ini tidak boleh dilampirkan.",
+      "attachmentNoRoute": "Laluan ini belum boleh dikongsi, mungkin terlalu pendek.",
+      "photoInvalid": "Foto tidak dapat dibaca. Gunakan JPEG atau WebP."
+    }
+  }
+}

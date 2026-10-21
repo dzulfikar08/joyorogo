@@ -1,0 +1,125 @@
+{
+  "date": {
+    "today": "Hari ini",
+    "yesterday": "Semalam"
+  },
+  "time": {
+    "justNow": "baru sahaja",
+    "minutesAgo_other": "{{count}} minit lalu",
+    "hoursAgo_other": "{{count}} jam lalu",
+    "daysAgo_other": "{{count}} hari lalu"
+  },
+  "meal": {
+    "label": {
+      "sarapan": "Sarapan",
+      "makan_siang": "Makan Tengah Hari",
+      "makan_malam": "Makan Malam",
+      "snack": "Snek",
+      "sahur": "Sahur",
+      "berbuka": "Berbuka"
+    },
+    "editLabel": {
+      "sarapan": "Sarapan",
+      "makan_siang": "Makan tengah hari",
+      "makan_malam": "Makan malam",
+      "snack": "Snek",
+      "sahur": "Sahur",
+      "berbuka": "Berbuka"
+    }
+  },
+  "activity": {
+    "sedentary": "Hampir selalu duduk",
+    "light": "Sedikit bergerak",
+    "moderate": "Agak aktif",
+    "active": "Sangat aktif",
+    "very_active": "Ekstra aktif"
+  },
+  "actions": {
+    "save": "Simpan",
+    "cancel": "Batal",
+    "delete": "Padam",
+    "edit": "Ubah",
+    "close": "Tutup",
+    "back": "Kembali",
+    "retry": "Cuba lagi",
+    "done": "Selesai",
+    "add": "Tambah",
+    "undo": "Buat asal"
+  },
+  "state": {
+    "loading": "Memuatkan…",
+    "genericError": "Berlaku ralat. Cuba lagi."
+  },
+  "toast": {
+    "deleted": "{{name}} dipadam",
+    "entryFallback": "Catatan"
+  },
+  "nav": {
+    "home": "Laman Utama",
+    "food": "Makan",
+    "feed": "Suapan",
+    "more": "Lagi",
+    "camera": "Foto makanan dengan AI",
+    "photo": "Foto makanan",
+    "exercise": "Senaman",
+    "weight": "Berat",
+    "sleep": "Tidur",
+    "primary": "Navigasi utama",
+    "title": {
+      "scan": "Foto Makanan",
+      "barcode": "Imbas Kod Bar",
+      "pro": "Pro",
+      "inbox": "Peti Masuk",
+      "tips": "Petua",
+      "post": "Hantaran",
+      "notifications": "Pemberitahuan",
+      "profile": "Profil"
+    }
+  },
+  "errorScreen": {
+    "updateTitle": "Versi baharu tersedia",
+    "updateBody": "JoyoRogo baru sahaja dikemas kini. Muat semula aplikasi untuk guna versi terkini.",
+    "crashTitle": "Alamak, ada masalah",
+    "crashBody": "Ada masalah di pihak kami. Jangan risau, data anda selamat. Cuba lagi dahulu.",
+    "reload": "Muat semula aplikasi"
+  },
+  "more": {
+    "title": "Lagi",
+    "subtitleWeb": "Profil, kumpulan dan lain-lain.",
+    "subtitleNative": "Akaun, kumpulan dan pemberitahuan.",
+    "loading": "Memuatkan menu",
+    "fallbackNameWeb": "Profil",
+    "fallbackNameNative": "Pengguna JoyoRogo",
+    "weight": {
+      "title": "Berat",
+      "subtitle": "Berat badan, ukur lilit perut dan aliran"
+    },
+    "recap": {
+      "title": "Rumusan mingguan",
+      "subtitle": "Ringkasan makan, senaman dan berat setiap minggu"
+    },
+    "workouts": {
+      "title": "Latihan JoyoFit",
+      "subtitle": "Latihan dari JoyoFit yang disimpan di cloud"
+    },
+    "groups": {
+      "title": "Kumpulan",
+      "subtitleWeb": "Cuit, catatan dan VAR perut bersama kawan",
+      "subtitleNative": "Cuit, catatan dan VAR perut"
+    },
+    "inbox": {
+      "title": "Peti masuk",
+      "subtitle": "Cuit dan catatan untuk anda"
+    },
+    "pricing": {
+      "title": "Harga",
+      "subtitleWeb": "Pelan dan had imbasan AI harian",
+      "subtitleNative": "Jadi Pro, buka semua ciri"
+    },
+    "upgrade": {
+      "title": "Jadi Pro",
+      "subtitleUnlimited": "Pro: imbasan AI tanpa had",
+      "subtitleCapped_other": "Pro: {{count}} imbasan AI sehari"
+    }
+  }
+}

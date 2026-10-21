@@ -1,0 +1,95 @@
+{
+  "nav": {
+    "main": "Menu utama",
+    "overview": "Ringkasan",
+    "workouts": "Latihan",
+    "sleep": "Tidur & pemulihan",
+    "upload": "Muat naik",
+    "connect": "Sambungan"
+  },
+  "ride": {
+    "title": "Ride",
+    "description": "Permainan lumba basikal JoyoFit, terbuka untuk semua.",
+    "opening": "Membuka Ride…",
+    "openNow": "Buka sekarang"
+  },
+  "menu": {
+    "title": "Tetapan",
+    "open": "Buka tetapan",
+    "language": "Bahasa",
+    "theme": "Paparan",
+    "light": "Cerah",
+    "dark": "Gelap",
+    "system": "Ikut peranti",
+    "signOut": "Log keluar"
+  },
+  "login": {
+    "tagline": "Analisis latihan, tidur dan pemulihan anda dari JoyoFit, di skrin besar.",
+    "google": "Log masuk dengan Google",
+    "dev": "Log masuk (dev)",
+    "email": "E-mel",
+    "password": "Kata laluan",
+    "submit": "Log masuk",
+    "emailToggle": "Log masuk dengan e-mel",
+    "rateLimited": "Terlalu banyak percubaan. Cuba lagi sebentar nanti.",
+    "invalidCredentials": "E-mel atau kata laluan salah.",
+    "footer": "Guna akaun JoyoRogo yang sama seperti dalam aplikasi.",
+    "privacy": "Dasar Privasi"
+  },
+  "wall": {
+    "title": "JoyoFit Web khas untuk pengguna Pro",
+    "body": "{{email}} belum mempunyai JoyoRogo Pro. Dengan Pro, anda boleh membuka data JoyoFit anda di pelayar untuk dianalisis dengan lebih mendalam.",
+    "featureOverview": "Ringkasan beban latihan, pemulihan, HRV dan kadar denyutan jantung rehat",
+    "featureWorkouts": "Senarai latihan dengan peta, graf kadar denyutan jantung, pace dan zon",
+    "featureSleep": "Tidur setiap malam, keperluan tidur dan sejauh mana tidur anda teratur",
+    "cta": "Lihat harga Pro",
+    "recheck": "Sudah melanggan? Semak semula",
+    "switchAccount": "Log keluar dan guna akaun lain",
+    "lapsed": "Pro anda tidak aktif, jadi data ini tidak dapat dibuka. Aktifkan semula untuk meneruskan."
+  },
+  "state": {
+    "loading": "Memuatkan",
+    "errorTitle": "Data belum dapat dimuatkan",
+    "errorBody": "Ada masalah semasa memuatkan data. Cuba lagi ya.",
+    "errorUnreachable": "Pelayan JoyoRogo tidak dapat dihubungi. Semak sambungan anda, kemudian cuba lagi.",
+    "retry": "Cuba lagi"
+  },
+  "error": {
+    "title": "Ada masalah berlaku",
+    "body": "Halaman ini gagal dimuatkan. Cuba muat semula.",
+    "updatedTitle": "Ada versi baharu",
+    "updatedBody": "JoyoFit Web baru sahaja dikemas kini. Muat semula halaman untuk teruskan.",
+    "reload": "Muat semula"
+  },
+  "notFound": {
+    "title": "Halaman tidak ditemui",
+    "body": "Alamat ini tiada dalam JoyoFit Web.",
+    "home": "Ke Ringkasan"
+  },
+  "range": {
+    "label": "Julat masa",
+    "days_other": "{{count}}h",
+    "daysFull_other": "{{count}} hari terakhir"
+  },
+  "compare": {
+    "toggle": "Bandingkan",
+    "vsPrevious": "berbanding tempoh sebelumnya",
+    "previousPeriod": "Tempoh sebelumnya",
+    "previousDay": "Tempoh sebelumnya: {{date}}"
+  },
+  "unit": {
+    "hm": "{{h}} j {{m}} min",
+    "min": "{{m}} min"
+  },
+  "sport": {
+    "run": "Lari",
+    "walk": "Jalan",
+    "ride": "Basikal",
+    "swim": "Berenang",
+    "other": "Lain-lain"
+  },
+  "studio": {
+    "title": "Studio",
+    "description": "Reka bentuk watch face untuk Fit 4 / Fit 4 Pro."
+  }
+}

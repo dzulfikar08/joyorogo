@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
+import { DEFAULT_LOCALE, matchLocale } from "@joyorogo/i18n";
+
 import { notePrefChanged } from "@joyorogo/api/lib/rogo-prefs-sync";
 import { Button } from "@joyorogo/ui/components/button";
 import {
@@ -182,7 +184,7 @@ export function ShareStoryButton({
   const profile = useQuery({ ...orpc.profile.myProfile.queryOptions(), enabled: open });
   const isPro = profile.data?.tier === "founder";
   const firstName = session.data?.user.name?.trim().split(/\s+/)[0] || null;
-  const locale = i18n.language === "en" ? "en" : "id";
+  const locale = matchLocale(i18n.language) ?? DEFAULT_LOCALE;
   const mode = ink ?? (document.documentElement.classList.contains("dark") ? "dark" : "light");
   const watermark = isPro ? prefs.watermark : true;
 

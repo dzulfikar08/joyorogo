@@ -1,0 +1,90 @@
+{
+  "auth": {
+    "signInRequired": "Anda perlu log masuk dahulu.",
+    "appleReauth": "Log masuk semula dengan Apple untuk memadam akaun.",
+    "appleRevokeFailed": "Akaun Apple belum dapat diputuskan daripada JoyoRogo. Cuba lagi sebentar.",
+    "mediaDeleteFailed": "Foto belum dapat dipadam. Cuba lagi sebentar."
+  },
+  "watchCloud": {
+    "storageUnavailable": "Storan awan latihan belum tersedia.",
+    "notFound": "Latihan ini tiada di awan."
+  },
+  "fitWeb": {
+    "proRequired": "JoyoFit web khas untuk pengguna JoyoRogo Pro.",
+    "badRange": "Julat tarikh tidak sah."
+  },
+  "profile": {
+    "onboardingRequired": "Lengkapkan orientasi dahulu.",
+    "targetDatePast": "Tarikh sasaran mesti esok atau selepasnya.",
+    "targetDateInvalid": "Tarikh sasaran tidak sah.",
+    "targetDateTooFar": "Tarikh sasaran paling jauh 5 tahun dari sekarang.",
+    "maternalFemaleOnly": "Mod mengandung dan menyusu hanya untuk profil perempuan.",
+    "pregnancyDateFuture": "HPHT tidak boleh selepas hari ini. Semak semula tarikh.",
+    "pregnancyDateTooOld": "Tarikh itu lebih daripada 42 minggu lalu. Semak semula HPHT atau HPL anda.",
+    "notPregnant": "Mod mengandung tidak aktif.",
+    "birthDateInvalid": "Tarikh bersalin mestilah hari ini atau sebelumnya, dalam tempoh 2 tahun lepas.",
+    "fastingMaternal": "Puasa berselang tidak tersedia semasa mengandung atau menyusukan bayi.",
+    "shareMaternal": "Halaman kemajuan awam tidak tersedia semasa mengandung atau menyusukan bayi.",
+    "goalGainTarget": "Untuk menaikkan berat badan, sasaran mesti melebihi berat badan anda sekarang.",
+    "goalLoseTarget": "Untuk menurunkan berat badan, sasaran mesti kurang daripada berat badan anda sekarang.",
+    "gainMaternal": "Mod naik berat tidak tersedia semasa mengandung atau menyusukan bayi."
+  },
+  "ai": {
+    "unavailable": "Perkhidmatan AI belum tersedia. Cuba lagi nanti.",
+    "storageUnavailable": "Storan foto belum tersedia.",
+    "photoNotFound": "Foto imbasan tidak ditemui. Sila ambil foto semula.",
+    "retriesExhausted_other": "Had kira semula foto ini sudah habis ({{count}} kali). Sila ambil foto semula."
+  },
+  "quota": {
+    "proCapReached": "Had keselamatan Pro dicapai ({{count}} imbasan/hari). Cuba lagi esok.",
+    "freeExhausted": "Kuota AI hari ini habis ({{count}}/hari). {{upsell}}",
+    "upsellUnlimited": "Pro membuka AI tanpa had.",
+    "upsellCapped": "Pro dapat {{count}}/hari."
+  },
+  "story": {
+    "empty": "Belum ada makanan dikenali daripada cerita anda. Sebut nama makanan, contohnya: nasi lemak 1 pinggan.",
+    "failed": "AI belum berjaya membaca cerita anda. Cuba lagi sebentar lagi.",
+    "voiceEmpty": "Suara kurang jelas. Cuba rakam semula lebih dekat dengan mikrofon."
+  },
+  "billing": {
+    "unavailable": "Pembayaran tidak tersedia pada pelayan ini.",
+    "signInToSubscribe": "Log masuk dahulu untuk melanggan.",
+    "signIn": "Log masuk dahulu.",
+    "signInForUsage": "Log masuk dahulu untuk melihat penggunaan AI anda.",
+    "methodUnavailable": "Kaedah pembayaran ini tidak tersedia.",
+    "checkoutFailed": "Halaman pembayaran gagal dibuat. Cuba lagi sebentar lagi.",
+    "receiptMissing": "Bukti pembelian tiada.",
+    "receiptInvalid": "Bukti pembelian tidak sah.",
+    "linkedOtherAccount": "Langganan ini sudah dipautkan ke akaun JoyoRogo lain.",
+    "userNotFound": "Pengguna tidak ditemui.",
+    "processing": "Pembayaran masih diproses. Cuba lagi sebentar.",
+    "orderNotFound": "Pesanan tidak ditemui.",
+    "googleUnavailable": "Pembayaran Google Play tidak tersedia pada pelayan ini.",
+    "googleUnreachable": "Google Play belum dapat dihubungi. Cuba lagi sebentar.",
+    "googleLinkedOtherAccount": "Langganan Google Play ini sudah dipautkan ke akaun JoyoRogo lain."
+  },
+  "misc": {
+    "avatar": {
+      "saveFailed": "Gagal menyimpan foto profil.",
+      "formatUnsupported": "Format foto tidak disokong."
+    },
+    "savedFood": {
+      "entryNotFound": "Catatan tidak ditemui",
+      "plateNotFound": "Pinggan tidak ditemui",
+      "plateEmpty": "Pinggan kosong",
+      "saveFailed": "Gagal menyimpan kegemaran",
+      "notFound": "Kegemaran tidak ditemui",
+      "empty": "Kegemaran ini kosong"
+    }
+  },
+  "push": {
+    "badToken": "Token pemberitahuan tidak sah."
+  },
+  "dishware": {
+    "unavailable": "Pinggan saya belum tersedia untuk akaun anda.",
+    "notFound": "Pinggan tidak ditemui.",
+    "dailyLimit": "Foto pinggan hari ini sudah dibaca {{limit}} kali. Cuba lagi esok.",
+    "full": "Maksimum {{max}} pinggan dan mangkuk. Padam satu dahulu.",
+    "analysisFailed": "AI belum berjaya membaca foto pinggan. Cuba ambil foto semula dari atas dengan cahaya yang cukup."
+  }
+}

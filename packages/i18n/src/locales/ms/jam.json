@@ -1,0 +1,58 @@
+{
+  "title": "Latihan JoyoFit",
+  "subtitle": "Latihan daripada aplikasi JoyoFit yang disimpan dalam akaun anda.",
+  "loading": "Memuatkan latihan",
+  "back": "Latihan JoyoFit",
+  "listLabel": "Senarai latihan dalam cloud",
+  "summary_other": "{{count}} latihan dalam cloud · {{size}} · terakhir berubah {{when}}",
+  "more": "Muat lagi",
+  "moreFailed": "Latihan seterusnya gagal dimuatkan.",
+  "free": {
+    "title": "Simpan semua latihan anda dalam cloud",
+    "body": "Pro menyimpan setiap latihan JoyoFit lengkap dengan laluan GPS dan degupan jantung, memulihkannya pada telefon baharu, dan memaparkannya di sini.",
+    "cta": "Lihat harga Pro",
+    "localOnly": "Tanpa Pro, latihan anda tetap disimpan dalam telefon."
+  },
+  "lapsed": "Pro anda tidak aktif, jadi latihan baharu tidak dimuat naik sehingga Pro aktif semula. Latihan yang sudah disimpan masih boleh dibuka dan dipadam.",
+  "empty": {
+    "title": "Belum ada latihan dalam cloud",
+    "body": "Dalam aplikasi JoyoFit buka Tetapan, kemudian Segerak cloud, dan hidupkan segerak. Latihan dalam telefon anda mula dimuat naik dari situ."
+  },
+  "row": {
+    "elevation": "+{{value}} m",
+    "heartRate": "{{value}} bpm",
+    "distance": "{{value}} km"
+  },
+  "detail": {
+    "loading": "Memuatkan latihan",
+    "notFoundTitle": "Latihan tidak ditemui",
+    "notFoundBody": "Latihan ini sudah dipadam daripada cloud atau tiada dalam akaun anda.",
+    "toList": "Ke senarai latihan",
+    "sizeNote": "Disimpan dalam cloud: {{size}}",
+    "noAnalysisTitle": "Ringkasan latihan",
+    "noAnalysisNote": "Analisis penuh latihan ini tidak dapat dipaparkan. Angka di atas tetap betul.",
+    "distance": "Jarak",
+    "movingTime": "Masa bergerak",
+    "elapsedTime": "Masa keseluruhan",
+    "elevation": "Pendakian",
+    "avgHr": "Purata degupan jantung",
+    "calories": "Kalori",
+    "steps": "Langkah"
+  },
+  "remove": {
+    "button": "Padam latihan ini",
+    "title": "Padam latihan daripada cloud?",
+    "body": "Latihan ini dipadam daripada cloud dan daripada telefon yang menyegerakkannya pada segerak seterusnya. Ini tidak boleh dibatalkan.",
+    "confirm": "Padam",
+    "toast": "Latihan dipadam daripada cloud."
+  },
+  "wipe": {
+    "heading": "Data cloud latihan",
+    "body": "Memadam semua latihan dalam cloud. Selepas itu aplikasi JoyoFit berhenti menyegerak secara automatik; hidupkan semula di Tetapan, Segerak cloud, jika mahu.",
+    "button": "Padam semua data cloud latihan",
+    "title": "Padam semua data cloud latihan?",
+    "confirmBody": "Semua latihan dalam cloud dipadam secara kekal. Latihan dalam telefon anda tidak turut dipadam, dan aplikasi berhenti menyegerak secara automatik.",
+    "confirm": "Padam semua",
+    "toast": "Semua data cloud latihan dipadam."
+  }
+}

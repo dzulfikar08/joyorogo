@@ -316,6 +316,10 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
             country,
           }
         : null,
+      // Ringgit prices of the same Polar plans (sen), only when both are configured; the web shows them to Malaysian visitors.
+      myr: polar?.priceMyrSen
+        ? { monthlySen: polar.priceMyrSen.monthly, yearlySen: polar.priceMyrSen.yearly, country }
+        : null,
     });
   });
 
@@ -498,6 +502,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
         name: me.name,
         successUrl: `${appUrl}/pro?polar=success`,
         returnUrl: `${appUrl}/pro`,
+        customerIp: c.req.header("CF-Connecting-IP"),
       });
       return c.json({ url });
     } catch (error) {

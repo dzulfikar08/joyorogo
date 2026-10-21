@@ -3,6 +3,7 @@ import { and, eq, inArray, notInArray } from "drizzle-orm";
 
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
 import type { Database } from "@joyorogo/db";
+import type { Locale } from "@joyorogo/i18n";
 import { user } from "@joyorogo/db/schema/auth";
 import { emailLog } from "@joyorogo/db/schema/billing";
 
@@ -98,7 +99,7 @@ export async function renderFor(
   deps: BroadcastDeps,
   campaign: Campaign,
   to: Pick<Recipient, "id" | "name" | "founderUntil">,
-  locale?: "id" | "en",
+  locale?: Locale,
 ) {
   const url = await unsubscribeUrl(deps, to.id);
   return { mail: renderBroadcast({ campaign, name: to.name, unsubscribeUrl: url, locale, date: to.founderUntil ? formatDateWib(to.founderUntil) : undefined }), unsubscribeUrl: url };

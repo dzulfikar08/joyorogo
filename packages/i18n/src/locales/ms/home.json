@@ -1,0 +1,309 @@
+{
+  "greeting": {
+    "morning": "Selamat pagi",
+    "noon": "Selamat tengah hari",
+    "afternoon": "Selamat petang",
+    "evening": "Selamat malam",
+    "named": "{{greeting}}, {{name}}",
+    "lead": "{{greeting}},"
+  },
+  "header": {
+    "streakTitle": "Hari berturut-turut anda mencatat",
+    "streakDays_other": "{{count}} hari berturut-turut",
+    "streakLabel_other": "Streak catatan {{count}} hari berturut-turut",
+    "profile": "Profil",
+    "openProfile": "Buka profil {{name}}",
+    "fallbackName": "Anda",
+    "share": "Kongsi kemajuan"
+  },
+  "banner": {
+    "scans": "Imbas AI {{n}}x/hari",
+    "proUnlimited": "Pro tanpa had",
+    "proCapped": "Pro {{n}}/hari",
+    "upgrade": "Naik taraf"
+  },
+  "eat": {
+    "left": "Baki",
+    "over": "Lebih",
+    "ringLabel": "Sudah dimakan {{eaten}} daripada sasaran {{target}} kcal",
+    "target": "Sasaran makan",
+    "eaten": "Sudah dimakan",
+    "overNote": "Tak mengapa hari ini, esok sambung semula.",
+    "help": "Cara baca angka ini",
+    "targetShort": "Sasaran"
+  },
+  "ideas": {
+    "title": "Masih muat",
+    "protein": "{{g}} g protein"
+  },
+  "tile": {
+    "burn": "Aktiviti",
+    "burnSub": "daripada {{sources}}",
+    "burnNone": "belum ada aktiviti",
+    "activeFrom": {
+      "joyofit": "daripada jam anda",
+      "health_connect": "daripada Health Connect",
+      "apple_health": "daripada Apple Health"
+    },
+    "source": {
+      "manual": "catatan manual",
+      "joyofit": "JoyoFit",
+      "health_connect": "Health Connect",
+      "apple_health": "Apple Health",
+      "strava": "Strava"
+    },
+    "sleep": "Tidur",
+    "sleepUnit": "jam",
+    "sleepNone": "belum dicatat",
+    "sleepNeed": "sasaran {{hours}} jam",
+    "protein": "Protein",
+    "proteinOf": "daripada {{g}} g",
+    "proteinNone": "catat makanan dahulu",
+    "water": "Air",
+    "weight": "Timbangan",
+    "weightNone": "belum ditimbang",
+    "waterValue": "{{count}}/{{goal}} gelas",
+    "weightToday": "ditimbang hari ini",
+    "weightLast": "terakhir {{when}}",
+    "weightLastUnknown": "berat terakhir",
+    "sleepValue": "{{hours}} jam",
+    "list": "Angka harian"
+  },
+  "meals": {
+    "title": "Makan hari ini",
+    "titleDay": "Makan {{day}}",
+    "story": "Ceritakan",
+    "all": "Lihat semua",
+    "log": "Catat",
+    "empty": "Belum ada catatan"
+  },
+  "plates": {
+    "title": "Foto makanan hari ini"
+  },
+  "weight": {
+    "title": "Berat badan",
+    "chart": "Graf",
+    "trend": "Berat trend",
+    "projected": "Dengan rentak ini, sasaran tercapai kira-kira <b>{{date}}</b>.",
+    "trendHeader": "Trend {{kg}} kg",
+    "trendChange": "{{delta}} kg / {{days}} hari",
+    "trendRange": "{{from}} - {{to}}",
+    "projectedShort": "sasaran {{date}}",
+    "weigh": "Timbang",
+    "sheetToday": "Timbang hari ini",
+    "sheetDay": "Timbang {{day}}",
+    "sheetHint": "Satu catatan sehari. Menyimpan semula akan menimpa angka tadi.",
+    "range": "Isi berat antara 25 dan 400 kg.",
+    "inputLabel": "Berat badan (kg)",
+    "saving": "Menyimpan...",
+    "doneToday": "Sudah ditimbang hari ini. Bagus.",
+    "startPrompt": "Timbang diri anda supaya angka trend mula terbentuk.",
+    "missedToday": "Belum timbang hari ini. Satu angka membuat pelan anda lebih tepat.",
+    "weighNow": "Timbang sekarang"
+  },
+  "waist": {
+    "title": "Ukur lilit pinggang",
+    "detail": "Butiran",
+    "latest": "Ukur lilit pinggang terkini",
+    "ratioHigh": "Nisbah {{ratio}} · risiko tinggi",
+    "aboveSafe": "Melebihi had sihat",
+    "ratioRaised": "Nisbah {{ratio}} · melebihi had",
+    "ratioBelow": "Nisbah {{ratio}} · di bawah had sihat",
+    "belowSafe": "Di bawah had sihat",
+    "needHeight": "Lengkapkan ketinggian di profil untuk status risiko",
+    "none": "Belum ada catatan",
+    "measure": "Ukur",
+    "sheetTitle": "Ukur lilit pinggang",
+    "sheetHint": "Satu catatan sehari. Menyimpan semula akan menimpa angka tadi.",
+    "range": "Isi ukur lilit pinggang antara 40 dan 250 cm.",
+    "inputLabel": "Ukur lilit pinggang (cm)",
+    "logged": "Dicatat {{cm}} cm"
+  },
+  "more": {
+    "title": "Air minuman, pergerakan dan lain-lain",
+    "webTitle": "Pergerakan, fakta dan lain-lain",
+    "sectionTitle": "Lain-lain",
+    "show": "Papar",
+    "hide": "Sembunyikan",
+    "hint": "Air minuman, streak dan rumusan mingguan ada di sini.",
+    "factLabel": "Fakta kalori hari ini",
+    "fact": "{{text}} = {{kcal}} kcal, bersamaan {{move}}",
+    "badges": "Lencana",
+    "shareRecap": "Kongsi rumusan mingguan"
+  },
+  "milestone": {
+    "streak": "Streak {{days}} hari",
+    "lost": "Turun {{kg}} kg"
+  },
+  "recapShare": {
+    "title": "Rumusan Minggu Ini",
+    "streak_other": "Streak: {{count}} hari",
+    "average": "Purata makan: {{kcal}} kcal/hari",
+    "trend": "Trend berat: {{points}}",
+    "madeWith": "Dibuat dengan JoyoRogo: {{url}}"
+  },
+  "skeleton": {
+    "label": "Memuatkan ringkasan hari ini"
+  },
+  "fasting": {
+    "title": "Panduan jadual makan",
+    "stateWindow": "Tetingkap makan {{open}}-{{close}}",
+    "stateFast": "Berpuasa",
+    "next": {
+      "open": "Tetingkap makan dibuka",
+      "close": "Tetingkap makan ditutup",
+      "in": "<b>{{label}}</b> dalam <b>{{time}}</b>"
+    },
+    "progress": "Kemajuan puasa hari ini",
+    "detail": "Jadual dan baki kalori",
+    "remaining": "Baki tetingkap ini",
+    "lastMeal": "Makan terakhir",
+    "noMeal": "belum makan",
+    "scheduleKcal": "±{{kcal}} kcal",
+    "outside": "{{kcal}} kcal dicatat di luar tetingkap makan ({{list}})",
+    "week": "Minggu ini {{kept}} daripada {{total}} hari menepati jadual puasa.",
+    "countdown": {
+      "underMinute": "<1 min",
+      "minutes": "{{m}} min",
+      "hours": "{{h}} j",
+      "hoursMinutes": "{{h}} j {{m}} min"
+    }
+  },
+  "water": {
+    "title": "Air minuman",
+    "ofGoal_other": "/ {{count}} gelas",
+    "group": "Gelas air, ketik untuk mengisi",
+    "fill": "Isi gelas ke-{{n}}",
+    "empty": "Kosongkan gelas ke-{{n}}",
+    "hint": "Segelas air selepas makan membuat anda kenyang lebih lama.",
+    "added": "+{{kcal}} kcal daripada aktiviti ({{pct}}%)",
+    "removed": "1 gelas dipadam",
+    "less": "Kurangkan gelas air",
+    "more": "Tambah gelas air",
+    "loadError": "Gagal memuatkan data air. Cuba lagi sebentar nanti."
+  },
+  "movement": {
+    "label": "Pergerakan hari ini",
+    "done": "Sasaran pergerakan hari ini tercapai. Bagus.",
+    "title": "Bergerak sedikit",
+    "body": "Bakar <b>{{kcal}} kcal</b> lagi = <s>{{steps}} langkah</s> (± <n>{{km}} km</n> / <n>{{minutes}} minit</n> berjalan kaki)",
+    "hint": "Berjalan santai waktu petang pun sudah boleh membakarnya."
+  },
+  "recap": {
+    "title": "Rumusan minggu ini",
+    "lastWeek": "Minggu lalu, {{range}}",
+    "average": "Purata sehari",
+    "target": "sasaran {{kcal}}",
+    "onTarget": "Menepati sasaran",
+    "daysUnit_other": "hari",
+    "logged_other": "daripada {{count}} hari dicatat",
+    "open": "Rumusan minggu ini, minggu lalu {{range}}. Buka rumusan penuh"
+  },
+  "weighIn": {
+    "done": "Berat dicatat",
+    "range": "Isi berat badan antara 25 dan 400 kg.",
+    "hintToday": "Satu catatan sehari. Menyimpan semula akan menimpa catatan hari ini.",
+    "hintDay": "Satu catatan sehari. Menyimpan semula akan menimpa catatan {{day}}."
+  },
+  "explain": {
+    "title": "Cara baca angka hari ini",
+    "formula": "Baki = TDEE − defisit + pergerakan melebihi pengganda − sudah dimakan",
+    "exampleAdd": "Hari ini: {{target}} + {{exercise}} aktiviti − {{eaten}} = baki {{left}} kcal",
+    "exampleAddOver": "Hari ini: {{target}} + {{exercise}} aktiviti − {{eaten}} = lebih {{over}} kcal",
+    "added": "+{{kcal}} kcal daripada senaman ({{pct}}%)",
+    "example": "Hari ini: {{target}} − {{eaten}} = baki {{left}} kcal",
+    "exampleOver": "Hari ini: {{target}} − {{eaten}} = lebih {{over}} kcal",
+    "target": {
+      "title": "Sasaran makan",
+      "body": "Catuan kalori makanan anda sehari: TDEE (BMR didarab pengganda tahap aktiviti anda, termasuk pergerakan harian dan kesan makanan) ditolak defisit untuk sasaran berat anda. Pergerakan yang diukur dan melebihi pengganda anda ditambah secara berasingan."
+    },
+    "clamped": {
+      "lose": "Sasaran makan ini dikira dengan defisit maksimum 1,000 kcal sehari. Tarikh sasaran anda menuntut lebih daripada itu, jadi sasaran anda baru tercapai kira-kira {{date}}.",
+      "gain": "Sasaran makan ini dikira dengan rentak kenaikan yang selamat. Tarikh sasaran anda menuntut lebih pantas daripada itu, jadi sasaran anda baru tercapai kira-kira {{date}}.",
+      "passedLose": "Tarikh sasaran anda sudah berlalu, jadi sasaran makan ini menggunakan defisit selamat maksimum 1,000 kcal sehari. Dengan itu sasaran anda tercapai kira-kira {{date}}.",
+      "passedGain": "Tarikh sasaran anda sudah berlalu, jadi sasaran makan ini menggunakan rentak kenaikan yang selamat. Dengan itu sasaran anda tercapai kira-kira {{date}}."
+    },
+    "eaten": {
+      "title": "Sudah dimakan",
+      "body": "Semua makanan dan minuman yang anda catat hari ini."
+    },
+    "left": {
+      "title": "Baki",
+      "body": "Yang masih muat sehingga malam. Jika sudah melebihi, angkanya bertukar menjadi Lebih. Jangan risau, esok mulakan semula."
+    },
+    "burn": {
+      "title": "Aktiviti hari ini",
+      "body": "Pergerakan yang benar-benar diukur hari ini: tenaga aktif daripada jam anda (atau Health Connect / Apple Health) ditambah latihan dicatat yang tiada pada jam. Hanya bahagian yang melebihi pergerakan yang sudah ada dalam pengganda anda dikira, {{pct}}% daripada lebihannya ditambah ke baki makanan anda."
+    },
+    "sum": {
+      "title": "Pengiraan hari ini",
+      "tdee": "TDEE (BMR {{bmr}} × {{factor}})",
+      "cut": "Defisit",
+      "surplus": "Lebihan untuk naik berat",
+      "add": "Tambahan Mengandung / Menyusu",
+      "floor": "Had minimum makan",
+      "activity": "Aktiviti hari ini",
+      "activityOf": "{{pct}}% daripada {{kcal}} kcal melebihi pengganda",
+      "target": "Sasaran makan hari ini",
+      "eaten": "Sudah dimakan",
+      "left": "Baki"
+    },
+    "addBack": {
+      "title": "Aktiviti yang dikira",
+      "body": "Pergerakan diukur hari ini {{active}} kcal; {{included}} kcal sudah ada dalam pengganda tahap anda, lebihannya {{extra}} kcal. {{pct}}% ({{kcal}} kcal) ditambah ke catuan makanan anda.",
+      "watch": "Tenaga aktif daripada jam anda {{kcal}} kcal; latihan jam sudah termasuk di dalamnya, tidak dikira dua kali.",
+      "healthStore": "Tenaga aktif daripada {{source}} {{kcal}} kcal; latihan di sana sudah termasuk.",
+      "other": "Latihan di luar jam (manual, Strava) menambah {{kcal}} kcal.",
+      "capped": "Had tambahan {{cap}} kcal sehari telah dicapai.",
+      "off": "Ciri ini dimatikan di Profil, jadi aktiviti tidak menambah baki. Baki hanya daripada sasaran asas.",
+      "none": "Belum ada pergerakan diukur hari ini. Sasaran anda sudah merangkumi purata pergerakan harian tahap anda.",
+      "setting": "Tetapkan di Profil > Sasaran & tubuh",
+      "below": "Pergerakan diukur hari ini ({{active}} kcal) belum melepasi {{included}} kcal yang sudah ada dalam pengganda tahap anda, jadi tiada yang ditambah. Pergerakan yang rendah tidak pernah mengurangkan sasaran anda."
+    },
+    "deficit": {
+      "title": "Mengapa ada perkataan defisit?",
+      "body": "Defisit ialah beza antara kalori yang diperlukan tubuh anda dengan yang anda makan. Beza inilah yang menurunkan berat. Anda tidak perlu mengiranya, cukup makan sekitar sasaran. Pelan anda kira-kira {{kcal}} kcal sehari.",
+      "bodyMaintenance": "Pelan anda sekarang mengekalkan berat, jadi tiada defisit. Makan sekitar sasaran sahaja."
+    },
+    "needs": "Lihat butiran keperluan harian anda"
+  },
+  "macros": {
+    "carbs": "Karbo",
+    "fat": "Lemak",
+    "proteinOf": "{{eaten}} / {{target}} g",
+    "grams": "{{g}} g"
+  },
+  "cards": {
+    "title": "Susun kad Laman Utama",
+    "link": "Susun kad Laman Utama",
+    "lead": "Pilih kad yang dipaparkan di Laman Utama dan susunannya. Laporan harian berada di atas secara lalai. Tetapan ini hanya berlaku pada peranti ini.",
+    "moveUp": "Naikkan {{card}}",
+    "moveDown": "Turunkan {{card}}",
+    "position": "{{card}}, kedudukan {{n}} daripada {{total}}",
+    "reset": "Pulihkan susunan lalai",
+    "empty": "Semua kad disembunyikan.",
+    "names": {
+      "calorie": "Kalori dan makro",
+      "stats": "Angka harian (aktiviti, tidur, air, berat)",
+      "meals": "Makan hari ini dan fotonya",
+      "mode": "Panduan Mengandung / Menyusu / Naik Berat",
+      "notices": "Catatan dan cadangan",
+      "weight": "Trend berat",
+      "waist": "Ukur lilit pinggang",
+      "fasting": "Puasa berselang",
+      "mealplan": "Pelan makan",
+      "ideas": "Masih muat",
+      "belanja": "Beli-belah makanan",
+      "joyofit": "JoyoFit",
+      "tips": "Petua hari ini",
+      "recap": "Rumusan mingguan",
+      "extras": "Lain-lain (fakta, lencana, kongsi)",
+      "promo": "Maklumat Pro"
+    },
+    "subtitle": "Paparan, sembunyi dan susunan kad"
+  },
+  "notice": {
+    "expand": "Buka catatan",
+    "collapse": "Tutup catatan"
+  }
+}

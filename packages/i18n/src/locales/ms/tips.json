@@ -1,0 +1,660 @@
+{
+  "card": {
+    "kicker": "Petua",
+    "read": "Baca",
+    "aria": "Petua: {{title}}. Baca artikelnya.",
+    "readAria": "Baca {{title}}"
+  },
+  "daily": {
+    "title": "Petua hari ini"
+  },
+  "context": {
+    "sugaryDrink": "Ada minuman manis dalam pinggan anda",
+    "sauceFried": "Ada sos atau goreng-gorengan dalam pinggan anda"
+  },
+  "article": {
+    "notFound": "Petua tidak ditemui.",
+    "tryThis": "Cuba ini",
+    "more": "Selanjutnya",
+    "sourcesTitle": "Sumber & catatan",
+    "sources": "Sumber",
+    "openSource": "Buka sumber: {{title}}",
+    "photo": "Foto",
+    "photoBy": "Foto: {{author}} · {{source}} · {{page}}",
+    "photoCredit": "Foto · {{source}} · {{page}}",
+    "disclaimer": "Artikel petua ini ialah maklumat umum, bukan pengganti nasihat doktor atau pakar pemakanan."
+  },
+  "credit": {
+    "jeremyEthier": "Idea dalam artikel ini diilhamkan oleh video Jeremy Ethier (Built with Science)"
+  },
+  "ideas": {
+    "ayamBakarLalapan": "Ayam bakar + nasi ½ + ulam",
+    "ikanBakarSayurAsem": "Ikan bakar + nasi ½ + sayur rebus",
+    "pepesIkan": "Ikan kukus + nasi ½ + ulam",
+    "pindangTongkol": "Asam pedas ikan tongkol + nasi ½ + kangkung goreng",
+    "sateAyam": "Satay ayam 10 cucuk, kuah kacang sedikit",
+    "ayamGeprek": "Ayam geprek tanpa kulit + nasi ½",
+    "supAyam": "Sup ayam + nasi ½",
+    "sotoAyam": "Soto ayam kuah jernih + nasi ½",
+    "baksoKuah": "Bebola daging berkuah tanpa mi",
+    "tahuTempeBacem": "Tauhu + tempe + sayur sup + nasi ½",
+    "gadoGado": "Gado-gado, kuah kacang separuh",
+    "omelet": "Telur dadar 2 biji + sayur + nasi ½",
+    "rotiGandumTelur": "Roti gandum 2 keping + 2 biji telur rebus",
+    "buburAyam": "Bubur ayam tanpa keropok",
+    "oatmeal": "Oat + susu + pisang",
+    "telurRebus": "2 biji telur rebus",
+    "tempeKukus": "Tempe kukus 2 ketul",
+    "tahuKukus": "Tauhu kukus 2 ketul",
+    "edamame": "Edamame 1 mangkuk kecil",
+    "yogurt": "Yogurt kosong + buah",
+    "susuKedelai": "Susu soya tanpa gula 1 gelas",
+    "kacangRebus": "Kacang rebus 1 genggam",
+    "buahPotong": "Buah dipotong 1 mangkuk",
+    "gainNasiTelurTempe": "Nasi 1 hidangan + 2 biji telur dadar + tempe goreng 2 ketul",
+    "gainNasiAyamTahu": "Nasi 1 hidangan + ayam goreng paha 1 ketul + tauhu goreng 2 ketul",
+    "gainNasiTempeSayur": "Nasi 1 hidangan + tempe goreng 3 ketul + sayur sup",
+    "gainRotiTelurSusu": "Roti 3 keping + 2 biji telur dadar + susu 1 gelas",
+    "gainUbiTelur": "Keledek kukus 1 biji besar + 2 biji telur rebus",
+    "gainTempeTahuGoreng": "Tempe goreng 3 ketul + tauhu goreng 2 ketul",
+    "gainJusAlpukatSusu": "Jus alpukat + susu 1 gelas",
+    "gainSusuPisang": "Susu lembu 1 gelas + pisang 2 biji",
+    "gainKacangPisang": "Kacang tanah goreng 1 genggam + pisang 1 biji"
+  },
+  "items": {
+    "kenyang-dengan-porsi-banyak": {
+      "title": "Kenyang dengan hidangan banyak: helah volume eating",
+      "summary": "Hidangan besar tanpa kalori besar: isi pinggan dengan makanan berisipadu tinggi supaya defisit kalori tidak terasa seperti kelaparan.",
+      "image": {
+        "alt": "Mangkuk sup sayur dengan kuah jernih"
+      },
+      "figure": {
+        "alt": "Rajah bar kalori setiap 100 gram: bayam rebus 23, tembikai 28, betik 46, nasi 180, keropok udang goreng 477 kcal.",
+        "caption": "Sayur dan buah berair mengenyangkan dengan kalori jauh lebih rendah daripada snek padat. Sumber angka: TKPI 2019."
+      },
+      "sections": [
+        {
+          "heading": "Kalori rendah, isi padu besar",
+          "paragraphs": [
+            "Dua mangkuk sup sayur boleh jadi lebih rendah kalorinya daripada segenggam keropok, tetapi perut terasa sama kenyang. Itulah inti volume eating: pilih makanan yang banyak air dan seratnya, supaya berat hidangan besar tetapi kandungan kalorinya rendah.",
+            "Ujiannya panjang. Dalam kajian setahun di Penn State, kumpulan yang diajar menurunkan kepadatan kalori makanan (lebih banyak sayur dan buah, bukan sekadar memotong hidangan) kehilangan berat badan lebih banyak berbanding kumpulan yang hanya dilarang lemak. Rasa kenyang lebih terjaga kerana jumlah makanan yang masuk tetap banyak."
+          ]
+        },
+        {
+          "heading": "Sesuai dengan makanan kita",
+          "paragraphs": [
+            "Sup sayur, sup kuah jernih, sayur goreng dengan sedikit minyak, tembikai, tembikai susu, betik dan jambu batu ialah bahan berisipadu tinggi. Putih telur rebus dan ayam tanpa kulit menambah protein tanpa banyak kalori. Untuk snek, 20 gram popcorn biasa kira-kira 75 kcal.",
+            "Perangkapnya ialah pelembutnya: santan, minyak, keropok dan kuah kacang mengubah sayur berkalori rendah menjadi tinggi kalori dalam sekelip mata. Sambal segar dan kuah jernih selamat; sayur lemak dan gado-gado berkuah kacang pekat tidak."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Mulakan makan dengan semangkuk sup sayur atau sup.",
+        "Isi separuh pinggan dengan sayur sebelum menambah nasi.",
+        "Sediakan buah berair (tembikai, tembikai susu, betik) dalam peti sejuk untuk dijadikan snek.",
+        "Gantikan snek goreng dengan popcorn biasa atau buah.",
+        "Kurangkan santan dan minyak pada lauk sayur, bukan sayurnya."
+      ],
+      "sources": [
+        "Ello-Martin et al. (2007), kajian kepadatan kalori setahun, Am J Clin Nutr"
+      ]
+    },
+    "protein-kenyang-jaga-otot": {
+      "title": "Protein: kenyang lebih lama, otot tetap terjaga",
+      "summary": "Protein paling mengenyangkan antara makronutrien dan membantu memastikan berat yang turun datang daripada lemak, bukan otot.",
+      "image": {
+        "alt": "Telur rebus tersusun di dulang"
+      },
+      "figure": {
+        "alt": "Rajah bar protein setiap 100 gram: putih telur 10,8 g, tauhu 10,9 g, telur ayam 12,4 g, ayam 18,2 g, tempe soya 20,8 g.",
+        "caption": "Protein yang cukup boleh didapati daripada bahan pasar: telur, tauhu, tempe dan ayam. Sumber angka: TKPI 2019."
+      },
+      "sections": [
+        {
+          "heading": "Mengapa protein juara semasa diet",
+          "paragraphs": [
+            "Antara karbohidrat, lemak dan protein, protein paling mengenyangkan. Ulasan dalam American Journal of Clinical Nutrition merumuskan bahawa protein menambah rasa kenyang dan membantu pengurusan berat badan. Secara praktikal: sarapan telur membuat anda tahan sehingga tengah hari, manakala sarapan manis berminyak sering membuat lapar semula pada pukul 10."
+          ]
+        },
+        {
+          "heading": "Pelindung otot semasa berat turun",
+          "paragraphs": [
+            "Semasa defisit kalori, badan boleh turut membakar otot. Pada atlet yang berdefisit, pengambilan protein kira-kira 2,3 g setiap kg berat badan sehari mengekalkan jisim otot, manakala protein rendah tidak. Kajian lain yang lebih drastik mendapati protein 2,4 g/kg ditambah latihan beban membuat hampir semua penurunan berat datang daripada lemak.",
+            "Julat yang sering digunakan penyelidik semasa diet ialah kira-kira 1,6-2,4 g setiap kg berat badan sehari. Untuk berat 70 kg, itu kira-kira 112-168 g protein."
+          ]
+        },
+        {
+          "heading": "Sumbernya tidak semestinya mahal",
+          "paragraphs": [
+            "Telur, ayam, ikan kembung, tempe, tauhu dan putih telur semuanya sah. Bebola daging pun termasuk, tetapi kira kuah, sos dan hidangannya. Yang mengubah angka ialah cara masak: rebus dan kukus mengekalkan protein rendah kalori, digoreng dengan banyak minyak tidak."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Masukkan sumber protein dalam setiap hidangan utama, bukan hanya makan malam.",
+        "Telur rebus atau tempe kukus sebagai snek protein.",
+        "Sasaran kasar: kira-kira 1,6-2,4 g protein setiap kg berat badan sehari.",
+        "Pilih rebus, kukus atau panggang berbanding goreng berminyak."
+      ],
+      "sources": [
+        "Paddon-Jones et al. (2008), protein, pengurusan berat dan rasa kenyang",
+        "Mettler et al. (2009), protein tinggi menjaga jisim otot semasa defisit",
+        "Longland et al. (2016), protein 2,4 g/kg + latihan beban semasa defisit"
+      ]
+    },
+    "protein-dibagi-empat-momen": {
+      "title": "Bahagikan protein ke beberapa waktu makan",
+      "summary": "Protein yang dibahagi sama rata ke 3-4 hidangan lebih baik merangsang pemeliharaan otot berbanding ditimbun semuanya pada makan malam.",
+      "image": {
+        "alt": "Ketulan tempe goreng dari dekat"
+      },
+      "figure": {
+        "alt": "Rajah bar bertindan: corak sekata 30-30-30-30 gram berbanding corak tidak seimbang 10-15-20-65 gram dengan jumlah sama.",
+        "caption": "Jumlah protein sama, tetapi taburan sekata lebih merangsang sintesis protein otot (Mamerow et al., 2014)."
+      },
+      "sections": [
+        {
+          "heading": "Masalah corak tidak seimbang",
+          "paragraphs": [
+            "Ramai orang berjimat protein pada waktu pagi lalu menebusnya penuh pada waktu malam. Kajian dalam Journal of Nutrition mendapati corak sekata (kira-kira 30 g setiap hidangan) merangsang sintesis protein otot 24 jam lebih tinggi berbanding corak tidak seimbang (10 g pagi, 65 g malam), walaupun jumlah proteinnya sama."
+          ]
+        },
+        {
+          "heading": "Sarapan protein juga menekan mengemil",
+          "paragraphs": [
+            "Pada remaja yang biasa melangkau sarapan, sarapan tinggi protein (35 g) meningkatkan rasa kenyang dan mengurangkan keinginan mengemil pada waktu malam berbanding sarapan protein biasa. Mengemil malam yang tidak dirancang sering menjadi punca kalori terbesar."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Sarapan: telur + susu, atau tauhu/tempe lebihan masakan semalam.",
+        "Sediakan putih telur rebus atau ayam kerat dalam peti sejuk.",
+        "Kalau hidangan ringkas, tambah satu biji telur rebus.",
+        "Cuba pastikan setiap hidangan utama ada ±25-40 g protein."
+      ],
+      "sources": [
+        "Mamerow et al. (2014), taburan protein dan sintesis otot 24 jam",
+        "Leidy et al. (2013), sarapan tinggi protein dan mengemil malam"
+      ]
+    },
+    "serat-kenyang-lama": {
+      "title": "Serat: murah, mengenyangkan dan sering kurang",
+      "summary": "Serat melambatkan penghadaman dan memanjangkan rasa kenyang; tambahan kira-kira 14 g sehari dikaitkan dengan pengambilan kalori yang menurun.",
+      "image": {
+        "alt": "Gerai sayur dan buah di pasar"
+      },
+      "figure": {
+        "alt": "Panel statistik: tambahan kira-kira 14 gram serat sehari dikaitkan dengan penurunan pengambilan tenaga kira-kira 10 peratus; contoh kandungan serat bayam, jambu batu dan kacang hijau.",
+        "caption": "Tambahan serat yang sederhana sudah mengubah pengambilan makanan. Sumber serat: TKPI 2019; kesan: Howarth et al. (2001)."
+      },
+      "sections": [
+        {
+          "heading": "Cara ia berfungsi",
+          "paragraphs": [
+            "Serat membuat makanan lebih lama dihadam dan isi padu dalam perut bertahan lebih lama. Ulasan dalam Nutrition Reviews menganggarkan tambahan kira-kira 14 g serat sehari dikaitkan dengan penurunan pengambilan tenaga kira-kira 10% dan penurunan berat badan, tanpa diet rumit yang lain."
+          ]
+        },
+        {
+          "heading": "Sumber tempatan yang munasabah",
+          "paragraphs": [
+            "Sayur seperti bayam, kangkung dan kacang panjang; buah seperti betik, jambu batu dan pisang; kacang hijau rebus; oat; nasi perang. Sayur di dua hidangan ditambah dua biji buah sudah menghampiri separuh keperluan harian yang lazim disyorkan (kira-kira 25-30 g).",
+            "Satu catatan: kacang tanah sedap tetapi padat kalori. Seratnya bagus, hidangannya yang perlu dijaga."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Sayur dalam setiap hidangan, bukan hanya makan malam.",
+        "Buah penuh berbanding jus: serat kekal, kenyang lebih lama.",
+        "Gantikan sebahagian nasi putih dengan nasi perang atau oat.",
+        "Kacang hijau rebus sebagai snek, jangan digoreng."
+      ],
+      "sources": [
+        "Howarth et al. (2001), serat dan pengawalan berat badan, Nutrition Reviews"
+      ]
+    },
+    "segelas-air-sebelum-makan": {
+      "title": "Segelas air sebelum makan bantu hidangan mengecil",
+      "summary": "RCT: 500 ml air sebelum setiap hidangan utama menghasilkan penurunan berat 44% lebih banyak dalam 12 minggu, pada orang dewasa pertengahan umur ke atas.",
+      "image": {
+        "alt": "Segelas air kosong di atas meja"
+      },
+      "figure": {
+        "alt": "Rajah bar: kumpulan defisit dengan 500 ml air sebelum makan menurunkan berat 44 peratus lebih banyak dalam 12 minggu.",
+        "caption": "Penurunan berat 44% lebih banyak dengan preload air (Dennis et al., 2010; dewasa pertengahan umur hingga warga emas)."
+      },
+      "sections": [
+        {
+          "heading": "Buktinya",
+          "paragraphs": [
+            "Dalam ujian rawak terkawal (Obesity, 2010), orang dewasa pertengahan umur dan warga emas yang berdefisit kalori dan minum 500 ml air sebelum tiga hidangan utama menurunkan berat badan 44% lebih banyak dalam 12 minggu berbanding yang berdefisit sahaja. Logiknya mudah: perut terisi sebahagian sebelum makan, hidangan turut mengecil."
+          ]
+        },
+        {
+          "heading": "Catatan jujur",
+          "paragraphs": [
+            "Peserta kajian itu berumur 55-75 tahun; pada orang muda buktinya tidak sekuat itu. Air juga bukan pembakar lemak, kesannya semata-mata melalui hidangan. Tetapi daripada semua 'helah' diet, ini yang paling murah dan paling tiada risiko."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Minum 500 ml air 20-30 minit sebelum hidangan utama.",
+        "Sediakan botol di meja makan supaya teringat.",
+        "Gantikan teh ais manis semasa makan dengan air kosong atau ais kosong."
+      ],
+      "sources": [
+        "Dennis et al. (2010), preload air 500 ml sebelum makan, Obesity"
+      ]
+    },
+    "air-berkarbonasi-fakta": {
+      "title": "Air soda tanpa gula bantu diet? Jawapan jujurnya",
+      "summary": "Karbonasi boleh memberi rasa kenyang seketika, tetapi bukti tentang penurunan berat masih nipis; nilai terbesarnya ialah sebagai pengganti minuman manis.",
+      "image": {
+        "alt": "Air berkarbonat dengan hirisan lemon"
+      },
+      "figure": {
+        "alt": "Rajah bar: teh ais manis 60-100 kcal segelas berbanding soda tanpa gula 0 kcal.",
+        "caption": "Soda kosong menang kerana sifar kalori, bukan kerana gasnya (teh ais: sukatan gula lazim; bukti karbonasi: Eweis 2017, Harper 2007)."
+      },
+      "sections": [
+        {
+          "heading": "Apa kata kajian",
+          "paragraphs": [
+            "Ramai merasakan soda tanpa gula menahan keinginan mengemil. Tetapi buktinya bercampur. Kajian pada tikus mendapati gas CO2 minuman berkarbonat meningkatkan hormon ghrelin dan makan mereka. Pada manusia, perbandingan minuman berkarbonat dengan minuman lain tidak menemui pengurangan makan seterusnya. Belum ada bukti kukuh bahawa air berkarbonat sahaja menurunkan berat badan."
+          ]
+        },
+        {
+          "heading": "Di mana nilainya",
+          "paragraphs": [
+            "Sebagai pengganti teh ais manis atau soda manis, pilihannya jelas: sifar kalori berbanding puluhan hingga ratusan kcal. Itulah manfaat utamanya, bukan kesan ajaib gasnya. Anggap ini jambatan, bukan matlamat akhir."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Soda kosong atau soda tanpa gula sebagai jambatan daripada minuman manis.",
+        "Perah limau nipis untuk rasa tanpa kalori.",
+        "Jangan jadikan 'saya dah minum soda diet' alasan untuk mengemil lebih."
+      ],
+      "sources": [
+        "Eweis et al. (2017), CO2 berkarbonat, ghrelin dan makan (kajian haiwan)",
+        "Harper et al. (2007), kenyang seketika minuman berkarbonat, tanpa kesan pada makan seterusnya"
+      ]
+    },
+    "makan-pelan-kenyang-cepat": {
+      "title": "Makan perlahan: kenyang datang sebelum hidangan habis",
+      "summary": "Isyarat kenyang mengambil masa kira-kira 20 minit; mengunyah lebih banyak terbukti mengecilkan hidangan.",
+      "image": {
+        "alt": "Pinggan nasi campur dengan lauk-pauk"
+      },
+      "figure": {
+        "alt": "Garis masa 20 minit: isyarat kenyang baru tiba di otak kira-kira minit kedua puluh sejak suapan pertama.",
+        "caption": "Kenyang mengambil masa; makan tergesa-gesa selesai sebelum isyaratnya tiba (±20 minit; Zhu & Hollis, 2014)."
+      },
+      "sections": [
+        {
+          "heading": "Isyarat kenyang itu lambat",
+          "paragraphs": [
+            "Ia mengambil masa kira-kira 20 minit sebelum isyarat kenyang daripada perut dan hormon benar-benar sampai ke otak. Makan lima minit selesai sering habis sebelum isyarat itu muncul, jadi hidangan menjadi lebih besar daripada yang diperlukan. Kajian pada orang kurus, gemuk dan obes mendapati menambah bilangan kunyahan sebelum menelan mengurangkan hidangan dalam ketiga-tiga kumpulan."
+          ]
+        },
+        {
+          "heading": "Kalau biasanya makan tergesa-gesa",
+          "paragraphs": [
+            "Mee goreng yang habis dalam lima minit itu perkara biasa. Yang membantu bukan mengira kunyahan, tetapi menambah sedikit geseran: duduk di meja, letak sudu di antara suapan, minum di tengah makan, dan beri jeda lima minit sebelum menambah nasi. Kalau masih lapar selepas jeda itu, tambah sayur atau kuah, bukan nasi lagi."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Letakkan sudu setiap kali selesai satu suapan.",
+        "Sasaran mudah: hidangan utama sekurang-kurangnya 15-20 minit.",
+        "Minum air di tengah makan.",
+        "Jeda lima minit sebelum menambah nasi kali kedua."
+      ],
+      "sources": [
+        "Zhu & Hollis (2014), bilangan kunyahan dan saiz hidangan"
+      ]
+    },
+    "makanan-ultra-proses": {
+      "title": "Mengapa makanan berbungkus membuat kalori bocor",
+      "summary": "RCT di wad metabolik NIH: menu ultra-proses membuat peserta makan kira-kira 500 kcal lebih banyak sehari dan naik berat dalam dua minggu.",
+      "image": {
+        "alt": "Blok mi segera mentah dalam bungkusan"
+      },
+      "figure": {
+        "alt": "Rajah bar kajian Hall 2019: menu ultra-proses menambah pengambilan kira-kira 500 kcal sehari dan berat naik 0,9 kg; menu minimum proses berat turun 0,9 kg.",
+        "caption": "Menu ultra-proses membuat peserta makan ±500 kcal lebih banyak sehari (Hall et al., 2019)."
+      },
+      "sections": [
+        {
+          "heading": "Eksperimen yang jadi bualan",
+          "paragraphs": [
+            "Kevin Hall et al. (2019) menempatkan 20 orang dewasa di wad metabolik selama sebulan. Dua minggu mereka diberi menu ultra-proses, dua minggu menu minimum proses; kedua-dua menu sengaja dipadankan komposisinya dan peserta bebas makan sepuas-puasnya. Hasilnya: pada fasa ultra-proses mereka makan kira-kira 500 kcal lebih banyak sehari, naik kira-kira 0,9 kg. Pada fasa minimum proses, turun kira-kira 0,9 kg."
+          ]
+        },
+        {
+          "heading": "Mengapa begitu",
+          "paragraphs": [
+            "Makanan ultra-proses biasanya padat kalori, cepat habis dikunyah dan rasanya direka supaya sukar berhenti. Bukan 'racun', tetapi mudah membuat kalori berlebihan tanpa sedar. Versi kita: snek berbungkus, biskut, roti manis, minuman manis dalam bungkusan dan mi segera yang dimakan tanpa lauk."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Gantikan satu snek berbungkus sehari dengan buah atau telur rebus.",
+        "Masak ringkas di rumah: telur, tempe, sayur, nasi.",
+        "Beli barang dengan senarai supaya lorong snek tidak masuk bakul.",
+        "Kalau beli yang berbungkus, pindahkan ke mangkuk dahulu, jangan makan terus dari bungkusnya."
+      ],
+      "sources": [
+        "Hall et al. (2019), RCT diet ultra-proses vs minimum proses, Cell Metabolism"
+      ]
+    },
+    "kalori-cair-es-teh-kopi": {
+      "title": "Kalori cecair: teh ais manis dan kopi susu",
+      "summary": "Kalori daripada minuman kurang mengenyangkan; teh ais manis dan kopi susu boleh menambah 100-300 kcal tanpa disedari.",
+      "image": {
+        "alt": "Segelas teh ais manis dengan penyedut minuman"
+      },
+      "figure": {
+        "alt": "Rajah bar kalori segelas: ais kosong 0, teh ais manis 60-100 kcal, kopi susu gula melaka 200-300 kcal.",
+        "caption": "Tiga gelas minuman manis boleh menghapuskan defisit harian tanpa disedari (julat sukatan lazim)."
+      },
+      "sections": [
+        {
+          "heading": "Mengapa kalori cecair licin",
+          "paragraphs": [
+            "Kajian klasik membandingkan soda cecair dengan snek padat berkalori sama. Kumpulan soda tidak secara automatik makan lebih sedikit selepas itu, dan beratnya naik; kumpulan snek padat tidak. Meta-analisis besar juga mengaitkan minuman manis dengan kenaikan berat badan. Kalorinya masuk tanpa memberi rasa kenyang, jadi tiada pampasan pada hidangan seterusnya."
+          ]
+        },
+        {
+          "heading": "Versi kita",
+          "paragraphs": [
+            "Teh ais manis kira-kira 60-100 kcal segelas bergantung pada sukatan gulanya. Kopi susu gula melaka mudah melepasi 200 kcal. Tiga gelas sehari, dan defisit kalori anda hilang senyap-senyap tanpa pernah rasa makan banyak."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Minuman lalai: ais kosong atau air kosong; yang manis jadi pengecualian.",
+        "Minta gula separuh sukatan, kemudian separuh lagi minggu depan.",
+        "Kopi: susu tanpa gula melaka, atau ukur sukatannya.",
+        "Minuman manis yang sedang tren simpan untuk majlis, bukan rutin."
+      ],
+      "sources": [
+        "DiMeglio & Mattes (2000), kalori cecair vs pepejal",
+        "Malik et al. (2013), meta-analisis minuman manis dan berat badan"
+      ]
+    },
+    "saus-minyak-porsi-kecil": {
+      "title": "Sos dan minyak: hidangan kecil, kalori besar",
+      "summary": "Satu sudu besar minyak kira-kira 120 kcal, satu sudu besar mayonis kira-kira 90 kcal; perasa dan pelengkap sering menjadi kalori tersembunyi terbesar.",
+      "image": {
+        "alt": "Nasi putih dengan sambal kerang dan taugeh"
+      },
+      "figure": {
+        "alt": "Rajah bar kalori setiap sudu besar: minyak masak kira-kira 115 kcal, mayonis kira-kira 90 kcal, sambal segar kira-kira 15 kcal.",
+        "caption": "Dua-tiga sudu minyak tambahan ditambah sos boleh menambah 300-400 kcal tanpa terasa (minyak: TKPI 2019)."
+      },
+      "sections": [
+        {
+          "heading": "Angka yang jarang dikira",
+          "paragraphs": [
+            "Lemak mengandungi kira-kira 9 kcal setiap gram. Satu sudu besar minyak masak kira-kira 120 kcal, satu sudu besar mayonis kira-kira 90 kcal, dan sos manis dalam botol beberapa puluh kcal setiap sudu besar daripada gulanya. Dua-tiga sudu minyak tambahan semasa menggoreng, ditambah sos, boleh menambah 300-400 kcal yang tidak pernah anda rasa."
+          ]
+        },
+        {
+          "heading": "Dalam pinggan kita",
+          "paragraphs": [
+            "Ayam goreng dengan sos mayo, goreng-gorengan dicelup sos, rojak dengan kuah kacang pekat, murtabak berminyak. Lauknya nampak biasa, tetapi yang menaikkan kalorinya ialah sos dan minyaknya. Sambal segar tanpa minyak dan acar ialah pilihan paling ringan."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Sukat minyak dengan sudu, jangan tuang terus dari botol.",
+        "Hidang sos dan mayo dalam bekas kecil, celup sedikit.",
+        "Sambal segar atau acar sebagai pelengkap lalai.",
+        "Kuah jernih berbanding kuah santan kalau sasarannya defisit."
+      ],
+      "sources": [
+        "USDA FoodData Central, nilai pemakanan minyak dan mayonis"
+      ]
+    },
+    "tidur-cukup-lapar-turun": {
+      "title": "Kurang tidur, lapar keesokan harinya",
+      "summary": "Tidur singkat menaikkan hormon lapar dan menurunkan hormon kenyang; semasa defisit, kurang tidur membuat berat yang turun lebih banyak daripada otot.",
+      "image": {
+        "alt": "Orang tidur nyenyak di atas katil"
+      },
+      "figure": {
+        "alt": "Rajah bar kajian Nedeltcheva 2010: pada tidur 5,5 jam, bahagian penurunan berat daripada lemak turun 55 peratus dan kehilangan jisim tanpa lemak naik 60 peratus.",
+        "caption": "Berjaga malam mengubah komposisi penurunan berat: lebih sedikit lemak, lebih banyak otot yang terkorban (Nedeltcheva et al., 2010)."
+      },
+      "sections": [
+        {
+          "heading": "Hormon lapar turut berjaga malam",
+          "paragraphs": [
+            "Dalam eksperimen pengehadan tidur, leptin (hormon yang memberitahu kenyang) turun, ghrelin (hormon lapar) naik, dan rasa lapar meningkat. Tidak hairan hari selepas berjaga malam biasanya bermula dengan mengidam yang pelik-pelik."
+          ]
+        },
+        {
+          "heading": "Defisit ditambah berjaga malam, komposisinya buruk",
+          "paragraphs": [
+            "RCT dalam Annals of Internal Medicine mengehadkan tidur orang yang berdefisit kalori kepada 5,5 jam berbanding 8,5 jam semalam. Jumlah berat yang turun hampir sama, tetapi komposisinya jauh berbeza: dalam kumpulan kurang tidur, perkadaran penurunan berat daripada lemak turun 55%, dan kehilangan jisim tanpa lemak naik 60%. Defisitnya sama, hasilnya lebih buruk."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Tetapkan waktu tidur dan bangun yang konsisten, sasaran 7-9 jam.",
+        "Kurangkan kafein selepas petang.",
+        "Sedarilah: mengidam tengah malam biasanya kesan berjaga malam, bukan lapar.",
+        "Kalau berjaga malam tidak dapat dielak, jaga protein dan jangan kejar defisit besar pada hari itu."
+      ],
+      "sources": [
+        "Spiegel et al. (2004), tidur singkat, leptin, ghrelin dan lapar",
+        "Nedeltcheva et al. (2010), kurang tidur menggagalkan penurunan lemak"
+      ]
+    },
+    "langkah-harian-neat": {
+      "title": "Langkah harian: kalori yang tidak terasa seperti senaman",
+      "summary": "NEAT, semua pergerakan di luar senaman, berbeza besar antara orang dan turut menentukan siapa yang mudah naik berat.",
+      "image": {
+        "alt": "Kaki sedang berjalan di kaki lima"
+      },
+      "figure": {
+        "alt": "Panel statistik: 6,000 langkah harian bersamaan kira-kira 300 kcal dengan saranan menambah langkah secara mudah.",
+        "caption": "Anggaran kasar untuk berat badan sederhana; NEAT berbeza antara orang (Levine et al., 1999)."
+      },
+      "sections": [
+        {
+          "heading": "Apa itu NEAT",
+          "paragraphs": [
+            "NEAT (non-exercise activity thermogenesis) ialah semua pergerakan di luar senaman: berjalan ke kedai, naik tangga, menjemur pakaian, berjalan ke sana ke mari sambil bertelefon. Kajian klasik dalam Science menambah pengambilan 16 orang kira-kira 1,000 kcal sehari selama 8 minggu; perubahan NEAT mereka menerangkan sebahagian besar perbezaan siapa yang menambah banyak lemak dan siapa yang hampir tidak."
+          ]
+        },
+        {
+          "heading": "Mengapa langkah lebih tahan lama",
+          "paragraphs": [
+            "300 kcal di treadmill terasa berat; 300 kcal daripada 6,000 langkah yang tersebar sepanjang hari hampir tidak terasa. Defisit daripada pergerakan harian lebih mudah dikekalkan berbanding defisit yang hanya datang daripada sesi senaman."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Turun satu perhentian lebih awal, atau parkir lebih jauh.",
+        "Berjalan 5-10 minit selepas hidangan utama.",
+        "Guna tangga berbanding lif kalau hanya satu-dua tingkat.",
+        "Tambah 1,000 langkah daripada kebiasaan dahulu; 8,000-10,000 itu arah, bukan syarat."
+      ],
+      "sources": [
+        "Levine et al. (1999), NEAT dan rintangan terhadap penambahan lemak, Science"
+      ]
+    },
+    "angkat-beban-saat-diet": {
+      "title": "Semasa defisit, angkat beban",
+      "summary": "Latihan beban ditambah protein yang cukup membuat berat yang turun datang daripada lemak, bukan otot.",
+      "image": {
+        "alt": "Dumbel dan plat beban di gim"
+      },
+      "figure": {
+        "alt": "Panel statistik: sasaran protein semasa defisit 1,6-2,4 gram setiap kg berat badan sehari; contoh 70 kg bersamaan 112-168 gram.",
+        "caption": "Julat yang digunakan kajian defisit (Longland et al., 2016; Mettler et al., 2009)."
+      },
+      "sections": [
+        {
+          "heading": "Masalah diet tanpa latihan",
+          "paragraphs": [
+            "Defisit kalori sahaja memang menurunkan berat, tetapi sebahagian berat itu ialah otot. Otot yang hilang membuat badan anda membakar kurang setiap hari dan penampilan berubah kurang seperti yang diharapkan. Badan menjaga apa yang digunakan; kalau otot tidak pernah diberi beban, badan menganggapnya stok simpanan."
+          ]
+        },
+        {
+          "heading": "Bukti daripada makmal",
+          "paragraphs": [
+            "Pada atlet yang berdefisit, protein tinggi ditambah latihan beban mengekalkan jisim otot. Kajian yang lebih menarik: defisit kalori besar, protein 2,4 g/kg dan latihan beban enam hari seminggu membuat hampir semua penurunan berat datang daripada lemak, malah jisim tanpa lemaknya naik sedikit. Programnya ekstrem; poin utamanya bukan jadualnya, tetapi isyaratnya: otot ini masih digunakan."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Dua-tiga sesi beban seminggu, gerakan asas sudah cukup.",
+        "Jangan potong protein pada hari latihan.",
+        "Mulakan dengan rutin ringkas, naikkan beban secara beransur-ansur.",
+        "Berat timbangan boleh perlahan apabila mula beban; itu normal, semak ukur lilit dan cermin."
+      ],
+      "sources": [
+        "Mettler et al. (2009), protein tinggi dan jisim otot semasa defisit",
+        "Longland et al. (2016), defisit + protein tinggi + latihan beban"
+      ]
+    },
+    "jeda-diet-yang-terencana": {
+      "title": "Diet break: jeda dua minggu yang sebenarnya membantu",
+      "summary": "Kajian MATADOR: defisit dua minggu kemudian jeda dua minggu menurunkan berat lebih banyak daripada defisit berterusan dengan tempoh sama.",
+      "image": {
+        "alt": "Pinggan makan lengkap dengan lauk dan telur"
+      },
+      "figure": {
+        "alt": "Garis masa kajian MATADOR: blok defisit dua minggu diselangi jeda pemeliharaan dua minggu berulang selama 30 minggu.",
+        "caption": "Jeda terancang 2 minggu pada tahap pemeliharaan (Byrne et al., 2018; masih perlukan kajian lanjut)."
+      },
+      "sections": [
+        {
+          "heading": "Kajian MATADOR",
+          "paragraphs": [
+            "Penyelidik Australia membahagikan 51 lelaki dewasa yang obes kepada dua: defisit 16 minggu tanpa henti, atau defisit 2 minggu diselangi makan biasa 2 minggu, berulang sehingga jumlah 30 minggu. Kumpulan yang diselangi jeda menurunkan berat lebih banyak dan kecekapan penurunannya lebih baik. Dugaannya: jeda mengurangkan penyesuaian metabolik dan keletihan diet."
+          ]
+        },
+        {
+          "heading": "Baca sebelum mencuba",
+          "paragraphs": [
+            "Ini satu kajian, pada lelaki yang obes, dan hasilnya masih perlu diulang. Jeda di sini bermaksud makan pada tahap pemeliharaan, bukan makan sepuasnya selama seminggu penuh. Kalau disalah fahami, diet break cepat menjadi alasan."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Jadualkan jeda pada waktu yang memang meriah (Hari Raya, cuti) supaya tidak rasa gagal.",
+        "Semasa jeda, makan pada tahap pemeliharaan dan tetap catat.",
+        "Selepas jeda, berat boleh naik sedikit kerana air; itu bukan kegagalan.",
+        "Kalau tidak mahu jeda dua minggu, mulakan dengan satu-dua hari pemeliharaan."
+      ],
+      "sources": [
+        "Byrne et al. (2018), kajian MATADOR, International Journal of Obesity"
+      ]
+    },
+    "timbangan-naik-turun-normal": {
+      "title": "Timbangan naik 1 kg dalam sehari? Semak trennya",
+      "summary": "Berat harian naik turun kerana air, garam dan isi perut; tren purata mingguan yang jujur.",
+      "image": {
+        "alt": "Kaki di atas penimbang berat badan"
+      },
+      "figure": {
+        "alt": "Graf garis ilustrasi: titik-titik timbangan harian naik turun dengan garis tren mingguan yang menurun.",
+        "caption": "Ilustrasi corak umum; menimbang secara berkala dikaitkan dengan hasil lebih baik tanpa kesan psikologi buruk (Zheng et al., 2015)."
+      },
+      "sections": [
+        {
+          "heading": "Mengapa angka harian bising",
+          "paragraphs": [
+            "Makanan masin, hidangan karbohidrat yang lebih besar, latihan berat, kitaran haid dan membuang air semuanya menggeser berat melalui air. Satu kilogram lemak memerlukan lebihan kira-kira 7,700 kcal; naik 1 kg dalam sehari hampir pasti bukan lemak. Yang mematikan semangat biasanya bukan penimbangnya, tetapi salah membaca penimbang."
+          ]
+        },
+        {
+          "heading": "Timbang, tetapi baca trennya",
+          "paragraphs": [
+            "Tinjauan 17 kajian mendapati menimbang secara berkala dikaitkan dengan penurunan berat yang lebih banyak, tanpa kesan psikologi buruk. Kuncinya dua: keadaan menimbang yang sama setiap hari, dan penilaian melalui purata mingguan, bukan satu angka."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Timbang setiap pagi, selepas ke tandas, sebelum makan dan minum.",
+        "Bandingkan purata 7 hari minggu ini dengan minggu lalu.",
+        "JoyoRogo menilai tren, bukan angka harian; biarkan aplikasi yang mengira.",
+        "Satu angka pelik: catat, jangan panik, teruskan."
+      ],
+      "sources": [
+        "Zheng et al. (2015), tinjauan menimbang berkala dalam pengurusan berat"
+      ]
+    },
+    "sup-bening-pembuka": {
+      "title": "Mulakan makan dengan sup jernih",
+      "summary": "Sup pembuka menurunkan jumlah makan kira-kira 20% pada hidangan itu, dan sesuai sangat dengan sup sayur kita.",
+      "image": {
+        "alt": "Semangkuk sup ayam dari kedai makan"
+      },
+      "figure": {
+        "alt": "Rajah bar: makan dengan sup pembuka menurunkan jumlah pengambilan kira-kira 20 peratus berbanding tanpa sup.",
+        "caption": "Sup pembuka menurunkan jumlah pengambilan makanan ±20% pada hidangan itu (Flood & Rolls, 2007)."
+      },
+      "sections": [
+        {
+          "heading": "Kesan sup pembuka",
+          "paragraphs": [
+            "Di Penn State, peserta yang mendapat sup sebelum hidangan utama makan jumlah kira-kira 20% lebih sedikit pada hidangan itu berbanding tanpa sup, dan kesannya muncul pada pelbagai bentuk sup: kuah jernih hingga sup berketul. Air kosong dengan isi padu sama tidak seberkesan itu; tekstur dan rasa sup turut mengenyangkan."
+          ]
+        },
+        {
+          "heading": "Versi kita",
+          "paragraphs": [
+            "Sup sayur bayam-jagung, sup kuah jernih atau kuah ayam dengan sayuran. Sup bebola pun boleh: kuah jernih, sayur dan nasi yang dikecilkan. Yang menggugurkan manfaatnya ialah versi bersantan seperti sayur lemak, kerana santan mengubah kalorinya sepenuhnya."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Hidang sup jernih sebagai gelombang pertama makan malam.",
+        "Masak jernih tanpa santan; garam dan bawang sudah cukup.",
+        "Sup bebola: kuah jernih ditambah sayur, nasi kecil.",
+        "Sup pembuka jangan diganti minuman manis; itu kalori cecair."
+      ],
+      "sources": [
+        "Flood & Rolls (2007), sup pembuka menurunkan pengambilan makanan"
+      ]
+    },
+    "defisit-fleksibel-8020": {
+      "title": "Sekatan fleksibel mengalahkan diet kaku",
+      "summary": "Diet semua-atau-tiada mudah berakhir dengan makan berlebihan; pendekatan fleksibel memberi ruang untuk makanan kegemaran tanpa merosakkan hasil.",
+      "image": {
+        "alt": "Murtabak manis di atas meja"
+      },
+      "figure": {
+        "alt": "Rajah donat 80/20: kira-kira 80 peratus makanan menyokong sasaran dan 20 peratus ruang untuk makanan kegemaran.",
+        "caption": "Pandangan praktikal 80/20; sekatan kaku berkait dengan pola makan terganggu (Westenhoeffer et al., 1999)."
+      },
+      "sections": [
+        {
+          "heading": "Kaku berbanding fleksibel",
+          "paragraphs": [
+            "Penyelidik membezakan dua gaya menahan makan: sekatan kaku (senarai makanan haram, peraturan mutlak) dan sekatan fleksibel (jumlah pengambilan dijaga, tetapi ada ruang). Sekatan kaku berkait dengan pola makan terganggu dan makan berlebihan selepas 'tersilap', manakala yang fleksibel tidak. Sebiji kuih melepasi had, lalu sepanjang hari dianggap gagal: pemikiran kaku seperti itu yang paling merosakkan."
+          ]
+        },
+        {
+          "heading": "Amalan 80/20",
+          "paragraphs": [
+            "Anggaran yang sihat: kira-kira 80% makanan menyokong sasaran anda (nasi, lauk, sayur, buah, telur), 20% ruang untuk kegemaran seperti kuih atau teh tarik, asalkan masuk dalam kiraan. Defisit kalori ialah hasil jumlah mingguan, bukan kesucian setiap suapan."
+          ]
+        }
+      ],
+      "cobaIni": [
+        "Tiada makanan haram; yang ada hidangan dan kekerapan.",
+        "Rancang makanan kegemaran satu-dua kali seminggu, masukkan dalam kiraan.",
+        "Selepas hidangan besar, kembali normal pada hidangan seterusnya, bukan 'esok mula semula'.",
+        "Kalau hari penuh majlis, jalankan baki minggu dengan defisit santai."
+      ],
+      "sources": [
+        "Westenhoefer et al. (1999), pengesahan sekatan fleksibel dan kaku"
+      ]
+    }
+  }
+}

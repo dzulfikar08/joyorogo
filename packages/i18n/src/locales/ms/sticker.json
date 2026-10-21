@@ -1,0 +1,220 @@
+{
+  "style": {
+    "minimal": "Minimal",
+    "bold": "Angka besar",
+    "receipt": "Resit",
+    "poster": "Poster",
+    "glass": "Kaca",
+    "badge": "Lencana",
+    "ring": "Cincin",
+    "trend": "Trend",
+    "photo": "Foto",
+    "progress": "Kemajuan"
+  },
+  "kind": {
+    "day": "Hari ini",
+    "meal": "Makanan",
+    "streak": "Berturutan",
+    "weight": "Berat badan",
+    "week": "Rumusan minggu",
+    "challenge": "Cabaran",
+    "workout": "Latihan",
+    "milestone": "Pencapaian",
+    "period": "Kemajuan"
+  },
+  "canvas": {
+    "story": "Story 9:16",
+    "square": "Petak 1:1",
+    "sticker": "Pelekat"
+  },
+  "common": {
+    "madeWith": "Dicatat dengan JoyoRogo",
+    "kcal": "kcal",
+    "kcalValue": "{{value}} kcal",
+    "kg": "kg",
+    "g": "g",
+    "protein": "Protein",
+    "carbs": "Karbo",
+    "fat": "Lemak",
+    "days_other": "{{count}} hari",
+    "minutes": "minit"
+  },
+  "day": {
+    "eyebrow": "Hari ini",
+    "eaten": "Sudah masuk",
+    "ofTarget": "daripada {{target}} kcal",
+    "remaining": "Baki {{kcal}} kcal",
+    "overBy": "Lebih {{kcal}} kcal",
+    "gainLeft": "Kurang {{kcal}} kcal lagi",
+    "left": "Baki",
+    "over": "Lebih",
+    "gainShort": "Kurang",
+    "macros": "Makro",
+    "onTrack": "Ikut sasaran",
+    "kcalEaten": "kcal sudah masuk",
+    "eatenOfTarget": "{{eaten}} / {{target}} kcal",
+    "posterEaten": "Sudah",
+    "streak_other": "{{count}} hari berturutan",
+    "receipt": {
+      "title": "Resit hari ini",
+      "energy": "Tenaga",
+      "target": "Sasaran",
+      "left": "Baki",
+      "total": "Jumlah",
+      "streak": "Berturutan",
+      "thanks": "Terima kasih kerana mencatat"
+    }
+  },
+  "meal": {
+    "eyebrow": "Makanan saya",
+    "energy": "Tenaga",
+    "receipt": {
+      "title": "Resit makan",
+      "itemKcal": "{{kcal}} kcal",
+      "item": "Item",
+      "total": "Jumlah",
+      "thanks": "Terima kasih kerana mencatat"
+    }
+  },
+  "streak": {
+    "eyebrow": "Berturutan",
+    "title": "Konsisten mencatat",
+    "days_other": "hari berturutan",
+    "tracked_other": "{{count}} hari dicatat",
+    "toNext_other": "{{count}} hari lagi ke {{next}}",
+    "lastSeven": "7 hari terakhir",
+    "daysShort": "hari"
+  },
+  "weight": {
+    "eyebrow": "Kemajuan berat badan",
+    "towardGoal": "menuju sasaran",
+    "lost": "Turun {{kg}} kg",
+    "gained": "Naik {{kg}} kg",
+    "fromStart": "daripada berat awal",
+    "hiddenDown": "Bergerak turun",
+    "hiddenUp": "Bergerak naik",
+    "hiddenSteady": "Stabil",
+    "trend": "Trend minggu ini",
+    "start": "Awal",
+    "now": "Sekarang",
+    "goal": "Sasaran",
+    "numbersHidden": "Angka berat disembunyikan",
+    "progressToGoal": "{{pct}} menuju sasaran anda"
+  },
+  "week": {
+    "eyebrow": "Rumusan minggu",
+    "avgPerDay": "Purata sehari",
+    "onTarget": "Hari ikut sasaran",
+    "ofLogged_other": "daripada {{count}} hari dicatat",
+    "protein": "Protein",
+    "streak": "Berturutan",
+    "exercise": "Senaman",
+    "bestDay": "Hari terbaik",
+    "perDay": "Kalori sehari",
+    "target": "sasaran",
+    "weight": "Berat",
+    "weeklyTrend": "trend mingguan",
+    "targetLine": "Sasaran {{kcal}} kcal",
+    "daysUnit": "hari",
+    "bestDayOf": "Terbaik, {{day}}"
+  },
+  "challenge": {
+    "eyebrow": "Cabaran kumpulan",
+    "rank": "Kedudukan",
+    "ofPeople_other": "daripada {{count}} peserta",
+    "bestStreak": "Streak terbaik",
+    "hitDays": "Hari tercapai",
+    "ofJudged_other": "daripada {{count}} hari",
+    "participants": "Peserta",
+    "upcoming": "Akan bermula",
+    "done": "Selesai",
+    "active": "Sedang berjalan",
+    "podium": "Di podium",
+    "streak": "Streak sekarang",
+    "duration": "Tempoh",
+    "daysUnit": "hari"
+  },
+  "workout": {
+    "eyebrow": "Sesi latihan",
+    "volume": "Jumlah volum",
+    "duration": "Tempoh",
+    "sets": "Set",
+    "records": "Rekod baharu",
+    "recordsTitle": "Rekod peribadi",
+    "prNew": "Rekod baharu",
+    "minutesValue": "{{min}} minit",
+    "receipt": {
+      "title": "Resit latihan",
+      "total": "Jumlah",
+      "thanks": "Terima kasih kerana berlatih"
+    },
+    "volumeValue": "{{kg}} kg"
+  },
+  "milestone": {
+    "eyebrow": "Pencapaian",
+    "streak": {
+      "title_other": "{{count}} hari berturutan",
+      "sub": "Konsisten mencatat",
+      "unit_other": "hari berturutan"
+    },
+    "pr": {
+      "title_other": "{{count}} rekod baharu",
+      "sub": "Latihan memecahkan rekod",
+      "unit_other": "rekod baharu"
+    },
+    "week": {
+      "title_other": "{{count}} hari ikut sasaran",
+      "sub": "Minggu yang kemas",
+      "unit_other": "hari ikut sasaran"
+    },
+    "podium": {
+      "title": "Kedudukan {{rank}}",
+      "sub": "Cabaran kumpulan",
+      "unit": "Kedudukan"
+    }
+  },
+  "sheet": {
+    "empty": "Belum ada gaya yang sesuai untuk data ini.",
+    "pickTemplate": "Pilih gaya",
+    "inkDark": "Latar gelap",
+    "inkLight": "Latar cerah",
+    "hideNumbers": "Sembunyikan angka berat",
+    "showName": "Tunjukkan nama saya",
+    "watermark": "Tanda JoyoRogo",
+    "proOnly": "Khas Pro",
+    "kind": "Jenis",
+    "format": "Format",
+    "style": "Gaya",
+    "downloadingPhoto": "Mengambil foto asal...",
+    "nameUnavailable": "Gaya ini tidak menunjukkan nama",
+    "hideWeight": "Sembunyikan berat badan",
+    "hideWeightHint": "Hanya perubahan yang dipaparkan. Peratusan turut disembunyikan kerana boleh digunakan untuk mengira berat anda.",
+    "hideDeficit": "Sembunyikan anggaran defisit"
+  },
+  "period": {
+    "eyebrow": "Kemajuan",
+    "range": "{{from}} hingga {{to}} · {{days}} hari",
+    "lost": "Turun {{kg}} kg",
+    "gained": "Naik {{kg}} kg",
+    "steady": "Berat stabil",
+    "loggedHero": "{{logged}} daripada {{judged}} hari dicatat",
+    "trendLine": "Trend berat {{start}} ke {{end}} kg ({{pct}}%)",
+    "trendLineHidden": "Perubahan trend berat badan",
+    "rate": "Purata turun {{kg}} kg seminggu",
+    "rateUp": "Purata naik {{kg}} kg seminggu",
+    "upNote": "Naik turun itu wajar. Lihat arahnya setiap beberapa minggu.",
+    "weightChart": "Trend berat, kg",
+    "weightChartHidden": "Trend berat, tanpa angka",
+    "intakeDaily": "Kalori masuk sehari",
+    "intakeWeekly": "Purata kalori masuk seminggu",
+    "logged": "Hari dicatat",
+    "ofDays_other": "daripada {{count}} hari",
+    "streak_other": "Berturutan {{count}} hari",
+    "deficit": "Anggaran defisit",
+    "surplus": "Anggaran surplus",
+    "fat": "Bersamaan kira-kira {{kg}} kg lemak (7,700 kcal setiap kg)",
+    "estimateNote_other": "Anggaran daripada {{count}} hari dicatat yang lengkap, bukan ukuran. Hari tanpa catatan tidak dikira.",
+    "legend": "Garisan putus-putus: sasaran {{kcal}} kcal · Bar pendek: hari tanpa catatan",
+    "legendNoTarget": "Bar pendek: hari tanpa catatan"
+  }
+}

@@ -12,8 +12,17 @@ export const OG_IMAGE = {
   alt: "JoyoRogo: diet yang paham porsi warteg. Tiga angka harian: boleh makan, harus bakar, butuh tidur.",
 } as const;
 
+/** Share card for the Malaysian landing (og/og-my.html, `bun run og:my`). */
+export const OG_IMAGE_MY = {
+  path: "/og-my.png",
+  width: 1200,
+  height: 630,
+  alt: "JoyoRogo: kira kalori dari nasi lemak sampai teh tarik. Foto pinggan anda, kalori dianggar dalam beberapa saat.",
+} as const;
+
 export type PublicPath =
   | "/"
+  | "/my"
   | "/harga"
   | "/privasi"
   | "/syarat"
@@ -45,6 +54,13 @@ export const PAGES: Record<PublicPath, PageMeta> = {
     description:
       "Foto piringmu, AI menghitung kalorinya dalam beberapa detik. Tiap hari tahu berapa boleh makan, harus bakar, dan butuh tidur. Gratis, foto tidak disimpan.",
     lastmod: "2026-10-18",
+  },
+  "/my": {
+    title: "JoyoRogo: Kira Kalori Hidangan Malaysia dari Foto",
+    ogTitle: "JoyoRogo: Kira Kalori dari Nasi Lemak sampai Teh Tarik",
+    description:
+      "Foto pinggan anda, kalori dianggar dalam beberapa saat. Nilai kcal nasi lemak, roti canai, teh tarik dan hidangan kedai mamak lain dirujuk pada pangkalan data HPB Singapura, sumbernya dinyatakan. Percuma, foto tidak disimpan.",
+    lastmod: "2026-10-21",
   },
   "/harga": {
     title: "Harga | JoyoRogo",

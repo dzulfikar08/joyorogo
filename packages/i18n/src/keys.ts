@@ -50,8 +50,15 @@ export function missingKeys(locale: Locale): string[] {
   return requiredKeys(locale).filter((key) => !defined.has(key));
 }
 
-/** Keys `locale` defines that the source language does not (typos, deleted strings). */
+/**
+ * Keys `locale` defines that the source language does not (typos, deleted strings). A plural form the
+ * language does not use (`x_one` in Malay, which only has `other`) is harmless when its base key is
+ * required: the source itself may carry one, and i18next ignores it.
+ */
 export function orphanKeys(locale: Locale): string[] {
   const required = new Set(requiredKeys(locale));
-  return [...definedKeys(locale)].filter((key) => !required.has(key)).sort();
+  const bases = new Set([...required].map((key) => key.replace(PLURAL_SUFFIX, "")));
+  return [...definedKeys(locale)]
+    .filter((key) => !required.has(key) && !(PLURAL_SUFFIX.test(key) && bases.has(key.replace(PLURAL_SUFFIX, ""))))
+    .sort();
 }

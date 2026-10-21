@@ -1,0 +1,111 @@
+{
+  "title": "Guna Claude/ChatGPT dengan data JoyoRogo",
+  "subtitle": "Tanya AI tentang catatan makan, senaman, berat, dan tidur anda sendiri. Baca sahaja, memerlukan JoyoRogo Pro.",
+  "toc": "Dalam halaman ini",
+  "what": {
+    "title": "Apa ini",
+    "p1": "JoyoRogo ada penyambung (connector) yang membolehkan Claude atau ChatGPT membaca data anda di JoyoRogo dan JoyoFit, kemudian menjawab soalan anda dengan data itu. Contohnya: \"Kenapa berat badan saya tidak turun?\" atau \"Cukupkah tidur saya minggu ini?\"",
+    "p2": "Sifatnya baca sahaja. AI tidak boleh mencatat, mengubah, atau memadam apa-apa dalam akaun anda. Ciri ini sebahagian daripada JoyoRogo Pro."
+  },
+  "need": {
+    "title": "Apa yang anda perlukan",
+    "pro": "JoyoRogo Pro yang aktif. Tanpa Pro anda tetap boleh menyambung, tetapi setiap soalan dijawab bahawa Pro diperlukan.",
+    "claude": "Untuk Claude: akaun claude.ai dengan penyambung tersuai (custom connector). Buat masa ini tersedia pada pelan Free (satu penyambung), Pro, Max, Team, dan Enterprise. Pada Team dan Enterprise, Owner organisasi yang menambahnya.",
+    "chatgpt": "Untuk ChatGPT: pelan yang membenarkan pelayan MCP tersuai. Buat masa ini OpenAI menyenaraikan Business dan Enterprise/Edu, dan Pro untuk akses baca sahaja, hanya di ChatGPT web. Pada sesetengah pelan, admin workspace perlu membenarkannya.",
+    "note": "Pelan dan menu dalam aplikasi AI kerap berubah. Jika langkah di bawah berbeza daripada yang anda lihat, semak halaman bantuan penyedianya: Anthropic (support.claude.com) atau OpenAI (help.openai.com)."
+  },
+  "address": {
+    "title": "Alamat penyambung",
+    "body": "Alamat yang ditampal dalam aplikasi AI:",
+    "copy": "Salin alamat",
+    "copied": "Disalin"
+  },
+  "claude": {
+    "title": "Langkah di Claude",
+    "intro": "Lakukan penyambungan di claude.ai (web) atau Claude Desktop. Menu dalam aplikasi telefon mungkin berbeza, jadi jika tidak jumpa di sana, guna versi web.",
+    "s1": "Buka claude.ai, kemudian Customize, kemudian Connectors.",
+    "s2": "Pilih Add custom connector.",
+    "s3": "Isi nama dengan JoyoRogo dan URL pelayan MCP dengan https://api.joyorogo.com/mcp. Pada skrin seterusnya, untuk Authentication pilih Sign in now. Untuk OAuth client pilih Register automatically, bukan Use Claude’s published identity walaupun ditanda Recommended, kerana JoyoRogo belum menyokong cara itu. Biarkan Request headers kosong. Jika muncul mesej beberapa semakan dilangkau kerana pelayan lebih daripada 5 saat, abaikan sahaja dan pilih mengikut langkah ini.",
+    "s4": "Pilih Add, kemudian Connect pada penyambung JoyoRogo.",
+    "s5": "Pelayar membuka halaman JoyoRogo. Log masuk dengan akaun anda, semak kebenaran yang diminta, kemudian tekan Benarkan.",
+    "s6": "Dalam sesebuah sembang, tekan butang +, pilih Connectors, kemudian hidupkan JoyoRogo untuk sembang itu.",
+    "s7": "Tanya sesuatu, contohnya \"Ringkaskan makanan saya 7 hari terakhir\". Claude akan menunjukkan apabila menggunakan alat JoyoRogo.",
+    "teamNote": "Pada Team dan Enterprise, Owner menambah penyambung di Organization settings (tetapan yang sama: Sign in now dan Register automatically), kemudian setiap ahli menekan Connect dan log masuk dengan akaun JoyoRogo masing-masing. Selepas selesai, Claude mungkin menawarkan langkah Add another Owner. Itu urusan admin organisasi Claude dan tidak wajib untuk JoyoRogo."
+  },
+  "chatgpt": {
+    "title": "Langkah di ChatGPT",
+    "intro": "Penyambung pelayan MCP tersuai hanya boleh ditambah di ChatGPT web (chatgpt.com), bukan dalam aplikasi telefon.",
+    "s1": "Buka chatgpt.com/plugins (menu Plugins).",
+    "s2": "Tekan butang tambah, kemudian pilih Add custom MCP server.",
+    "s3": "Isi nama JoyoRogo dan, jika mahu, penerangan ringkas.",
+    "s4": "Pada Connection, isi https://api.joyorogo.com/mcp. Untuk Authentication pilih OAuth.",
+    "s5": "Baca amaran risikonya, tandakan I understand and want to continue, kemudian pilih Create as a plugin.",
+    "s6": "Pelayar membuka halaman JoyoRogo. Log masuk dengan akaun anda, semak kebenaran yang diminta, kemudian tekan Benarkan.",
+    "s7": "Dalam sembang baharu, taip @ kemudian pilih JoyoRogo, lalu tanya sesuatu.",
+    "legacy": "Pada paparan lama, laluannya Settings, kemudian Apps (atau Connectors), kemudian Advanced settings, hidupkan Developer mode, kemudian tekan Create dan isi alamat pelayan MCP dengan pengesahan OAuth. Jika menu yang anda lihat berbeza, ikut panduan OpenAI di help.openai.com."
+  },
+  "try": {
+    "title": "Cuba tanya",
+    "hint": "Tulis soalan dengan bahasa anda sendiri. AI memilih alat yang sesuai.",
+    "q1": "Ringkaskan makanan saya 7 hari terakhir. Hari mana yang paling jauh daripada sasaran saya?",
+    "q2": "Adakah berat badan saya turun atau tidak berubah dalam sebulan ini, dan bila kira-kira sampai sasaran?",
+    "q3": "Bandingkan tidur dan pemulihan saya minggu ini dengan minggu lepas.",
+    "q4": "Apakah latihan saya bulan ini, dan seberat mana sesi beban yang terakhir?",
+    "q5": "Daripada catatan makanan saya, cukupkah protein dan apa yang boleh ditambah?"
+  },
+  "tools": {
+    "title": "Apa yang boleh dibaca",
+    "intro": "Tujuh alat, semuanya baca sahaja, dan setiap alat memerlukan kebenaran yang anda setujui pada skrin Benarkan.",
+    "get_profile": "Profil dan sasaran: mod (turun, jaga, naik, mengandung), tinggi, umur, berat awal dan sasaran, sasaran kalori dan protein.",
+    "get_food_log": "Catatan makan: setiap makanan mengikut hari dengan kalori dan makronya.",
+    "get_daily_totals": "Jumlah harian: kalori dan makro setiap hari berbanding sasaran, untuk tempoh panjang.",
+    "get_weight_history": "Sejarah berat: timbangan, ukur lilit perut, trend, dan anggaran tarikh sampai sasaran.",
+    "list_workouts": "Senarai latihan: latihan daripada jam JoyoFit dan sesi latihan beban.",
+    "get_workout": "Butiran satu latihan: degupan jantung, zon, set dan beban, tanpa laluan GPS.",
+    "get_recovery_metrics": "Tidur dan pemulihan: jam tidur, pemulihan, degupan jantung rehat, HRV, VO2max, dan langkah, daripada JoyoFit atau Health Connect/Apple Health."
+  },
+  "limits": {
+    "title": "Had",
+    "l1": "Baca sahaja: tiada apa yang boleh dicatat, diubah, atau dipadam melalui sambungan ini.",
+    "l2": "Hanya untuk JoyoRogo Pro. Pada akaun Free setiap soalan dijawab bahawa Pro diperlukan.",
+    "l3": "Catatan makan dibaca paling banyak 31 hari setiap panggilan. Untuk tempoh lebih panjang, AI menggunakan jumlah harian.",
+    "l4": "Ada had panggilan seminit dan sehari (24 jam). Jika tercapai, tunggu sebentar atau cuba lagi esok.",
+    "l5": "Laluan GPS tidak pernah dikongsi, dan data yang diimport daripada Strava juga tidak.",
+    "l6": "Data anda dibaca mengikut zon waktu tempatan, dan data daripada jam atau Health Connect hanya ada jika sudah disegerakkan."
+  },
+  "trouble": {
+    "title": "Jika ada masalah",
+    "loop": {
+      "q": "Log masuk berulang tanpa hasil",
+      "a": "Pastikan pelayar membenarkan kuki daripada api.joyorogo.com, dan jangan guna mod yang menyekat kuki merentas tapak. Jika halaman menyatakan permintaan telah tamat tempoh, mulakan semula daripada aplikasi AI."
+    },
+    "clientId": {
+      "q": "Connect gagal atau halaman log masuk JoyoRogo tidak muncul",
+      "a": "Semak pilihan OAuth client dalam tetapan penyambung. JoyoRogo hanya menyokong Register automatically. Jika yang dipilih Use Claude’s published identity atau Use your own OAuth client, padam penyambungnya, tambah semula dengan Register automatically, kemudian Connect."
+    },
+    "pro": {
+      "q": "Muncul mesej JoyoRogo Pro diperlukan",
+      "a": "Penyambungan berjaya, tetapi akaun anda belum Pro. Aktifkan Pro, kemudian tanya semula tanpa menyambung semula."
+    },
+    "reconnect": {
+      "q": "Sudah saya putuskan, bagaimana menyambung semula",
+      "a": "Tekan Connect sekali lagi pada penyambung JoyoRogo dalam aplikasi AI. Jika gagal, padam penyambungnya di sana, tambah semula dengan alamat yang sama, kemudian benarkan."
+    },
+    "scope": {
+      "q": "AI kata tiada akses kepada sebahagian data",
+      "a": "Itu bermakna kebenaran untuk data itu belum diberikan. Padam penyambung dalam aplikasi AI, tambah semula, dan setujui semua kebenaran pada skrin Benarkan."
+    }
+  },
+  "privacy": {
+    "title": "Privasi",
+    "p1": "Data anda berpindah daripada JoyoRogo kepada penyedia AI yang anda pilih (Anthropic, OpenAI, atau lain-lain) hanya apabila anda mengemukakan soalan dalam akaun anda di sana. Selepas sampai di sana, dasar privasi dan penyimpanan mereka yang terpakai. Kami tidak dapat mengawalnya, jadi semak tetapan dalam akaun anda, termasuk pilihan supaya tidak digunakan untuk melatih model.",
+    "p2": "JoyoRogo tidak menghantar data anda ke mana-mana atas inisiatif sendiri melalui sambungan ini.",
+    "p3": "Kami merekod apa yang dibaca: alat yang digunakan dan tempoh tarikhnya, bukan kandungan datanya. Rekod itu disimpan 90 hari dan boleh anda lihat di Sambungan AI.",
+    "p4": "Anda boleh memutuskan aplikasi pada bila-bila masa di Sambungan AI, dan akses terhenti serta-merta.",
+    "p5": "Memadam data anda di JoyoRogo memutuskan semua aplikasi yang bersambung.",
+    "p6": "Data Strava dan laluan GPS tidak pernah dikongsi.",
+    "p7": "Jawapan AI boleh tersilap. Data kesihatan di sini bukan nasihat perubatan; untuk keputusan kesihatan, berbincanglah dengan pakar kesihatan.",
+    "policy": "Baca dasar privasi penuh",
+    "manage": "Urus sambungan di Sambungan AI"
+  }
+}

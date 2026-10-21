@@ -1,6 +1,6 @@
 import type { AuthSession } from "@joyorogo/auth";
 import type { Database } from "@joyorogo/db";
-import type { Locale } from "@joyorogo/i18n";
+import type { Locale, Region } from "@joyorogo/i18n";
 import type { RateLimitBinding } from "./lib/group-preview";
 import type { ImagesBinding, StickersBucket } from "./lib/sticker";
 import type { ShadowEnv } from "./lib/shadow-scan";
@@ -89,6 +89,11 @@ export type Context = {
    * Use it for every user-facing string the request produces.
    */
   locale: Locale;
+  /**
+   * The caller's market (Malaysia or Indonesia): nutrient table and dish defaults of scans. From a Bahasa Melayu
+   * UI or the network country (CF-IPCountry), see `resolveRegion`. Unset (tests, old callers) = Indonesia.
+   */
+  region?: Region;
   /** Keeps background work (sticker cutouts) alive after the response. */
   waitUntil: (promise: Promise<unknown>) => void;
   /**

@@ -20,6 +20,11 @@ export type AppConfig = {
    * visitor's country is known and is not Indonesia. Prices in US cents.
    */
   usd?: UsdConfig | null;
+  /**
+   * Ringgit prices (sen) of the same Polar plans; null/missing = not configured, show no ringgit price. Malaysian
+   * visitors only see them where the page says so (the /my landing).
+   */
+  myr?: MyrConfig | null;
   freeDailyScans: number | null;
   founderDailyCap: number | null;
   founderPriceIdr: number;
@@ -41,6 +46,12 @@ export type UsdConfig = {
   monthlyCents: number;
   yearlyCents: number;
   preferred: boolean;
+  country: string | null;
+};
+
+export type MyrConfig = {
+  monthlySen: number;
+  yearlySen: number;
   country: string | null;
 };
 

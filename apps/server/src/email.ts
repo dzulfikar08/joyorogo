@@ -31,7 +31,7 @@ const GREEN = "#16a34a";
 const INK = "#1f2937";
 const MUTED = "#6b7280";
 
-const INTL_TAG: Record<Locale, string> = { id: "id-ID", en: "en-US" };
+const INTL_TAG: Record<Locale, string> = { id: "id-ID", en: "en-US", ms: "ms-MY" };
 
 /** "13 Oktober 2026" / "October 13, 2026": the WIB calendar day of a period end. */
 export function formatWibDate(date: Date, locale: Locale = DEFAULT_LOCALE): string {

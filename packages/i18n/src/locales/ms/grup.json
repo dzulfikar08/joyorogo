@@ -1,0 +1,266 @@
+{
+  "members_other": "{{count}} ahli",
+  "list": {
+    "title": "Kumpulan",
+    "subtitle": "Beri semangat bersama, curi perhatian gaya VAR.",
+    "loading": "Memuatkan kumpulan",
+    "inbox": "Peti masuk",
+    "inboxUnread": "Peti masuk, {{count}} belum dibaca",
+    "listLabel": "Senarai kumpulan",
+    "row": {
+      "owner_other": "Anda pemilik · {{count}} ahli"
+    },
+    "empty": {
+      "title": "Belum ada kumpulan",
+      "body": "Buat kumpulan untuk rakan sepejabat atau keluarga, kemudian kongsi kod jemputannya."
+    },
+    "create": "Buat kumpulan",
+    "join": "Sertai dengan kod"
+  },
+  "create": {
+    "title": "Buat kumpulan",
+    "limits": "Maksimum 5 kumpulan setiap akaun, 20 ahli setiap kumpulan.",
+    "nameLabel": "Nama kumpulan",
+    "namePlaceholder": "cth. Pasukan Sihat Pejabat",
+    "submit": "Buat",
+    "pending": "Membuat...",
+    "toast": "Kumpulan dibuat. Kongsi kod jemputannya!",
+    "nameHint": "1-40 huruf, bebas berkreasi."
+  },
+  "join": {
+    "title": "Sertai kumpulan",
+    "hint": "Minta kod daripada kawan anda, atau buka pautan jemputannya.",
+    "codeLabel": "Kod jemputan",
+    "codePlaceholder": "cth. JOYO1234",
+    "check": "Semak kod",
+    "checking": "Menyemak kod…",
+    "alreadyMember": "Anda sudah menjadi ahli kumpulan ini.",
+    "submit": "Sertai",
+    "pending": "Menyertai…",
+    "toast": "Berjaya menyertai!",
+    "codeLength": "Kod jemputan 4-20 aksara.",
+    "pasteFirst": "Tampal kod atau pautan jemputan dahulu.",
+    "codeHint": "Tampal kod atau pautan jemputan di sini.",
+    "linkPlaceholder": "cth. ABC123 atau pautan jemputan"
+  },
+  "how": {
+    "title": "Cara ia berfungsi",
+    "body": "Cuit kawan yang malas mencatat, atau intai isi perutnya melalui VAR."
+  },
+  "invite": {
+    "invalidTitle": "Kod jemputan tidak sah",
+    "invalidBody": "Semak semula pautan atau kod, kemudian cuba buka sekali lagi.",
+    "openApp": "Buka JoyoRogo",
+    "checking": "Menyemak jemputan",
+    "yourGroup": "Kumpulan anda",
+    "invitedTo": "Anda dijemput ke",
+    "pitch": "Sertai untuk pantau kalori bersama, cuit yang malas mencatat, dan intai perut melalui VAR.",
+    "open": "Buka kumpulan",
+    "opening": "Membuka kumpulan…",
+    "signIn": "Log masuk untuk menyertai",
+    "signInHint": "Log masuk dengan Google, kemudian anda kembali ke sini dan tinggal ketik Sertai.",
+    "joinFailed": "Gagal menyertai",
+    "incomplete": "Pautan jemputan tidak lengkap.",
+    "invitedToGroup": "Anda dijemput ke kumpulan",
+    "membersAlready_other": "{{count}} ahli • anda sudah di dalam",
+    "join": "Sertai kumpulan",
+    "later": "Lain kali",
+    "shareText": "Jom sertai kumpulan \"{{name}}\" di JoyoRogo, supaya kita saling mencatat kalori dan cuit yang terlupa.\nKod: {{code}}"
+  },
+  "detail": {
+    "notFound": "Kumpulan tidak ditemui.",
+    "subtitle_other": "{{count}} ahli · kod {{code}}",
+    "viewLabel": "Paparan kumpulan",
+    "tab": {
+      "members": "Ahli",
+      "activity": "Aktiviti",
+      "challenges": "Cabaran"
+    },
+    "invite": "Jemput",
+    "settings": "Tetapan"
+  },
+  "toast": {
+    "poked": "Cuit dihantar",
+    "noteSent": "Catatan dihantar",
+    "renamed": "Nama kumpulan ditukar",
+    "newCode": "Kod baharu: {{code}}",
+    "removed": "{{name}} dikeluarkan.",
+    "memberFallback": "Ahli",
+    "left": "Anda keluar daripada kumpulan.",
+    "linkCopied": "Pautan disalin",
+    "sendFailed": "Gagal menghantar",
+    "settingsSaved": "Tetapan kumpulan disimpan",
+    "shareFailed": "Gagal menukar tetapan kongsi",
+    "renameFailed": "Gagal menukar nama",
+    "rotateFailed": "Gagal menukar kod",
+    "removeFailed": "Gagal mengeluarkan",
+    "leaveFailed": "Gagal keluar",
+    "noteSentBody": "Catatan untuk {{name}} sudah dihantar."
+  },
+  "settings": {
+    "title": "Tetapan kumpulan",
+    "hint": "Jemputan, privasi dan keahlian.",
+    "invite": {
+      "title": "Jemputan",
+      "share": "Kongsi",
+      "copy": "Salin",
+      "rotate": "Tukar kod"
+    },
+    "privacy": {
+      "title": "Privasi saya",
+      "food": {
+        "title": "Papar makanan saya",
+        "hint": "Jumlah kalori tetap kelihatan kepada ahli pasukan, hanya nama makanan anda disembunyikan.",
+        "titleNative": "Papar makanan saya kepada kumpulan",
+        "hintNative": "Jumlah kalori anda tetap kelihatan walau apa pilihan anda"
+      },
+      "var": {
+        "title": "Status VAR perut",
+        "hint": "Keputusan + tarikh imbasan terakhir anda kelihatan dalam pasukan ini. Foto perut tidak pernah disertakan.",
+        "label": "Kongsi status VAR perut"
+      }
+    },
+    "name": {
+      "title": "Nama kumpulan",
+      "label": "Nama kumpulan baharu",
+      "submit": "Tukar"
+    },
+    "members": {
+      "title": "Ahli",
+      "remove": "Keluarkan"
+    },
+    "leave": {
+      "confirm": "Keluar daripada {{name}}?",
+      "confirmOwner": "Keluar daripada {{name}}? Kumpulan akan berpindah kepada ahli lain.",
+      "yes": "Ya, keluar",
+      "button": "Keluar daripada kumpulan"
+    },
+    "shareInvite": "Kongsi jemputan",
+    "codeLine": "Kod {{code}}",
+    "rotate": "Tukar kod jemputan",
+    "rotating": "Menukar…",
+    "rotateHint": "Kod lama tidak lagi sah",
+    "rename": "Ubah nama kumpulan"
+  },
+  "note": {
+    "title": "Catatan untuk {{name}}",
+    "hint": "Maksimum 20 catatan sehari, 140 aksara.",
+    "label": "Isi catatan",
+    "placeholder": "Tulis catatan semangat…",
+    "send": "Hantar catatan",
+    "sending": "Menghantar…",
+    "suggestion": {
+      "s1": "Jom jalan 10 minit!",
+      "s2": "Jangan lupa minum air",
+      "s3": "Catat sarapan tu",
+      "s4": "Semangat, hampir sampai!"
+    },
+    "sendCount": "Hantar ({{count}}/140)",
+    "messageLabel": "Mesej",
+    "hintNative": "Maksimum 140 huruf, dihantar melalui pemberitahuan.",
+    "placeholderNative": "cth. Jom jalan 10 minit!"
+  },
+  "member": {
+    "owner": "pemilik",
+    "member": "ahli",
+    "active": "aktif {{time}}",
+    "inactive": "belum aktif minggu ini",
+    "streak_other": "{{count}} hari berturut-turut",
+    "eatenLabel": "Makan {{eaten}} daripada {{target}} kcal",
+    "burned": "{{kcal}} dibakar",
+    "meals_other": "{{count}}x catat makan",
+    "scanVar": "Imbas VAR perut",
+    "poke": "Cuit",
+    "note": "Catatan",
+    "var": "VAR",
+    "inactiveShort": "belum aktif",
+    "you": "anda",
+    "ownerCap": "Pemilik",
+    "intake": "Pengambilan hari ini",
+    "statBurn": "Bakar {{kcal}} kcal",
+    "statMeals_other": "{{count}} makan",
+    "statExercise": "{{minutes}} min senaman",
+    "statDelta": "({{value}}/7hr)"
+  },
+  "var": {
+    "chip": {
+      "self": "VAR perut anda · {{verdict}} · {{date}}",
+      "other": "VAR perut {{name}} · {{verdict}} · {{date}}"
+    },
+    "verdict": {
+      "turun": "mengecil",
+      "naik": "lebih penuh",
+      "sama": "belum ada beza",
+      "beda": "foto berbeza",
+      "pertama": "imbasan pertama"
+    }
+  },
+  "activity": {
+    "loading": "Memuatkan aktiviti",
+    "errorTitle": "Aktiviti gagal dimuatkan",
+    "empty": {
+      "title": "Belum ada aktiviti",
+      "body": "Catat makan, senaman atau timbangan, dan aktiviti 7 hari terakhir muncul di sini."
+    },
+    "listLabel": "Aktiviti 7 hari terakhir",
+    "food": {
+      "named": "{{name}} ({{kcal}} kcal)",
+      "plain": "makan ({{kcal}} kcal)"
+    },
+    "exercise": {
+      "fallback": "senaman",
+      "timed": "{{name}} {{minutes}} minit ({{kcal}} kcal)",
+      "plain": "{{name}} ({{kcal}} kcal)"
+    },
+    "weight": "timbangan: {{kg}} kg",
+    "someone": "Seseorang",
+    "mealFallback": "Makan",
+    "hidden": "disembunyikan",
+    "exerciseLine": "{{name}} • {{minutes}} min • {{kcal}} kcal",
+    "exerciseFallback": "Senaman",
+    "weightLine": "Timbang • {{kg}} kg",
+    "emptyNative": "Belum ada aktiviti. Masa untuk catat makan pertama!"
+  },
+  "server": {
+    "error": {
+      "notFound": "Pasukan tidak ditemui.",
+      "tooManyGroups": "Maksimum {{max}} pasukan setiap akaun.",
+      "tooManyAttempts": "Terlalu banyak percubaan. Tunggu sebentar kemudian cuba lagi.",
+      "invalidCode": "Kod jemputan tidak sah.",
+      "full": "Pasukan ini sudah penuh.",
+      "ownerOnly": "Hanya pemilik pasukan.",
+      "useLeave": "Gunakan keluar pasukan.",
+      "pokeSelf": "Tidak boleh mencuit diri sendiri.",
+      "notInGroup": "Kawan itu tiada dalam pasukan ini.",
+      "pokeLimit": "Cuit lagi sejam lagi.",
+      "noteEmpty": "Catatan tidak boleh kosong.",
+      "noteQuota": "Kuota catatan hari ini sudah habis."
+    }
+  },
+  "confirm": {
+    "removeTitle": "Keluarkan ahli?",
+    "leaveTitle": "Keluar daripada kumpulan?",
+    "removeBody": "{{name}} tidak dapat melihat kumpulan ini lagi.",
+    "leaveBody": "{{name}} akan hilang daripada senarai kumpulan anda.",
+    "leaveConfirm": "Keluar"
+  },
+  "fitness": {
+    "share": {
+      "title": "Kongsi skor JoyoFit saya",
+      "hint": "Recovery, strain, tidur dan kesediaan dipaparkan pada kad anda dalam kumpulan ini.",
+      "label": "Kongsi skor JoyoFit"
+    },
+    "recovery": "Recovery {{pct}}%",
+    "strain": "Strain {{n}}",
+    "sleep": "Tidur {{pct}}%",
+    "readiness": {
+      "Primed": "Prima",
+      "Balanced": "Seimbang",
+      "Strained": "Tegang",
+      "Run down": "Letih"
+    }
+  },
+  "time": {
+    "never": "belum pernah"
+  }
+}

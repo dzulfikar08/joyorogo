@@ -1,0 +1,305 @@
+{
+  "server": {
+    "nothingChanged": "Tiada apa yang diubah.",
+    "strengthEditedElsewhere": "Latihan beban diubah melalui halaman Latihan beban.",
+    "strava": {
+      "notConfigured": "Strava belum dikonfigurasikan pada pelayan.",
+      "rejected": "Sambungan Strava ditolak. Sambung semula di halaman profil.",
+      "scopeMissing": "Benarkan JoyoRogo membaca aktiviti anda di halaman Strava, kemudian sambung lagi.",
+      "retry": "Gagal menghubungi Strava. Cuba lagi nanti.",
+      "connectFirst": "Sambungkan Strava dahulu di halaman profil.",
+      "expired": "Sambungan Strava telah tamat tempoh. Sambung semula di halaman profil."
+    },
+    "workout": {
+      "unknownExercise": "Gerakan tidak dikenali: {{id}}",
+      "needsDuration": "{{name}} memerlukan tempoh.",
+      "needsReps": "{{name}} memerlukan repetisi.",
+      "invalidStart": "Waktu mula tidak sah.",
+      "saveFailed": "Sesi gagal disimpan.",
+      "exerciseCreateFailed": "Gerakan gagal dibuat.",
+      "exerciseNotFound": "Gerakan tidak dijumpai.",
+      "sessionNotFound": "Sesi tidak dijumpai.",
+      "routineNotFound": "Rutin tidak dijumpai."
+    }
+  },
+  "healthSync": {
+    "healthConnectUnavailable": "Health Connect tidak tersedia pada peranti ini. Pasang aplikasi Health Connect, kemudian cuba lagi.",
+    "healthConnectPermission": "Kebenaran membaca latihan daripada Health Connect belum diberikan.",
+    "appleHealthUnavailable": "Apple Health tidak tersedia pada peranti ini. Import memerlukan iPhone dengan aplikasi Health."
+  },
+  "screen": {
+    "title": "Senaman",
+    "manual": "Tulis manual",
+    "loading": "Memuatkan aktiviti hari ini"
+  },
+  "summary": {
+    "burned": "Dibakar",
+    "ring": "Dibakar {{burned}}",
+    "ringTarget": "Dibakar {{burned}} daripada sasaran {{target}}",
+    "noTarget": "Lengkapkan profil untuk melihat sasaran harian.",
+    "over": "Melebihi sasaran {{target}}, bagus.",
+    "progress_other": "{{count}} aktiviti · sasaran {{target}}",
+    "steps": "langkah",
+    "km": "km",
+    "activeKcal": "kcal aktif"
+  },
+  "list": {
+    "aria": "Aktiviti",
+    "empty": {
+      "today": "Belum ada aktiviti hari ini",
+      "day": "Belum ada aktiviti pada {{date}}",
+      "hintWeb": "Pilih jenis senaman di bawah, atau sambungkan Strava supaya masuk secara automatik.",
+      "hintNative": "Pilih aktiviti di bawah atau import daripada {{health}}."
+    }
+  },
+  "row": {
+    "detail": "{{minutes}} minit · {{kcal}}",
+    "detailSource": "{{detail}} · {{source}}",
+    "share": "Kongsi {{name}} ke suapan",
+    "remove": "Padam {{name}}",
+    "shareTitle": "Kongsi aktiviti ini"
+  },
+  "source": {
+    "manual": "Manual"
+  },
+  "toast": {
+    "logged": "{{name}} dicatat (+{{kcal}})",
+    "fallbackName": "Aktiviti",
+    "saveFailed": "Gagal menyimpan."
+  },
+  "history": {
+    "title": "7 hari terakhir",
+    "aria": "Sejarah 7 hari terakhir"
+  },
+  "picker": {
+    "title": "Tambah aktiviti",
+    "aria": "Pilih jenis aktiviti",
+    "loadError": "Gagal memuatkan jenis aktiviti: {{error}}",
+    "estimate": "±{{kcal}}",
+    "manualKcal": "kalori manual",
+    "tile": "Tambah {{type}}",
+    "tileEstimate": "Tambah {{type}}, kira-kira {{kcal}} untuk 30 minit",
+    "noWeight": "Catat berat badan di halaman Berat untuk melihat anggaran kalori."
+  },
+  "about": {
+    "title": "Cara ia berfungsi",
+    "estimate": "Anggaran kalori setiap 30 minit menggunakan berat badan terakhir anda.",
+    "sources": "Semua sumber dikira: manual, Strava, {{health}}.",
+    "strength": "Latihan beban: catat gerakan, set, reps dan beban. Kekalkan otot semasa defisit."
+  },
+  "form": {
+    "title": "Catat aktiviti",
+    "titleType": "Catat {{type}}",
+    "description": "Kalori diisi secara automatik daripada tempoh dan berat terakhir anda.",
+    "type": "Jenis aktiviti",
+    "typesLoading": "Memuatkan jenis aktiviti...",
+    "typesError": "Gagal memuatkan jenis: {{error}}",
+    "name": "Nama aktiviti",
+    "nameOptional": "Nama (pilihan)",
+    "namePlaceholder": "Berjalan petang",
+    "duration": "Tempoh (minit)",
+    "kcal": "Kalori (kcal)",
+    "kcalHint": "Anggaran menggunakan berat terkini anda, {{kg}} kg.",
+    "defaultName": "Senaman",
+    "saving": "Menyimpan...",
+    "error": {
+      "nameRequired": "Tulis nama aktiviti, contoh: Berenang petang.",
+      "kcalRequired": "Isi jumlah kalori yang dibakar, contoh: 200.",
+      "durationRange": "Tempoh mesti antara {{min}} dan {{max}} minit."
+    }
+  },
+  "edit": {
+    "title": "Ubah aktiviti",
+    "name": "Nama",
+    "durationA11y": "Tempoh dalam minit",
+    "kcalA11y": "Kalori dalam kcal",
+    "linked": "Terhubung",
+    "unlinked": "Terpisah",
+    "linkOn": "Tempoh dan kalori terhubung, ketik untuk memisahkan",
+    "linkOff": "Tempoh dan kalori terpisah, ketik untuk menghubungkan",
+    "invalid": "Kalori belum sah",
+    "summary": "{{kcal}} · {{minutes}} minit",
+    "hint": {
+      "unlinked": "Terpisah: tempoh dan kalori diisi sendiri.",
+      "empty": "Isi tempoh dan kalori dahulu, kemudian ubah salah satu supaya yang lain turut berubah.",
+      "linked": "Ubah tempoh, kalori turut menyesuaikan. Taip kalori sendiri untuk menetapkan semula kadarnya."
+    },
+    "fromSource": "Daripada {{source}}. Perubahan anda kekal tersimpan apabila disegerakkan semula.",
+    "date": "Dicatat pada",
+    "pickDate": "Pilih tarikh, dipilih {{day}}",
+    "moveTo": "Akan dipindahkan ke {{date}}.",
+    "toast": {
+      "moved": "Dipindahkan ke {{day}}",
+      "updated": "{{name}} dikemas kini"
+    }
+  },
+  "type": {
+    "jalan": "Berjalan santai",
+    "jalan_cepat": "Berjalan pantas",
+    "lari": "Lari",
+    "sepeda": "Berbasikal santai",
+    "sepeda_cepat": "Berbasikal laju",
+    "berenang": "Berenang",
+    "yoga": "Yoga",
+    "angkat_beban": "Angkat beban",
+    "futsal": "Futsal / bola sepak",
+    "badminton": "Badminton"
+  },
+  "latihan": {
+    "title": "Latihan Beban",
+    "count": {
+      "exercises_other": "{{count}} gerakan",
+      "sets_other": "{{count}} set",
+      "minutes_other": "{{count}} minit"
+    },
+    "type": {
+      "weight_reps": "Beban × reps",
+      "bodyweight_reps": "Berat badan × reps",
+      "assisted": "Berbantu",
+      "duration": "Tempoh",
+      "distance_duration": "Jarak + tempoh"
+    },
+    "muscle": {
+      "dada": "Dada",
+      "punggung_atas": "Belakang atas",
+      "lats": "Lats",
+      "bahu_depan": "Bahu depan",
+      "bahu_samping": "Bahu sisi",
+      "bahu_belakang": "Bahu belakang",
+      "biceps": "Biceps",
+      "triceps": "Triceps",
+      "lengan_bawah": "Lengan bawah",
+      "perut": "Perut",
+      "glutes": "Glutes",
+      "quadriceps": "Quadriceps",
+      "hamstring": "Hamstring",
+      "betis": "Betis"
+    },
+    "equipment": {
+      "barbell": "Barbell",
+      "dumbbell": "Dumbbell",
+      "mesin": "Mesin",
+      "kabel": "Kabel",
+      "bodyweight": "Tanpa alat"
+    },
+    "setType": {
+      "normal": "Biasa",
+      "warmup": "Pemanasan",
+      "drop": "Drop set",
+      "failure": "Gagal",
+      "badge": {
+        "warmup": "P",
+        "drop": "D",
+        "failure": "G"
+      }
+    },
+    "set": {
+      "weighted": "{{kg}} kg × {{reps}}",
+      "reps_other": "{{count}} reps",
+      "seconds_other": "{{count}} saat"
+    },
+    "record": {
+      "weighted": "{{reps}}× {{kg}} kg",
+      "bodyweight": "{{reps}}× tanpa beban",
+      "best": "Rekod: {{set}}",
+      "bestE1rm": "Rekod: {{set}} · e1RM {{kg}} kg"
+    },
+    "pr": {
+      "kind": {
+        "weight": "Beban terberat",
+        "one_rm": "e1RM terbaik",
+        "reps": "Reps terbanyak",
+        "set_volume": "Volum set terbaik"
+      },
+      "repsAtWeight": "Reps terbanyak @ {{kg}} kg"
+    },
+    "list": {
+      "history": {
+        "title": "Sejarah sesi",
+        "emptyTitle": "Belum ada sesi",
+        "emptyHint": "Dua tiga sesi seminggu cukup untuk mengekalkan otot.",
+        "shareStory": "Kongsi sesi {{name}} ke Story",
+        "shareFeed": "Kongsi sesi {{name}} ke suapan"
+      }
+    },
+    "map": {
+      "title": "Peta otot minggu ini",
+      "loading": "Mengira volum otot…",
+      "sets_other": "{{sets}} set",
+      "try": "Cuba: {{names}}",
+      "how": {
+        "title": "Cara mengira",
+        "body": "Set berkesan minggu ini: gerakan utama dikira 1, gerakan sokongan 0,5."
+      }
+    },
+    "warning": {
+      "untrained": "{{muscle}} belum dilatih minggu ini",
+      "lowVolume_other": "{{muscle}} hanya {{sets}} set minggu ini, jauh di bawah otot lain"
+    },
+    "trend": {
+      "message": "Kekuatan {{name}} turun {{pct}}% dalam dua minggu terakhir semasa berat turun dengan cepat, tanda defisit terlalu besar. Perlahankan sasaran penurunan anda."
+    },
+    "progress": {
+      "title": "Kemajuan kekuatan",
+      "empty": "Belum ada rekod. Selesaikan satu sesi, rekod gerakan akan muncul di sini.",
+      "history": "Sejarah {{name}}"
+    },
+    "template": {
+      "push": {
+        "name": "Push (Tolak)",
+        "summary": "Dada, bahu, triceps"
+      },
+      "pull": {
+        "name": "Pull (Tarik)",
+        "summary": "Belakang, biceps"
+      },
+      "legs": {
+        "name": "Legs (Kaki)",
+        "summary": "Quadriceps, glutes, hamstring, betis"
+      },
+      "fullbody": {
+        "name": "Full Body",
+        "summary": "Semua otot dalam satu sesi"
+      }
+    },
+    "detail": {
+      "screenTitle": "Sejarah gerakan",
+      "notFound": "Gerakan tidak dijumpai dalam katalog.",
+      "bests": "Rekod terbaik",
+      "noData": "Belum ada data.",
+      "trend": "Trend e1RM",
+      "chartNeed": "Perlukan sekurang-kurangnya dua sesi dengan beban untuk graf e1RM.",
+      "chartAria": "Graf anggaran 1RM dari {{from}} hingga {{to}}",
+      "how": {
+        "title": "Cara mengira e1RM",
+        "body": "Anggaran 1RM (e1RM) menggunakan formula Epley: beban × (1 + reps ÷ 30). Set pemanasan tidak dikira."
+      },
+      "sessions": "Sesi sebelumnya",
+      "emptyTitle": "Belum pernah dicatat",
+      "emptyHint": "Selesaikan satu sesi, sejarah gerakan ini akan muncul di sini."
+    }
+  },
+  "movement": {
+    "aria": "Pergerakan hari ini",
+    "done": "Sasaran pergerakan hari ini tercapai. Bagus.",
+    "title": "Bergerak sikit",
+    "line": "Baki <kcal>{{kcal}}</kcal> = <steps>{{steps}} langkah</steps> (±{{km}} km / {{minutes}} minit berjalan kaki)",
+    "hint": "Berjalan petang santai pun sudah boleh habiskannya."
+  },
+  "strava": {
+    "notesTitle": "Catatan Strava"
+  },
+  "moved": {
+    "title": "Latihan kini di JoyoFit",
+    "body": "Catat latihan beban, rutin, sejarah dan graf kemajuan di JoyoFit. Kalori yang dibakar tetap masuk ke JoyoRogo.",
+    "open": "Buka JoyoFit",
+    "android": "Android",
+    "ios": "iPhone",
+    "install": "Pasang JoyoFit",
+    "site": "Tentang JoyoFit",
+    "archive": "Sejarah latihan beban lama masih boleh anda lihat di sini, tetapi tidak boleh diubah lagi. JoyoFit boleh membawanya sendiri.",
+    "blocked": "Latihan beban berpindah ke JoyoFit",
+    "draftNotice": "Latihan yang belum disimpan pada peranti ini tidak boleh diteruskan lagi. Mulakan latihan baharu di JoyoFit.",
+    "privacy": "Sejarah yang anda bawa ke JoyoFit disimpan di JoyoFit (pada telefon anda, dan di awan JoyoFit untuk Pro). Memadam data di JoyoRogo tidak memadam salinan itu."
+  }
+}

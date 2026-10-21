@@ -369,3 +369,22 @@ describe("subscription events", () => {
     expect(await founderUntil("u1")).toEqual(before);
   });
 });
+
+describe("polarConfig MYR prices", () => {
+  const base = {
+    POLAR_ACCESS_TOKEN: "t",
+    POLAR_WEBHOOK_SECRET: "s",
+    POLAR_PRODUCT_MONTHLY_ID: "m",
+    POLAR_PRODUCT_YEARLY_ID: "y",
+  };
+  test("none shown until both ringgit prices are set", () => {
+    expect(polarConfig(base)?.priceMyrSen).toBeNull();
+    expect(polarConfig({ ...base, POLAR_PRICE_MONTHLY_MYR_SEN: "1290" })?.priceMyrSen).toBeNull();
+    expect(
+      polarConfig({ ...base, POLAR_PRICE_MONTHLY_MYR_SEN: "1290", POLAR_PRICE_YEARLY_MYR_SEN: "7990" })?.priceMyrSen,
+    ).toEqual({ monthly: 1290, yearly: 7990 });
+  });
+  test("a typo throws instead of advertising a wrong price", () => {
+    expect(() => polarConfig({ ...base, POLAR_PRICE_MONTHLY_MYR_SEN: "12.90", POLAR_PRICE_YEARLY_MYR_SEN: "7990" })).toThrow();
+  });
+});

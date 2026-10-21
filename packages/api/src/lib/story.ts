@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { DEFAULT_LOCALE } from "@joyorogo/i18n";
-import type { Locale } from "@joyorogo/i18n";
+import { DEFAULT_LOCALE, DEFAULT_REGION } from "@joyorogo/i18n";
+import type { Locale, Region } from "@joyorogo/i18n";
 
 import { localNameRule, localNameShape, transcriptionLanguage } from "./ai-locale";
+import { storyRegionRule } from "./region-prompt";
 import { MEALS, jakartaToday, shiftDate, suggestMealNow } from "./engine";
 import { foodKind } from "./food-kind";
 import type { Meal } from "./engine";
@@ -56,6 +57,8 @@ export function storyPrompt(ctx: {
   slots: readonly Meal[];
   defaultMeal?: Meal;
   locale?: Locale;
+  /** Dish names and serving defaults of the user's market; Indonesia adds nothing. */
+  region?: Region;
   reference?: { rows: readonly MealRow[]; target: Target };
 }): string {
   const locale = ctx.locale ?? DEFAULT_LOCALE;
@@ -75,7 +78,7 @@ Aturan:
 - Lauk yang disebut ("pakai telur dadar", "lauk rendang") jadi item sendiri. "Nasi padang/warteg/rames lauk X" = item nasi putih (porsi warung, termasuk kuah dan sayur) + item X; jangan hitung lauk dua kali. Hidangan satu kesatuan (nasi goreng, nasi kuning, nasi uduk, bubur, soto, bakso) tetap satu item.
 - Minuman dicatat juga (es teh manis, kopi susu). Minuman tanpa kalori (Coke Zero, Diet Coke, air putih, teh tawar, kopi hitam tanpa gula) tetap dicatat dengan kcal 0 atau 1, itu jawaban yang benar. Untuk minuman grams = volume ml (kaleng 330, gelas 250). Merek atau varian yang disebut pengguna dipakai apa adanya (mis. "coke zero" bukan "coca cola").
 - Abaikan yang bukan makanan. Kalau tidak ada makanan sama sekali, jawab {"items":[]}.
-- name dalam Bahasa Indonesia, huruf awal kapital. kcal, protein/carbs/fat/fiber (gram) = estimasi realistis.${localNameRule(locale)}
+- name dalam Bahasa Indonesia, huruf awal kapital. kcal, protein/carbs/fat/fiber (gram) = estimasi realistis.${localNameRule(locale)}${storyRegionRule(ctx.region ?? DEFAULT_REGION)}
 ${referenceBlock(ctx.reference)}Cerita pengguna: """${ctx.text}"""`;
 }
 
@@ -158,6 +161,8 @@ export type StoryContext = {
   nowMeal: Meal;
   /** Language of the returned item names and portions; default Indonesian. */
   locale?: Locale;
+  /** The user's market: nutrient table for calibration (default Indonesia). */
+  region?: Region;
   /** Logged rows the story points at; items may reference them by index. Everything lands on `target`. */
   reference?: { rows: readonly MealRow[]; target: Target };
 };
@@ -229,7 +234,10 @@ export function storyItemsFromText(text: string, ctx: StoryContext): StoryItem[]
       date,
     });
   }
-  const calibrated = calibrateItems(placed.filter((p) => !p.copy).map((p) => p.item));
+  const calibrated = calibrateItems(
+    placed.filter((p) => !p.copy).map((p) => p.item),
+    ctx.region ? { region: ctx.region } : undefined,
+  );
   const local = ctx.locale !== undefined && ctx.locale !== DEFAULT_LOCALE;
   let next = 0;
   return placed.map((p) => {
@@ -277,6 +285,7 @@ export async function parseFoodStory(
     referenceDate?: string;
     /** Language of the returned item names and of the error messages. */
     locale?: Locale;
+    region?: Region;
     model?: string;
     /** Logged rows the story points at ("sama kayak kemarin tapi ..."): the model copies them by index. */
     reference?: { rows: readonly MealRow[]; target: Target };
@@ -304,6 +313,7 @@ export async function parseFoodStory(
       opts.defaultMeal && slots.includes(opts.defaultMeal) ? opts.defaultMeal : undefined,
     nowMeal: slots.includes(suggested) ? suggested : slots[0]!,
     locale,
+    region: opts.region,
     reference: opts.reference,
   };
   let result: unknown;
@@ -320,6 +330,7 @@ export async function parseFoodStory(
               slots,
               defaultMeal: ctx.defaultMeal,
               locale,
+              region: opts.region,
               reference: opts.reference,
             }),
           },

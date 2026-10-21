@@ -226,6 +226,7 @@ export function buildWeekRecap(input: WeekRecapInput): WeekRecap {
 const WEEKDAYS: Record<Locale, string[]> = {
   id: ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
   en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  ms: ["Ahad", "Isnin", "Selasa", "Rabu", "Khamis", "Jumaat", "Sabtu"],
 };
 
 /** "12–18 Okt" / "Oct 12–18", or "29 Sep–5 Okt" / "Sep 29–Oct 5" across a month boundary. */

@@ -1,0 +1,316 @@
+{
+  "fail": {
+    "reason": {
+      "too_many": {
+        "title": "Terlalu banyak makanan dalam foto",
+        "message": "Terlalu banyak makanan dalam foto. Cuba foto 1 pinggan atau maksimum 3-4 jenis sekali foto, dari lebih dekat, dan pastikan hanya makanan yang mahu dicatat berada dalam bingkai."
+      },
+      "unclear": {
+        "title": "Foto kurang jelas",
+        "message": "Foto kabur atau terlalu gelap, jadi makanan sukar dikenali. Cuba foto semula di tempat yang lebih terang dan pegang kamera seketika sehingga fokus."
+      },
+      "not_food": {
+        "title": "Makanan tidak kelihatan",
+        "message": "AI tidak menjumpai makanan dalam foto ini. Halakan kamera terus ke makanan dan pastikan makanan memenuhi bingkai, kemudian foto semula."
+      },
+      "timeout": {
+        "title": "AI terlalu lama memproses",
+        "message": "AI terlalu lama memproses foto. Cuba lagi sebentar lagi, atau foto 1 pinggan dari lebih dekat supaya lebih cepat siap."
+      },
+      "failed": {
+        "title": "Gagal menganalisis foto",
+        "message": "AI tidak berjaya mengenali foto ini. Cuba foto lain dengan pencahayaan lebih baik."
+      }
+    },
+    "tooManyPartial": "Terlalu banyak makanan dalam foto, jadi AI hanya mencatat yang paling menonjol. Guna item ini, atau foto semula 1 pinggan (maksimum 3-4 jenis) dari lebih dekat."
+  },
+  "errors": {
+    "storyInputRequired": "Hantar teks atau rakaman suara.",
+    "anonAiUnavailable": "Perkhidmatan AI belum tersedia.",
+    "anonTrialUsed": "Percubaan percuma sudah habis. Daftar untuk terus mengimbas.",
+    "anonPhotoUnreadable": "Foto tidak dapat dibaca."
+  },
+  "idle": {
+    "title": "Imbas makanan",
+    "heading": "Halakan ke pinggan anda",
+    "referenceHint": "Petua: letakkan kad (ATM/MyKad) atau penimbang di sebelah makanan supaya hidangan lebih tepat.",
+    "referenceHintClose": "Tutup petunjuk",
+    "tip": "1 pinggan setiap foto, dari dekat",
+    "camera": "Buka Kamera",
+    "gallery": "Pilih daripada Galeri",
+    "story": "Ceritakan sahaja",
+    "barcode": "Imbas kod bar",
+    "info": {
+      "title": "Cara ia berfungsi",
+      "how": "AI mengenali masakan Indonesia dan mengira kalorinya. Anda boleh membetulkannya dahulu sebelum disimpan.",
+      "story": "Lupa ambil foto? Ceritakan sahaja makanan anda, taip atau guna suara.",
+      "barcode": "Makanan berbungkus? Imbas kod barnya, nilai pemakanan diambil daripada Open Food Facts."
+    }
+  },
+  "privacy": {
+    "kept": "Foto asal disimpan untuk anda sendiri. Tetapkan di Profil.",
+    "notKept": "Foto hanya digunakan untuk analisis dan tidak disimpan."
+  },
+  "camera": {
+    "permissionTitle": "Kamera diperlukan",
+    "permissionBody": "JoyoRogo memerlukan kebenaran kamera untuk memotret makanan anda dan mengira kalorinya dengan AI.",
+    "grant": "Beri Kebenaran Kamera",
+    "close": "Tutup kamera",
+    "hint": "Potret pinggan anda, AI kira kalorinya",
+    "barcode": "Imbas kod bar pembungkus",
+    "shutter": "Potret makanan",
+    "dismissError": "Tutup mesej ralat"
+  },
+  "flow": {
+    "notImage": "Fail itu bukan gambar. Pilih foto makanan (JPG/PNG/WebP).",
+    "imageUnsupported": "Pelayar ini tidak menyokong pemprosesan gambar.",
+    "processFailed": "Gagal memproses foto. Cuba lagi.",
+    "captureFailed": "Gagal mengambil foto. Cuba lagi.",
+    "analyzeFailed": "Gagal menganalisis foto. Cuba lagi.",
+    "retryFailed": "Gagal mengira semula. Cuba lagi.",
+    "saveFailed": "Gagal menyimpan. Cuba lagi.",
+    "kcalInvalid": "Kalori untuk \"{{name}}\" belum sah.",
+    "priceInvalid": "Harga sepinggan belum sah (nombor ringgit).",
+    "pickOne": "Pilih sekurang-kurangnya satu makanan untuk dicatat.",
+    "photoLost": "Foto imbasan hilang. Foto semula dahulu."
+  },
+  "toast": {
+    "saved_other": "{{count}} makanan dicatat."
+  },
+  "analyzing": {
+    "title": "Menganalisis foto",
+    "subtitle": "Tunggu sebentar, biasanya 8 hingga 15 saat.",
+    "photoAlt": "Foto makanan yang sedang dianalisis",
+    "cancel": "Batalkan",
+    "cancelLabel": "Batalkan analisis",
+    "step": {
+      "prepared": "Foto disediakan",
+      "reading": "AI membaca pinggan",
+      "tidying": "Hidangan & kalori dikemaskan"
+    },
+    "stage": {
+      "sending": "Menghantar foto…",
+      "recognizing": "AI mengenali makanan anda…",
+      "counting": "Mengira kalori…",
+      "almost": "Hampir siap…"
+    }
+  },
+  "fact": {
+    "title": "Tahukah anda?",
+    "line": "{{text}} = {{kcal}} kcal, bersamaan {{move}}",
+    "move": {
+      "run": "berlari {{duration}}",
+      "walk": "berjalan {{duration}}",
+      "bike": "berbasikal {{duration}}"
+    },
+    "duration": {
+      "minutes_other": "{{count}} minit",
+      "hours_other": "{{value}} jam"
+    },
+    "food": {
+      "gepreK": "1 hidangan ayam geprek + teh ais",
+      "nasiGoreng": "1 hidangan nasi goreng",
+      "martabak": "1 hirisan martabak manis",
+      "indomie": "1 bungkus indomie goreng",
+      "sate": "1 hidangan sate ayam (10 cucuk)",
+      "kopiSusu": "1 kopi susu ais kekinian",
+      "bakso": "1 hidangan bakso urat",
+      "soto": "1 soto ayam",
+      "mieAyam": "1 hidangan mie ayam",
+      "rotiBakar": "1 roti bakar coklat",
+      "nasiPadang": "1 hidangan nasi padang rendang",
+      "gorengan": "1 goreng-gorengan (tempe mendoan)",
+      "mcdChicken": "1 hidangan ayam McDonald's",
+      "tehTarik": "1 teh tarik",
+      "kwetiau": "1 hidangan kwetiau siram",
+      "risoles": "3 risoles",
+      "pempek": "1 hidangan pempek lenjer",
+      "cincau": "1 gelas cincau ais susu",
+      "pecelLele": "1 hidangan pecel lele",
+      "bubur": "1 mangkuk bubur ayam",
+      "ketoprak": "1 hidangan ketoprak",
+      "pisangGoreng": "1 hidangan pisang goreng (100 g)",
+      "seblak": "1 hidangan seblak tahap 3",
+      "cireng": "1 cireng rujak (5 biji)",
+      "nasiLemak": "1 pinggan nasi lemak dengan telur, ikan bilis dan sambal",
+      "rotiCanai": "1 keping roti canai",
+      "miloAis": "1 gelas Milo ais",
+      "charKueyTeow": "1 pinggan char kuey teow",
+      "meeGorengMamak": "1 pinggan mee goreng mamak",
+      "laksa": "1 mangkuk laksa",
+      "cendol": "1 mangkuk cendol",
+      "karipap": "1 biji karipap",
+      "nasiAyam": "1 pinggan nasi ayam",
+      "satay": "1 hidangan satay ayam (10 cucuk)",
+      "kuihLapis": "1 keping kuih lapis",
+      "nasiLemakAyam": "1 pinggan nasi lemak ayam goreng"
+    }
+  },
+  "reaction": {
+    "high": "ALAMAK, betul ke nak makan sebanyak tu??",
+    "mid": "Alamak, betul ke nak makan sebanyak tu??",
+    "low": "Selamat, bro"
+  },
+  "result": {
+    "title": "Semak hasil AI",
+    "withBone": "dengan tulang",
+    "retake": "Foto semula",
+    "total": "Jumlah kalori foto ini",
+    "indomie_other": "Bersamaan {{packs}} bungkus Indomie",
+    "photoAlt": "Foto asal makanan anda",
+    "photoCaption": "Foto asal dan potongan setiap makanan",
+    "photoToggle": "Foto asal dan potongan",
+    "cropsLabel": "Potongan setiap makanan",
+    "cropLabel": "Potongan {{name}}",
+    "keep_other": "Guna {{count}} item ini",
+    "items": {
+      "label": "Makanan yang dikenali",
+      "title": "Yang AI nampak",
+      "editable": "Angkanya boleh dibetulkan",
+      "confidenceShort": "yakin {{percent}}",
+      "estimate": "anggaran AI",
+      "kcalAria": "Kalori {{name}}",
+      "cupWhich": "Isi gelas tidak kelihatan. Pilih yang sesuai:",
+      "cupSize": "Saiz gelas",
+      "priorGroup": "Pilih angka hidangan {{name}}",
+      "priorAi": "AI: {{grams}}",
+      "priorUsual": "Biasanya anda: {{grams}}",
+      "priorTypical": "Lazimnya: {{grams}}",
+      "scaleGroup": "Pilih angka berat {{name}}",
+      "scaleRead": "Dibaca daripada penimbang: {{value}}",
+      "scaleReadShared_other": "Dibaca daripada penimbang: {{value}}, dibahagi kepada {{count}} item",
+      "scaleAi": "Anggaran foto: {{grams}}"
+    },
+    "memory": {
+      "title": "Maksud anda ini?",
+      "group": "Gantikan item teratas dengan makanan yang pernah anda betulkan"
+    },
+    "names": {
+      "more_other": "{{first}} +{{count}} lagi",
+      "andMore_other": "{{first}} dan {{count}} lagi"
+    },
+    "info": {
+      "title": "Tentang hasil ini",
+      "retry": "AI membaca semula foto yang sama tanpa foto semula dan tanpa menggunakan kuota harian.",
+      "feedback": "Jawapan anda melatih anggaran seterusnya."
+    },
+    "meal": {
+      "title": "Catat sebagai",
+      "label": "Waktu makan"
+    },
+    "save": {
+      "toMeal": "Simpan ke {{meal}}",
+      "saving": "Menyimpan...",
+      "items_other": "Simpan {{count}} item",
+      "pickOne": "Pilih sekurang-kurangnya satu item"
+    },
+    "rotiCanai_other": "Bersamaan {{packs}} keping roti canai"
+  },
+  "feedback": {
+    "title": "Hasilnya tepat?",
+    "aria": "Penilaian hasil AI",
+    "skip": "Langkau penilaian",
+    "accurate": "Tepat",
+    "lessAccurate": "Kurang tepat",
+    "wrong": "Salah",
+    "reasonsLabel": "Sebab",
+    "reason": {
+      "porsi": "Hidangan salah",
+      "makanan": "Makanan salah",
+      "kcal_tinggi": "Kalori terlalu tinggi",
+      "kcal_rendah": "Kalori terlalu rendah"
+    },
+    "keepPhoto": {
+      "label": "Boleh simpan foto ini untuk membantu memperbaik AI",
+      "hint": "Foto hanya digunakan untuk menguji dan memperbaik AI, dan boleh dipadam jika anda memintanya."
+    },
+    "noteAria": "Catatan tambahan (pilihan)",
+    "notePlaceholder": "Catatan ringkas (pilihan)",
+    "send": "Hantar"
+  },
+  "retry": {
+    "title": "Angka kurang sesuai?",
+    "left_other": "Percuma, baki {{count}}x",
+    "exhausted": "Had kira semula habis",
+    "exhaustedHint": "Foto ini sudah dikira semula dua kali. Sila foto semula.",
+    "hintLabel": "Pembetulan ringkas (pilihan)",
+    "hintPlaceholder": "cth. nasi perang, separuh hidangan",
+    "action": "Kira semula",
+    "running": "Mengira semula...",
+    "keepPrevious": "Hasil sebelumnya masih dipaparkan.",
+    "failedKept": "Hasil sebelumnya kekal digunakan. {{message}}"
+  },
+  "plate": {
+    "section": "Harga pinggan",
+    "price": "Harga (RM)",
+    "pricePlaceholder": "cth. {{example}}"
+  },
+  "done": {
+    "title": "Dicatat!",
+    "text": "Makanan daripada foto sudah masuk ke catatan hari ini.",
+    "list": "Lihat Senarai Makanan",
+    "again": "Foto Lagi"
+  },
+  "demo": {
+    "paywall": {
+      "title": "Percubaan percuma sudah digunakan",
+      "bodyUnlimited": "Daftar percuma untuk terus mengimbas tanpa had harian, termasuk diari, graf berat dan pelan harian anda.",
+      "bodyLimit_other": "Daftar percuma untuk teruskan. Akaun percuma mendapat {{count}} foto setiap hari, termasuk diari, graf berat dan pelan harian anda.",
+      "signup": "Daftar dengan Google"
+    },
+    "takePhoto": "Foto makanan anda",
+    "takeAgain": "Foto lagi",
+    "photoAlt": "Foto makanan yang anda pilih",
+    "busy": "Mengenali makanan, biasanya 8-15 saat...",
+    "hint": "Foto pinggan makanan anda dari atas, dengan cahaya yang cukup.",
+    "empty": {
+      "title": "Tiada makanan dikesan",
+      "hint": "Cuba foto lebih dekat dengan cahaya lebih terang."
+    },
+    "remaining_other": "Baki foto percuma: {{count}}.",
+    "signupSave": "Daftar untuk menyimpannya",
+    "total": "Jumlah foto ini",
+    "freeAnon_other": "{{count}} foto percuma tanpa daftar.",
+    "footer": "Foto hanya digunakan untuk analisis, kemudian dibuang.",
+    "notImage": "Fail itu bukan gambar.",
+    "failed": "Gagal menganalisis."
+  },
+  "correct": {
+    "title": "Ada yang kurang betul?",
+    "hint": "Taip atau sebut pembetulannya, cth. “nasi separuh sahaja”.",
+    "placeholder": "Cth. “itu rolade bukan perkedel”",
+    "send": "Hantar pembetulan",
+    "mic": "Sebut pembetulan",
+    "micStop": "Selesai bercakap",
+    "recording": "Merakam… ketik lagi untuk menghantar",
+    "working": "Membetulkan senarai…",
+    "heard": "Kedengaran: “{{text}}”",
+    "micDenied": "Kebenaran mikrofon belum diberikan. Aktifkan dalam tetapan, atau taip sahaja pembetulannya.",
+    "micUnsupported": "Peranti ini belum dapat merakam suara. Taip sahaja pembetulannya.",
+    "undo": "Buat asal pembetulan",
+    "undone": "Pembetulan dibuat asal.",
+    "applied_other": "{{count}} item dikemas kini.",
+    "removed": "Dipadam: {{names}}.",
+    "left_other": "Baki {{count}} pembetulan untuk foto ini.",
+    "badge": {
+      "renamed": "Diganti",
+      "portion": "Hidangan diubah",
+      "added": "Baharu"
+    },
+    "error": {
+      "unclear": "Pembetulan belum dapat difahami. Cuba tulis dengan lebih jelas, cth. “nasi separuh sahaja”.",
+      "unknownReference": "Saya tidak jumpa item yang anda maksudkan. Sebut nama makanannya, cth. “nasi separuh sahaja”.",
+      "emptyResult": "Pembetulan ini akan memadam semua item. Jika fotonya salah sepenuhnya, foto semula sahaja.",
+      "failed": "Pembetulan belum berjaya diproses. Cuba lagi sebentar lagi.",
+      "voiceEmpty": "Suara belum kedengaran jelas. Cuba lagi atau taip pembetulannya.",
+      "inputRequired": "Hantar teks atau rakaman suara.",
+      "scanLimit_other": "Pembetulan untuk foto ini sudah mencapai had ({{count}} kali). Edit secara manual sahaja, atau foto semula.",
+      "dayLimit": "Had pembetulan hari ini dicapai. Edit secara manual sahaja, atau cuba lagi esok."
+    }
+  },
+  "dishware": {
+    "matched": "Pinggan: {{name}} ({{cm}} cm), dijadikan panduan saiz hidangan.",
+    "none": "Pinggan tidak dikenali, hidangan dianggarkan seperti biasa.",
+    "card": "Kad dikesan, dijadikan panduan saiz hidangan."
+  }
+}

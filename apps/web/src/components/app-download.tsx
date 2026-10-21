@@ -27,6 +27,8 @@ export function AppDownload({
   location,
   iphoneLabel = "Coba di iPhone",
   androidLabel = "Gabung tester Android",
+  webAppLabel = "iPhone tanpa TestFlight? Pasang web app ke Layar Utama",
+  testerHref = TESTER_SECTION_HREF,
   onPrimary = false,
   align = "start",
 }: {
@@ -34,6 +36,10 @@ export function AppDownload({
   location: string;
   iphoneLabel?: string;
   androidLabel?: string;
+  /** Small link under the buttons that opens the iPhone Home Screen sheet. */
+  webAppLabel?: string;
+  /** Where the Android button goes; defaults to the Indonesian landing's tester section. */
+  testerHref?: string;
   /** Rendered on the brand-green closing card. */
   onPrimary?: boolean;
   align?: "start" | "center";
@@ -54,7 +60,7 @@ export function AppDownload({
       className={cn(buttonClass, os === "ios" && "order-last")}
       render={
         <a
-          href={TESTER_SECTION_HREF}
+          href={testerHref}
           data-revklik-goal="tester_cta_click"
           data-revklik-goal-location={location}
         />
@@ -109,7 +115,7 @@ export function AppDownload({
           onClick={() => openIosInstall(location)}
           className={cn(smallLink, "order-last text-left", align === "center" && "text-center")}
         >
-          iPhone tanpa TestFlight? Pasang web app ke Layar Utama
+          {webAppLabel}
         </button>
       )}
     </>

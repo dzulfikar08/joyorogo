@@ -414,7 +414,7 @@ export const foodRouter = {
         after: RecalcValues;
       }> = [];
       for (const row of rows) {
-        const next = recalcRow(row);
+        const next = recalcRow(row, context.region);
         if (typeof next === "string") continue;
         items.push({
           id: row.id,

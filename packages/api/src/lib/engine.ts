@@ -3,7 +3,8 @@
 // imports it into route modules, so keep it tiny (zod schemas for these shapes
 // live in ./schemas).
 
-import { getActiveLocale, getT, relativeDayLabel } from "@joyorogo/i18n";
+import { clockHourIn, dayIn, getActiveLocale, getT, relativeDayLabel, yesterdayIn } from "@joyorogo/i18n";
+import type { DayZone } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 
 import type { CalibrationInfo } from "./calibration";
@@ -241,11 +242,11 @@ export function round5(n: number): number {
   return Math.round(n / 5) * 5;
 }
 
-const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
-
-// All day boundaries are WIB (UTC+7, no DST). 23:30 UTC is already tomorrow here.
-export function jakartaToday(now: Date = new Date()): string {
-  return new Date(now.getTime() + WIB_OFFSET_MS).toISOString().slice(0, 10);
+// Day boundaries are WIB (UTC+7, no DST) unless a zone is passed (docs/marketing/malaysia-plan.md, "Timezone"): 23:30 UTC is
+// already tomorrow here, and 16:30 UTC is already tomorrow in Kuala Lumpur (UTC+8). Callers that know the user's zone pass it;
+// the stored days in the database are all WIB, so no caller does yet.
+export function jakartaToday(now: Date = new Date(), zone?: DayZone): string {
+  return dayIn(zone, now);
 }
 
 export function daysBetween(from: string, to: string): number {
@@ -254,10 +255,8 @@ export function daysBetween(from: string, to: string): number {
 }
 
 // The WIB calendar day before today. Sleep belongs to the morning it ended.
-export function wibYesterday(now: Date = new Date()): string {
-  const d = new Date(now.getTime() + WIB_OFFSET_MS);
-  d.setUTCDate(d.getUTCDate() - 1);
-  return d.toISOString().slice(0, 10);
+export function wibYesterday(now: Date = new Date(), zone?: DayZone): string {
+  return yesterdayIn(zone, now);
 }
 
 /** Calendar-day offset of a 'YYYY-MM-DD' string via pure UTC math (no date libs). */
@@ -319,16 +318,9 @@ export function ageFromBirthYear(birthYear: number, today: string): number {
   return Number(today.slice(0, 4)) - birthYear;
 }
 
-/** Current WIB clock hour as a decimal (e.g. 13.5 = 13:30). */
-export function jakartaClockHour(now: Date = new Date()): number {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Jakarta",
-    hour: "numeric",
-    minute: "numeric",
-    hour12: false,
-  }).format(now);
-  const [h, m] = parts.split(":").map(Number);
-  return (h ?? 0) + (m ?? 0) / 60;
+/** Current WIB clock hour as a decimal (e.g. 13.5 = 13:30), or the hour in `zone`. */
+export function jakartaClockHour(now: Date = new Date(), zone?: DayZone): number {
+  return clockHourIn(zone, now);
 }
 
 export function macroTargets(
