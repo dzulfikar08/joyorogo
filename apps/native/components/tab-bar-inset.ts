@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { useWindowDimensions } from "react-native";
+import { Platform, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 // expo-router's react-navigation fork: defined only inside a bottom-tab navigator.
 import { BottomTabBarHeightContext } from "expo-router/build/react-navigation/bottom-tabs";
@@ -19,5 +19,5 @@ export function useTabContentInset(): number {
   const { fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const inTabs = useInTabs();
-  return inTabs ? tabContentInset(fontScale, insets.bottom) : 0;
+  return inTabs ? tabContentInset(fontScale, insets.bottom, Platform.OS) : 0;
 }

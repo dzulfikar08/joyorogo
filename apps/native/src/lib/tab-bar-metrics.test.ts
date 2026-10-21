@@ -9,6 +9,8 @@ import {
   TAB_LABEL_MAX_SCALE,
   floatingTabBarFootprint,
   tabBarPillHeight,
+  tabBarBottomOffset,
+  tabBarStripHeight,
   tabContentInset,
   tabItemHeight,
   tabLabelScale,
@@ -34,21 +36,38 @@ describe("tab bar metrics", () => {
     expect(tabItemHeight(3)).toBe(tabItemHeight(TAB_LABEL_MAX_SCALE));
   });
 
-  test("footprint is the raised camera, the pill, the gap below and the bottom inset", () => {
-    expect(floatingTabBarFootprint(1, 0)).toBe(CAMERA_RAISE + tabBarPillHeight(1) + TAB_BAR_GAP_BOTTOM);
-    expect(floatingTabBarFootprint(1, 34) - floatingTabBarFootprint(1, 0)).toBe(34);
+  test("bottom offset: iOS tucks the pill toward the home indicator", () => {
+    expect(tabBarBottomOffset(34, "ios")).toBe(22);
+    expect(tabBarBottomOffset(20, "ios")).toBe(TAB_BAR_GAP_BOTTOM);
+  });
+
+  test("bottom offset: Android is the inset plus the gap", () => {
+    expect(tabBarBottomOffset(16, "android")).toBe(16 + TAB_BAR_GAP_BOTTOM);
+    expect(tabBarBottomOffset(48, "android")).toBe(48 + TAB_BAR_GAP_BOTTOM);
+  });
+
+  test("bottom offset: no inset gives the minimum gap on both", () => {
+    expect(tabBarBottomOffset(0, "ios")).toBe(TAB_BAR_GAP_BOTTOM);
+    expect(tabBarBottomOffset(0, "android")).toBe(TAB_BAR_GAP_BOTTOM);
   });
 
   test("a bad inset counts as zero", () => {
-    expect(floatingTabBarFootprint(1, -5)).toBe(floatingTabBarFootprint(1, 0));
-    expect(floatingTabBarFootprint(1, Number.NaN)).toBe(floatingTabBarFootprint(1, 0));
+    expect(tabBarBottomOffset(-5, "ios")).toBe(TAB_BAR_GAP_BOTTOM);
+    expect(tabBarBottomOffset(Number.NaN, "android")).toBe(TAB_BAR_GAP_BOTTOM);
+  });
+
+  test("footprint is the strip plus the same offset the bar is placed at", () => {
+    expect(floatingTabBarFootprint(1, 0, "android")).toBe(CAMERA_RAISE + tabBarPillHeight(1) + TAB_BAR_GAP_BOTTOM);
+    expect(floatingTabBarFootprint(1, 34, "ios")).toBe(tabBarStripHeight(1) + 22);
+    expect(floatingTabBarFootprint(1, 34, "android")).toBe(tabBarStripHeight(1) + 34 + TAB_BAR_GAP_BOTTOM);
   });
 
   test("content inset clears the footprint by the content gap", () => {
-    expect(tabContentInset(1, 24)).toBe(floatingTabBarFootprint(1, 24) + TAB_BAR_CONTENT_GAP);
+    expect(tabContentInset(1, 24, "android")).toBe(floatingTabBarFootprint(1, 24, "android") + TAB_BAR_CONTENT_GAP);
+    expect(tabContentInset(1, 34, "ios")).toBe(floatingTabBarFootprint(1, 34, "ios") + TAB_BAR_CONTENT_GAP);
   });
 
   test("a larger font grows the footprint", () => {
-    expect(floatingTabBarFootprint(1.3, 0)).toBeGreaterThan(floatingTabBarFootprint(1, 0));
+    expect(floatingTabBarFootprint(1.3, 0, "ios")).toBeGreaterThan(floatingTabBarFootprint(1, 0, "ios"));
   });
 });

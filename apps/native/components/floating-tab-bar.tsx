@@ -19,13 +19,13 @@ import {
   CAMERA_RING,
   CAMERA_SLOT,
   TAB_BAR_BORDER,
-  TAB_BAR_GAP_BOTTOM,
   TAB_BAR_MARGIN_X,
   TAB_BAR_PADDING,
   TAB_ICON_SIZE,
   TAB_ITEM_PADDING,
   TAB_LABEL_LINE,
   TAB_LABEL_SIZE,
+  tabBarBottomOffset,
   tabBarPillHeight,
   tabItemHeight,
 } from "@/src/lib/tab-bar-metrics";
@@ -134,7 +134,7 @@ export function FloatingTabBar({
   return (
     <View
       pointerEvents="box-none"
-      style={[styles.strip, { paddingBottom: TAB_BAR_GAP_BOTTOM + Math.max(0, insets.bottom) }]}
+      style={[styles.strip, { paddingBottom: tabBarBottomOffset(insets.bottom, Platform.OS) }]}
     >
       <View accessibilityRole="tablist" style={[styles.pill, { height: tabBarPillHeight(fontScale) }]}>
         {state.routes.map((route, index) => {
