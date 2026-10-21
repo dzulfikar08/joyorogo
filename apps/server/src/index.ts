@@ -681,7 +681,7 @@ app.get("/u/:code", async (c) => {
 
 app.on(["POST", "GET"], "/api/auth/*", async (c) => {
   const response = await (await createAuth()).handler(c.req.raw);
-  return androidAppHandoff(c.req.raw, response) ?? response;
+  return (await androidAppHandoff(c.req.raw, response, env.BETTER_AUTH_SECRET)) ?? response;
 });
 
 export const apiHandler = new OpenAPIHandler(appRouter, {
