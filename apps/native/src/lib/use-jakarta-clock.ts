@@ -5,14 +5,15 @@ import { AppState } from "react-native";
 import { jakartaToday } from "@joyorogo/api/lib/engine";
 
 import { advanceClock } from "@joyorogo/api/lib/jakarta-clock";
+import { getActiveDayZone } from "@joyorogo/i18n";
 
 const TICK_MS = 30 * 1000;
 
 /**
- * The live WIB day (`today`) and a `now` for time-of-day copy, kept current while the screen stays mounted. A phone
+ * The live day (`today`, cut in the active day zone: WIB or MYT/SGT) and a `now` for time-of-day copy, kept current while the screen stays mounted. A phone
  * keeps the Beranda tab alive overnight, so reading `jakartaToday()` during render left the screen on yesterday's day
  * (and yesterday's summary) after midnight. Both refresh when the app returns to the foreground and from a 30 s tick
- * that crosses WIB midnight while the app stays open (short ticks, not one long timeout: a long one is dropped when the
+ * that crosses midnight of that zone while the app stays open (short ticks, not one long timeout: a long one is dropped when the
  * process is suspended and Android warns about it).
  *
  * When the day changes, every cached query is invalidated: day-scoped queries keyed without a date (`day.summary`,
@@ -26,7 +27,16 @@ export function useJakartaClock(): { today: string; now: Date } {
   const seenDay = useRef(today);
 
   useEffect(() => {
-    const advance = () => setNow((prev) => advanceClock(prev, new Date()));
+    let zone = getActiveDayZone();
+    const advance = () =>
+      setNow((prev) => {
+        // The profile can settle on another zone after launch; the hour bucket alone would not notice.
+        if (zone !== getActiveDayZone()) {
+          zone = getActiveDayZone();
+          return new Date();
+        }
+        return advanceClock(prev, new Date());
+      });
     const timer = setInterval(advance, TICK_MS);
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") advance();

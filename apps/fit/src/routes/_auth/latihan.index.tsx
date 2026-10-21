@@ -1,4 +1,6 @@
-import { fmtClock, fmtDateShort, fmtDecimal } from "@joyorogo/i18n";
+import { fmtDateShort, fmtDecimal } from "@joyorogo/i18n";
+
+import { fmtClock } from "@/lib/format";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { MultiSelect, Select } from "@joyorogo/ui/components/select";

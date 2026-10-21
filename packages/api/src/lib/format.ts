@@ -4,18 +4,18 @@ import type { Locale } from "@joyorogo/i18n";
 import { shiftDate } from "./engine";
 
 /**
- * WIB day keys and rupiah text, parsed and formatted by hand. Shared by the
+ * Day keys and rupiah text, parsed and formatted by hand. Shared by the
  * web (Intl everywhere) and native (Hermes): `new Date("2026-10-14")` and
  * `toLocaleDateString("id-ID", …)` are unreliable on Android — dates come back
  * as "Invalid Date" or in the wrong locale, so day keys never touch the
  * string date constructor or Intl here.
  */
 
-// --- WIB day keys ('YYYY-MM-DD') -------------------------------------------
+// --- Day keys ('YYYY-MM-DD') -------------------------------------------
 
 export type DateKeyParts = { year: number; month: number; day: number };
 
-/** Strict manual parse of a WIB day key; null for anything else. */
+/** Strict manual parse of a day key; null for anything else. */
 export function parseDateKey(key: string): DateKeyParts | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
   if (!match) return null;

@@ -1,11 +1,11 @@
 // US-013 iOS branch: the HealthKit import mirrors the Health Connect data
-// rules from health-connect.ts (WIB day keys, 7-day window, workout dedupe by
+// rules from health-connect.ts (day keys, 7-day window, workout dedupe by
 // external id, recorded kcal over MET estimate, sleep never overwrites manual
 // rows). The Swift module only reads raw data; normalizing happens here.
 import { estimateKcal, metForStravaType } from "@joyorogo/api/lib/met";
 import { sleepHoursByWibDay } from "@joyorogo/api/lib/healthkit";
 import { crossSourceMatcher, type ImportedWorkoutRow } from "@joyorogo/api/lib/import-dedupe";
-import { i18n } from "@joyorogo/i18n";
+import { dayOfMs, i18n } from "@joyorogo/i18n";
 import * as SecureStore from "expo-secure-store";
 
 import { getAppleHealthModule } from "@/modules/apple-health";
@@ -73,21 +73,16 @@ const LABEL_BY_ACTIVITY_TYPE: Record<number, string> = {
   78: "Menari",
 };
 
-// Same fixed UTC+7 day rule as the server's jakartaToday(): shift the instant
-// by +7h and take the UTC calendar date.
+// The person's calendar day (active zone) an instant falls on, like the server's jakartaToday().
 function wibDateOf(iso: string): string {
-  return new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return dayOfMs(new Date(iso).getTime());
 }
 
-// The last `count` WIB calendar days, today first.
+// The last `count` calendar days in the active zone, today first.
 function wibDaysBack(count: number): string[] {
   const days: string[] = [];
   for (let offset = 0; offset < count; offset++) {
-    days.push(
-      new Date(Date.now() + 7 * 60 * 60 * 1000 - offset * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .slice(0, 10),
-    );
+    days.push(dayOfMs(Date.now() - offset * 86_400_000));
   }
   return days;
 }
@@ -186,8 +181,8 @@ async function importWorkouts(
 }
 
 /**
- * Cumulative daily metrics for the last 7 WIB days, aggregated by HealthKit
- * itself (HKStatisticsCollectionQuery anchored at WIB midnight), so a phone
+ * Cumulative daily metrics for the last 7 days, aggregated by HealthKit
+ * itself (HKStatisticsCollectionQuery anchored at midnight of the day zone), so a phone
  * and a watch reporting the same walk cannot double count. Exercise minutes
  * come from the already-read workout records.
  */
@@ -227,7 +222,7 @@ async function importDailyActivity(
 
 /**
  * sleepAnalysis samples → sleepLog (source 'apple_health'), unioned across
- * overlapping sources and keyed by the WIB evening the night began (sleepNightKey).
+ * overlapping sources and keyed by the evening the night began (sleepNightKey).
  * The server refuses to overwrite manual rows, so user corrections always
  * survive a resync.
  */
@@ -272,6 +267,8 @@ export async function syncAppleHealth(latestWeightKg: number | null): Promise<He
   const startMs = endMs - SYNC_WINDOW_DAYS * 24 * 60 * 60 * 1000;
   const [workouts, dailyTotals, sleepSamples] = await Promise.all([
     mod.getWorkouts(startMs, endMs),
+    // The native module buckets these totals at WIB midnight (AppleHealthModule.swift); a UTC+8 person's totals shift
+    // by an hour until the module takes the zone (a native build, not OTA-able).
     mod.getDailyTotals(startMs, endMs),
     mod.getSleepSamples(startMs, endMs),
   ]);

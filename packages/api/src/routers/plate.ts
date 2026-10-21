@@ -4,9 +4,11 @@ import { z } from "zod";
 import { foodLog, profile } from "@joyorogo/db/schema/fitness";
 import { plate } from "@joyorogo/db/schema/plans";
 import type { Database } from "@joyorogo/db";
+import type { DayZone } from "@joyorogo/i18n";
 
 import { protectedProcedure } from "../index";
 import { jakartaToday, shiftDate } from "../lib/engine";
+import { userZone } from "../lib/user-zone";
 import { normalizePlaceKey, toStoredCoords } from "../lib/places";
 import {
   aggregateNutrients,
@@ -59,8 +61,8 @@ async function nutrientsByPlateId(
 }
 
 /** Plate ids of the user's priced plates in the value window. */
-async function pricedPlateRows(db: Database, userId: string) {
-  const since = shiftDate(jakartaToday(), -VALUE_WINDOW_DAYS);
+async function pricedPlateRows(db: Database, userId: string, zone: DayZone) {
+  const since = shiftDate(jakartaToday(undefined, zone), -VALUE_WINDOW_DAYS);
   return db
     .select({
       id: plate.id,
@@ -85,8 +87,9 @@ async function pricedPlateRows(db: Database, userId: string) {
 export async function loadIdeaValues(
   db: Database,
   userId: string,
+  zone: DayZone,
 ): Promise<Map<string, number> | null> {
-  const plateRows = await pricedPlateRows(db, userId);
+  const plateRows = await pricedPlateRows(db, userId, zone);
   if (plateRows.length === 0) return null;
   const totals = await nutrientsByPlateId(
     db,
@@ -179,10 +182,11 @@ export const plateRouter = {
       return matchLastPrice(input.name, input.place ?? null, rows);
     }),
 
-  // Plates logged on one WIB day, for the diary's plate grouping and price edit.
+  // Plates logged on one day, for the diary's plate grouping and price edit.
   byDate: protectedProcedure
     .input(z.object({ date: dateSchema.optional() }))
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       return context.db
         .select({
           id: plate.id,
@@ -198,17 +202,18 @@ export const plateRouter = {
         .where(
           and(
             eq(plate.userId, context.session.user.id),
-            eq(plate.date, input.date ?? jakartaToday()),
+            eq(plate.date, input.date ?? jakartaToday(undefined, zone)),
           ),
         )
         .orderBy(desc(plate.createdAt));
     }),
 
-  // "Belanja makan": totals for the current WIB day/week/month, average paid
+  // "Belanja makan": totals for the current day/week/month, average paid
   // per meal slot over the last 30 days, and the budget that is left.
   spending: protectedProcedure.handler(async ({ context }) => {
     const userId = context.session.user.id;
-    const today = jakartaToday();
+    const zone = await userZone(context);
+    const today = jakartaToday(undefined, zone);
     // Monthly totals need the 1st; the 30-day slot averages reach further back.
     const since = [monthStart(today), shiftDate(today, -29)].toSorted()[0]!;
     const [rows, prof] = await Promise.all([
@@ -257,6 +262,7 @@ export const plateRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       await context.db
         .insert(profile)
         .values({
@@ -267,7 +273,7 @@ export const plateRouter = {
           heightCm: 170,
           startWeightKg: 70,
           targetWeightKg: 65,
-          targetDate: jakartaToday(),
+          targetDate: jakartaToday(undefined, zone),
           activityLevel: "light",
           foodBudgetIdr: input.idr,
           foodBudgetPeriod: input.period,
@@ -283,7 +289,7 @@ export const plateRouter = {
   // nutrients aggregated from each plate's components, deduped by name+place.
   bestValue: protectedProcedure.handler(async ({ context }) => {
     const userId = context.session.user.id;
-    const plateRows = await pricedPlateRows(context.db, userId);
+    const plateRows = await pricedPlateRows(context.db, userId, await userZone(context));
     if (plateRows.length === 0) return [];
     const totals = await nutrientsByPlateId(
       context.db,
@@ -295,7 +301,7 @@ export const plateRouter = {
 
   // Value scores feeding the "masih muat di sisa kalori" idea ranking.
   ideaValues: protectedProcedure.handler(async ({ context }) => {
-    const values = await loadIdeaValues(context.db, context.session.user.id);
+    const values = await loadIdeaValues(context.db, context.session.user.id, await userZone(context));
     return values ? [...values.entries()] : null;
   }),
 };

@@ -15,6 +15,7 @@ import { exerciseLog } from "@joyorogo/db/schema/fitness";
  */
 export const STRAVA_RETENTION_DAYS = 7;
 
+// WIB on purpose: one global cutoff for the cron over all users; the `created_at` test bounds a user in another zone to 7 days.
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 const DAY_MS = 86_400_000;
 

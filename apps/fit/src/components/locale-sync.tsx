@@ -1,4 +1,4 @@
-import { i18n, isLocale } from "@joyorogo/i18n";
+import { getActiveRegion, i18n, isLocale, resolveDayZone, setActiveDayZone } from "@joyorogo/i18n";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 
@@ -16,6 +16,14 @@ export function LocaleSync() {
 
   useEffect(() => {
     if (!row) return;
+    setActiveDayZone(
+      resolveDayZone({
+        device: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        stored: row.timezone,
+        hasProfile: true,
+        region: getActiveRegion(),
+      }),
+    );
     if (isLocale(row.locale)) {
       if (row.locale !== i18n.language) void setLocale(row.locale);
       return;

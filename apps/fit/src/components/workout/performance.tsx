@@ -18,7 +18,7 @@ import { Trophy } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Card, CardHeader, Delta } from "@/components/kit";
-import { fmtKm, fmtPaceOrSpeed, fmtSigned, wibDay } from "@/lib/format";
+import { fmtKm, fmtPaceOrSpeed, fmtSigned, localDay } from "@/lib/format";
 
 function Row({
   label,
@@ -251,7 +251,7 @@ export function ComparisonCard({
         <tbody className="tabular-nums">
           {comparison.items.map((item) => (
             <tr key={item.startedAt} className="border-t border-border/60">
-              <td className="py-2">{fmtDateShort(wibDay(item.startedAt / 1000))}</td>
+              <td className="py-2">{fmtDateShort(localDay(item.startedAt / 1000))}</td>
               <td className="py-2 text-right">{item.distM ? fmtKm(item.distM) : "–"}</td>
               <td className="py-2 text-right">
                 {pace ? fmtPaceOrSpeed(kind, item.paceSecKm) : formatDuration(item.sec)}

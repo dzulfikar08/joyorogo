@@ -2,8 +2,8 @@ import { and, eq, gte, isNotNull, lt } from "drizzle-orm";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { LOCALES } from "@joyorogo/i18n";
-import type { Locale } from "@joyorogo/i18n";
+import { LOCALES, matchDayZone } from "@joyorogo/i18n";
+import type { DayZone, Locale } from "@joyorogo/i18n";
 import { user } from "@joyorogo/db/schema/auth";
 import { dailyActivity, foodLog, profile, weightLog } from "@joyorogo/db/schema/fitness";
 
@@ -28,6 +28,7 @@ import { activityLevelSchema, dateSchema, manualTdeeKcalSchema, maternalInputSch
 import { readCalibrationPrefs } from "../lib/calibration-store";
 import { buildPlan, planQueries } from "../lib/plan";
 import { serverT } from "../lib/messages";
+import { userZone } from "../lib/user-zone";
 import { effectiveTier, paywallConfig, scanAllowance, scansUsedToday } from "../lib/tiers";
 
 /**
@@ -97,8 +98,8 @@ function settleTarget(
 }
 
 /** Today's plan exactly as day.summary computes it (latest weigh-in + measured TDEE). */
-async function loadPlan(db: Database, userId: string) {
-  const today = jakartaToday();
+async function loadPlan(db: Database, userId: string, zone: DayZone) {
+  const today = jakartaToday(undefined, zone);
   const [[userRow], [row], [latest], weighIns, intake, exercise, prefRows] = await db.batch([
     db
       .select({ tier: user.tier, founderUntil: user.founderUntil })
@@ -121,7 +122,8 @@ async function loadPlan(db: Database, userId: string) {
 
 export const profileRouter = {
   myProfile: protectedProcedure.handler(async ({ context }) => {
-    const { row, plan, tier, founderUntil } = await loadPlan(context.db, context.session.user.id);
+    const zone = await userZone(context);
+    const { row, plan, tier, founderUntil } = await loadPlan(context.db, context.session.user.id, zone);
     if (!row || !plan) {
       return { profile: null, targets: null, latestWeightKg: null, tier, founderUntil };
     }
@@ -134,9 +136,22 @@ export const profileRouter = {
     };
   }),
 
+  // The device's zone, sent by the apps at start-up and when it changes: the calendar days (diary, streaks, the daily
+  // scan quota, recaps) are cut in it from now on. A zone we do not serve (anything but Jakarta, Kuala Lumpur,
+  // Singapore, Kuching) is ignored. No profile yet: nothing to store, onboarding sends it with the profile.
+  setTimezone: protectedProcedure
+    .input(z.object({ timezone: z.string().max(64) }))
+    .handler(async ({ context, input }) => {
+      const zone = matchDayZone(input.timezone);
+      if (!zone) return { timezone: await userZone(context) };
+      await context.db.update(profile).set({ timezone: zone }).where(eq(profile.userId, context.session.user.id));
+      return { timezone: zone };
+    }),
+
   // Today's AI scan allowance, so the scan screen can say "2 of 3 free scans left" before the limit hits. The same
   // rule requireAiQuota enforces (quota.ts); `quota`/`left` are null for an unlimited account or a server without a paywall.
   scanAllowance: protectedProcedure.handler(async ({ context }) => {
+    const zone = await userZone(context);
     const userId = context.session.user.id;
     const [[userRow], used] = await Promise.all([
       context.db
@@ -144,7 +159,7 @@ export const profileRouter = {
         .from(user)
         .where(eq(user.id, userId))
         .limit(1),
-      scansUsedToday(context.db, userId, jakartaToday()),
+      scansUsedToday(context.db, userId, jakartaToday(undefined, zone), zone),
     ]);
     return scanAllowance(effectiveTier(userRow), userRow?.aiUnlimited ?? false, used, paywallConfig(context.env));
   }),
@@ -153,8 +168,9 @@ export const profileRouter = {
   // "lebih akurat" recommendations (from steps; from the weight trend). Works before onboarding too (no profile:
   // only the steps recommendation can exist). Recommendations are never applied here; setActivityLevel does that.
   activityGuide: protectedProcedure.handler(async ({ context }) => {
+    const zone = await userZone(context);
     const userId = context.session.user.id;
-    const today = jakartaToday();
+    const today = jakartaToday(undefined, zone);
     const [[row], [latest], weighIns, intake, exercise, prefRows, stepRows] = await context.db.batch([
       ...planQueries(context.db, userId, today),
       context.db
@@ -202,6 +218,7 @@ export const profileRouter = {
   setActivityLevel: protectedProcedure
     .input(z.object({ level: activityLevelSchema }))
     .handler(async ({ context, input }): Promise<{ targets: Targets }> => {
+      const zone = await userZone(context);
       const userId = context.session.user.id;
       const t = serverT(context.locale, "errors");
       const updated = await context.db
@@ -212,7 +229,7 @@ export const profileRouter = {
       if (updated.length === 0) {
         throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
       }
-      const { plan } = await loadPlan(context.db, userId);
+      const { plan } = await loadPlan(context.db, userId, zone);
       if (!plan) {
         throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
       }
@@ -222,6 +239,7 @@ export const profileRouter = {
   setSleepTarget: protectedProcedure
     .input(z.object({ hours: sleepTargetHoursSchema }))
     .handler(async ({ context, input }): Promise<{ targets: Targets }> => {
+      const zone = await userZone(context);
       const userId = context.session.user.id;
       const t = serverT(context.locale, "errors");
       const updated = await context.db
@@ -232,7 +250,7 @@ export const profileRouter = {
       if (updated.length === 0) {
         throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
       }
-      const { plan } = await loadPlan(context.db, userId);
+      const { plan } = await loadPlan(context.db, userId, zone);
       if (!plan) {
         throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
       }
@@ -244,6 +262,7 @@ export const profileRouter = {
   setManualTdee: protectedProcedure
     .input(z.object({ kcal: manualTdeeKcalSchema }))
     .handler(async ({ context, input }): Promise<{ targets: Targets }> => {
+      const zone = await userZone(context);
       const userId = context.session.user.id;
       const t = serverT(context.locale, "errors");
       const updated = await context.db
@@ -254,7 +273,7 @@ export const profileRouter = {
       if (updated.length === 0) {
         throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
       }
-      const { plan } = await loadPlan(context.db, userId);
+      const { plan } = await loadPlan(context.db, userId, zone);
       if (!plan) {
         throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
       }
@@ -263,6 +282,7 @@ export const profileRouter = {
 
   // "Kembali ke hitungan otomatis".
   clearManualTdee: protectedProcedure.handler(async ({ context }): Promise<{ targets: Targets }> => {
+    const zone = await userZone(context);
     const userId = context.session.user.id;
     const t = serverT(context.locale, "errors");
     const updated = await context.db
@@ -273,7 +293,7 @@ export const profileRouter = {
     if (updated.length === 0) {
       throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
     }
-    const { plan } = await loadPlan(context.db, userId);
+    const { plan } = await loadPlan(context.db, userId, zone);
     if (!plan) {
       throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
     }
@@ -282,17 +302,18 @@ export const profileRouter = {
 
   // "Biarkan": the suggestion stays away for MANUAL_TDEE_DISMISS_DAYS.
   dismissManualTdeeSuggestion: protectedProcedure.handler(async ({ context }): Promise<{ targets: Targets }> => {
+    const zone = await userZone(context);
     const userId = context.session.user.id;
     const t = serverT(context.locale, "errors");
     const updated = await context.db
       .update(profile)
-      .set({ manualTdeeDismissedOn: jakartaToday() })
+      .set({ manualTdeeDismissedOn: jakartaToday(undefined, zone) })
       .where(and(eq(profile.userId, userId), isNotNull(profile.manualTdeeKcal)))
       .returning({ userId: profile.userId });
     if (updated.length === 0) {
       throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
     }
-    const { plan } = await loadPlan(context.db, userId);
+    const { plan } = await loadPlan(context.db, userId, zone);
     if (!plan) {
       throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
     }
@@ -339,12 +360,15 @@ export const profileRouter = {
         maternal: maternalInputSchema.optional(),
         // "Turunin BB / Jaga BB / Naikin BB". Absent: derived from the target vs the weight.
         goal: z.enum(GOALS).optional(),
+        // The device's IANA zone (Intl): a profile's days are cut in it when we serve it, else in the region's zone.
+        timezone: z.string().max(64).optional(),
       }),
     )
     .handler(async ({ context, input }): Promise<{ targets: Targets }> => {
+      const zone = matchDayZone(input.timezone) ?? (await userZone(context));
       const userId = context.session.user.id;
       const t = serverT(context.locale, "errors");
-      const today = jakartaToday();
+      const today = jakartaToday(undefined, zone);
       const resolved = resolveMaternalInput(input.maternal ?? { mode: "none" }, today);
       if (!resolved.ok) {
         throw new ORPCError("BAD_REQUEST", { message: t(`profile.${resolved.error}`) });
@@ -393,6 +417,7 @@ export const profileRouter = {
         goalStartKg,
         activityLevel: input.activityLevel,
         sleepTargetHours,
+        timezone: zone,
         ...maternalToRow(maternal),
         ...(maternal.mode !== "none" ? MATERNAL_DEFAULTS : {}),
       };
@@ -415,7 +440,7 @@ export const profileRouter = {
             set: { weightKg: input.weightKg },
           }),
       ]);
-      const { plan } = await loadPlan(context.db, userId);
+      const { plan } = await loadPlan(context.db, userId, zone);
       if (!plan) {
         throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
       }
@@ -433,10 +458,11 @@ export const profileRouter = {
       }),
     )
     .handler(async ({ context, input }): Promise<{ targets: Targets }> => {
+      const zone = await userZone(context);
       const userId = context.session.user.id;
       const t = serverT(context.locale, "errors");
-      const today = jakartaToday();
-      const { row, plan: current } = await loadPlan(context.db, userId);
+      const today = jakartaToday(undefined, zone);
+      const { row, plan: current } = await loadPlan(context.db, userId, zone);
       if (!row || !current) {
         throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
       }
@@ -486,7 +512,7 @@ export const profileRouter = {
       if (updated.length === 0) {
         throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
       }
-      const { plan } = await loadPlan(context.db, userId);
+      const { plan } = await loadPlan(context.db, userId, zone);
       if (!plan) {
         throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
       }
@@ -504,8 +530,9 @@ export const profileRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       const userId = context.session.user.id;
-      const today = jakartaToday();
+      const today = jakartaToday(undefined, zone);
       const [[row], [latest], weighIns, intake, exercise, prefRows] = await context.db.batch(
         planQueries(context.db, userId, today),
       );
@@ -551,10 +578,11 @@ export const profileRouter = {
   // maintenance plan (target weight = today's weight): the old weight-loss target
   // pre-dates the pregnancy and is only set again on purpose, after a doctor visit.
   setMaternal: protectedProcedure.input(maternalInputSchema).handler(async ({ context, input }) => {
+    const zone = await userZone(context);
     const userId = context.session.user.id;
     const t = serverT(context.locale, "errors");
-    const today = jakartaToday();
-    const { row, plan } = await loadPlan(context.db, userId);
+    const today = jakartaToday(undefined, zone);
+    const { row, plan } = await loadPlan(context.db, userId, zone);
     if (!row || !plan) {
       throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
     }
@@ -581,7 +609,7 @@ export const profileRouter = {
           : {}),
       })
       .where(eq(profile.userId, userId));
-    const next = await loadPlan(context.db, userId);
+    const next = await loadPlan(context.db, userId, zone);
     return { targets: next.plan?.targets ?? plan.targets };
   }),
 
@@ -596,10 +624,11 @@ export const profileRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       const userId = context.session.user.id;
       const t = serverT(context.locale, "errors");
-      const today = jakartaToday();
-      const { row, plan } = await loadPlan(context.db, userId);
+      const today = jakartaToday(undefined, zone);
+      const { row, plan } = await loadPlan(context.db, userId, zone);
       if (!row || !plan) {
         throw new ORPCError("NOT_FOUND", { message: t("profile.onboardingRequired") });
       }
@@ -630,7 +659,7 @@ export const profileRouter = {
           ...(state.mode === "none" ? holdWeight(plan.weightNowKg, today) : {}),
         })
         .where(eq(profile.userId, userId));
-      const next = await loadPlan(context.db, userId);
+      const next = await loadPlan(context.db, userId, zone);
       return { mode: state.mode, targets: next.plan?.targets ?? plan.targets };
     }),
   // Saved app language. Clients resolve saved > device choice > device language

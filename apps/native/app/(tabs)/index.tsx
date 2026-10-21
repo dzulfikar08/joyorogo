@@ -23,7 +23,7 @@ import type { Meal } from "@joyorogo/api/lib/engine";
 import { pickFact } from "@joyorogo/api/lib/facts";
 import { gainEatTone, gainRemaining } from "@joyorogo/api/lib/gain";
 import { DEFAULT_ADD_BACK_SETTINGS } from "@joyorogo/api/lib/exercise-credit";
-import { fmtNumber } from "@joyorogo/i18n";
+import { clockHourIn, fmtNumber, instantIn } from "@joyorogo/i18n";
 
 import { CalibrationNotice } from "@/components/calibration-notice";
 import { ManualTdeeSuggestionCard } from "@/components/manual-tdee";
@@ -121,13 +121,7 @@ function sumMacro(
 }
 
 function greetingKey(date: Date): "morning" | "noon" | "afternoon" | "evening" {
-  const h = Number(
-    new Intl.DateTimeFormat("en", {
-      hour: "numeric",
-      hour12: false,
-      timeZone: "Asia/Jakarta",
-    }).format(date),
-  );
+  const h = Math.floor(clockHourIn(undefined, date));
   if (h >= 4 && h < 11) return "morning";
   if (h >= 11 && h < 15) return "noon";
   if (h >= 15 && h < 18) return "afternoon";
@@ -211,7 +205,7 @@ export default function Dashboard() {
   const { t } = useTranslation(["home", "common", "berat", "maternal", "gain"]);
   const gate = useSessionGate();
   const { today, now } = useJakartaClock();
-  // null = follow the live WIB day; a past day is pinned only once the person picks it.
+  // null = follow the live day; a past day is pinned only once the person picks it.
   const [pickedDate, setPickedDate] = useState<string | null>(null);
   const date = pickedDate ?? today;
   const isToday = date === today;
@@ -431,7 +425,7 @@ export default function Dashboard() {
       const recap = await queryClient.fetchQuery(orpc.stats.weekRecap.queryOptions({ input: { weekStart } }));
       const share = recap ? recapShare(recap) : null;
       if (share) {
-        setRecapStory({ kind: "recap", ...share, date: new Date(`${recap!.weekEnd}T12:00:00+07:00`) });
+        setRecapStory({ kind: "recap", ...share, date: new Date(instantIn(recap!.weekEnd, 12, 0)) });
         return;
       }
     } catch {

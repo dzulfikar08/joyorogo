@@ -19,7 +19,7 @@ export type DishwareKind = (typeof DISHWARE_KINDS)[number];
 
 /** Registered plates per user. Each costs ~50 prompt tokens on every scan, so the list stays short. */
 export const MAX_DISHWARE = 6;
-/** Registration photos analysed per user per WIB day (the describe/measure call; the scan itself is not counted). */
+/** Registration photos analysed per user per local day (the describe/measure call; the scan itself is not counted). */
 export const DISHWARE_ANALYSES_PER_DAY = 12;
 
 export const MIN_DIAMETER_CM = 5;

@@ -11,7 +11,7 @@ import { fmtInt } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 
 /**
- * "Rekap minggu ini" on Beranda: only on Monday (WIB), summarizing the week
+ * "Rekap minggu ini" on Beranda: only on Monday (day zone), summarizing the week
  * that just ended. The full recap lives at /rekap and stays reachable from Lainnya.
  */
 export function RecapCard() {

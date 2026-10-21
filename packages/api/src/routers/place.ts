@@ -6,6 +6,7 @@ import { foodLog } from "@joyorogo/db/schema/fitness";
 import { plate } from "@joyorogo/db/schema/plans";
 
 import { protectedProcedure } from "../index";
+import { userZone } from "../lib/user-zone";
 import { assertEatenAt, eatenAtSchema } from "../lib/eaten-at";
 import { jakartaToday, suggestMealNow } from "../lib/engine";
 import { serverT } from "../lib/messages";
@@ -63,6 +64,7 @@ export const placeRouter = {
   // summed nutrition via a subquery so no id list is ever bound). Coordinates
   // are the owner's own.
   list: protectedProcedure.handler(async ({ context }) => {
+    const zone = await userZone(context);
     const userId = context.session.user.id;
     const [rows, nutrition] = await Promise.all([
       context.db
@@ -73,7 +75,7 @@ export const placeRouter = {
         .limit(MAX_PLATES),
       plateNutrition(context.db, userId),
     ]);
-    return { today: jakartaToday(), places: aggregatePlaces(rows, nutrition) };
+    return { today: jakartaToday(undefined, zone), places: aggregatePlaces(rows, nutrition) };
   }),
 
   // Visit history of one place (newest first) with each plate's components.
@@ -149,6 +151,7 @@ export const placeRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       const userId = context.session.user.id;
       const [source] = await context.db
         .select()
@@ -167,9 +170,9 @@ export const placeRouter = {
       if (items.length === 0) {
         throw new ORPCError("UNPROCESSABLE_CONTENT", { message: t("server.error.plateEmpty") });
       }
-      const date = input.date ?? jakartaToday();
-      const meal = input.meal ?? suggestMealNow();
-      assertEatenAt(input.eatenAt, date);
+      const date = input.date ?? jakartaToday(undefined, zone);
+      const meal = input.meal ?? suggestMealNow(new Date(), false, zone);
+      assertEatenAt(input.eatenAt, date, zone);
       const plateId = crypto.randomUUID();
       await context.db.insert(plate).values({
         id: plateId,

@@ -2,7 +2,7 @@
 // (text from packages/i18n sleepInsights.json, server side like the weekly reflection).
 
 import type { Database } from "@joyorogo/db";
-import type { Locale } from "@joyorogo/i18n";
+import type { DayZone, Locale } from "@joyorogo/i18n";
 
 import { getT } from "@joyorogo/i18n";
 
@@ -89,7 +89,7 @@ export async function buildSleepView(
   db: Database,
   userId: string,
   pref: SleepPref,
-  opts: { locale: Locale; pro: boolean; now?: Date },
+  opts: { locale: Locale; pro: boolean; zone: DayZone; now?: Date },
 ): Promise<SleepInsightsView> {
   const now = opts.now ?? new Date();
   const personalState: SleepInsightsView["personal"] = opts.pro ? "needs_nights" : "locked";
@@ -97,7 +97,7 @@ export async function buildSleepView(
     return { enabled: false, personal: personalState, lockedCount: 0, cards: [], progress: [], lastNight: null, regularity: null };
   }
   const t = getT(opts.locale, "sleepInsights") as unknown as Translate;
-  const { inputs, states } = await computeState(db, userId, pref, now);
+  const { inputs, states } = await computeState(db, userId, pref, now, opts.zone);
   const { nights, foods, ctx } = inputs;
   const hidden = new Set(pref.dismissed);
 
@@ -112,7 +112,7 @@ export async function buildSleepView(
   const general: SleepCard[] = [];
   if (nights.length >= 3) {
     if (!ctx.maternal) {
-      const caffeine = lastCaffeineBeforeBed(foods, nights, now.getTime());
+      const caffeine = lastCaffeineBeforeBed(foods, nights, now.getTime(), ctx.dayOffsetMin);
       if (caffeine) {
         general.push(generalCard(t, "caffeine", { time: clock(opts.locale, caffeine.clock), hours: caffeine.hoursBeforeBed }, "iom"));
       }
@@ -130,7 +130,7 @@ export async function buildSleepView(
     if (last.tempCMean !== null && last.rhPctMean !== null) {
       general.push(generalCard(t, "room", { temp: Math.round(last.tempCMean), rh: Math.round(last.rhPctMean) }, "okamoto"));
     }
-    if (!ctx.maternal && hasRecentAlcohol(foods, now.getTime())) general.push(generalCard(t, "alcohol", {}, "ebrahim"));
+    if (!ctx.maternal && hasRecentAlcohol(foods, now.getTime(), ctx.dayOffsetMin)) general.push(generalCard(t, "alcohol", {}, "ebrahim"));
   }
   for (const card of general) {
     if (cards.length >= MAX_CARDS) break;

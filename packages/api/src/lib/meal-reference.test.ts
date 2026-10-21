@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
+import { DEFAULT_DAY_ZONE as ZONE } from "@joyorogo/i18n";
+
 import {
   applyModifiers,
   groupRows,
@@ -24,7 +26,7 @@ const MORNING = new Date("2026-10-19T02:00:00Z");
 type Pointer = { day: number | null; slots: Meal[] | null; last?: boolean };
 
 const point = (text: string, now: Date = NOON): Pointer | null => {
-  const ref = parseMealReference(text, now);
+  const ref = parseMealReference(text, now, ZONE);
   return ref ? { day: ref.dayOffset, slots: ref.slots, last: ref.last } : null;
 };
 
@@ -168,8 +170,8 @@ describe("day math around midnight WIB", () => {
 
   test("the resolver finds the WIB lunch of the day that just ended", () => {
     const rows = [row("2026-10-19", "makan_siang", "Nasi padang", 600, 1)];
-    const ref = parseMealReference("sama kayak tadi siang", JUST_AFTER_MIDNIGHT)!;
-    const found = resolveReference(ref, rows, { date: "2026-10-20", meal: "snack" }, JUST_AFTER_MIDNIGHT);
+    const ref = parseMealReference("sama kayak tadi siang", JUST_AFTER_MIDNIGHT, ZONE)!;
+    const found = resolveReference(ref, rows, { date: "2026-10-20", meal: "snack" }, JUST_AFTER_MIDNIGHT, ZONE);
     expect(found.status === "found" && found.group.date).toBe("2026-10-19");
   });
 });
@@ -191,7 +193,7 @@ function row(date: string, meal: Meal, name: string, kcal: number, at: number, e
 }
 
 describe("modifiers", () => {
-  const mods = (text: string) => parseMealReference(text, NOON)!;
+  const mods = (text: string) => parseMealReference(text, NOON, ZONE)!;
 
   test("a plain copy has no changes", () => {
     expect(isPlainCopy(mods("sama kayak tadi siang"))).toBe(true);
@@ -306,7 +308,7 @@ describe("resolveReference", () => {
     row("2026-10-05", "makan_siang", "Terlalu lama", 300, 10),
   ];
   const resolve = (text: string, target = TARGET, rows = log) =>
-    resolveReference(parseMealReference(text, NOON) as MealReference, rows, target, NOON);
+    resolveReference(parseMealReference(text, NOON, ZONE) as MealReference, rows, target, NOON, ZONE);
   const names = (r: ReturnType<typeof resolve>) => (r.status === "found" ? r.group.rows.map((x) => x.name) : null);
 
   test("'tadi siang' is today's lunch", () => {
@@ -363,18 +365,18 @@ describe("storyTarget", () => {
   const slots: Meal[] = ["sarapan", "makan_siang", "makan_malam", "snack"];
 
   test("the slot the user is adding to wins, on the day being viewed", () => {
-    expect(storyTarget({ now: NOON, date: "2026-10-17", meal: "snack", slots })).toEqual({
+    expect(storyTarget({ zone: ZONE, now: NOON, date: "2026-10-17", meal: "snack", slots })).toEqual({
       date: "2026-10-17",
       meal: "snack",
     });
   });
 
   test("without a slot it follows the clock; future days clamp to today", () => {
-    expect(storyTarget({ now: NOON, date: "2030-01-01", slots })).toEqual({ date: "2026-10-19", meal: "makan_siang" });
-    expect(storyTarget({ now: MORNING, slots })).toEqual({ date: "2026-10-19", meal: "sarapan" });
+    expect(storyTarget({ zone: ZONE, now: NOON, date: "2030-01-01", slots })).toEqual({ date: "2026-10-19", meal: "makan_siang" });
+    expect(storyTarget({ zone: ZONE, now: MORNING, slots })).toEqual({ date: "2026-10-19", meal: "sarapan" });
   });
 
   test("a slot the client does not offer falls back to the clock", () => {
-    expect(storyTarget({ now: NOON, meal: "sahur", slots })).toEqual({ date: "2026-10-19", meal: "makan_siang" });
+    expect(storyTarget({ zone: ZONE, now: NOON, meal: "sahur", slots })).toEqual({ date: "2026-10-19", meal: "makan_siang" });
   });
 });

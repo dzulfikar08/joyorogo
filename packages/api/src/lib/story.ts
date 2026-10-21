@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { DEFAULT_LOCALE, DEFAULT_REGION } from "@joyorogo/i18n";
-import type { Locale, Region } from "@joyorogo/i18n";
+import { DEFAULT_LOCALE, DEFAULT_REGION, getActiveDayZone } from "@joyorogo/i18n";
+import type { DayZone, Locale, Region } from "@joyorogo/i18n";
 
 import { localNameRule, localNameShape, transcriptionLanguage } from "./ai-locale";
 import { storyRegionRule } from "./region-prompt";
@@ -48,12 +48,20 @@ export const STORY_EMPTY_ERROR = storyError("empty", DEFAULT_LOCALE);
 export const STORY_FAILED_ERROR = storyError("failed", DEFAULT_LOCALE);
 export const VOICE_EMPTY_ERROR = storyError("voiceEmpty", DEFAULT_LOCALE);
 
+const ZONE_ABBR: Record<DayZone, string> = {
+  "Asia/Jakarta": "WIB",
+  "Asia/Kuala_Lumpur": "MYT",
+  "Asia/Singapore": "SGT",
+};
+
 const WEEKDAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
 export function storyPrompt(ctx: {
   text: string;
   today: string;
   clock: string;
+  /** Zone the clock reads in; absent = Jakarta (WIB). */
+  zone?: DayZone;
   slots: readonly Meal[];
   defaultMeal?: Meal;
   locale?: Locale;
@@ -67,7 +75,7 @@ export function storyPrompt(ctx: {
     ? `Jika waktu makan tidak disebut, pakai ${ctx.defaultMeal}.`
     : "Jika waktu makan tidak disebut, tebak dari jam sekarang.";
   return `Anda adalah ahli gizi. Pengguna menceritakan makanan yang SUDAH dimakan (bisa beberapa waktu makan dan beberapa hari). Ubah menjadi daftar item.
-Hari ini ${ctx.today} (${weekday}), jam ${ctx.clock} WIB. Waktu makan yang boleh: ${ctx.slots.join(", ")}. ${fallback}
+Hari ini ${ctx.today} (${weekday}), jam ${ctx.clock} ${ZONE_ABBR[ctx.zone ?? "Asia/Jakarta"]}. Waktu makan yang boleh: ${ctx.slots.join(", ")}. ${fallback}
 Jawab HANYA JSON valid satu baris (tanpa \`\`\`) dengan bentuk persis:
 {"items":[{"name":"nama makanan",${localNameShape(locale)}"portion":"porsi yang disebut","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"meal":"salah satu waktu makan","day":number atau null}]}
 Aturan:
@@ -290,21 +298,24 @@ export async function parseFoodStory(
     /** Logged rows the story points at ("sama kayak kemarin tapi ..."): the model copies them by index. */
     reference?: { rows: readonly MealRow[]; target: Target };
     now?: Date;
+    /** The user's day zone: "today" and the clock the model is told. Omitted = active zone (Jakarta on the server). */
+    zone?: DayZone;
     schedule?: ScheduleTimeout;
   },
 ): Promise<StoryAnalysis> {
   const model = opts.model || DEFAULT_VISION_MODEL;
   const locale = opts.locale ?? DEFAULT_LOCALE;
   const now = opts.now ?? new Date();
-  const today = jakartaToday(now);
+  const zone = opts.zone ?? getActiveDayZone();
+  const today = jakartaToday(now, zone);
   const clock = now.toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-    timeZone: "Asia/Jakarta",
+    timeZone: zone,
   });
   const slots = opts.slots.length > 0 ? opts.slots : (MEALS as readonly Meal[]);
-  const suggested = suggestMealNow(now, slots.includes("sahur"));
+  const suggested = suggestMealNow(now, slots.includes("sahur"), zone);
   const ctx: StoryContext = {
     today,
     referenceDate: opts.referenceDate && opts.referenceDate <= today ? opts.referenceDate : today,
@@ -327,6 +338,7 @@ export async function parseFoodStory(
               text: opts.text,
               today,
               clock,
+              zone,
               slots,
               defaultMeal: ctx.defaultMeal,
               locale,

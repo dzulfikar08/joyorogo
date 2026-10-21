@@ -1,5 +1,5 @@
 import type { FitWebWorkout } from "@joyorogo/api/lib/fit-web";
-import { fmtClock, fmtDateMedium } from "@joyorogo/i18n";
+import { fmtDateMedium } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,7 +15,7 @@ import { kindOf, maxHrFromAge } from "@/lib/import/analysis";
 import type { Prepared } from "@/lib/import/pipeline";
 import { MAX_FILE_BYTES } from "@/lib/import/types";
 import { type UploadResult, uploadWorkout } from "@/lib/import/upload";
-import { fmtFileSize, fmtHm, fmtKm, wibDay } from "@/lib/format";
+import { fmtClock, fmtFileSize, fmtHm, fmtKm, localDay } from "@/lib/format";
 import { orpc } from "@/lib/orpc";
 import { sportIcon } from "@/lib/sport";
 
@@ -242,7 +242,7 @@ function FileRow({
             <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs tabular-nums sm:grid-cols-4">
               <Fact
                 label={t("workouts.meta.at", {
-                  date: fmtDateMedium(wibDay(activity.start)),
+                  date: fmtDateMedium(localDay(activity.start)),
                   time: fmtClock(new Date(activity.start * 1000)),
                 })}
               />

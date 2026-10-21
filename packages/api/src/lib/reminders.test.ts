@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
+import type { DayZone } from "@joyorogo/i18n";
+
 import { flushOutbox } from "./notify";
 import { runPushCron } from "./push-cron";
-import { pushTestDb, seedDevice, seedFood, seedUser, wib } from "./push-test-db";
+import { myt, pushTestDb, seedDevice, seedFood, seedUser, wib } from "./push-test-db";
 import type { TestClient } from "./push-test-db";
 import {
   activeSlots,
@@ -18,13 +20,26 @@ import type { ReminderDeps } from "./reminders";
 const MONDAY = "2026-10-19";
 const TUESDAY = "2026-10-20";
 
-const kinds = (at: Date) => activeSlots(at).map((s) => s.kind);
+const kinds = (at: Date, zone: DayZone = "Asia/Jakarta") => activeSlots(at, zone).map((s) => s.kind);
 
 describe("reminder windows (WIB)", () => {
   test("weekday is read on the WIB calendar", () => {
-    expect(wibWeekday(wib(MONDAY, "00:30"))).toBe(1);
+    expect(wibWeekday(wib(MONDAY, "00:30"), "Asia/Jakarta")).toBe(1);
     // 23:30 UTC on Sunday is already Monday in Jakarta
-    expect(wibWeekday(new Date("2026-10-18T23:30:00Z"))).toBe(1);
+    expect(wibWeekday(new Date("2026-10-18T23:30:00Z"), "Asia/Jakarta")).toBe(1);
+  });
+
+  test("Malaysia reads its own clock and weekday", () => {
+    // 16:30 UTC on Sunday: 23:30 WIB Sunday, 00:30 MYT Monday
+    const edge = new Date("2026-10-18T16:30:00Z");
+    expect(wibWeekday(edge, "Asia/Jakarta")).toBe(0);
+    expect(wibWeekday(edge, "Asia/Kuala_Lumpur")).toBe(1);
+    // 13:10 MYT is 12:10 WIB: lunch for Kuala Lumpur only
+    expect(kinds(myt(TUESDAY, "13:10"), "Asia/Kuala_Lumpur")).toEqual(["meal_noon"]);
+    expect(kinds(myt(TUESDAY, "13:10"))).toEqual([]);
+    // Monday 07:30 MYT: the weekly plan window of Kuala Lumpur is open while Jakarta's is not
+    expect(kinds(myt(MONDAY, "07:30"), "Asia/Kuala_Lumpur")).toEqual(["weigh", "plan"]);
+    expect(kinds(myt(MONDAY, "07:30"))).toEqual([]);
   });
 
   test("lunch and evening food reminders", () => {
@@ -46,7 +61,15 @@ describe("reminder windows (WIB)", () => {
 });
 
 describe("rules", () => {
-  const base = { nowMin: 13 * 60, pattern: null, windowStart: null, ramadanMode: "off", maternalMode: "none", now: wib(TUESDAY) } as const;
+  const base = {
+    nowMin: 13 * 60,
+    pattern: null,
+    windowStart: null,
+    ramadanMode: "off",
+    maternalMode: "none",
+    now: wib(TUESDAY),
+    zone: "Asia/Jakarta",
+  } as const;
 
   test("no fasting setting: never skipped", () => {
     expect(skipMealReminder({ ...base, kind: "meal_noon" })).toBe(false);
@@ -168,6 +191,29 @@ describe("lunch reminder", () => {
     await flushOutbox(deps(wib(TUESDAY, "15:30")));
     expect(expo).toHaveLength(0);
     expect((await outbox("meal_noon"))[0]?.status).toBe("dropped");
+  });
+
+  test("a Malaysian person is reminded at their own 13:00, an Indonesian one at theirs", async () => {
+    const { client, deps, outbox } = await world();
+    await person(client, "id");
+    await person(client, "my", { timezone: "Asia/Kuala_Lumpur" });
+
+    // 13:10 in Kuala Lumpur is 12:10 in Jakarta
+    expect(await runReminders(deps(myt(TUESDAY, "13:10")))).toBe(1);
+    expect((await outbox("meal_noon")).map((r) => r.user_id)).toEqual(["my"]);
+    // 13:10 in Jakarta is 14:10 in Kuala Lumpur: the window of "my" is over, and it was told already
+    expect(await runReminders(deps(wib(TUESDAY, "13:10")))).toBe(1);
+    expect((await outbox("meal_noon")).map((r) => r.user_id)).toEqual(["id", "my"]);
+  });
+
+  test("the day is the Malaysian person's own: food of the 21st does not cover the 22nd", async () => {
+    const { client, deps, outbox } = await world();
+    await person(client, "my", { timezone: "Asia/Kuala_Lumpur", foodOn: [] });
+    await seedFood(client, "my", "2026-10-21");
+    // 2026-10-21 in Kuala Lumpur: nothing is due on the 21st, but the 22nd has not been eaten yet
+    expect(await runReminders(deps(myt("2026-10-21", "13:10")))).toBe(0);
+    expect(await runReminders(deps(myt("2026-10-22", "13:10")))).toBe(1);
+    expect(await outbox("meal_noon")).toHaveLength(1);
   });
 
   test("tomorrow is a new day", async () => {

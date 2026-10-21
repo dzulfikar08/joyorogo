@@ -21,10 +21,11 @@ import type { ContributionInput, ContributionOutcome, ContributionResult } from 
 import { barcodeSources } from "../lib/barcode-sources";
 import { jakartaToday } from "../lib/engine";
 import { serverT } from "../lib/messages";
-import { wibDayBounds } from "../lib/tiers";
+import { dayBounds } from "../lib/tiers";
+import { userZone } from "../lib/user-zone";
 import { DEFAULT_VISION_MODEL } from "../lib/vision";
 
-/** Label photo reads per user per WIB day, failures included (each one costs a model call). */
+/** Label photo reads per user per local day, failures included (each one costs a model call). */
 export const MAX_LABEL_READS_PER_DAY = 12;
 
 const codeSchema = z.string().trim().min(1).max(32);
@@ -146,7 +147,8 @@ export const barcodeRouter = {
       const ai = context.env.AI;
       if (!ai) throw new ORPCError("SERVICE_UNAVAILABLE", { message: t("errors.aiUnavailable") });
       const userId = context.session.user.id;
-      const { startMs, endMs } = wibDayBounds(jakartaToday());
+      const zone = await userZone(context);
+      const { startMs, endMs } = dayBounds(jakartaToday(undefined, zone), zone);
       const [used] = await context.db
         .select({ n: sql<number>`count(*)` })
         .from(aiUsage)
@@ -211,7 +213,7 @@ export const barcodeRouter = {
       },
       confirmEnergyMismatch: input.confirmEnergyMismatch,
     };
-    const result = await recordContribution(context.db, context.session.user.id, code, contribution);
+    const result = await recordContribution(context.db, context.session.user.id, await userZone(context), code, contribution);
     if (!result.ok) throw contributionError(result, context.locale);
     return {
       outcome: result.outcome,
@@ -234,7 +236,7 @@ export const barcodeRouter = {
           data: { reason: "not_confirmable" },
         });
       }
-      const result = await recordContribution(context.db, context.session.user.id, code, contribution);
+      const result = await recordContribution(context.db, context.session.user.id, await userZone(context), code, contribution);
       if (!result.ok) throw contributionError(result, context.locale);
       return {
         outcome: result.outcome,

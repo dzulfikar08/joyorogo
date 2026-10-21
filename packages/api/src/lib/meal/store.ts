@@ -4,6 +4,8 @@
 import { and, between, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 
 import type { Database } from "@joyorogo/db";
+import { instantIn } from "@joyorogo/i18n";
+import type { DayZone } from "@joyorogo/i18n";
 import { foodLog } from "@joyorogo/db/schema/fitness";
 import { mealPlan, mealPlanSwap, mealPrefs, mealShoppingCheck } from "@joyorogo/db/schema/meal";
 import type { MealPlanRow } from "@joyorogo/db/schema/meal";
@@ -152,9 +154,9 @@ export async function loadTargets(db: Database, userId: string, today: string): 
 }
 
 /** The slots of one date for this person: Ramadan split, fasting window, or the normal four. */
-export function slotsOfDate(t: PlanTargets, date: string): { slots: SlotShare[]; normal: boolean } {
+export function slotsOfDate(t: PlanTargets, date: string, zone: DayZone): { slots: SlotShare[]; normal: boolean } {
   const ramadanPref = t.maternal && t.prof.ramadanMode === "auto" ? "off" : t.prof.ramadanMode;
-  const ramadan = effectiveRamadan(ramadanPref, new Date(`${date}T12:00:00+07:00`));
+  const ramadan = effectiveRamadan(ramadanPref, new Date(instantIn(date, 12, 0, zone)), zone);
   const pattern = t.prof.fastingPattern;
   const fasting = !t.maternal && !ramadan && isFastingPattern(pattern) ? { pattern, windowStart: t.prof.fastingWindowStart } : null;
   return { slots: daySlots({ ramadan, fasting }), normal: !ramadan && fasting === null };
@@ -252,22 +254,23 @@ export type PlanContext = {
   db: Database;
   userId: string;
   today: string;
+  zone: DayZone;
   targets: PlanTargets;
   prefs: PlanPrefs;
   index: HistoryIndex;
   candidates: Candidate[];
 };
 
-export async function loadPlanContext(db: Database, userId: string): Promise<PlanContext | null> {
-  const today = jakartaToday();
+export async function loadPlanContext(db: Database, userId: string, zone: DayZone): Promise<PlanContext | null> {
+  const today = jakartaToday(undefined, zone);
   const [targets, prefs, index] = await Promise.all([loadTargets(db, userId, today), readPrefs(db, userId), loadHistoryIndex(db, userId, today)]);
   if (!targets) return null;
-  return { db, userId, today, targets, prefs, index, candidates: buildCandidates(prefs, index) };
+  return { db, userId, today, zone, targets, prefs, index, candidates: buildCandidates(prefs, index) };
 }
 
 /** One day's planning inputs from what is saved for it and what has been eaten. */
 export function daySpec(ctx: PlanContext, date: string, existing: StoredDay | undefined, eaten: EatenState, extraBlocked: Set<string>): DaySpec {
-  const { slots, normal } = slotsOfDate(ctx.targets, date);
+  const { slots, normal } = slotsOfDate(ctx.targets, date, ctx.zone);
   const isToday = date === ctx.today;
   const t = targetsOfDate(ctx.targets, date, ctx.today);
   const eatenByMeal = eaten.byDate.get(date);
@@ -284,7 +287,7 @@ export function daySpec(ctx: PlanContext, date: string, existing: StoredDay | un
   }
   const taken = new Set(keep.map((k) => k.slot));
   let open = slots.filter((s) => !taken.has(s.slot) && !(isToday && covered(s.slot)));
-  if (isToday) open = slotsStillOpen(open, jakartaClockHour(), normal);
+  if (isToday) open = slotsStillOpen(open, jakartaClockHour(undefined, ctx.zone), normal);
   return {
     date,
     budgetKcal: t.kcal,

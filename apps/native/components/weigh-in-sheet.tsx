@@ -19,7 +19,7 @@ export function WeighInSheet({
   visible: boolean;
   onClose: () => void;
   latestKg?: number | null;
-  /** WIB day key the weigh-in lands on; defaults to today. */
+  /** Day key the weigh-in lands on; defaults to today. */
   date?: string;
 }) {
   const { theme } = useUnistyles();

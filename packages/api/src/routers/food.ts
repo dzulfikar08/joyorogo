@@ -16,6 +16,7 @@ import { MAX_GRAMS, MAX_KCAL, resolvePortion } from "../lib/portion";
 import { recalcRow } from "../lib/plate-recalc";
 import type { RecalcValues } from "../lib/plate-recalc";
 import { toStoredCoords } from "../lib/places";
+import { userZone } from "../lib/user-zone";
 import { dateSchema, mealSchema, pastDateSchema } from "../lib/schemas";
 import {
   SCAN_ID_RE,
@@ -113,7 +114,8 @@ export const foodRouter = {
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
-      assertEatenAt(input.eatenAt, input.date ?? jakartaToday());
+      const zone = await userZone(context);
+      assertEatenAt(input.eatenAt, input.date ?? jakartaToday(undefined, zone), zone);
       const bucket = context.env.STICKERS;
       const images = context.env.IMAGES;
       const bytes = base64ToBytes(input.imageBase64);
@@ -164,7 +166,7 @@ export const foodRouter = {
         if (box) return { scanId: newScanId(), box };
         return !anyBox && index === 0 ? { scanId: newScanId() } : null;
       });
-      const date = input.date ?? jakartaToday();
+      const date = input.date ?? jakartaToday(undefined, zone);
       // One scan = one plate; every kept item is a component of it.
       const plateId = await createPlate(context.db, userId, {
         date,
@@ -261,7 +263,8 @@ export const foodRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
-      assertEatenAt(input.eatenAt, input.date ?? jakartaToday());
+      const zone = await userZone(context);
+      assertEatenAt(input.eatenAt, input.date ?? jakartaToday(undefined, zone), zone);
       // An explicit plateId must belong to this user; unknown ids are ignored.
       let attachId = input.plateId ?? null;
       if (attachId) {
@@ -272,7 +275,7 @@ export const foodRouter = {
           .limit(1);
         if (!owned) attachId = null;
       }
-      const date = input.date ?? jakartaToday();
+      const date = input.date ?? jakartaToday(undefined, zone);
       const plateId =
         attachId ??
         (await createPlate(context.db, context.session.user.id, {
@@ -306,7 +309,7 @@ export const foodRouter = {
     }),
 
   // Edits one logged row: name, portion (weight, kcal, macros; see
-  // resolvePortion for how they follow each other) and/or day (WIB key). Stickers
+  // resolvePortion for how they follow each other) and/or day (day key). Stickers
   // and photos ride along untouched; when the row was the last component of its
   // plate on the old day, the plate moves with it so the grouping never splits.
   // Plate totals are derived from rows, and price stays on the plate, so
@@ -330,6 +333,7 @@ export const foodRouter = {
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
+      const zone = await userZone(context);
       const [row] = await context.db
         .select()
         .from(foodLog)
@@ -342,11 +346,11 @@ export const foodRouter = {
       const nextDate = date ?? row.date;
       let nextEatenAt: number | null | undefined;
       if (typeof eatenAt === "number") {
-        assertEatenAt(eatenAt, nextDate);
+        assertEatenAt(eatenAt, nextDate, zone);
         nextEatenAt = eatenAt;
       } else if (eatenAt === null) {
         nextEatenAt = null;
-      } else if (date && row.eatenAt != null && eatenAtProblem(row.eatenAt, nextDate, new Date(row.eatenAt))) {
+      } else if (date && row.eatenAt != null && eatenAtProblem(row.eatenAt, nextDate, new Date(row.eatenAt), zone)) {
         nextEatenAt = null;
       }
       const next = resolvePortion(row, patch);
@@ -472,13 +476,14 @@ export const foodRouter = {
   listByDate: protectedProcedure
     .input(z.object({ date: dateSchema.optional() }))
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       const items = await context.db
         .select()
         .from(foodLog)
         .where(
           and(
             eq(foodLog.userId, context.session.user.id),
-            eq(foodLog.date, input.date ?? jakartaToday()),
+            eq(foodLog.date, input.date ?? jakartaToday(undefined, zone)),
           ),
         )
         .orderBy(asc(foodLog.createdAt));
@@ -524,8 +529,9 @@ export const foodRouter = {
     )
     .handler(async ({ context, input }) => {
       const now = new Date();
-      const target = storyTarget({ now, date: input.date, meal: input.meal, slots: input.slots });
-      const groups = await recentMealGroups(context.db, context.session.user.id, now, target, 4);
+      const zone = await userZone(context);
+      const target = storyTarget({ now, zone, date: input.date, meal: input.meal, slots: input.slots });
+      const groups = await recentMealGroups(context.db, context.session.user.id, now, target, 4, zone);
       return { groups };
     }),
 
@@ -542,7 +548,8 @@ export const foodRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
-      const target = storyTarget({ now: new Date(), date: input.date, meal: input.meal, slots: input.slots });
+      const zone = await userZone(context);
+      const target = storyTarget({ now: new Date(), zone, date: input.date, meal: input.meal, slots: input.slots });
       const { items, reference } = await copyLoggedMeal(context.db, context.session.user.id, input.from, target);
       return { transcript: "", items, quotaReached: false, reference };
     }),

@@ -475,7 +475,7 @@ export default function Olahraga() {
       </ListGroup>
 
       {/* Recent history: Health Connect / Apple Health imports land on the
-          workout's own WIB day, so show the past week or they look lost. */}
+          workout's own day, so show the past week or they look lost. */}
       {(() => {
         const pastItems = (recentQuery.data?.items ?? []).filter((item) => item.date !== today);
         const byDate = new Map<string, typeof pastItems>();

@@ -53,7 +53,7 @@ What the user is told is the claim "a card was the reference", so a false detect
 - The photo is private in the `joyorogo-scans` bucket at `dishware/<userId>/<photoId>.jpg`, served only by `GET /dishware-photo/:id` to the owner's session (the key embeds the owner). It is never used for training or the dataset.
 - Name and description end up inside a prompt, so they are cleaned (`promptText`: one line, no quotes or braces, length-capped) both when typed and when written by the model.
 - Deleting a plate removes its row and photo; the account wipe (`deleteAllUserData`, `deleteUserMedia`) removes every plate and the `dishware/<userId>/` prefix.
-- The registration read ("analyze", also run inside `create` when the client did not send a description) is a Workers AI call but not a scan: it has its own budget of 12 per WIB day (`DISHWARE_ANALYSES_PER_DAY`, counted from `ai_usage` rows of type `dishware`) and never touches the scan quota.
+- The registration read ("analyze", also run inside `create` when the client did not send a description) is a Workers AI call but not a scan: it has its own budget of 12 per local day (`DISHWARE_ANALYSES_PER_DAY`, counted from `ai_usage` rows of type `dishware`) and never touches the scan quota.
 
 ## Measuring it
 

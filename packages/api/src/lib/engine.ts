@@ -3,7 +3,7 @@
 // imports it into route modules, so keep it tiny (zod schemas for these shapes
 // live in ./schemas).
 
-import { clockHourIn, dayIn, getActiveLocale, getT, relativeDayLabel, yesterdayIn } from "@joyorogo/i18n";
+import { clockHourIn, dayIn, getActiveDayZone, getActiveLocale, getT, relativeDayLabel, yesterdayIn } from "@joyorogo/i18n";
 import type { DayZone } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 
@@ -156,7 +156,7 @@ export type ProfileInput = {
   heightCm: number;
   weightKg: number;
   targetWeightKg: number;
-  /** WIB calendar day, YYYY-MM-DD */
+  /** Calendar day in the user's zone, YYYY-MM-DD */
   targetDate: string;
   activityLevel: ActivityLevel;
   /**
@@ -244,7 +244,7 @@ export function round5(n: number): number {
 
 // Day boundaries are WIB (UTC+7, no DST) unless a zone is passed (docs/marketing/malaysia-plan.md, "Timezone"): 23:30 UTC is
 // already tomorrow here, and 16:30 UTC is already tomorrow in Kuala Lumpur (UTC+8). Callers that know the user's zone pass it;
-// the stored days in the database are all WIB, so no caller does yet.
+// stored days of existing rows stay WIB-cut.
 export function jakartaToday(now: Date = new Date(), zone?: DayZone): string {
   return dayIn(zone, now);
 }
@@ -361,7 +361,7 @@ export type WeightTrend = {
   weightKg: number;
   /** kg/week over the last 28 days, negative = losing; null until 10 days of span */
   weeklyRateKg: number | null;
-  /** WIB day the trend reaches target at the current rate; null when not heading there */
+  /** Day the trend reaches target at the current rate; null when not heading there */
   projectedDate: string | null;
   points: TrendPoint[];
 };
@@ -472,7 +472,7 @@ export type RangeStats = {
   changeKg: number | null;
   /** kg/week across the range; null when the two ends cannot define a pace */
   weeklyRateKg: number | null;
-  /** WIB day the target is reached at this pace; null when not projectable */
+  /** Day the target is reached at this pace; null when not projectable */
   projectedDate: string | null;
 };
 
@@ -542,10 +542,10 @@ export function adaptiveTdee(input: {
  * Ramadan day check via the Umm al-Qura Hijri calendar (Workers/Node both ship
  * full ICU). Returns false on any Intl failure so manual mode still works.
  */
-export function isRamadanDate(now: Date = new Date()): boolean {
+export function isRamadanDate(now: Date = new Date(), zone?: DayZone): boolean {
   try {
     const parts = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", {
-      timeZone: "Asia/Jakarta",
+      timeZone: zone ?? getActiveDayZone(),
       day: "numeric",
       month: "numeric",
       year: "numeric",
@@ -560,10 +560,10 @@ export function isRamadanDate(now: Date = new Date()): boolean {
 export type RamadanPref = "auto" | "on" | "off";
 
 /** Effective Ramadan state for a profile preference + date. */
-export function effectiveRamadan(pref: RamadanPref | undefined, now: Date = new Date()): boolean {
+export function effectiveRamadan(pref: RamadanPref | undefined, now: Date = new Date(), zone?: DayZone): boolean {
   if (pref === "on") return true;
   if (pref === "off") return false;
-  return isRamadanDate(now);
+  return isRamadanDate(now, zone);
 }
 
 /** Meal slots shown during Ramadan — the eating window, sahur → snack → berbuka. */
@@ -589,9 +589,9 @@ export function ramadanSplit(): Record<Meal, number> {
   };
 }
 
-/** Meal slot that matches the current WIB time. */
-export function suggestMealNow(now: Date = new Date(), ramadan = false): Meal {
-  const hour = jakartaClockHour(now);
+/** Meal slot that matches the current clock time in `zone` (default: active zone, Jakarta on the server). */
+export function suggestMealNow(now: Date = new Date(), ramadan = false, zone?: DayZone): Meal {
+  const hour = jakartaClockHour(now, zone);
   if (ramadan) {
     // Pre-dawn → sahur; sunset → berbuka; late night → post-tarawih snack;
     // fasting hours point at the upcoming main meal.
@@ -612,8 +612,8 @@ export function suggestMealNow(now: Date = new Date(), ramadan = false): Meal {
  * which is wrong for a real meal: those hours become makan malam. Ramadan
  * keeps its own eating-window slots.
  */
-export function suggestMealForDish(now: Date, ramadan: boolean, heavy: boolean): Meal {
-  const meal = suggestMealNow(now, ramadan);
+export function suggestMealForDish(now: Date, ramadan: boolean, heavy: boolean, zone?: DayZone): Meal {
+  const meal = suggestMealNow(now, ramadan, zone);
   return heavy && !ramadan && meal === "snack" ? "makan_malam" : meal;
 }
 
@@ -637,8 +637,10 @@ export function movementFor(
 }
 
 export type ComputeOptions = {
-  /** WIB today, override for tests; defaults to jakartaToday() */
+  /** Today, override for tests; defaults to jakartaToday(undefined, zone) */
   today?: string;
+  /** The user's day zone; used when `today` is omitted */
+  zone?: DayZone;
   /** latest known weight; defaults to profile start weight */
   weightNow?: number;
   /** Replaces the profile level's factor. Used to show the target a level (or the pre-factor model) would give. */
@@ -654,7 +656,7 @@ export type ComputeOptions = {
  * only the measured activity beyond the movement the TDEE already holds (`includedKcal`, derived from it).
  */
 export function computeTargets(profile: ProfileInput, options: ComputeOptions = {}): Targets {
-  const today = options.today ?? jakartaToday();
+  const today = options.today ?? jakartaToday(undefined, options.zone);
   const weightNow = options.weightNow ?? profile.weightKg;
   const age = ageFromBirthYear(profile.birthYear, today);
 
@@ -754,7 +756,7 @@ export type ExerciseLogLike = { kcal: number; source?: string | null };
 export type BurnResult = {
   /** resting BMR at the current weight */
   bmrKcal: number;
-  /** BMR x activity factor x elapsed WIB day fraction */
+  /** BMR x activity factor x elapsed day fraction */
   activityKcal: number;
   /** today's logged exercise kcal; rest rows excluded */
   exerciseKcal: number;
@@ -767,12 +769,14 @@ export type BurnInput = {
   weightNowKg?: number;
   /** today's exercise rows */
   exerciseLogs: ExerciseLogLike[];
-  /** WIB day fraction 0..1 override; defaults to the live clock — pass 1 for past days */
+  /** Day fraction 0..1 override; defaults to the live clock — pass 1 for past days */
   dayFraction?: number;
   /** plan TDEE (Targets.tdee) so an adaptive plan prorates the measured value */
   tdeeKcal?: number;
   /** injectable clock so tests are deterministic */
   now?: Date;
+  /** the user's day zone: the clock fraction and today are read in it */
+  zone?: DayZone;
 };
 
 /**
@@ -781,12 +785,12 @@ export type BurnInput = {
  * days off, not movement.
  */
 export function computeBurn(input: BurnInput): BurnResult {
-  const today = jakartaToday(input.now);
+  const today = jakartaToday(input.now, input.zone);
   const weightNow = input.weightNowKg ?? input.profile.weightKg;
   const age = ageFromBirthYear(input.profile.birthYear, today);
   const bmr = bmrMifflin(weightNow, input.profile.heightCm, age, input.profile.gender);
   const fraction =
-    input.dayFraction ?? Math.min(1, Math.max(0, jakartaClockHour(input.now ?? new Date()) / 24));
+    input.dayFraction ?? Math.min(1, Math.max(0, jakartaClockHour(input.now ?? new Date(), input.zone) / 24));
   const activityKcal =
     (input.tdeeKcal ?? bmr * ACTIVITY_FACTOR[input.profile.activityLevel]) * fraction;
   const exerciseKcal = input.exerciseLogs
@@ -886,11 +890,13 @@ export function checkTargetDate(input: {
   targetWeightKg: number;
   targetDate: string;
   today?: string;
+  /** the user's day zone; used when `today` is omitted */
+  zone?: DayZone;
   goal?: Goal;
   /** lets the gain verdict know an underweight body (no "brisk" band); omitted = not underweight */
   heightCm?: number;
 }): TargetDateCheck {
-  const today = input.today ?? jakartaToday();
+  const today = input.today ?? jakartaToday(undefined, input.zone);
   const { targetDate } = input;
   if (
     !/^\d{4}-\d{2}-\d{2}$/.test(targetDate) ||
@@ -1023,7 +1029,7 @@ export type DatePace = {
  * still weight to move). Both carry the later date the safe pace reaches; otherwise null.
  */
 export function storedDatePace(input: Parameters<typeof checkTargetDate>[0]): DatePace | null {
-  const today = input.today ?? jakartaToday();
+  const today = input.today ?? jakartaToday(undefined, input.zone);
   const check = checkTargetDate({ ...input, today });
   if (check.status === "past") {
     // Same maths as a one-day-out date: the days the safe pace needs from today.

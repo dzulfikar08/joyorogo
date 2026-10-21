@@ -52,7 +52,7 @@ export function sampledForShadow(env: ShadowEnv, random: () => number = Math.ran
   return random() < shadowRate(env);
 }
 
-/** Shadow answers stored today (WIB), counted from the ledger sessions. */
+/** Shadow answers stored today (WIB on purpose: one global budget for everyone, not a per-user day), counted from the ledger sessions. */
 async function shadowsToday(db: Database): Promise<number> {
   const { startMs } = wibDayBounds(jakartaToday());
   const [row] = await db

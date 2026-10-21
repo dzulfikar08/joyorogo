@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
 
 import type { Database } from "@joyorogo/db";
+import { dayBoundsIn, dayZoneOffsetMs, weekdayOfMs } from "@joyorogo/i18n";
+import type { DayZone } from "@joyorogo/i18n";
 
 import { calibrationNotice } from "./calibration";
 import { readCalibrationPrefs } from "./calibration-store";
@@ -12,8 +14,9 @@ import { buildPlan, planQueries } from "./plan";
 import { premiumUnlocked } from "./readiness-food";
 import { paywallConfig } from "./tiers";
 import type { PaywallEnv } from "./tiers";
+import { ZONE_GROUPS, profileInZone } from "./zone-sql";
 
-// Reminders the server decides on, per person, in WIB. The five-minute cron calls `runReminders`; each reminder has a
+// Reminders the server decides on, per person, in the person's own zone. The five-minute cron calls `runReminders`; each reminder has a
 // window of the day (and a weekday for the weekly ones). Inside the window every tick looks for people who qualify and
 // have not been sent this reminder today (a dedupe key per day), so a skipped tick only delays it and a person never
 // gets one twice. Rows are stored with `enqueueMany`; the same tick's flush delivers them, applying the person's
@@ -24,10 +27,10 @@ export type ReminderKind = "meal_noon" | "meal_evening" | "weigh" | "recap" | "p
 export type ReminderSlot = {
   kind: ReminderKind;
   category: PushCategory;
-  /** WIB minute of the day the window opens / closes. */
+  /** Minute of the person's local day the window opens / closes. */
   startMin: number;
   endMin: number;
-  /** WIB weekday (0 = Sunday) for weekly reminders. */
+  /** Local weekday (0 = Sunday) for weekly reminders. */
   dow?: number;
 };
 
@@ -57,15 +60,15 @@ const CALIBRATION_SLOTS = 12;
 const CALIBRATION_BATCH = 60;
 const CANDIDATE_LIMIT = 500;
 
-/** WIB weekday of a timestamp, 0 = Sunday. */
-export function wibWeekday(now: Date): number {
-  return new Date(now.getTime() + 7 * 3_600_000).getUTCDay();
+/** Local weekday of a timestamp in `zone`, 0 = Sunday. */
+export function wibWeekday(now: Date, zone: DayZone): number {
+  return weekdayOfMs(now.getTime(), zone);
 }
 
-/** The reminder windows `now` (WIB) is inside of. */
-export function activeSlots(now: Date): ReminderSlot[] {
-  const minute = wibMinutes(now);
-  const weekday = wibWeekday(now);
+/** The reminder windows `now` is inside of for people living in `zone`. */
+export function activeSlots(now: Date, zone: DayZone): ReminderSlot[] {
+  const minute = wibMinutes(now, zone);
+  const weekday = wibWeekday(now, zone);
   return REMINDER_SLOTS.filter(
     (slot) => minute >= slot.startMin && minute < slot.endMin && (slot.dow === undefined || slot.dow === weekday),
   );
@@ -89,10 +92,11 @@ export function skipMealReminder(input: {
   ramadanMode: string | null;
   maternalMode: string | null;
   now: Date;
+  zone: DayZone;
 }): boolean {
   if (input.maternalMode && input.maternalMode !== "none") return false;
   const ramadanPref = input.ramadanMode === "on" || input.ramadanMode === "off" || input.ramadanMode === "auto" ? input.ramadanMode : "auto";
-  if (effectiveRamadan(ramadanPref, input.now)) return input.kind === "meal_noon";
+  if (effectiveRamadan(ramadanPref, input.now, input.zone)) return input.kind === "meal_noon";
   if (isFastingPattern(input.pattern) && input.windowStart) {
     return !insideWindow(input.nowMin, windowTimes(input.windowStart, windowHoursFor(input.pattern)));
   }
@@ -137,9 +141,9 @@ const localReminderOff = (path: string) =>
     WHERE r.user_id = profile.user_id AND r.ns = 'rogo' AND r.kind = 'pref' AND r.id = 'reminders' AND r.deleted_at IS NULL), 0) != 1`;
 
 /** Logged food in the last two weeks, or a fresh account: someone still using the app. */
-const engaged = (today: string) =>
+const engaged = (today: string, zone: DayZone) =>
   sql`(EXISTS (SELECT 1 FROM food_log f2 WHERE f2.user_id = profile.user_id AND f2.date >= ${shiftDate(today, -ENGAGED_DAYS)})
-    OR profile.created_at > ${Date.parse(`${shiftDate(today, -ENGAGED_DAYS)}T00:00:00+07:00`)})`;
+    OR profile.created_at > ${dayBoundsIn(shiftDate(today, -ENGAGED_DAYS), zone).startMs})`;
 
 type MealCandidate = {
   id: string;
@@ -152,6 +156,7 @@ type MealCandidate = {
 async function mealCandidates(
   db: Database,
   today: string,
+  zone: DayZone,
   slot: "meal_noon" | "meal_evening",
 ): Promise<MealCandidate[]> {
   const local = localReminderOff(slot === "meal_noon" ? "$.value.meals.makan_siang.enabled" : "$.value.meals.makan_malam.enabled");
@@ -159,13 +164,13 @@ async function mealCandidates(
     SELECT profile.user_id AS id, profile.fasting_pattern AS pattern, profile.fasting_window_start AS windowStart,
            profile.ramadan_mode AS ramadan, profile.maternal_mode AS maternal
     FROM profile
-    WHERE ${reachable} AND ${prefOn("meal")} AND ${local} AND ${notYetSent(`meal:${slot === "meal_noon" ? "noon" : "evening"}:${today}`)}
-      AND ${engaged(today)}
+    WHERE ${reachable} AND ${profileInZone(zone)} AND ${prefOn("meal")} AND ${local} AND ${notYetSent(`meal:${slot === "meal_noon" ? "noon" : "evening"}:${today}`)}
+      AND ${engaged(today, zone)}
       AND NOT EXISTS (SELECT 1 FROM food_log f WHERE f.user_id = profile.user_id AND f.date = ${today})
     LIMIT ${CANDIDATE_LIMIT}`);
 }
 
-/** Per person: the WIB days they logged food or weighed in during the last 60 days (what the streak counts). */
+/** Per person: the days (in their zone) they logged food or weighed in during the last 60 days (what the streak counts). */
 async function loggedDates(db: Database, ids: string[], today: string): Promise<Map<string, string[]>> {
   const out = new Map<string, string[]>();
   for (let i = 0; i < ids.length; i += 40) {
@@ -188,40 +193,42 @@ async function loggedDates(db: Database, ids: string[], today: string): Promise<
 
 export type ReminderDeps = NotifyDeps & { env: NotifyDeps["env"] & PaywallEnv };
 
-/** Looks at every reminder window `now` is inside of and stores what is due. Returns how many rows were stored. */
+/** Looks at every reminder window `now` is inside of, per zone group, and stores what is due. Returns how many rows were stored. */
 export async function runReminders(deps: ReminderDeps): Promise<number> {
   const now = (deps.now ?? (() => new Date()))();
-  const slots = activeSlots(now);
   let stored = 0;
-  for (const slot of slots) {
-    try {
-      stored += await runSlot(deps, slot, now);
-    } catch (error) {
-      console.error(`[push] reminder ${slot.kind} failed`, error);
+  for (const zone of ZONE_GROUPS) {
+    for (const slot of activeSlots(now, zone)) {
+      try {
+        stored += await runSlot(deps, slot, now, zone);
+      } catch (error) {
+        console.error(`[push] reminder ${slot.kind} failed`, error);
+      }
     }
   }
   return stored;
 }
 
-async function runSlot(deps: ReminderDeps, slot: ReminderSlot, now: Date): Promise<number> {
+async function runSlot(deps: ReminderDeps, slot: ReminderSlot, now: Date, zone: DayZone): Promise<number> {
   const { db } = deps;
-  const today = wibDateKey(now);
+  const today = wibDateKey(now, zone);
   const staleMs = slotStaleMs(slot);
   const base = { category: slot.category, staleMs } as const;
 
   switch (slot.kind) {
     case "meal_noon":
     case "meal_evening": {
-      const candidates = (await mealCandidates(db, today, slot.kind)).filter(
+      const candidates = (await mealCandidates(db, today, zone, slot.kind)).filter(
         (c) =>
           !skipMealReminder({
             kind: slot.kind as "meal_noon" | "meal_evening",
-            nowMin: wibMinutes(now),
+            nowMin: wibMinutes(now, zone),
             pattern: c.pattern,
             windowStart: c.windowStart,
             ramadanMode: c.ramadan,
             maternalMode: c.maternal,
             now,
+            zone,
           }),
       );
       if (candidates.length === 0) return 0;
@@ -254,10 +261,10 @@ async function runSlot(deps: ReminderDeps, slot: ReminderSlot, now: Date): Promi
       const rows = await db.all<{ id: string; last: string | null; created: string }>(sql`
         SELECT profile.user_id AS id,
                (SELECT MAX(w.date) FROM weight_log w WHERE w.user_id = profile.user_id) AS last,
-               strftime('%Y-%m-%d', profile.created_at / 1000, 'unixepoch', '+7 hours') AS created
+               strftime('%Y-%m-%d', profile.created_at / 1000, 'unixepoch', ${`+${dayZoneOffsetMs(zone) / 3_600_000} hours`}) AS created
         FROM profile
-        WHERE ${reachable} AND ${prefOn("weigh")} AND ${localReminderOff("$.value.weighIn.enabled")}
-          AND ${notYetSent(`weigh:${today}`)} AND profile.maternal_mode = 'none' AND ${engaged(today)}
+        WHERE ${reachable} AND ${profileInZone(zone)} AND ${prefOn("weigh")} AND ${localReminderOff("$.value.weighIn.enabled")}
+          AND ${notYetSent(`weigh:${today}`)} AND profile.maternal_mode = 'none' AND ${engaged(today, zone)}
           AND NOT EXISTS (SELECT 1 FROM push_outbox o WHERE o.user_id = profile.user_id AND o.kind = 'weigh' AND o.created_at > ${weekAgo})
         LIMIT ${CANDIDATE_LIMIT}`);
       const gaps = new Map<string, number>();
@@ -278,7 +285,7 @@ async function runSlot(deps: ReminderDeps, slot: ReminderSlot, now: Date): Promi
     case "recap": {
       const rows = await db.all<{ id: string }>(sql`
         SELECT profile.user_id AS id FROM profile
-        WHERE ${reachable} AND ${prefOn("recap")} AND ${notYetSent(`recap:${today}`)}
+        WHERE ${reachable} AND ${profileInZone(zone)} AND ${prefOn("recap")} AND ${notYetSent(`recap:${today}`)}
           AND (SELECT COUNT(DISTINCT f.date) FROM food_log f
                WHERE f.user_id = profile.user_id AND f.date >= ${shiftDate(today, -7)} AND f.date < ${today}) >= 2
         LIMIT ${CANDIDATE_LIMIT}`);
@@ -296,7 +303,7 @@ async function runSlot(deps: ReminderDeps, slot: ReminderSlot, now: Date): Promi
       const rows = await db.all<{ id: string; tier: "free" | "founder"; founderUntil: number | null }>(sql`
         SELECT profile.user_id AS id, "user".tier AS tier, "user".founder_until AS founderUntil
         FROM profile JOIN "user" ON "user".id = profile.user_id
-        WHERE ${reachable} AND ${prefOn("recap")} AND ${notYetSent(`plan:${today}`)}
+        WHERE ${reachable} AND ${profileInZone(zone)} AND ${prefOn("recap")} AND ${notYetSent(`plan:${today}`)}
           AND EXISTS (SELECT 1 FROM meal_plan mp WHERE mp.user_id = profile.user_id
                       AND mp.start_date <= ${today} AND mp.start_date >= ${shiftDate(today, -6)})
         LIMIT ${CANDIDATE_LIMIT}`);
@@ -315,10 +322,10 @@ async function runSlot(deps: ReminderDeps, slot: ReminderSlot, now: Date): Promi
     }
 
     case "calibration": {
-      const tick = Math.floor((wibMinutes(now) - slot.startMin) / 5);
+      const tick = Math.floor((wibMinutes(now, zone) - slot.startMin) / 5);
       const rows = await db.all<{ id: string }>(sql`
         SELECT profile.user_id AS id FROM profile
-        WHERE ${reachable} AND ${prefOn("recap")} AND profile.maternal_mode = 'none'
+        WHERE ${reachable} AND ${profileInZone(zone)} AND ${prefOn("recap")} AND profile.maternal_mode = 'none'
           AND EXISTS (SELECT 1 FROM weight_log w WHERE w.user_id = profile.user_id AND w.date >= ${shiftDate(today, -21)})
         LIMIT ${CANDIDATE_LIMIT}`);
       const mine = rows.filter((r) => userSlot(r.id, CALIBRATION_SLOTS) === tick % CALIBRATION_SLOTS).slice(0, CALIBRATION_BATCH);
@@ -358,7 +365,7 @@ async function runSlot(deps: ReminderDeps, slot: ReminderSlot, now: Date): Promi
         SELECT m.user_id AS id, c.id AS challengeId, c.team_id AS teamId, c.title AS title
         FROM team_challenge c JOIN team_challenge_member m ON m.challenge_id = c.id
         JOIN profile ON profile.user_id = m.user_id
-        WHERE c.end_date = ${yesterday} AND ${reachable}
+        WHERE c.end_date = ${yesterday} AND ${reachable} AND ${profileInZone(zone)}
           AND COALESCE((SELECT p.group_notes FROM push_prefs p WHERE p.user_id = profile.user_id), 1) = 1
         LIMIT ${CANDIDATE_LIMIT}`);
       const byId = new Map(rows.map((r) => [`${r.id}:${r.challengeId}`, r]));

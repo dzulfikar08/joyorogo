@@ -60,6 +60,7 @@ import { GainOnboardingResult } from "@/components/gain/onboarding-result";
 import { orpc } from "@/utils/orpc";
 
 const profileOptions = orpc.profile.myProfile.queryOptions();
+const deviceTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export const Route = createFileRoute("/_auth/onboarding")({
   loader: async ({ context }) => {
@@ -384,6 +385,7 @@ function OnboardingPage() {
           heightCm: height,
           weightKg: weight,
           activityLevel: form.activityLevel,
+          timezone: deviceTimezone,
           maternal: result.input,
         });
         return;
@@ -399,6 +401,7 @@ function OnboardingPage() {
           targetWeightKg: weight,
           targetDate: jakartaDatePlusDays(365),
           activityLevel: form.activityLevel,
+          timezone: deviceTimezone,
         });
         return;
       }
@@ -428,6 +431,7 @@ function OnboardingPage() {
         targetWeightKg: targetWeight,
         targetDate: form.targetDate,
         activityLevel: form.activityLevel,
+        timezone: deviceTimezone,
       });
       return;
     }

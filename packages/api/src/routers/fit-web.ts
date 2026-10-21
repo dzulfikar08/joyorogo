@@ -1,11 +1,14 @@
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import type { DayZone } from "@joyorogo/i18n";
+
 import { protectedProcedure } from "../index";
 import { FitDataError, resolveRange } from "../lib/fit-data";
 import { FIT_WEB_LIMITS, getFitWebRecovery, getFitWebWorkouts } from "../lib/fit-web";
 import { serverT } from "../lib/messages";
 import { dateSchema } from "../lib/schemas";
+import { userZone } from "../lib/user-zone";
 import { cloudUnlocked } from "../lib/watch-workout-store";
 
 const rangeInput = z.object({ from: dateSchema.optional(), to: dateSchema.optional() });
@@ -25,9 +28,10 @@ function rangeOf(
   context: { locale: Parameters<typeof serverT>[0] },
   input: z.infer<typeof rangeInput>,
   defaultDays: number,
+  zone: DayZone,
 ) {
   try {
-    return resolveRange(input.from, input.to, { maxDays: FIT_WEB_LIMITS.days, defaultDays });
+    return resolveRange(input.from, input.to, { maxDays: FIT_WEB_LIMITS.days, defaultDays, zone });
   } catch (error) {
     if (error instanceof FitDataError) {
       throw new ORPCError("BAD_REQUEST", {
@@ -46,13 +50,15 @@ function rangeOf(
 export const fitWebRouter = {
   /** One row per day with sleep, scores or activity in the window, oldest first. Default: the last 30 days. */
   recovery: proProcedure.input(rangeInput).handler(async ({ context, input }) => {
-    const range = rangeOf(context, input, 30);
+    const zone = await userZone(context);
+    const range = rangeOf(context, input, 30, zone);
     return getFitWebRecovery(context.db, context.session.user.id, range.from, range.to);
   }),
 
   /** The cloud workouts that started in the window, newest first. Default: the last 90 days. */
   workouts: proProcedure.input(rangeInput).handler(async ({ context, input }) => {
-    const range = rangeOf(context, input, 90);
-    return getFitWebWorkouts(context.db, context.session.user.id, range.from, range.to);
+    const zone = await userZone(context);
+    const range = rangeOf(context, input, 90, zone);
+    return getFitWebWorkouts(context.db, context.session.user.id, range.from, range.to, zone);
   }),
 };

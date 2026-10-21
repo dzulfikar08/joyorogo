@@ -8,6 +8,7 @@ import { ErrorScreen, NotFoundScreen } from "./components/error-screen";
 import { captureFrom } from "./lib/analytics";
 import { captureOAuthQuery } from "./lib/oauth-query";
 import "./lib/i18n";
+import "./lib/day-zone-sync";
 import { sessionQuery } from "./lib/auth-client";
 import { routeTree } from "./routeTree.gen";
 import { cacheBuster, orpc, persister, queryClient } from "./utils/orpc";

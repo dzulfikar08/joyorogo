@@ -7,7 +7,7 @@ import { gainDayHit } from "./gain";
 
 /**
  * Makan view switcher shared by web and native: the view keys, their labels,
- * and the WIB day-key math the calendar and sticker views run on. Pure string
+ * and the day-key math the calendar and sticker views run on. Pure string
  * math (no Date parsing, no Intl) so Hermes behaves like the browser.
  */
 

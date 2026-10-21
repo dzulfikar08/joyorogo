@@ -1,5 +1,5 @@
 // Sleep per night with its stages, as `GET /v1/sleep` of the JoyoFit cloud API returns it (watch-fit server/src/sleep.ts), and the
-// small pure helpers the Tidur page draws from. Times are unix seconds; the API groups sessions by WIB wake-up day.
+// small pure helpers the Tidur page draws from. Times are unix seconds; the API groups sessions by wake-up day in the user zone.
 
 export const STAGES = ["awake", "rem", "light", "deep", "asleep"] as const;
 export type Stage = (typeof STAGES)[number];
@@ -29,7 +29,7 @@ export interface SleepNap {
 }
 
 export interface SleepDay {
-  /** WIB day the sessions ended on. */
+  /** Day (user zone) the sessions ended on. */
   day: string;
   /** Night and naps together, overlaps once. */
   asleepSec: number;

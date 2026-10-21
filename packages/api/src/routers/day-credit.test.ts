@@ -15,6 +15,7 @@ import { ENERGY_NOTICE_BEFORE_MS } from "../lib/energy-notice";
 import { getDailyTotals } from "../lib/fit-data";
 import { dayRouter } from "./day";
 import { fitnessRouter } from "./fitness";
+import { DEFAULT_DAY_ZONE } from "@joyorogo/i18n";
 
 const client = createClient({ url: ":memory:" });
 const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
@@ -257,10 +258,10 @@ describe("getDailyTotals uses the same rule (Strava rows excluded)", () => {
     await client.execute(
       `INSERT INTO food_log (id, user_id, date, meal, name, kcal) VALUES ('f1', 'manual', '${today}', 'sarapan', 'x', 500), ('f2', 'off', '${today}', 'sarapan', 'x', 500), ('f3', 'watch', '${today}', 'sarapan', 'x', 500), ('f4', 'deskwork', '${today}', 'sarapan', 'x', 500)`,
     );
-    const manual = await getDailyTotals(db, "manual", today, today);
-    const off = await getDailyTotals(db, "off", today, today);
-    const watch = await getDailyTotals(db, "watch", today, today);
-    const deskwork = await getDailyTotals(db, "deskwork", today, today);
+    const manual = await getDailyTotals(db, "manual", today, today, DEFAULT_DAY_ZONE);
+    const off = await getDailyTotals(db, "off", today, today, DEFAULT_DAY_ZONE);
+    const watch = await getDailyTotals(db, "watch", today, today, DEFAULT_DAY_ZONE);
+    const deskwork = await getDailyTotals(db, "deskwork", today, today, DEFAULT_DAY_ZONE);
     // manual: 200 manual (Strava's 100 never reaches the MCP) * 0.75
     expect(manual.days[0]).toMatchObject({ exerciseKcal: 200, activeKcal: 200, exerciseAddedKcal: 150 });
     expect(manual.days[0]!.remainingKcal).toBe(manual.targets!.eatKcal + 150 - 500);

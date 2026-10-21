@@ -3,7 +3,7 @@ import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Database } from "@joyorogo/db";
-import type { Locale } from "@joyorogo/i18n";
+import type { DayZone, Locale } from "@joyorogo/i18n";
 import { aiUsage, profile, scanCorrection, scanFeedback, weightLog } from "@joyorogo/db/schema/fitness";
 import {
   SCAN_ID_RE,
@@ -41,7 +41,8 @@ import type { ReferenceInfo } from "../lib/meal-copy";
 import { parseMealReference, storyTarget } from "../lib/meal-reference";
 import { TRANSCRIBE_MODEL, parseFoodStory, transcribeStory } from "../lib/story";
 import { MAX_SCAN_RETRIES, requireAiQuota } from "../lib/quota";
-import { wibDayBounds } from "../lib/tiers";
+import { dayBounds } from "../lib/tiers";
+import { userZone } from "../lib/user-zone";
 import { runShadowScan, sampledForShadow, shadowDailyCap } from "../lib/shadow-scan";
 import { DEFAULT_VISION_MODEL, VisionError, analyzeFoodPhoto, normalizeBox } from "../lib/vision";
 import type { ItemBox, VisionAnalysis, VisionEvent } from "../lib/vision";
@@ -192,10 +193,10 @@ type AuthedContext = Context & { session: NonNullable<Context["session"]> };
  * The scan-prompt line about the person: Hamil / Menyusui first (maternalPromptNote), else a
  * Naikin BB plan that still has weight to gain (GAIN_PROMPT_NOTE); null for everyone else.
  */
-async function loadUserNote(db: Database, userId: string): Promise<string | null> {
+async function loadUserNote(db: Database, userId: string, zone: DayZone): Promise<string | null> {
   const [row] = await db.select().from(profile).where(eq(profile.userId, userId)).limit(1);
   if (!row) return null;
-  const maternal = maternalNoteFor(maternalFromRow(row));
+  const maternal = maternalNoteFor(maternalFromRow(row), jakartaToday(undefined, zone));
   if (maternal !== null || row.goal !== "gain") return maternal;
   const [latest] = await db
     .select({ weightKg: weightLog.weightKg })
@@ -290,6 +291,7 @@ async function runAnalyzeFood(
   onEvent?: (event: VisionEvent) => void,
 ): Promise<AnalyzeFoodResult> {
   const userId = context.session.user.id;
+  const zone = await userZone(context);
   const scaleOn = scaleReadoutEnabled(context.env, userId);
   const requestStartedAt = Date.now();
   // Request start (createContext: session lookup, then the body upload as the
@@ -301,16 +303,17 @@ async function runAnalyzeFood(
     context.env,
     userId,
     context.locale,
+    zone,
   );
   const quotaMs = Date.now() - requestStartedAt;
 
   // Hamil / Menyusui: one context line for the prompt, read beside the model call's setup.
-  const userNote = loadUserNote(context.db, userId);
+  const userNote = loadUserNote(context.db, userId, zone);
   // Size references as prompt text: a card beside the food, then the registered plates ("Piring saya").
   // Allowlist only; a failed plate read is the card alone, never a failed scan.
   const reference = loadScanReference(context.db, context.env, userId);
   // "Hasilnya akurat?" cadence: ask after every scan for a brand-new user
-  // (first 3 scans ever), otherwise at most once per WIB day. Counted
+  // (first 3 scans ever), otherwise at most once per local day. Counted
   // before this scan's ledger row lands; awaited after inference so the
   // roundtrips hide behind the model call. A `dilewati` dismissal counts
   // as asked — closing the card must not re-prompt all day.
@@ -325,14 +328,14 @@ async function runAnalyzeFood(
       .where(
         and(
           eq(scanFeedback.userId, userId),
-          gte(scanFeedback.createdAt, new Date(wibDayBounds(jakartaToday()).startMs)),
+          gte(scanFeedback.createdAt, new Date(dayBounds(jakartaToday(undefined, zone), zone).startMs)),
         ),
       ),
   ]);
 
   // "Porsi kebiasaanmu": the user's usual portions, read beside the model call. A
   // failed read is no history, never a failed scan.
-  const priors: Promise<Map<string, PortionPrior> | null> = loadPortionPriors(context.db, userId).catch(
+  const priors: Promise<Map<string, PortionPrior> | null> = loadPortionPriors(context.db, userId, zone).catch(
     (error: unknown) => {
       console.error("[ai] portion prior failed", error);
       return null;
@@ -341,7 +344,7 @@ async function runAnalyzeFood(
 
   // "Ingat koreksimu": allowlist only; a failed read is no memory, never a failed scan.
   const memory: Promise<CorrectionMemory | null> = correctionMemoryEnabled(context.env, userId)
-    ? loadCorrectionMemory(context.db, userId).catch((error: unknown) => {
+    ? loadCorrectionMemory(context.db, userId, zone).catch((error: unknown) => {
         console.error("[ai] correction memory failed", error);
         return null;
       })
@@ -654,12 +657,13 @@ export const aiRouter = {
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
+      const zone = await userZone(context);
       const scaleOn = scaleReadoutEnabled(context.env, userId);
       const requestStartedAt = Date.now();
-      const userNote = loadUserNote(context.db, userId);
+      const userNote = loadUserNote(context.db, userId, zone);
       const reference = loadScanReference(context.db, context.env, userId);
       const memory: Promise<CorrectionMemory | null> = correctionMemoryEnabled(context.env, userId)
-        ? loadCorrectionMemory(context.db, userId).catch((error: unknown) => {
+        ? loadCorrectionMemory(context.db, userId, zone).catch((error: unknown) => {
             console.error("[ai] correction memory failed", error);
             return null;
           })
@@ -873,7 +877,7 @@ export const aiRouter = {
     }),
   // Feedback on a scan result ("Hasilnya akurat?"). Fire-and-forget from the
   // clients — failures here must never block anything. A dismissal is stored
-  // as "dilewati" so the once-per-WIB-day cadence holds across devices.
+  // as "dilewati" so the once-per-day cadence holds across devices.
   saveScanFeedback: protectedProcedure
     .input(
       z.object({
@@ -993,7 +997,7 @@ export const aiRouter = {
           message: serverT(context.locale, "errors")("ai.unavailable"),
         });
       }
-      const used = await correctionsUsed(context.db, userId, input.photoId);
+      const used = await correctionsUsed(context.db, userId, input.photoId, await userZone(context));
       assertCorrectionAllowed(used, context.locale);
 
       const startedAt = Date.now();
@@ -1125,13 +1129,14 @@ export const aiRouter = {
         });
       }
       const now = new Date();
+      const zone = await userZone(context);
       const slots = [...new Set(input.slots)];
-      const target = storyTarget({ now, date: input.date, meal: input.meal, slots });
+      const target = storyTarget({ now, zone, date: input.date, meal: input.meal, slots });
       // "Sama kayak tadi siang": answered from the user's own log. Only changes the
       // rules cannot pin down ("tambah telur") reach the AI, with the rows as context.
       const pointAtLog = async (text: string) => {
-        const ref = parseMealReference(text, now);
-        return ref ? answerReference(context.db, userId, ref, target, now) : null;
+        const ref = parseMealReference(text, now, zone);
+        return ref ? answerReference(context.db, userId, ref, target, now, zone) : null;
       };
       const failure = (error: unknown, transcript: string): never => {
         // The transcript still helps the user fix what the AI misheard.
@@ -1150,6 +1155,7 @@ export const aiRouter = {
         context.env,
         userId,
         context.locale,
+        zone,
       );
       const startedAt = Date.now();
       let transcribeUsage: Record<string, unknown> | null = null;
@@ -1196,6 +1202,7 @@ export const aiRouter = {
           locale: context.locale,
           region: context.region,
           now,
+          zone,
           reference: pointed ? { rows: pointed.rows, target } : undefined,
         });
       } catch (error) {

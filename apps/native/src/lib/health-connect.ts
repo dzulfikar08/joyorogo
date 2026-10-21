@@ -32,7 +32,7 @@ import type {
 import { sleepNightKey } from "@joyorogo/api/lib/healthkit";
 import { crossSourceMatcher, type ImportedWorkoutRow } from "@joyorogo/api/lib/import-dedupe";
 import { estimateKcal, metForStravaType } from "@joyorogo/api/lib/met";
-import { i18n } from "@joyorogo/i18n";
+import { dayBoundsIn, dayOfMs, i18n, isoInZone } from "@joyorogo/i18n";
 
 import { client } from "@/utils/orpc";
 
@@ -96,21 +96,16 @@ const LABEL_ID_BY_EXERCISE_TYPE: Record<number, string> = {
   83: "Yoga",
 };
 
-// Same fixed UTC+7 day rule as the server's jakartaToday(): shift the instant
-// by +7h and take the UTC calendar date.
+// The person's calendar day (active zone) an instant falls on, like the server's jakartaToday().
 function wibDateOf(iso: string): string {
-  return new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return dayOfMs(new Date(iso).getTime());
 }
 
-// The last `count` WIB calendar days, today first.
+// The last `count` calendar days in the active zone, today first.
 function wibDaysBack(count: number): string[] {
   const days: string[] = [];
   for (let offset = 0; offset < count; offset++) {
-    days.push(
-      new Date(Date.now() + 7 * 60 * 60 * 1000 - offset * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .slice(0, 10),
-    );
+    days.push(dayOfMs(Date.now() - offset * 86_400_000));
   }
   return days;
 }
@@ -285,7 +280,7 @@ async function importWorkouts(
 }
 
 /**
- * Cumulative daily metrics for the last 7 WIB days, aggregated by Health
+ * Cumulative daily metrics for the last 7 days, aggregated by Health
  * Connect itself (aggregateRecord), so multiple writing apps cannot double
  * count. Exercise minutes come from the already-read session records.
  */
@@ -298,10 +293,12 @@ async function importDailyActivity(records: HealthSessionRecord[]): Promise<numb
 
   let upserted = 0;
   for (const day of wibDaysBack(SYNC_WINDOW_DAYS)) {
+    const { startMs, endMs } = dayBoundsIn(day);
+    const lastSecond = isoInZone(endMs - 1);
     const timeRangeFilter = {
       operator: "between" as const,
-      startTime: `${day}T00:00:00+07:00`,
-      endTime: `${day}T23:59:59.999+07:00`,
+      startTime: isoInZone(startMs),
+      endTime: `${lastSecond.slice(0, 19)}.999${lastSecond.slice(19)}`,
     };
     const [steps, distance, activeCalories] = await Promise.all([
       aggregateRecord({ recordType: "Steps", timeRangeFilter }),
@@ -328,7 +325,7 @@ async function importDailyActivity(records: HealthSessionRecord[]): Promise<numb
 }
 
 /**
- * SleepSession rows → sleepLog (source 'health_connect'), keyed by the WIB
+ * SleepSession rows → sleepLog (source 'health_connect'), keyed by the
  * evening the night began (sleepNightKey), the date day.summary and Tidur read
  * as "last night". The server refuses to overwrite manual
  * rows, so user corrections always survive a resync.

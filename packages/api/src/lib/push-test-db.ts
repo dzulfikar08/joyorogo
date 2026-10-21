@@ -30,11 +30,24 @@ export function wib(date: string, time = "12:00"): Date {
   return new Date(`${date}T${time}:00+07:00`);
 }
 
-/** A user with a profile row. */
+/** `YYYY-MM-DD` and `HH:MM` on a Kuala Lumpur / Singapore clock (UTC+8) as the instant they name. */
+export function myt(date: string, time = "12:00"): Date {
+  return new Date(`${date}T${time}:00+08:00`);
+}
+
+/** A user with a profile row; `timezone` is the stored day zone (null = a profile from before zones existed). */
 export async function seedUser(
   client: TestClient,
   id: string,
-  profile: { createdAtMs?: number; maternal?: string; pattern?: string; windowStart?: string; ramadan?: string; locale?: string } = {},
+  profile: {
+    createdAtMs?: number;
+    maternal?: string;
+    pattern?: string;
+    windowStart?: string;
+    ramadan?: string;
+    locale?: string;
+    timezone?: string;
+  } = {},
 ) {
   await client.execute({
     sql: `INSERT INTO "user" (id, name, email, tier) VALUES (?, ?, ?, 'free')`,
@@ -42,8 +55,8 @@ export async function seedUser(
   });
   await client.execute({
     sql: `INSERT INTO profile (user_id, birth_year, gender, height_cm, start_weight_kg, target_weight_kg, target_date,
-            activity_level, maternal_mode, fasting_pattern, fasting_window_start, ramadan_mode, locale, created_at)
-          VALUES (?, 1990, 'male', 170, 80, 72, '2030-01-01', 'light', ?, ?, ?, ?, ?, ?)`,
+            activity_level, maternal_mode, fasting_pattern, fasting_window_start, ramadan_mode, locale, created_at, timezone)
+          VALUES (?, 1990, 'male', 170, 80, 72, '2030-01-01', 'light', ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       id,
       profile.maternal ?? "none",
@@ -52,6 +65,7 @@ export async function seedUser(
       profile.ramadan ?? "off",
       profile.locale ?? null,
       profile.createdAtMs ?? Date.parse("2026-01-01T00:00:00Z"),
+      profile.timezone ?? null,
     ],
   });
 }

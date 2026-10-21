@@ -14,6 +14,7 @@ import {
   requestPermission,
 } from "react-native-health-connect";
 import type { NutritionRecord } from "react-native-health-connect";
+import { dayOfMs, instantIn } from "@joyorogo/i18n";
 
 import { client } from "@/utils/orpc";
 
@@ -32,7 +33,6 @@ export type MealRow = {
 
 const TAG = "[JoyoRogo/HC-nutrition]";
 export const NUTRITION_BACKFILL_DAYS = 30;
-const WIB_MS = 7 * 60 * 60 * 1000;
 const BATCH = 100;
 
 // Health Connect MealType constants.
@@ -42,9 +42,9 @@ const MEAL_TYPE: Record<string, number> = {
   makan_malam: 3,
   snack: 4,
 };
-// Fallback clock (WIB) when createdAt falls on another day than the meal date
+// Fallback clock (day zone) when createdAt falls on another day than the meal date
 // (back-dated logs).
-const MEAL_HOUR_WIB: Record<string, number> = {
+const MEAL_HOUR: Record<string, number> = {
   sarapan: 7,
   makan_siang: 12,
   makan_malam: 19,
@@ -80,13 +80,12 @@ export async function requestNutritionPermission(): Promise<boolean> {
 function mealInstant(row: MealRow): Date {
   const now = Date.now();
   const created = new Date(row.createdAt);
-  const createdWibDay = new Date(created.getTime() + WIB_MS).toISOString().slice(0, 10);
   let ms: number;
-  if (!Number.isNaN(created.getTime()) && createdWibDay === row.date) {
+  if (!Number.isNaN(created.getTime()) && dayOfMs(created.getTime()) === row.date) {
     ms = created.getTime();
   } else {
-    const hour = MEAL_HOUR_WIB[row.meal] ?? 12;
-    ms = Date.parse(`${row.date}T${String(hour).padStart(2, "0")}:00:00+07:00`);
+    const hour = MEAL_HOUR[row.meal] ?? 12;
+    ms = instantIn(row.date, hour, 0);
   }
   return new Date(Math.min(ms, now - 60_000));
 }
@@ -142,16 +141,16 @@ export async function deleteMeal(id: string): Promise<void> {
   console.log(TAG, `deleted ${mealClientId(id)}`);
 }
 
-function wibDay(offset: number): string {
-  return new Date(Date.now() + WIB_MS - offset * 86_400_000).toISOString().slice(0, 10);
+function dayBack(offset: number): string {
+  return dayOfMs(Date.now() - offset * 86_400_000);
 }
 
-/** Requests permission, then writes the last 30 WIB days of logged meals. */
+/** Requests permission, then writes the last 30 days of logged meals. */
 export async function backfillNutrition(): Promise<{ meals: number; days: number }> {
   if (!(await requestNutritionPermission())) {
     throw new Error("Izin Nutrisi di Health Connect belum diberikan.");
   }
-  const days = Array.from({ length: NUTRITION_BACKFILL_DAYS }, (_, i) => wibDay(i));
+  const days = Array.from({ length: NUTRITION_BACKFILL_DAYS }, (_, i) => dayBack(i));
   const rows: MealRow[] = [];
   for (let i = 0; i < days.length; i += 6) {
     const lists = await Promise.all(

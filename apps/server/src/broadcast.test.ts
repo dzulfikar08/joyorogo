@@ -265,6 +265,19 @@ describe("sendBroadcast", () => {
     expect((await logRows("broadcast:list-campaign")).map((r) => r.ref)).toEqual(["u01", "u03"]);
   });
 
+  test("{tanggal} is the recipient's own calendar day: 23:30 WIB on the 17th is already the 18th in Kuala Lumpur", async () => {
+    await seedUsers(4);
+    await client.execute(`UPDATE "user" SET founder_until = ${Date.UTC(2026, 10, 17, 16, 30)} WHERE id IN ('u01', 'u03')`);
+    await client.execute(`INSERT INTO profile (user_id, birth_year, gender, height_cm, start_weight_kg, target_weight_kg, target_date, activity_level, timezone)
+      VALUES ('u03', 1990, 'male', 170, 80, 72, '2030-01-01', 'light', 'Asia/Kuala_Lumpur')`);
+    const { deps } = makeDeps();
+    const campaign = { id: "zone-campaign", subject: "Halo", body: "Aktif sampai {tanggal}.", recipients: ["u01", "u03"] };
+    await sendBroadcast(deps, campaign, 2);
+    expect(outbox.find((m) => m.to === "u01@test.id")!.text).toContain("Aktif sampai 17 November 2026.");
+    expect(outbox.find((m) => m.to === "u03@test.id")!.text).toContain("Aktif sampai 18 November 2026.");
+    await client.execute(`DELETE FROM profile`);
+  });
+
   test("a second run, a re-click, and the cron send nothing more", async () => {
     await seedUsers(3);
     const { deps } = makeDeps();

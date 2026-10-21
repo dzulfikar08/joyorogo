@@ -25,7 +25,7 @@ const TZ = 420;
 // 2026-09-01 00:00 WIB
 const START = Date.UTC(2026, 8, 1) - TZ * 60_000;
 
-const ctx: EngineContext = { userId: "u", freeDaysMask: 65, maternal: false, ramadanOn: () => false };
+const ctx: EngineContext = { userId: "u", freeDaysMask: 65, maternal: false, ramadanOn: () => false, dayOffsetMin: 420 };
 
 /** Night i: onset 23:00 WIB of day i, wake 06:30 next day. */
 function night(i: number, over: Partial<NightInput> = {}): NightInput {

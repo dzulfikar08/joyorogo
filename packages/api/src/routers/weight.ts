@@ -4,6 +4,7 @@ import { z } from "zod";
 import { profile, weightLog } from "@joyorogo/db/schema/fitness";
 
 import { protectedProcedure } from "../index";
+import { userZone } from "../lib/user-zone";
 import { jakartaToday } from "../lib/engine";
 import { isGainGap, paceBandKgPerWeek } from "../lib/gain";
 import { maternalFromRow, weightGainChart } from "../lib/maternal";
@@ -27,6 +28,7 @@ export const weightRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       const { weightKg, date, source, ...body } = input;
       // Only the body fields actually sent are written; a manual re-entry on the same day leaves
       // earlier scale composition (and its source) untouched and only updates the weight.
@@ -37,7 +39,7 @@ export const weightRouter = {
         .values({
           id: crypto.randomUUID(),
           userId: context.session.user.id,
-          date: date ?? jakartaToday(),
+          date: date ?? jakartaToday(undefined, zone),
           weightKg,
           ...given,
           source: hasBody ? source : "manual",
@@ -114,6 +116,7 @@ export const weightRouter = {
    * Null outside pregnancy (or before the pregnancy answers exist).
    */
   pregnancyChart: protectedProcedure.handler(async ({ context }) => {
+    const zone = await userZone(context);
     const userId = context.session.user.id;
     const [prof] = await context.db.select().from(profile).where(eq(profile.userId, userId)).limit(1);
     if (!prof) return null;
@@ -131,6 +134,7 @@ export const weightRouter = {
       heightCm: prof.heightCm,
       twins: maternal.twins,
       weighIns,
+      today: jakartaToday(undefined, zone),
     });
   }),
 };

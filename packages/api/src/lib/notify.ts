@@ -5,8 +5,8 @@ import { profile } from "@joyorogo/db/schema/fitness";
 import { pushSubscription } from "@joyorogo/db/schema/plans";
 import { pushDevice, pushOutbox, pushPrefs } from "@joyorogo/db/schema/push";
 import type { PushOutboxRow } from "@joyorogo/db/schema/push";
-import { DEFAULT_LOCALE, getT, isLocale } from "@joyorogo/i18n";
-import type { Locale } from "@joyorogo/i18n";
+import { DEFAULT_DAY_ZONE, DEFAULT_LOCALE, DEFAULT_REGION, dayBoundsIn, getT, isLocale, resolveDayZone } from "@joyorogo/i18n";
+import type { DayZone, Locale } from "@joyorogo/i18n";
 
 import { fetchReceipts, sendExpo } from "./expo-push";
 import type { ExpoMessage, ExpoPushEnv } from "./expo-push";
@@ -15,6 +15,7 @@ import { pushData } from "./push-link";
 import type { PushApp, PushLink } from "./push-link";
 import { sendPush, vapidConfigured } from "./webpush";
 import type { VapidEnv } from "./webpush";
+import { ZONE_GROUPS, profileInZone } from "./zone-sql";
 
 // The one pipeline every push goes through (web push, JoyoRogo native, JoyoFit). Contract and the event table: docs/push.md.
 //
@@ -22,7 +23,7 @@ import type { VapidEnv } from "./webpush";
 //     -> category switch off or nobody to send to: nothing is stored
 //     -> same dedupe key already seen: nothing happens
 //     -> an outbox row is written, then delivered at once, unless
-//          quiet hours (default 21:30 - 06:30 WIB)      -> row waits for the end of the quiet time
+//          quiet hours (default 21:30 - 06:30 local) -> row waits for the end of the quiet time
 //          the category's daily cap is used up           -> social / group fold into the evening digest, the rest is dropped
 //     -> fan out: web subscriptions + JoyoRogo devices, or the JoyoFit devices (see `targets`)
 //     -> transient failure (network, 429, 5xx, Expo rate limit): retried by the five-minute cron, 4 attempts
@@ -31,13 +32,13 @@ import type { VapidEnv } from "./webpush";
 export const PUSH_CATEGORIES = ["social", "group", "meal", "weigh", "recap"] as const;
 export type PushCategory = (typeof PUSH_CATEGORIES)[number];
 
-/** Most pushes of one category a person gets per WIB day before the rest goes to the digest (or is dropped). */
+/** Most pushes of one category a person gets per local day before the rest goes to the digest (or is dropped). */
 export const CATEGORY_CAP: Record<PushCategory, number> = { social: 10, group: 8, meal: 2, weigh: 1, recap: 2 };
 
 /** Categories whose overflow is worth a digest line; reminders over the cap are simply dropped. */
 const DIGEST_CATEGORIES: readonly PushCategory[] = ["social", "group"];
 
-/** WIB minute of the day from which the digest of the day's overflow goes out. */
+/** Minute of the local day from which the digest of the day's overflow goes out. */
 export const DIGEST_MINUTE = 19 * 60;
 
 export const MAX_ATTEMPTS = 4;
@@ -125,7 +126,7 @@ export function prefsFromRow(row: PrefsRow | undefined): PushPrefsValue {
   };
 }
 
-/** Whether the WIB clock reads inside the quiet window; a start after the end wraps midnight, start == end is no window. */
+/** Whether the local clock reads inside the quiet window; a start after the end wraps midnight, start == end is no window. */
 export function inQuietHours(quiet: QuietHours, nowMin: number): boolean {
   if (!quiet.enabled) return false;
   const start = parseHHMM(quiet.start) ?? parseHHMM(DEFAULT_QUIET.start)!;
@@ -134,23 +135,23 @@ export function inQuietHours(quiet: QuietHours, nowMin: number): boolean {
   return start < end ? nowMin >= start && nowMin < end : nowMin >= start || nowMin < end;
 }
 
-/** The next moment the WIB clock reads the end of the quiet window. */
-export function quietEndsAt(quiet: QuietHours, now: Date): Date {
+/** The next moment the clock of `zone` reads the end of the quiet window. */
+export function quietEndsAt(quiet: QuietHours, now: Date, zone: DayZone): Date {
   const end = parseHHMM(quiet.end) ?? parseHHMM(DEFAULT_QUIET.end)!;
   const minute = Math.floor(now.getTime() / 60_000) * 60_000;
-  return new Date(minute + minutesUntil(end, wibMinutes(now)) * 60_000);
+  return new Date(minute + minutesUntil(end, wibMinutes(now, zone)) * 60_000);
 }
 
-/** Midnight WIB of the day `now` falls in. */
-export function wibDayStart(now: Date): Date {
-  return new Date(`${wibDateKey(now)}T00:00:00+07:00`);
+/** Midnight of the day `now` falls in, in `zone`. */
+export function wibDayStart(now: Date, zone: DayZone): Date {
+  return new Date(dayBoundsIn(wibDateKey(now, zone), zone).startMs);
 }
 
 // --- Audience (who a user can be reached on) --------------------------------------------
 
 type SubRow = typeof pushSubscription.$inferSelect;
 type DeviceRow = typeof pushDevice.$inferSelect;
-export type Audience = { prefs: PushPrefsValue; subs: SubRow[]; devices: DeviceRow[]; locale: Locale };
+export type Audience = { prefs: PushPrefsValue; subs: SubRow[]; devices: DeviceRow[]; locale: Locale; zone: DayZone };
 
 function chunks<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -166,17 +167,18 @@ export async function loadAudience(db: Database, userIds: string[]): Promise<Map
       db.select().from(pushPrefs).where(inArray(pushPrefs.userId, ids)),
       db.select().from(pushSubscription).where(inArray(pushSubscription.userId, ids)),
       db.select().from(pushDevice).where(inArray(pushDevice.userId, ids)),
-      db.select({ userId: profile.userId, locale: profile.locale }).from(profile).where(inArray(profile.userId, ids)),
+      db.select({ userId: profile.userId, locale: profile.locale, timezone: profile.timezone }).from(profile).where(inArray(profile.userId, ids)),
     ]);
     for (const id of ids) {
       const userDevices = devices.filter((d) => d.userId === id);
-      const saved = locales.find((l) => l.userId === id)?.locale;
+      const saved = locales.find((l) => l.userId === id);
       const fromDevice = userDevices.find((d) => isLocale(d.locale))?.locale;
       out.set(id, {
         prefs: prefsFromRow(prefs.find((p) => p.userId === id)),
         subs: subs.filter((s) => s.userId === id),
         devices: userDevices,
-        locale: isLocale(saved) ? saved : isLocale(fromDevice) ? fromDevice : DEFAULT_LOCALE,
+        locale: isLocale(saved?.locale) ? saved.locale : isLocale(fromDevice) ? fromDevice : DEFAULT_LOCALE,
+        zone: saved ? resolveDayZone({ stored: saved.timezone, hasProfile: true, region: DEFAULT_REGION }) : DEFAULT_DAY_ZONE,
       });
     }
   }
@@ -255,26 +257,36 @@ export async function deliverRows(
   if (rows.length === 0) return result;
 
   const audiences = preloaded ?? (await loadAudience(db, rows.map((r) => r.userId)));
-  const dayStart = wibDayStart(now);
-  const nowMin = wibMinutes(now);
+  const zoneOf = (userId: string): DayZone => audiences.get(userId)?.zone ?? DEFAULT_DAY_ZONE;
+  const dayStartOf = new Map<DayZone, Date>();
+  const minuteOf = new Map<DayZone, number>();
+  for (const row of rows) {
+    const zone = zoneOf(row.userId);
+    if (dayStartOf.has(zone)) continue;
+    dayStartOf.set(zone, wibDayStart(now, zone));
+    minuteOf.set(zone, wibMinutes(now, zone));
+  }
   const webReady = vapidConfigured(env);
 
-  // Pushes already delivered today per user and category (the digest line itself never counts).
+  // Pushes already delivered today (the person's day) per user and category (the digest line itself never counts).
   const sentToday = new Map<string, number>();
-  for (const ids of chunks([...new Set(rows.map((r) => r.userId))], ID_CHUNK)) {
-    const counted = await db
-      .select({ userId: pushOutbox.userId, category: pushOutbox.category, total: sql<number>`count(*)` })
-      .from(pushOutbox)
-      .where(
-        and(
-          inArray(pushOutbox.userId, ids),
-          eq(pushOutbox.status, "sent"),
-          sql`${pushOutbox.sentAt} >= ${dayStart.getTime()}`,
-          sql`${pushOutbox.kind} != 'digest'`,
-        ),
-      )
-      .groupBy(pushOutbox.userId, pushOutbox.category);
-    for (const c of counted) sentToday.set(`${c.userId}:${c.category}`, c.total);
+  for (const [zone, dayStart] of dayStartOf) {
+    const ofZone = [...new Set(rows.map((r) => r.userId))].filter((id) => zoneOf(id) === zone);
+    for (const ids of chunks(ofZone, ID_CHUNK)) {
+      const counted = await db
+        .select({ userId: pushOutbox.userId, category: pushOutbox.category, total: sql<number>`count(*)` })
+        .from(pushOutbox)
+        .where(
+          and(
+            inArray(pushOutbox.userId, ids),
+            eq(pushOutbox.status, "sent"),
+            sql`${pushOutbox.sentAt} >= ${dayStart.getTime()}`,
+            sql`${pushOutbox.kind} != 'digest'`,
+          ),
+        )
+        .groupBy(pushOutbox.userId, pushOutbox.category);
+      for (const c of counted) sentToday.set(`${c.userId}:${c.category}`, c.total);
+    }
   }
 
   const updates = new Map<string, Update>();
@@ -311,8 +323,8 @@ export async function deliverRows(
       close(row, "dropped", { lastError: "muted" });
       continue;
     }
-    if (!bypass && inQuietHours(audience.prefs.quiet, nowMin)) {
-      const until = quietEndsAt(audience.prefs.quiet, now);
+    if (!bypass && inQuietHours(audience.prefs.quiet, minuteOf.get(audience.zone)!)) {
+      const until = quietEndsAt(audience.prefs.quiet, now, audience.zone);
       updates.set(row.id, { status: "queued", sendAfter: until });
       result.set(row.id, "queued");
       continue;
@@ -568,50 +580,55 @@ const DIGEST_COPY: Record<"social" | "group", { title: string; link: PushLink }>
 };
 
 /**
- * From 19:00 WIB: one line per person and category for the pushes the cap held back today. Held rows of an earlier day
- * are dropped (a digest of yesterday is not news).
+ * From 19:00 local time: one line per person and category for the pushes the cap held back today. Held rows of an
+ * earlier day are dropped (a digest of yesterday is not news). Runs per zone group, on the people living in it.
  */
 export async function runDigest(deps: NotifyDeps): Promise<number> {
   const now = (deps.now ?? (() => new Date()))();
   const { db } = deps;
-  const dayStart = wibDayStart(now);
-  await db
-    .update(pushOutbox)
-    .set({ status: "dropped", lastError: "stale-digest" })
-    .where(and(eq(pushOutbox.status, "digest"), lt(pushOutbox.createdAt, dayStart)));
-  if (wibMinutes(now) < DIGEST_MINUTE) return 0;
-
-  const held = await db
-    .select({ userId: pushOutbox.userId, category: pushOutbox.category, total: sql<number>`count(*)` })
-    .from(pushOutbox)
-    .where(eq(pushOutbox.status, "digest"))
-    .groupBy(pushOutbox.userId, pushOutbox.category)
-    .limit(200);
+  // Null when the person has no profile row: they keep the default zone's day.
+  const timezoneOf = sql`(SELECT p.timezone FROM profile p WHERE p.user_id = push_outbox.user_id)`;
   let sent = 0;
-  for (const group of held) {
-    if (group.category !== "social" && group.category !== "group") continue;
-    const copy = DIGEST_COPY[group.category];
-    const result = await notify(deps, group.userId, {
-      category: group.category,
-      kind: "digest",
-      title: { key: copy.title, params: { n: group.total } },
-      body: { key: `notify.digest.${group.category}.body` },
-      link: copy.link,
-      dedupeKey: `digest:${group.category}:${wibDateKey(now)}`,
-    });
-    if (result.status === "sent") sent += 1;
-    // Sent, duplicate or skipped alike: the held rows are accounted for.
-    if (result.status !== "queued") {
-      await db
-        .update(pushOutbox)
-        .set({ status: "digested" })
-        .where(
-          and(
-            eq(pushOutbox.userId, group.userId),
-            eq(pushOutbox.category, group.category),
-            eq(pushOutbox.status, "digest"),
-          ),
-        );
+  for (const zone of ZONE_GROUPS) {
+    const dayStart = wibDayStart(now, zone);
+    const inZone = profileInZone(zone, timezoneOf);
+    await db
+      .update(pushOutbox)
+      .set({ status: "dropped", lastError: "stale-digest" })
+      .where(and(eq(pushOutbox.status, "digest"), lt(pushOutbox.createdAt, dayStart), inZone));
+    if (wibMinutes(now, zone) < DIGEST_MINUTE) continue;
+
+    const held = await db
+      .select({ userId: pushOutbox.userId, category: pushOutbox.category, total: sql<number>`count(*)` })
+      .from(pushOutbox)
+      .where(and(eq(pushOutbox.status, "digest"), inZone))
+      .groupBy(pushOutbox.userId, pushOutbox.category)
+      .limit(200);
+    for (const group of held) {
+      if (group.category !== "social" && group.category !== "group") continue;
+      const copy = DIGEST_COPY[group.category];
+      const result = await notify(deps, group.userId, {
+        category: group.category,
+        kind: "digest",
+        title: { key: copy.title, params: { n: group.total } },
+        body: { key: `notify.digest.${group.category}.body` },
+        link: copy.link,
+        dedupeKey: `digest:${group.category}:${wibDateKey(now, zone)}`,
+      });
+      if (result.status === "sent") sent += 1;
+      // Sent, duplicate or skipped alike: the held rows are accounted for.
+      if (result.status !== "queued") {
+        await db
+          .update(pushOutbox)
+          .set({ status: "digested" })
+          .where(
+            and(
+              eq(pushOutbox.userId, group.userId),
+              eq(pushOutbox.category, group.category),
+              eq(pushOutbox.status, "digest"),
+            ),
+          );
+      }
     }
   }
   return sent;

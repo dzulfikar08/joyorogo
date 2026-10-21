@@ -5,7 +5,7 @@ import { ORPCError } from "@orpc/server";
 
 import { user } from "@joyorogo/db/schema/auth";
 import type { Database } from "@joyorogo/db";
-import type { Locale } from "@joyorogo/i18n";
+import type { DayZone, Locale } from "@joyorogo/i18n";
 
 import type { AiBinding } from "../context";
 import { jakartaToday } from "./engine";
@@ -25,7 +25,7 @@ export const MAX_SCAN_RETRIES = 2;
 
 /**
  * Every AI call (plate photo, food story, VAR perut) spends one scan of the
- * daily quota. Runs BEFORE inference so a rejected call never costs Neurons.
+ * daily quota (the day resets at midnight in `zone`). Runs BEFORE inference so a rejected call never costs Neurons.
  * `quotaReached`: a free user's successful call now would use the last scan
  * of today — clients show the (skippable) Founder paywall after it.
  */
@@ -34,6 +34,7 @@ export async function requireAiQuota(
   env: QuotaEnv,
   userId: string,
   locale: Locale,
+  zone: DayZone,
 ): Promise<{ ai: AiBinding; quotaReached: boolean }> {
   const t = serverT(locale, "errors");
   const ai = env.AI;
@@ -51,7 +52,7 @@ export async function requireAiQuota(
       .from(user)
       .where(eq(user.id, userId))
       .limit(1),
-    scansUsedToday(db, userId, jakartaToday()),
+    scansUsedToday(db, userId, jakartaToday(undefined, zone), zone),
   ]);
   const tier = effectiveTier(userRow);
   const quota = userRow?.aiUnlimited ? null : dailyScanQuota(tier, config);

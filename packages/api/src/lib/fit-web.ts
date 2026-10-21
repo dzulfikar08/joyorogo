@@ -2,17 +2,19 @@
 // window, as plain JSON for dashboards and tables. The recovery days come from the same reader the MCP connector and the
 // coach use (fit-data.ts getRecoveryDays), so a night never reads differently on the web than in the AI apps.
 //
-// Same conventions as fit-data.ts: days are WIB calendar days 'YYYY-MM-DD'; units sit in the key name.
+// Same conventions as fit-data.ts: days are calendar days in the person's day zone 'YYYY-MM-DD'; units sit in the key name.
 // No auth and no paywall here: the router (routers/fit-web.ts) decides who may read.
 
 import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 
 import type { Database } from "@joyorogo/db";
 import { watchWorkout } from "@joyorogo/db/schema/watch-workout";
+import { dayOfMs } from "@joyorogo/i18n";
+import type { DayZone } from "@joyorogo/i18n";
 
 import { getRecoveryDays } from "./fit-data";
 import type { RecoveryDayView } from "./fit-data";
-import { wibDayBounds } from "./tiers";
+import { dayBounds } from "./tiers";
 
 export const FIT_WEB_LIMITS = {
   /** One window may span a year (and a leap day); the dashboards compare a window with the one before it in a second call. */
@@ -21,12 +23,11 @@ export const FIT_WEB_LIMITS = {
   workouts: 2000,
 } as const;
 
-const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 
 export interface FitWebWorkout {
   /** Unix seconds the workout started: the id of the cloud workout (`watchWorkout.detail`). */
   start: number;
-  /** WIB calendar day the workout started on. */
+  /** Calendar day the workout started on, in the person's day zone. */
   date: string;
   sportName: string;
   /** run, walk, ride, swim or other. */
@@ -74,9 +75,10 @@ export async function getFitWebWorkouts(
   userId: string,
   from: string,
   to: string,
+  zone: DayZone,
 ): Promise<FitWebWorkoutList> {
-  const startSec = Math.floor(wibDayBounds(from).startMs / 1000);
-  const endSec = Math.floor(wibDayBounds(to).endMs / 1000);
+  const startSec = Math.floor(dayBounds(from, zone).startMs / 1000);
+  const endSec = Math.floor(dayBounds(to, zone).endMs / 1000);
   const rows = await db
     .select({
       start: watchWorkout.start,
@@ -111,7 +113,7 @@ export async function getFitWebWorkouts(
     truncated: rows.length > FIT_WEB_LIMITS.workouts,
     items: page.map((row) => ({
       start: row.start,
-      date: new Date(row.start * 1000 + WIB_OFFSET_MS).toISOString().slice(0, 10),
+      date: dayOfMs(row.start * 1000, zone),
       sportName: row.sportName,
       sportKind: row.sportKind,
       elapsedSec: row.elapsedSec,

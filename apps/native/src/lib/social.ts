@@ -75,7 +75,7 @@ export type CommentAttachment = {
   kind: "image" | CommentItemKind;
   /** The item's own name; '' for image, weight and recap (the card titles itself). */
   title: string;
-  /** WIB day of the item, 'YYYY-MM-DD'. */
+  /** Day of the item, 'YYYY-MM-DD'. */
   date: string | null;
   /** Encoded polyline of a route, already trimmed server-side. */
   mapLine: string | null;

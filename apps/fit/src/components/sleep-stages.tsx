@@ -1,4 +1,6 @@
-import { fmtClock, fmtDateMedium, fmtDateShort, fmtDecimal } from "@joyorogo/i18n";
+import { fmtDateMedium, fmtDateShort, fmtDecimal } from "@joyorogo/i18n";
+
+import { fmtClock } from "@/lib/format";
 import { Button } from "@joyorogo/ui/components/button";
 import { Select } from "@joyorogo/ui/components/select";
 import { useQuery } from "@tanstack/react-query";

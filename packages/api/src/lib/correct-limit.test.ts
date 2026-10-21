@@ -7,6 +7,7 @@ import { describe, expect, test } from "bun:test";
 import { drizzle } from "drizzle-orm/libsql";
 
 import type { Database } from "@joyorogo/db";
+import { DEFAULT_DAY_ZONE } from "@joyorogo/i18n";
 import { aiUsage } from "@joyorogo/db/schema/fitness";
 
 import { assertCorrectionAllowed, correctionsLeft, correctionsUsed } from "./correct-limit";
@@ -47,9 +48,9 @@ describe("correction caps", () => {
     await log("u1", null);
     await log("u1", PHOTO_A, "user");
     await log("u2", PHOTO_A);
-    expect(await correctionsUsed(db, "u1", PHOTO_A)).toEqual({ today: 4, scan: 2 });
-    expect(await correctionsUsed(db, "u1", PHOTO_B)).toEqual({ today: 4, scan: 1 });
-    expect(await correctionsUsed(db, "u1", undefined)).toEqual({ today: 4, scan: 0 });
+    expect(await correctionsUsed(db, "u1", PHOTO_A, DEFAULT_DAY_ZONE)).toEqual({ today: 4, scan: 2 });
+    expect(await correctionsUsed(db, "u1", PHOTO_B, DEFAULT_DAY_ZONE)).toEqual({ today: 4, scan: 1 });
+    expect(await correctionsUsed(db, "u1", undefined, DEFAULT_DAY_ZONE)).toEqual({ today: 4, scan: 0 });
   });
 
   test("the per-scan cap blocks with a scan marker, the day cap with a day marker", () => {

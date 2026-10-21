@@ -11,7 +11,7 @@ import { Button, Field, Text } from "@/components/ui";
 /**
  * Optional "Jam makan" row for the add and edit flows. No value means "now" and
  * nothing is sent, so one-tap logging stays one tap; the row only opens the
- * (WIB) time picker when tapped. `value` is unix ms or null.
+ * (day zone) time picker when tapped. `value` is unix ms or null.
  */
 export function EatenAtField({
   date,
@@ -19,7 +19,7 @@ export function EatenAtField({
   value,
   onChange,
 }: {
-  /** Diary day (WIB key) the time must fall on. */
+  /** Diary day (key) the time must fall on. */
   date: string;
   meal: string;
   value: number | null;

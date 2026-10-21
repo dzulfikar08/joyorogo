@@ -9,7 +9,8 @@
  * - `{nama}` is the recipient's first name ("kamu" when unknown; "there" in an English mail)
  */
 
-import type { Locale } from "@joyorogo/i18n";
+import { DEFAULT_DAY_ZONE } from "@joyorogo/i18n";
+import type { DayZone, Locale } from "@joyorogo/i18n";
 
 export type Campaign = {
   id: string;
@@ -19,9 +20,9 @@ export type Campaign = {
   recipients?: string[];
 };
 
-/** A date as the Indonesian WIB calendar day: "18 November 2026". */
-export const formatDateWib = (date: Date) =>
-  new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "long", year: "numeric" }).format(date);
+/** A date as the recipient's calendar day in `zone` (their own; Jakarta without one): "18 November 2026". */
+export const formatDateWib = (date: Date, zone: DayZone = DEFAULT_DAY_ZONE) =>
+  new Intl.DateTimeFormat("id-ID", { timeZone: zone, day: "numeric", month: "long", year: "numeric" }).format(date);
 
 export type RenderedMail = { subject: string; html: string; text: string };
 

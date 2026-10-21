@@ -5,6 +5,7 @@ import { user } from "@joyorogo/db/schema/auth";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 
 import { protectedProcedure } from "../index";
+import { userZone } from "../lib/user-zone";
 import { jakartaToday, shiftDate } from "../lib/engine";
 import { READINESS_LABELS } from "../lib/fitness-hint";
 import { premiumUnlocked } from "../lib/readiness-food";
@@ -20,6 +21,7 @@ const PAST_WINDOW_DAYS = 60;
 
 const scoreDateSchema = dateSchema.refine((date) => {
   if (Number.isNaN(Date.parse(`${date}T00:00:00Z`))) return false;
+  // The one-day slack on both sides covers Kuala Lumpur / Singapore (an hour ahead of Jakarta); no request here to read a zone from.
   const today = jakartaToday();
   return date <= shiftDate(today, 1) && date >= shiftDate(today, -PAST_WINDOW_DAYS);
 }, `Date must be a real day between ${PAST_WINDOW_DAYS} days ago and tomorrow`);
@@ -126,6 +128,7 @@ export const fitnessRouter = {
   byDate: protectedProcedure
     .input(z.object({ date: dateSchema.optional() }))
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       const [row] = await context.db
         .select({
           date: fitnessScore.date,
@@ -140,7 +143,7 @@ export const fitnessRouter = {
         .where(
           and(
             eq(fitnessScore.userId, context.session.user.id),
-            eq(fitnessScore.date, input.date ?? jakartaToday()),
+            eq(fitnessScore.date, input.date ?? jakartaToday(undefined, zone)),
           ),
         )
         .limit(1);

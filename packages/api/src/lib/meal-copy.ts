@@ -4,6 +4,7 @@
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 
 import type { Database } from "@joyorogo/db";
+import type { DayZone } from "@joyorogo/i18n";
 import { foodLog } from "@joyorogo/db/schema/fitness";
 
 import { MEALS, jakartaToday, shiftDate } from "./engine";
@@ -30,7 +31,7 @@ export type CopyResult = { items: StoryItem[]; reference: ReferenceInfo };
 
 const isMeal = (value: string): value is Meal => (MEALS as readonly string[]).includes(value);
 
-/** The user's rows from `from` to `to` (WIB day keys, inclusive), oldest log first. */
+/** The user's rows from `from` to `to` (day keys, inclusive), oldest log first. */
 export async function loadMealRows(
   db: Database,
   userId: string,
@@ -59,8 +60,8 @@ export async function loadMealRows(
 }
 
 /** Rows inside the window a reference may reach. */
-export function loadReferenceRows(db: Database, userId: string, now: Date): Promise<MealRow[]> {
-  const today = jakartaToday(now);
+export function loadReferenceRows(db: Database, userId: string, now: Date, zone: DayZone): Promise<MealRow[]> {
+  const today = jakartaToday(now, zone);
   return loadMealRows(db, userId, shiftDate(today, -REFERENCE_WINDOW_DAYS), today);
 }
 
@@ -84,9 +85,10 @@ export async function answerReference(
   ref: MealReference,
   target: Target,
   now: Date,
+  zone: DayZone,
 ): Promise<ReferenceAnswer> {
-  const rows = await loadReferenceRows(db, userId, now);
-  const resolution = resolveReference(ref, rows, target, now);
+  const rows = await loadReferenceRows(db, userId, now, zone);
+  const resolution = resolveReference(ref, rows, target, now, zone);
   if (resolution.status === "empty") {
     return {
       kind: "answer",
@@ -146,8 +148,9 @@ export async function recentMealGroups(
   now: Date,
   exclude: Target,
   limit: number,
+  zone: DayZone,
 ): Promise<Array<MealSlotRef & { count: number; kcal: number; names: string[] }>> {
-  const today = jakartaToday(now);
+  const today = jakartaToday(now, zone);
   const rows = await loadMealRows(db, userId, shiftDate(today, -7), today);
   return groupRows(rows)
     .filter((g) => !(g.date === exclude.date && g.meal === exclude.meal))

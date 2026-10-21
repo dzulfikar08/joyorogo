@@ -1,7 +1,7 @@
 // Pure "mau makan ini?" advisor: given what is already eaten today, the eat
 // target and the meals still ahead, says whether a candidate item fits before
 // it is saved. Guidance only: it never blocks saving, makes no medical claims
-// and never shames. All clock math is WIB minutes since midnight so server,
+// and never shames. All clock math is local minutes since midnight so server,
 // web and native agree (see fasting.ts).
 
 import { getActiveLocale, getT } from "@joyorogo/i18n";
@@ -78,7 +78,7 @@ export type SnackAdviceInput = {
   tdeeKcal?: number | null;
   /** Kcal already logged per slot today. */
   eatenByMeal: Partial<Record<Meal, number>>;
-  /** Current WIB time, minutes since midnight. */
+  /** Current local time, minutes since midnight. */
   nowMin: number;
   ramadan: boolean;
   /** Overrides the default split of the day's mode. */

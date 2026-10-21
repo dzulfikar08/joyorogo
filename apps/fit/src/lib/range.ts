@@ -7,7 +7,7 @@ export function isRange(value: unknown): value is RangeDays {
   return (RANGES as readonly unknown[]).includes(value);
 }
 
-/** The window of `days` days that ends today (WIB), both ends inclusive. */
+/** The window of `days` days that ends today (user zone), both ends inclusive. */
 export function windowOf(days: RangeDays, today = jakartaToday()): { from: string; to: string } {
   return { from: shiftDate(today, -(days - 1)), to: today };
 }

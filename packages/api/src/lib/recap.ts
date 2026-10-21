@@ -1,4 +1,4 @@
-// Weekly recap math: WIB weeks starting Monday, built from rows the stats
+// Weekly recap math: weeks starting Monday (calendar days of the person's zone), built from rows the stats
 // router reads. Pure and tiny on purpose; the web app imports the label
 // helpers into route modules.
 
@@ -15,7 +15,7 @@ export const ON_TARGET_TOLERANCE = 1.05;
 /** Below half the target a day is more likely a forgotten log than a real day. */
 export const MIN_COMPLETE_DAY = 0.5;
 
-/** Monday (WIB calendar day) of the week containing `date`. */
+/** Monday (calendar day) of the week containing `date`. */
 export function weekStartOf(date: string): string {
   const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
   return shiftDate(date, -((weekday + 6) % 7));
@@ -92,7 +92,7 @@ export type WeekRecapInput = {
   exercise: RecapExerciseDay[];
   /** Weight-trend points, oldest first, up to the end of the week. */
   trendPoints: TrendPoint[];
-  /** Distinct WIB days with a food or weight log, for the streak. */
+  /** Distinct days with a food or weight log, for the streak. */
   loggedDates: string[];
   /** A Naikin BB plan: day status and the streak follow the gain rules (lib/gain). */
   gain?: { streakDays: number };

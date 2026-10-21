@@ -1,4 +1,4 @@
-import { kcalUnit } from "@joyorogo/i18n";
+import { instantIn, kcalUnit } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
@@ -220,7 +220,7 @@ function RekapPage() {
               story={{
                 kind: "recap",
                 ...share,
-                date: new Date(`${recap.weekEnd}T12:00:00+07:00`),
+                date: new Date(instantIn(recap.weekEnd, 12, 0)),
               }}
             />
           ) : null}

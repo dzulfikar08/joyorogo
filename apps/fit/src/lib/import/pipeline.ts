@@ -1,6 +1,7 @@
 // One chosen file, from bytes to "ready to upload" (or the reason it is not). The screen only orchestrates and draws.
 
 import type { FitWebWorkout } from "@joyorogo/api/lib/fit-web";
+import { dayOfMs } from "@joyorogo/i18n";
 
 import type { AnalysisOptions } from "./analysis";
 import { type Collision, findCollision } from "./collision";
@@ -17,9 +18,7 @@ export type Prepared =
 export type ExistingLookup = (fromDay: string, toDay: string) => Promise<readonly FitWebWorkout[]>;
 
 const DAY = 86_400;
-const WIB = 7 * 3600;
-const dayOf = (unixSec: number): string =>
-  new Date((unixSec + WIB) * 1000).toISOString().slice(0, 10);
+const dayOf = (unixSec: number): string => dayOfMs(unixSec * 1000);
 
 export async function prepareFile(
   file: Pick<File, "name" | "size" | "arrayBuffer">,

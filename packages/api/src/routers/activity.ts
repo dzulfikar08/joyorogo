@@ -4,6 +4,7 @@ import { z } from "zod";
 import { dailyActivity } from "@joyorogo/db/schema/fitness";
 
 import { protectedProcedure } from "../index";
+import { userZone } from "../lib/user-zone";
 import { jakartaToday } from "../lib/engine";
 import { dateSchema } from "../lib/schemas";
 
@@ -25,12 +26,13 @@ export const activityRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       const [row] = await context.db
         .insert(dailyActivity)
         .values({
           id: crypto.randomUUID(),
           userId: context.session.user.id,
-          date: input.date ?? jakartaToday(),
+          date: input.date ?? jakartaToday(undefined, zone),
           steps: input.steps,
           distanceMeters: input.distanceMeters,
           activeCalories: input.activeCalories,
@@ -56,20 +58,21 @@ export const activityRouter = {
       const [kept] = await context.db
         .select()
         .from(dailyActivity)
-        .where(and(eq(dailyActivity.userId, context.session.user.id), eq(dailyActivity.date, input.date ?? jakartaToday())));
+        .where(and(eq(dailyActivity.userId, context.session.user.id), eq(dailyActivity.date, input.date ?? jakartaToday(undefined, zone))));
       return kept;
     }),
 
   byDate: protectedProcedure
     .input(z.object({ date: dateSchema.optional() }))
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       const [row] = await context.db
         .select()
         .from(dailyActivity)
         .where(
           and(
             eq(dailyActivity.userId, context.session.user.id),
-            eq(dailyActivity.date, input.date ?? jakartaToday()),
+            eq(dailyActivity.date, input.date ?? jakartaToday(undefined, zone)),
           ),
         )
         .limit(1);

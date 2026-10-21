@@ -2,7 +2,7 @@ import { and, desc, eq, isNull, ne, sql } from "drizzle-orm";
 import { parseStoredAttachment } from "@joyorogo/api/lib/comment-attachment";
 import { serverT } from "@joyorogo/api/lib/messages";
 import { appRouter } from "@joyorogo/api/routers/index";
-import { LOCALE_HEADER, isLocale } from "@joyorogo/i18n";
+import { DEFAULT_DAY_ZONE, LOCALE_HEADER, isLocale } from "@joyorogo/i18n";
 import {
   effectiveRamadan,
   jakartaToday,
@@ -20,6 +20,7 @@ import { loadDayCredit } from "@joyorogo/api/lib/exercise-credit-store";
 import { sendPush, vapidConfigured } from "@joyorogo/api/lib/webpush";
 import { runPushCron } from "@joyorogo/api/lib/push-cron";
 import { paywallConfig } from "@joyorogo/api/lib/tiers";
+import { zoneOfUser, zonesOfUsers } from "@joyorogo/api/lib/user-zone";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
 import { onError } from "@orpc/server";
@@ -589,7 +590,7 @@ app.get("/u/:code", async (c) => {
     .where(eq(weightLogTable.userId, row.userId))
     .orderBy(desc(weightLogTable.date))
     .limit(1);
-  const today = jakartaToday();
+  const today = jakartaToday(undefined, await zoneOfUser(db, row.userId));
   const weekStart = shiftDate(today, -6);
   const [foodDates, weightDates, burnedWeek] = await Promise.all([
     db
@@ -618,7 +619,7 @@ app.get("/u/:code", async (c) => {
       ),
   ]);
   const latestKg = weighed?.latest ?? row.startWeightKg;
-  // Same streak semantics as day.summary: any food or weight entry per WIB day.
+  // Same streak semantics as day.summary: any food or weight entry per day of the person's zone.
   let streakDays = streakFromDates(
     [...foodDates.map((r) => r.date), ...weightDates.map((r) => r.date)],
     today,
@@ -746,8 +747,6 @@ async function runFastingReminders(): Promise<void> {
   if (!vapidConfigured(env)) return;
   const db = getDb();
   const now = new Date();
-  const dateKey = wibDateKey(now);
-  const today = jakartaToday();
   const rows = await db
     .select({
       id: pushSubscriptionTable.id,
@@ -771,10 +770,15 @@ async function runFastingReminders(): Promise<void> {
       ),
     );
 
+  const zones = await zonesOfUsers(db, [...new Set(rows.map((r) => r.userId))]);
   for (const row of rows) {
     if (!isFastingPattern(row.pattern)) continue;
+    // Each subscriber's own zone: the window opens at their local time, the day they are in decides the dedupe key.
+    const zone = zones.get(row.userId) ?? DEFAULT_DAY_ZONE;
+    const dateKey = wibDateKey(now, zone);
+    const today = jakartaToday(now, zone);
     // Ramadan owns the schedule while it lasts — its flow has no Web Push.
-    if (effectiveRamadan(row.ramadanMode, now)) continue;
+    if (effectiveRamadan(row.ramadanMode, now, zone)) continue;
 
     // Same eat budget the day summary shows (formula → measured TDEE).
     const [profRows, latest, weighIns, intake, exercise, prefRows] = await db.batch(
@@ -798,7 +802,7 @@ async function runFastingReminders(): Promise<void> {
       windowStart: row.windowStart,
       dateKey,
       remainingKcal: Math.max(0, budgetKcal(plan.targets.eatKcal, credit) - (eatenRow?.kcal ?? 0)),
-      nowMin: wibMinutes(now),
+      nowMin: wibMinutes(now, zone),
       // The recipient's saved language; users who never chose one get Indonesian.
       locale: isLocale(row.locale) ? row.locale : undefined,
     });

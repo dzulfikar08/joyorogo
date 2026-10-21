@@ -98,12 +98,15 @@ export interface EngineContext {
   freeDaysMask: number;
   /** Hamil / Menyusui: no personal caffeine card. */
   maternal: boolean;
-  /** Ramadan on that WIB date: dinner and caffeine factors pause. */
+  /** Ramadan on that date: dinner and caffeine factors pause. */
   ramadanOn: (date: string) => boolean;
+  /** The person's day-zone offset in minutes: where a logged item's clock time and day are read. */
+  dayOffsetMin: number;
 }
 
 // ---- time helpers ----------------------------------------------------------------------------------------------
 
+/** Jakarta offset, the default of foodTime for callers without a zone. */
 const WIB_OFFSET_MIN = 420;
 
 /** 'YYYY-MM-DD' of a UTC instant shifted by an offset in minutes. */
@@ -148,10 +151,10 @@ export interface FoodTime {
   known: boolean;
 }
 
-export function foodTime(item: FoodInput): FoodTime {
+export function foodTime(item: FoodInput, offsetMin: number = WIB_OFFSET_MIN): FoodTime {
   if (item.eatenAt != null) return { ms: item.eatenAt, known: true };
-  const day = localDate(item.createdAt, WIB_OFFSET_MIN);
-  const hour = localMinutes(item.createdAt, WIB_OFFSET_MIN) / 60;
+  const day = localDate(item.createdAt, offsetMin);
+  const hour = localMinutes(item.createdAt, offsetMin) / 60;
   const range = MEAL_HOURS[item.meal];
   const fits = day === item.date && (!range || (hour >= range[0] && hour < range[1]));
   return { ms: item.createdAt, known: fits };
@@ -287,8 +290,8 @@ interface PreparedNight {
   complete: boolean;
 }
 
-function prepareNights(nights: NightInput[], foods: FoodInput[], mask: number): PreparedNight[] {
-  const timed = foods.map((item) => ({ item, time: foodTime(item) }));
+function prepareNights(nights: NightInput[], foods: FoodInput[], mask: number, offsetMin: number): PreparedNight[] {
+  const timed = foods.map((item) => ({ item, time: foodTime(item, offsetMin) }));
   return nights.map((night) => {
     const from = night.onsetMs - CAFFEINE_LOOKBACK_H * HOUR;
     const onsetDay = localDate(night.onsetMs, night.tzOffsetMin);
@@ -332,7 +335,7 @@ export function buildFactorSamples(
   workouts: WorkoutInput[],
   ctx: EngineContext,
 ): FactorSamples[] {
-  const prepared = prepareNights(nights, foods, ctx.freeDaysMask);
+  const prepared = prepareNights(nights, foods, ctx.freeDaysMask, ctx.dayOffsetMin);
   const out: FactorSamples[] = [];
 
   // caffeine -> asleep
@@ -586,7 +589,12 @@ export interface LastCaffeine {
 }
 
 /** The latest caffeinated item of the last 7 days that still sat within 8 h of the usual bedtime. */
-export function lastCaffeineBeforeBed(foods: FoodInput[], nights: NightInput[], nowMs: number): LastCaffeine | null {
+export function lastCaffeineBeforeBed(
+  foods: FoodInput[],
+  nights: NightInput[],
+  nowMs: number,
+  dayOffsetMin: number = WIB_OFFSET_MIN,
+): LastCaffeine | null {
   const recent = nights.slice(-7);
   if (recent.length < 3) return null;
   const offset = recent[recent.length - 1]!.tzOffsetMin;
@@ -594,7 +602,7 @@ export function lastCaffeineBeforeBed(foods: FoodInput[], nights: NightInput[], 
   let best: { ms: number } | null = null;
   for (const item of foods) {
     if (caffeineMgFor(item.name) === null) continue;
-    const t = foodTime(item);
+    const t = foodTime(item, dayOffsetMin);
     if (!t.known || t.ms > nowMs || nowMs - t.ms > 7 * DAY) continue;
     if (!best || t.ms > best.ms) best = { ms: t.ms };
   }
@@ -610,10 +618,10 @@ export function lastCaffeineBeforeBed(foods: FoodInput[], nights: NightInput[], 
 }
 
 /** Any alcoholic drink with a known time in the last 7 days (a general tip, never a personal card). */
-export function hasRecentAlcohol(foods: FoodInput[], nowMs: number): boolean {
+export function hasRecentAlcohol(foods: FoodInput[], nowMs: number, dayOffsetMin: number = WIB_OFFSET_MIN): boolean {
   return foods.some((item) => {
     if (!isAlcoholicDrink(item.name)) return false;
-    const t = foodTime(item);
+    const t = foodTime(item, dayOffsetMin);
     return t.known && t.ms <= nowMs && nowMs - t.ms <= 7 * DAY;
   });
 }

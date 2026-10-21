@@ -1,5 +1,5 @@
 import { getT } from "./core";
-import { DEFAULT_DAY_ZONE } from "./day-zone";
+import { getActiveDayZone } from "./day-zone";
 import type { DayZone } from "./day-zone";
 import { DEFAULT_LOCALE } from "./locale";
 import type { Locale } from "./locale";
@@ -106,7 +106,7 @@ export function fmtMegabytes(bytes: number, locale: Locale = activeLocale): stri
   return `${fmtDecimal(bytes / (1024 * 1024), 1, locale)} MB`;
 }
 
-// ── Calendar days ('YYYY-MM-DD', WIB calendar day, no time zone shift) ───
+// ── Calendar days ('YYYY-MM-DD' in the user's zone, no time zone shift) ───
 
 export type DateStyle =
   /** "14 Sep" */
@@ -180,11 +180,11 @@ export function timeAgo(at: Date | string, locale: Locale = activeLocale): strin
 
 const CLOCK_FORMATS = new Map<string, Intl.DateTimeFormat>();
 
-/** Wall-clock time in a day zone (WIB unless told otherwise, see day-zone.ts): "13.05" (id) / "01:05 PM" (en). */
+/** Wall-clock time in a day zone (the active zone unless told otherwise, see day-zone.ts; servers pass the user's): "13.05" (id) / "01:05 PM" (en). */
 export function fmtClock(
   at: Date,
   locale: Locale = activeLocale,
-  zone: DayZone = DEFAULT_DAY_ZONE,
+  zone: DayZone = getActiveDayZone(),
 ): string {
   const key = `${locale}:${zone}`;
   let format = CLOCK_FORMATS.get(key);

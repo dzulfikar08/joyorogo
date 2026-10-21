@@ -11,7 +11,8 @@ import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 import { weekReflection } from "@joyorogo/db/schema/recap";
 import type { WeekReflectionRow } from "@joyorogo/db/schema/recap";
 import { watchWorkout } from "@joyorogo/db/schema/watch-workout";
-import type { Locale } from "@joyorogo/i18n";
+import { dayOfMs } from "@joyorogo/i18n";
+import type { DayZone, Locale } from "@joyorogo/i18n";
 
 import type { AiBinding } from "../context";
 import { ageFromBirthYear, shiftDate } from "./engine";
@@ -24,7 +25,7 @@ import type { ReflectionBody } from "./recap-text";
 import { sleepFindingsFor } from "./sleep-insights-store";
 import { pickNightSleep } from "./sleep-night";
 import type { StickersBucket } from "./sticker";
-import { wibDayBounds } from "./tiers";
+import { dayBounds } from "./tiers";
 import type { PaywallEnv } from "./tiers";
 import { cloudUnlocked } from "./watch-workout-store";
 import { readDoc, watchBlobKey, WatchWorkoutDocError } from "./watch-workout";
@@ -82,17 +83,16 @@ export interface WeekReflectionView {
 
 // ---- data ----
 
-const wibDayOf = (ms: number): string => new Date(ms + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
 async function readWorkouts(
   db: Database,
   bucket: StickersBucket | undefined,
   userId: string,
   from: string,
   to: string,
+  zone: DayZone,
 ): Promise<WorkoutInput[]> {
-  const startSec = Math.floor(wibDayBounds(from).startMs / 1000);
-  const endSec = Math.floor(wibDayBounds(to).endMs / 1000);
+  const startSec = Math.floor(dayBounds(from, zone).startMs / 1000);
+  const endSec = Math.floor(dayBounds(to, zone).endMs / 1000);
   const rows = await db
     .select()
     .from(watchWorkout)
@@ -121,7 +121,7 @@ async function readWorkouts(
       }
       return {
         start: row.start,
-        date: wibDayOf(row.start * 1000),
+        date: dayOfMs(row.start * 1000, zone),
         kind: row.sportKind,
         durationMin: (row.movingSec > 0 ? row.movingSec : row.elapsedSec) / 60,
         distanceKm: row.distanceM ? row.distanceM / 1000 : null,
@@ -173,8 +173,9 @@ export async function computeReflection(
   userId: string,
   requestedWeek: string | undefined,
   locale: Locale,
+  zone: DayZone,
 ): Promise<ComputedReflection | null> {
-  const loaded = await loadWeekRecap(db, userId, requestedWeek, { excludeStrava: true });
+  const loaded = await loadWeekRecap(db, userId, requestedWeek, zone, { excludeStrava: true });
   if (!loaded) return null;
   const { recap, plan, prof, today } = loaded;
   if (recap.empty || recap.evaluatedDays < REFLECTION_LIMITS.minJudgedDays) return null;
@@ -185,7 +186,7 @@ export async function computeReflection(
   // week's stored reflection says which pattern it showed, so the same one is not repeated when another exists.
   const [sleepFindings, previousSleepFactor] =
     pro && weekEnd >= today
-      ? await Promise.all([sleepFindingsFor(db, userId), readPreviousSleepFactor(db, userId, weekStart)])
+      ? await Promise.all([sleepFindingsFor(db, userId, zone), readPreviousSleepFactor(db, userId, weekStart)])
       : [[], null];
 
   const [food, waist, exerciseRows, scores, sleepRows, activity, workouts] = await Promise.all([
@@ -223,7 +224,7 @@ export async function computeReflection(
       .select({ date: dailyActivity.date, steps: dailyActivity.steps })
       .from(dailyActivity)
       .where(and(eq(dailyActivity.userId, userId), gte(dailyActivity.date, weekStart), lte(dailyActivity.date, weekEnd))),
-    readWorkouts(db, env.STICKERS, userId, weekStart, weekEnd),
+    readWorkouts(db, env.STICKERS, userId, weekStart, weekEnd, zone),
   ]);
 
   const scoreByDay = new Map(scores.map((row) => [row.date, row]));
@@ -362,9 +363,10 @@ export async function getWeekReflection(
   userId: string,
   requestedWeek: string | undefined,
   locale: Locale,
+  zone: DayZone,
   now = Date.now(),
 ): Promise<WeekReflectionView | null> {
-  const computed = await computeReflection(deps.db, deps.env, userId, requestedWeek, locale);
+  const computed = await computeReflection(deps.db, deps.env, userId, requestedWeek, locale, zone);
   if (!computed) return null;
   const { pro } = computed;
   const row = pro ? await readRow(deps.db, userId, computed.weekStart, locale) : null;
@@ -415,9 +417,10 @@ export async function generateWeekReflection(
   userId: string,
   requestedWeek: string | undefined,
   locale: Locale,
+  zone: DayZone,
   now = Date.now(),
 ): Promise<WeekReflectionView | null> {
-  const computed = await computeReflection(deps.db, deps.env, userId, requestedWeek, locale);
+  const computed = await computeReflection(deps.db, deps.env, userId, requestedWeek, locale, zone);
   if (!computed) return null;
   if (!computed.pro) throw new ReflectionLockedError();
   const { db, env } = deps;

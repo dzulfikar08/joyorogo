@@ -5,6 +5,7 @@ import { sleepLog } from "@joyorogo/db/schema/fitness";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 
 import { protectedProcedure } from "../index";
+import { userZone } from "../lib/user-zone";
 import { shiftDate, wibYesterday } from "../lib/engine";
 import { dateSchema } from "../lib/schemas";
 import { WATCH_SLEEP_SOURCE, pickNightSleep } from "../lib/sleep-night";
@@ -21,6 +22,7 @@ export const sleepRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       const [row] = await context.db
         .insert(sleepLog)
         .values({
@@ -28,7 +30,7 @@ export const sleepRouter = {
           userId: context.session.user.id,
           // "Tidur tadi malam" — a sleep entry belongs to the WIB day whose
           // morning it ended, so the default key is yesterday, not today.
-          date: input.date ?? wibYesterday(),
+          date: input.date ?? wibYesterday(undefined, zone),
           hours: input.hours,
           source: input.source,
         })
@@ -61,8 +63,9 @@ export const sleepRouter = {
   getForDate: protectedProcedure
     .input(z.object({ date: dateSchema.optional() }))
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       const userId = context.session.user.id;
-      const date = input.date ?? wibYesterday();
+      const date = input.date ?? wibYesterday(undefined, zone);
       const [logRows, scoreRows] = await context.db.batch([
         context.db
           .select()

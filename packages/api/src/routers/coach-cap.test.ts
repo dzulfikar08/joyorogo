@@ -8,6 +8,7 @@ import { drizzle } from "drizzle-orm/libsql";
 // @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
 import { createClient } from "../../../db/node_modules/@libsql/client";
 import type { Database } from "@joyorogo/db";
+import { DEFAULT_DAY_ZONE } from "@joyorogo/i18n";
 
 import type { Context } from "../context";
 import type { CoachSnapshot } from "../lib/coach-chat";
@@ -91,7 +92,7 @@ describe("coach.chat daily cap", () => {
         code: "TOO_MANY_REQUESTS",
         data: { coachCapReached: true, cap: 3 },
       });
-    expect(await coachUsedToday(db, "a")).toBe(3);
+    expect(await coachUsedToday(db, "a", DEFAULT_DAY_ZONE)).toBe(3);
   });
 
   test("a call that fails in the model still counts (the cap counts every call that reached it), and the row records the outcome", async () => {
@@ -100,7 +101,7 @@ describe("coach.chat daily cap", () => {
     const first = await call(coachRouter.chat, input, { context }).catch((e) => e);
     await settled();
     expect(first).toMatchObject({ code: "UNPROCESSABLE_CONTENT" });
-    expect(await coachUsedToday(db, "b")).toBe(1);
+    expect(await coachUsedToday(db, "b", DEFAULT_DAY_ZONE)).toBe(1);
     const rows = await client.execute(
       `SELECT usage_json, latency_ms FROM ai_usage WHERE user_id = 'b' AND scan_type = 'coach'`,
     );
@@ -135,17 +136,17 @@ describe("coach.chat daily cap", () => {
 
   test("no model binding means nothing is reserved", async () => {
     const { context } = setup("c", 50, undefined);
-    const before = await coachUsedToday(db, "c");
+    const before = await coachUsedToday(db, "c", DEFAULT_DAY_ZONE);
     await expect(call(coachRouter.chat, input, { context })).rejects.toMatchObject({
       code: "SERVICE_UNAVAILABLE",
     });
-    expect(await coachUsedToday(db, "c")).toBe(before);
+    expect(await coachUsedToday(db, "c", DEFAULT_DAY_ZONE)).toBe(before);
   });
 
   test("a flagged (safety) message never reaches the model and takes no slot", async () => {
     const counter = { calls: 0 };
     const { context } = setup("b", 5, slowAi(counter));
-    const before = await coachUsedToday(db, "b");
+    const before = await coachUsedToday(db, "b", DEFAULT_DAY_ZONE);
     const reply = await call(
       coachRouter.chat,
       { ...input, messages: [{ role: "user" as const, content: "nyeri dada waktu lari" }] },
@@ -153,6 +154,6 @@ describe("coach.chat daily cap", () => {
     );
     expect(reply.flagged).toBe("medical");
     expect(counter.calls).toBe(0);
-    expect(await coachUsedToday(db, "b")).toBe(before);
+    expect(await coachUsedToday(db, "b", DEFAULT_DAY_ZONE)).toBe(before);
   });
 });

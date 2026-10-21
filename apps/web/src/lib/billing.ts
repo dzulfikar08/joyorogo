@@ -2,7 +2,7 @@ import { ORPCError } from "@orpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 
-import { LOCALE_HEADER, i18n } from "@joyorogo/i18n";
+import { LOCALE_HEADER, dayOfMs, i18n } from "@joyorogo/i18n";
 
 import { trackEvent } from "./analytics";
 import { apiUrl } from "./app-config";
@@ -193,8 +193,7 @@ export async function checkOrder(orderId: string): Promise<OrderStatus> {
   return body;
 }
 
-/** "12 November 2026" / "November 12, 2026" in WIB, in the active language. */
+/** "12 November 2026" / "November 12, 2026" on the user's day, in the active language. */
 export function fmtFounderDate(value: string | Date): string {
-  const wibDay = new Date(new Date(value).getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
-  return fmtDateLong(wibDay).replace(/^\w+, /, "");
+  return fmtDateLong(dayOfMs(new Date(value).getTime())).replace(/^\w+, /, "");
 }

@@ -28,6 +28,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { useUnistyles } from "react-native-unistyles";
 
 import { authClient } from "@/lib/auth-client";
+import { DayZoneSync } from "@/components/day-zone-sync";
 import { LocaleSync } from "@/components/locale-sync";
 import { PrefsSync } from "@/components/prefs-sync";
 import { ReminderSync } from "@/components/reminders/reminder-sync";
@@ -36,9 +37,13 @@ import { PushTapHandler } from "@/components/push/push-tap-handler";
 import { ToastProvider } from "@/components/toast";
 import { UpdateBanner } from "@/components/update-banner";
 import { UpdateGate } from "@/components/update-gate";
+import { applyDeviceDayZone } from "@/src/lib/day-zone-sync";
 import { loadStoredLocale, setLocale } from "@/src/lib/i18n";
 import { applyThemePref, loadThemePref } from "@/src/lib/theme-pref";
 import { orpc, queryClient } from "@/utils/orpc";
+
+// Before the first render, so day keys computed while the profile loads already use the device zone.
+applyDeviceDayZone();
 
 const darkCanvas = "#110F0A";
 
@@ -123,6 +128,7 @@ export default function RootLayout() {
           <KeyboardProvider>
           <ToastProvider>
           <LocaleSync />
+          <DayZoneSync />
           <PrefsSync />
           <ReminderSync />
           <PushSync />

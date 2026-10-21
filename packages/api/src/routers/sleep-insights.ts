@@ -7,6 +7,7 @@ import { sleepInsightPref, sleepNight } from "@joyorogo/db/schema/sleep-insights
 import { isLocale } from "@joyorogo/i18n";
 
 import { protectedProcedure } from "../index";
+import { userZone } from "../lib/user-zone";
 import { jakartaToday, shiftDate } from "../lib/engine";
 import { premiumUnlocked } from "../lib/readiness-food";
 import { dateSchema } from "../lib/schemas";
@@ -20,6 +21,7 @@ const HOUR_S = 3600;
 
 const wakeDateSchema = dateSchema.refine((date) => {
   if (Number.isNaN(Date.parse(`${date}T00:00:00Z`))) return false;
+  // The one-day slack on both sides covers Kuala Lumpur / Singapore (an hour ahead of Jakarta); no request here to read a zone from.
   const today = jakartaToday();
   return date <= shiftDate(today, 1) && date >= shiftDate(today, -SLEEP_RETENTION_NIGHTS);
 }, `Wake date must be a real day between ${SLEEP_RETENTION_NIGHTS} days ago and tomorrow`);
@@ -174,6 +176,7 @@ export const sleepInsightsRouter = {
       return buildSleepView(context.db, userId, pref, {
         locale: input?.locale && isLocale(input.locale) ? input.locale : context.locale,
         pro: premiumUnlocked(row, paywallConfig(context.env)),
+        zone: await userZone(context),
       });
     }),
 

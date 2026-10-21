@@ -1,3 +1,5 @@
+import { dayOfMs, getActiveDayZone } from "@joyorogo/i18n";
+
 import { fmtClock, fmtDateMedium, fmtMegabytes, fmtNumber } from "@/lib/format";
 
 const MB = 1024 * 1024;
@@ -9,9 +11,8 @@ export function fmtBytes(bytes: number): string {
   return `${fmtNumber(Math.max(1, kb), kb < 10 ? 1 : 0)} KB`;
 }
 
-/** "14 Sep 2026 · 06.12", both in WIB. `startSec` is unix seconds. */
+/** "14 Sep 2026 · 06.12", both in the user's day zone. `startSec` is unix seconds. */
 export function fmtStart(startSec: number): string {
   const at = new Date(startSec * 1000);
-  const wibDay = new Date(at.getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
-  return `${fmtDateMedium(wibDay)} · ${fmtClock(at)}`;
+  return `${fmtDateMedium(dayOfMs(at.getTime()))} · ${fmtClock(at, undefined, getActiveDayZone())}`;
 }

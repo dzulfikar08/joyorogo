@@ -33,7 +33,7 @@ export function daySlots(opts: { ramadan: boolean; fasting: { pattern: FastingPa
   return NORMAL_SLOTS.map((slot) => ({ slot, share: NORMAL_SHARES[slot] ?? 0 }));
 }
 
-/** Clock hour (WIB) after which a slot's time has passed on the current day. Normal days only. */
+/** Clock hour (local) after which a slot's time has passed on the current day. Normal days only. */
 const SLOT_END_HOUR: Partial<Record<Meal, number>> = { sarapan: 10.5, makan_siang: 15.5, snack: 21, makan_malam: 23.5 };
 
 /** Open slots of today: the ones whose time has not passed yet (normal days only; fasting/Ramadan keep every slot). */

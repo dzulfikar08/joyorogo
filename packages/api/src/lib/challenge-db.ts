@@ -29,7 +29,7 @@ function put(out: FactsByUser, userId: string, date: string, facts: DayFacts | u
 
 /**
  * Loads the per-day facts `goal` is judged on for `userIds` between `from` and
- * `to` (WIB days, inclusive). One query per call; days without data are simply
+ * `to` (calendar days as stored, inclusive). One query per call; days without data are simply
  * absent from the result. `target` is only read by workouts, where it decides
  * whether the verified sessions alone reach the goal.
  */

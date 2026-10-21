@@ -9,6 +9,7 @@ import { savedFood } from "@joyorogo/db/schema/saved-foods";
 
 import { protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
+import { userZone } from "../lib/user-zone";
 import { serverT } from "../lib/messages";
 import { dateSchema, mealSchema } from "../lib/schemas";
 import { assertEatenAt, eatenAtSchema } from "../lib/eaten-at";
@@ -198,6 +199,7 @@ export const savedFoodRouter = {
     .input(z.object({ id: z.string(), date: dateSchema.optional(), meal: mealSchema, eatenAt: eatenAtSchema.optional() }))
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
+      const zone = await userZone(context);
       const [saved] = await context.db
         .select()
         .from(savedFood)
@@ -208,8 +210,8 @@ export const savedFoodRouter = {
       if (items.length === 0) {
         throw new ORPCError("UNPROCESSABLE_CONTENT", { message: serverT(context.locale, "errors")("misc.savedFood.empty") });
       }
-      const date = input.date ?? jakartaToday();
-      assertEatenAt(input.eatenAt, date);
+      const date = input.date ?? jakartaToday(undefined, zone);
+      assertEatenAt(input.eatenAt, date, zone);
       let plateId: string | null = null;
       if (items.length > 1 || saved.priceIdr != null) {
         plateId = crypto.randomUUID();

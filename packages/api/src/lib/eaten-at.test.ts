@@ -66,3 +66,37 @@ describe("clock conversion", () => {
     expect(eatenAtFromClock("2026-10-18", "12:60")).toBeNull();
   });
 });
+
+describe("Kuala Lumpur day", () => {
+  const KL = "Asia/Kuala_Lumpur" as const;
+  const myt = (iso: string) => Date.parse(`${iso}+08:00`);
+  // 2026-10-21 23:30 MYT
+  const late = new Date("2026-10-21T15:30:00Z");
+
+  test("23:30 MYT belongs to that MYT day", () => {
+    expect(eatenAtProblem(myt("2026-10-21T23:30:00"), "2026-10-21", late, KL)).toBeNull();
+  });
+
+  test("00:30 MYT with the new date is not a wrong day, and the late-night rule still reaches back", () => {
+    const after = new Date("2026-10-21T16:30:00Z");
+    expect(eatenAtProblem(myt("2026-10-22T00:30:00"), "2026-10-22", after, KL)).toBeNull();
+    expect(eatenAtProblem(myt("2026-10-22T00:30:00"), "2026-10-21", after, KL)).toBeNull();
+    expect(eatenAtProblem(myt("2026-10-22T04:00:00"), "2026-10-21", after, KL)).toBe("wrong_day");
+  });
+
+  test("Jakarta is unchanged: the same instants land a day apart", () => {
+    const after = new Date("2026-10-21T16:30:00Z");
+    expect(eatenAtProblem(after.getTime(), "2026-10-21", after, "Asia/Jakarta")).toBeNull();
+    expect(eatenAtProblem(after.getTime(), "2026-10-22", after, "Asia/Jakarta")).toBe("wrong_day");
+    expect(eatenAtProblem(after.getTime(), "2026-10-22", after, KL)).toBeNull();
+  });
+
+  test("defaults and clock round-trip in KL", () => {
+    expect(defaultEatenAt("2026-10-21", "sarapan", late, KL)).toBe(late.getTime());
+    expect(defaultEatenAt("2026-10-20", "makan_malam", late, KL)).toBe(myt("2026-10-20T19:00:00"));
+    const ms = eatenAtFromClock("2026-10-21", "23:30", KL);
+    expect(ms).toBe(late.getTime());
+    expect(eatenAtClock(ms!, KL)).toBe("23:30");
+    expect(eatenAtClock(ms!, "Asia/Jakarta")).toBe("22:30");
+  });
+});

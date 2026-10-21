@@ -1,6 +1,6 @@
 // "Progres" over a chosen period (Berat range tabs, the share card): weight trend start -> end, days logged, the
 // estimated energy deficit and the two series the card draws. Pure: the server (period-store.ts) and the Berat screens
-// feed it rows, nothing here reads a clock or a database. Every day is a WIB calendar day ('YYYY-MM-DD').
+// feed it rows, nothing here reads a clock or a database. Every day is a calendar day in the user's zone ('YYYY-MM-DD').
 //
 // Honesty rules, in one place:
 //  - The weight change is the smoothed trend (emaTrendPoints), never one scale reading against another.

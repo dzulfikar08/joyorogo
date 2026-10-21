@@ -34,6 +34,7 @@ import { daysBetween, jakartaToday, shiftDate } from "../lib/engine";
 import { readCalibrationPrefs } from "../lib/calibration-store";
 import { buildPlan, planQueries, proteinGoalG } from "../lib/plan";
 import { dateSchema } from "../lib/schemas";
+import { userZone } from "../lib/user-zone";
 import { paywallConfig } from "../lib/tiers";
 import { serverT } from "../lib/messages";
 import { enqueueMany, notifyInBackground } from "../lib/notify";
@@ -185,7 +186,7 @@ export const challengeRouter = {
     .handler(async ({ context, input }) => {
       const db = context.db;
       const userId = context.session.user.id;
-      const today = jakartaToday();
+      const today = jakartaToday(undefined, await userZone(context));
       await requireTeamMember(db, input.groupId, userId, context.locale);
 
       const [userRow] = await db
@@ -260,7 +261,7 @@ export const challengeRouter = {
   detail: protectedProcedure.input(challengeId).handler(async ({ context, input }) => {
     const db = context.db;
     const userId = context.session.user.id;
-    const today = jakartaToday();
+    const today = jakartaToday(undefined, await userZone(context));
     const { challenge: c, groupName, role } = await requireChallenge(
       db,
       input.challengeId,
@@ -386,7 +387,7 @@ export const challengeRouter = {
     .handler(async ({ context, input }) => {
       const db = context.db;
       const userId = context.session.user.id;
-      const today = jakartaToday();
+      const today = jakartaToday(undefined, await userZone(context));
       const t = serverT(context.locale, "challenge");
 
       // Founder gate first, on the server: the client's upsell is only a courtesy.
@@ -480,7 +481,7 @@ export const challengeRouter = {
   join: protectedProcedure.input(challengeId).handler(async ({ context, input }) => {
     const db = context.db;
     const userId = context.session.user.id;
-    const today = jakartaToday();
+    const today = jakartaToday(undefined, await userZone(context));
     const t = serverT(context.locale, "challenge");
     const { challenge: c } = await requireChallenge(db, input.challengeId, userId, context.locale);
     if (c.endDate < today) {

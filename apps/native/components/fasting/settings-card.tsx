@@ -26,7 +26,7 @@ type FastingSettings = {
   notify: boolean;
 };
 
-/** lib/fasting reminder drafts → expo-notifications calendar slots (WIB). */
+/** lib/fasting reminder drafts → expo-notifications calendar slots (day zone). */
 function buildNativeReminders(
   pattern: FastingPattern,
   windowStart: string,

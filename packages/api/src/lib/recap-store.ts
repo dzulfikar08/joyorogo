@@ -5,6 +5,7 @@ import { and, eq, gte, lte, ne, sql } from "drizzle-orm";
 
 import type { Database } from "@joyorogo/db";
 import { exerciseLog, foodLog, weightLog } from "@joyorogo/db/schema/fitness";
+import type { DayZone } from "@joyorogo/i18n";
 
 import { gainStreak, jakartaToday, shiftDate } from "./engine";
 import { budgetKcal, exerciseCredit } from "./exercise-credit";
@@ -26,7 +27,7 @@ export interface LoadedWeekRecap {
 }
 
 /**
- * Recap of the WIB week (Monday-Sunday) containing `requestedWeek`, default the current week. Only days before today
+ * Recap of the week (Monday-Sunday, in the person's zone) containing `requestedWeek`, default the current week. Only days before today
  * are judged, so a running week is never scored on a half-logged today. Future weeks resolve to this week. Null
  * without a profile.
  *
@@ -37,9 +38,10 @@ export async function loadWeekRecap(
   db: Database,
   userId: string,
   requestedWeek: string | undefined,
+  zone: DayZone,
   opts: { excludeStrava?: boolean } = {},
 ): Promise<LoadedWeekRecap | null> {
-  const today = jakartaToday();
+  const today = jakartaToday(undefined, zone);
   const thisWeek = weekStartOf(today);
   const requested = weekStartOf(requestedWeek ?? today);
   const weekStart = requested > thisWeek ? thisWeek : requested;

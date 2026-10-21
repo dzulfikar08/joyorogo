@@ -1,6 +1,6 @@
 // Two phones can import the same real workout: Android reads it from Health Connect, an iPhone from Apple Health, and
 // the two sources never share an external id. A workout is the same one when the other source already holds a row on
-// the same WIB day with the same type and a duration within a couple of minutes. Each stored row stands for one
+// the same day with the same type and a duration within a couple of minutes. Each stored row stands for one
 // workout, so it can absorb only one incoming candidate (two real 30-minute walks in a day both stay).
 //
 // JoyoFit reaches the diary two ways for a watch workout: it writes the session to Health Connect / Apple Health (which

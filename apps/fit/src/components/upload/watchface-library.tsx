@@ -11,7 +11,7 @@ import { PRICING_URL } from "@/components/pro-wall";
 import { BlockSkeleton, QueryError } from "@/components/states";
 import { FitApiError, fitApi, fitApiWithStatus } from "@/lib/fit-api";
 import { SERVER_URL } from "@/lib/env";
-import { fmtFileSize, wibDay } from "@/lib/format";
+import { fmtFileSize, localDay } from "@/lib/format";
 import {
   MAX_FACE_BYTES,
   MAX_FACES,
@@ -280,7 +280,7 @@ function FaceRow({ face }: { face: WatchFace }) {
           <p className="text-xs break-all text-muted-foreground">{face.filename}</p>
           <p className="text-xs text-muted-foreground">
             {fmtFileSize(face.size)} ·{" "}
-            {t("watchfaces.row.added", { date: fmtDateMedium(wibDay(face.createdAt / 1000)) })}
+            {t("watchfaces.row.added", { date: fmtDateMedium(localDay(face.createdAt / 1000)) })}
           </p>
         </div>
         {confirming ? (

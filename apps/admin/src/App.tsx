@@ -64,6 +64,7 @@ function currentTab(): Tab {
   return TABS.some((t) => t.id === hash) ? hash : "overview";
 }
 
+// WIB on purpose: admin report.
 const clock = new Intl.DateTimeFormat("id-ID", {
   timeZone: "Asia/Jakarta",
   hour: "2-digit",

@@ -21,6 +21,7 @@ import type { RateLimitBinding } from "@joyorogo/api/lib/group-preview";
 import { countCalls, hasActiveConnection, writeAudit } from "@joyorogo/api/lib/mcp-connections";
 import type { AuditEntry } from "@joyorogo/api/lib/mcp-connections";
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
+import { zoneOfUser } from "@joyorogo/api/lib/user-zone";
 import type { PaywallEnv } from "@joyorogo/api/lib/tiers";
 import { cloudUnlocked } from "@joyorogo/api/lib/watch-workout-store";
 import type { Database } from "@joyorogo/db";
@@ -58,7 +59,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const MCP_INSTRUCTIONS = [
   "JoyoRogo gives read-only access to ONE person's own health diary: what they ate, their weight, their workouts (JoyoFit watch and gym sessions), sleep and recovery, and their goals.",
   "Everything is private to that person; never mix it with anyone else's data. Nothing here can change the account.",
-  "Days are calendar days in WIB (UTC+7) as YYYY-MM-DD; get_profile returns today's date. Units are in the field names: Kcal, G, Kg, Cm, Bpm, Min, Sec, Km.",
+  "Days are calendar days in the person's own zone (WIB, UTC+7, in Indonesia; UTC+8 in Malaysia and Singapore) as YYYY-MM-DD; get_profile returns today's date. Units are in the field names: Kcal, G, Kg, Cm, Bpm, Min, Sec, Km.",
   "A day with no food logged is a skipped log, not a day of fasting. Do not read missing values as zero.",
   "profile.mode is lose, maintain, gain or hamil (pregnant or breastfeeding: no deficit and no weight target; never suggest weight loss).",
   "This is not medical advice. For pain, pregnancy, eating disorders or any medical question, point the person to a doctor.",
@@ -156,27 +157,28 @@ function createMcpServer(
     {
       title: "Profile, goal and daily targets",
       description:
-        "The person's profile and plan: today's date (WIB), mode (lose, maintain, gain, or hamil = pregnant/breastfeeding), age, gender, height, current/start/target weight and target date, and the daily targets (eat kcal, burn kcal, BMR, TDEE, protein g, sleep hours). Call this first to learn today's date and the goal. Units: kcal, g, kg, cm, hours.",
+        "The person's profile and plan: today's date (in the person's zone), mode (lose, maintain, gain, or hamil = pregnant/breastfeeding), age, gender, height, current/start/target weight and target date, and the daily targets (eat kcal, burn kcal, BMR, TDEE, protein g, sleep hours). Call this first to learn today's date and the goal. Units: kcal, g, kg, cm, hours.",
       inputSchema: {},
       annotations: readOnly,
     },
-    () => run("get_profile", "profile:read", {}, (db) => getProfileView(db, principal.userId)),
+    () => run("get_profile", "profile:read", {}, async (db) => getProfileView(db, principal.userId, await zoneOfUser(db, principal.userId))),
   );
 
   server.registerTool(
     "get_food_log",
     {
       title: "Food log by date range",
-      description: `Every food item logged in a date range, grouped by day and ordered by meal: name, meal (sarapan, makan_siang, makan_malam, snack, sahur, berbuka), kcal, protein/carbs/fat/fiber in grams, portion grams when known, and source (ai = photo scan, manual). Days without entries are omitted (a skipped log, not a fast). Dates are WIB YYYY-MM-DD; default is today only; at most ${FIT_LIMITS.foodDays} days per call. Use get_daily_totals for long ranges.`,
+      description: `Every food item logged in a date range, grouped by day and ordered by meal: name, meal (sarapan, makan_siang, makan_malam, snack, sahur, berbuka), kcal, protein/carbs/fat/fiber in grams, portion grams when known, and source (ai = photo scan, manual). Days without entries are omitted (a skipped log, not a fast). Dates are YYYY-MM-DD in the person's zone; default is today only; at most ${FIT_LIMITS.foodDays} days per call. Use get_daily_totals for long ranges.`,
       inputSchema: {
-        from: dayArg("First day, YYYY-MM-DD (WIB). Default: same as `to`."),
-        to: dayArg("Last day, YYYY-MM-DD (WIB). Default: today."),
+        from: dayArg("First day, YYYY-MM-DD. Default: same as `to`."),
+        to: dayArg("Last day, YYYY-MM-DD. Default: today."),
       },
       annotations: readOnly,
     },
     ({ from, to }) =>
       run("get_food_log", "food:read", { from, to }, async (db) => {
-        const range = resolveRange(from, to, { maxDays: FIT_LIMITS.foodDays, defaultDays: 1 });
+        const zone = await zoneOfUser(db, principal.userId);
+        const range = resolveRange(from, to, { maxDays: FIT_LIMITS.foodDays, defaultDays: 1, zone });
         return { from: range.from, to: range.to, days: await getFoodLog(db, principal.userId, range.from, range.to) };
       }),
   );
@@ -185,17 +187,18 @@ function createMcpServer(
     "get_daily_totals",
     {
       title: "Daily totals against targets",
-      description: `One row per day of a range: eaten kcal and macros (g), meals logged, logged exercise kcal (Strava excluded), steps, activeKcal (the activity that counts that day: the watch's all-day active energy, or Health Connect / Apple Health's, with logged workouts that are not already inside it; activeSource says where the all-day figure came from), exerciseAddedKcal (the part of it that goes beyond the movement already inside the person's activity factor, added to that day's budget under their own \"Kalori olahraga\" settings, returned as exerciseAddBack; activity below the factor adds nothing) and kcal remaining against the eat target plus exerciseAddedKcal, plus the current targets and the average of the logged days. The targets are today's plan applied to every day of the range. Days with nothing logged have logged=false and null totals. Dates are WIB YYYY-MM-DD; default is the last 7 days; at most ${FIT_LIMITS.totalsDays} days.`,
+      description: `One row per day of a range: eaten kcal and macros (g), meals logged, logged exercise kcal (Strava excluded), steps, activeKcal (the activity that counts that day: the watch's all-day active energy, or Health Connect / Apple Health's, with logged workouts that are not already inside it; activeSource says where the all-day figure came from), exerciseAddedKcal (the part of it that goes beyond the movement already inside the person's activity factor, added to that day's budget under their own \"Kalori olahraga\" settings, returned as exerciseAddBack; activity below the factor adds nothing) and kcal remaining against the eat target plus exerciseAddedKcal, plus the current targets and the average of the logged days. The targets are today's plan applied to every day of the range. Days with nothing logged have logged=false and null totals. Dates are YYYY-MM-DD in the person's zone; default is the last 7 days; at most ${FIT_LIMITS.totalsDays} days.`,
       inputSchema: {
-        from: dayArg("First day, YYYY-MM-DD (WIB). Default: 6 days before `to`."),
-        to: dayArg("Last day, YYYY-MM-DD (WIB). Default: today."),
+        from: dayArg("First day, YYYY-MM-DD. Default: 6 days before `to`."),
+        to: dayArg("Last day, YYYY-MM-DD. Default: today."),
       },
       annotations: readOnly,
     },
     ({ from, to }) =>
       run("get_daily_totals", "food:read", { from, to }, async (db) => {
-        const range = resolveRange(from, to, { maxDays: FIT_LIMITS.totalsDays, defaultDays: 7 });
-        return getDailyTotals(db, principal.userId, range.from, range.to);
+        const zone = await zoneOfUser(db, principal.userId);
+        const range = resolveRange(from, to, { maxDays: FIT_LIMITS.totalsDays, defaultDays: 7, zone });
+        return getDailyTotals(db, principal.userId, range.from, range.to, zone);
       }),
   );
 
@@ -203,17 +206,18 @@ function createMcpServer(
     "get_weight_history",
     {
       title: "Weight history and goal",
-      description: `Weigh-ins (kg) in a date range with the latest weigh-in, the goal (mode, start/target kg, target date, kg remaining), the smoothed trend (kg per week, projected date to reach the target) and waist circumference (cm) entries. Dates are WIB YYYY-MM-DD; default is the last 90 days; at most ${FIT_LIMITS.weightDays} days.`,
+      description: `Weigh-ins (kg) in a date range with the latest weigh-in, the goal (mode, start/target kg, target date, kg remaining), the smoothed trend (kg per week, projected date to reach the target) and waist circumference (cm) entries. Dates are YYYY-MM-DD in the person's zone; default is the last 90 days; at most ${FIT_LIMITS.weightDays} days.`,
       inputSchema: {
-        from: dayArg("First day, YYYY-MM-DD (WIB). Default: 89 days before `to`."),
-        to: dayArg("Last day, YYYY-MM-DD (WIB). Default: today."),
+        from: dayArg("First day, YYYY-MM-DD. Default: 89 days before `to`."),
+        to: dayArg("Last day, YYYY-MM-DD. Default: today."),
       },
       annotations: readOnly,
     },
     ({ from, to }) =>
       run("get_weight_history", "weight:read", { from, to }, async (db) => {
-        const range = resolveRange(from, to, { maxDays: FIT_LIMITS.weightDays, defaultDays: 90 });
-        return getWeightView(db, principal.userId, range.from, range.to);
+        const zone = await zoneOfUser(db, principal.userId);
+        const range = resolveRange(from, to, { maxDays: FIT_LIMITS.weightDays, defaultDays: 90, zone });
+        return getWeightView(db, principal.userId, range.from, range.to, zone);
       }),
   );
 
@@ -221,21 +225,22 @@ function createMcpServer(
     "list_workouts",
     {
       title: "Workouts list",
-      description: `Workouts in a date range, newest first: JoyoFit watch workouts (run, walk, ride, swim, other: duration min, distance km, heart rate bpm, kcal) and gym strength sessions (exercises, sets, volume kg). Each item has an id to pass to get_workout. Dates are WIB YYYY-MM-DD; default is the last 30 days; at most ${FIT_LIMITS.workoutDays} days; limit up to ${FIT_LIMITS.workoutItems} items.`,
+      description: `Workouts in a date range, newest first: JoyoFit watch workouts (run, walk, ride, swim, other: duration min, distance km, heart rate bpm, kcal) and gym strength sessions (exercises, sets, volume kg). Each item has an id to pass to get_workout. Dates are YYYY-MM-DD in the person's zone; default is the last 30 days; at most ${FIT_LIMITS.workoutDays} days; limit up to ${FIT_LIMITS.workoutItems} items.`,
       inputSchema: {
-        from: dayArg("First day, YYYY-MM-DD (WIB). Default: 29 days before `to`."),
-        to: dayArg("Last day, YYYY-MM-DD (WIB). Default: today."),
+        from: dayArg("First day, YYYY-MM-DD. Default: 29 days before `to`."),
+        to: dayArg("Last day, YYYY-MM-DD. Default: today."),
         limit: z.number().int().min(1).max(FIT_LIMITS.workoutItems).optional().describe("Maximum items (default 20)."),
       },
       annotations: readOnly,
     },
     ({ from, to, limit }) =>
       run("list_workouts", "workouts:read", { from, to, limit }, async (db) => {
-        const range = resolveRange(from, to, { maxDays: FIT_LIMITS.workoutDays, defaultDays: 30 });
+        const zone = await zoneOfUser(db, principal.userId);
+        const range = resolveRange(from, to, { maxDays: FIT_LIMITS.workoutDays, defaultDays: 30, zone });
         return {
           from: range.from,
           to: range.to,
-          workouts: await listWorkouts(db, principal.userId, range.from, range.to, limit ?? 20),
+          workouts: await listWorkouts(db, principal.userId, range.from, range.to, limit ?? 20, zone),
         };
       }),
   );
@@ -251,12 +256,13 @@ function createMcpServer(
     },
     ({ id }) =>
       run("get_workout", "workouts:read", { id }, async (db) => {
+        const zone = await zoneOfUser(db, principal.userId);
         const ref = parseWorkoutRef(id);
         if (!ref) throw new FitDataError("not_found", `"${id}" is not a workout id; take one from list_workouts.`);
-        if (ref.kind === "strength") return getStrengthSessionView(db, principal.userId, ref.id);
+        if (ref.kind === "strength") return getStrengthSessionView(db, principal.userId, ref.id, zone);
         const bucket = deps.bucket();
         if (!bucket) throw new FitDataError("unavailable", "Workout storage is not available right now.");
-        return getWatchWorkoutView(db, bucket, principal.userId, ref.start);
+        return getWatchWorkoutView(db, bucket, principal.userId, ref.start, zone);
       }),
   );
 
@@ -264,16 +270,17 @@ function createMcpServer(
     "get_recovery_metrics",
     {
       title: "Sleep, recovery, readiness and body metrics",
-      description: `Per day, newest first (days with no data are omitted): hours slept, sleep as % of the need, recovery % (HRV vs own baseline), strain (0-21), readiness word (Primed, Balanced, Strained, Run down), resting heart rate bpm, HRV ms and status, VO2max (ml/kg/min), training status and load ratio, recovery hours left, steps, distance km, active kcal and exercise minutes. Needs a JoyoFit watch or Health Connect / Apple Health sync; fields the person's devices do not provide are null. Dates are WIB YYYY-MM-DD; default is the last 14 days; at most ${FIT_LIMITS.recoveryDays} days.`,
+      description: `Per day, newest first (days with no data are omitted): hours slept, sleep as % of the need, recovery % (HRV vs own baseline), strain (0-21), readiness word (Primed, Balanced, Strained, Run down), resting heart rate bpm, HRV ms and status, VO2max (ml/kg/min), training status and load ratio, recovery hours left, steps, distance km, active kcal and exercise minutes. Needs a JoyoFit watch or Health Connect / Apple Health sync; fields the person's devices do not provide are null. Dates are YYYY-MM-DD in the person's zone; default is the last 14 days; at most ${FIT_LIMITS.recoveryDays} days.`,
       inputSchema: {
-        from: dayArg("First day, YYYY-MM-DD (WIB). Default: 13 days before `to`."),
-        to: dayArg("Last day, YYYY-MM-DD (WIB). Default: today."),
+        from: dayArg("First day, YYYY-MM-DD. Default: 13 days before `to`."),
+        to: dayArg("Last day, YYYY-MM-DD. Default: today."),
       },
       annotations: readOnly,
     },
     ({ from, to }) =>
       run("get_recovery_metrics", "recovery:read", { from, to }, async (db) => {
-        const range = resolveRange(from, to, { maxDays: FIT_LIMITS.recoveryDays, defaultDays: 14 });
+        const zone = await zoneOfUser(db, principal.userId);
+        const range = resolveRange(from, to, { maxDays: FIT_LIMITS.recoveryDays, defaultDays: 14, zone });
         return { from: range.from, to: range.to, days: await getRecoveryDays(db, principal.userId, range.from, range.to) };
       }),
   );

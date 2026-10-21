@@ -1,3 +1,5 @@
+import { DEFAULT_DAY_ZONE } from "@joyorogo/i18n";
+
 import { wibMinutes } from "./fasting";
 import { checkReceipts, flushOutbox, pruneOutbox, runDigest } from "./notify";
 import { runReminders } from "./reminders";
@@ -33,6 +35,7 @@ export async function runPushCron(deps: ReminderDeps): Promise<PushCronReport> {
     report.receipts = await checkReceipts(deps);
   });
   const now = (deps.now ?? (() => new Date()))();
-  if (wibMinutes(now) < 5) await step("prune", () => pruneOutbox(deps));
+  // WIB on purpose: housekeeping of the shared outbox, once a day, not a person's day.
+  if (wibMinutes(now, DEFAULT_DAY_ZONE) < 5) await step("prune", () => pruneOutbox(deps));
   return report;
 }

@@ -39,6 +39,7 @@ import {
 import { activityOptions } from "@joyorogo/api/lib/activity-guide";
 import { resolveMaternalInput, type MaternalInfo } from "@joyorogo/api/lib/maternal";
 import { fmtNumber } from "@joyorogo/i18n";
+import { deviceTimeZone } from "@/src/lib/device-time-zone";
 
 import {
   BootLoader,
@@ -676,6 +677,7 @@ export default function Onboarding() {
         heightCm: height,
         weightKg: weight,
         activityLevel,
+        timezone: deviceTimeZone() ?? undefined,
         ...(maternalResult?.ok
           ? { maternal: maternalResult.input }
           : goal === "maintain"

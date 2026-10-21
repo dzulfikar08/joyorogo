@@ -9,16 +9,17 @@ import { FOOD_KINDS, matchesKind } from "../lib/food-kind";
 import { readCalibrationPrefs } from "../lib/calibration-store";
 import { buildPlan, planQueries } from "../lib/plan";
 import { dateSchema } from "../lib/schemas";
+import { userZone } from "../lib/user-zone";
 
 /** One food_log row as the Stiker view returns it (same shape as food.listByDate rows). */
 export type StickerRow = typeof foodLog.$inferSelect;
 
 // Reads behind the Makan view switcher (Kalender + Stiker). Every date is a
-// WIB day key, so ranges compare as plain strings.
+// day key, so ranges compare as plain strings.
 const kindSchema = z.enum(["semua", ...FOOD_KINDS]).default("semua");
 
 export const diaryRouter = {
-  // Kalender view: one WIB month, one entry per logged day: kcal total, how
+  // Kalender view: one month, one entry per logged day: kcal total, how
   // many items, and the day's showcase cutout (highest-kcal item that has
   // one). Plus the budget to colour each day against. One round trip over the
   // (user, date) index with narrow columns; days without logs are absent.
@@ -33,7 +34,7 @@ export const diaryRouter = {
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
-      const today = jakartaToday();
+      const today = jakartaToday(undefined, await userZone(context));
       const first = `${input.month}-01`;
       const last = `${input.month}-31`;
       const planDate = today < first ? first : today > last ? last : today;

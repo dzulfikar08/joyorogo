@@ -32,7 +32,7 @@ Errors: not Pro `FORBIDDEN` `data: { paywall: true }`; cap reached `TOO_MANY_REQ
 
 ## Caps and cost
 
-- Per user per Jakarta (WIB) day, default 20 messages (`COACH_DAILY_CAP`, `"0"` disables). Counted from `ai_usage` rows with
+- Per user per day in their own zone (`profile.timezone`, Jakarta unless stored), default 20 messages (`COACH_DAILY_CAP`, `"0"` disables). Counted from `ai_usage` rows with
   `scan_type = 'coach'` (no CHECK on the column, so no migration for the enum value). Every call that reached the model
   writes a row (model, latencyMs, `usage_json` with outcome, turns, token usage), answer or not. The slot is **reserved before the
   model is called** with one conditional `INSERT ... SELECT ... WHERE (count today) < cap` (`reserveCoachSlot` in `lib/coach-limit.ts`),
@@ -67,7 +67,7 @@ days' average, cloud workouts when the snapshot has fewer than 3, the stored pla
 
 | Var | Meaning |
 | --- | --- |
-| `COACH_DAILY_CAP` | Messages per user per WIB day; default 20 (set to `"20"` in `apps/server/wrangler.jsonc`); `"0"` turns the chat off. |
+| `COACH_DAILY_CAP` | Messages per user per local day; default 20 (set to `"20"` in `apps/server/wrangler.jsonc`); `"0"` turns the chat off. |
 | `AI_COACH_MODEL` | Optional model override for `coach.chat`. |
 
 ## QA: granting Pro temporarily

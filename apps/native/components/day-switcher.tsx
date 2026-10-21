@@ -11,7 +11,7 @@ import { Text } from "@/components/ui";
 
 /**
  * Prev/next day row shared by every daily screen: chevrons around
- * "Hari ini" / "Kemarin" / "Sen, 12 Okt" (WIB day keys). Next is disabled on
+ * "Hari ini" / "Kemarin" / "Sen, 12 Okt" (day keys). Next is disabled on
  * today; tapping the label jumps back to today.
  */
 export function DaySwitcher({

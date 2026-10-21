@@ -4,6 +4,7 @@ import { z } from "zod";
 import { profile, waistLog } from "@joyorogo/db/schema/fitness";
 
 import { protectedProcedure } from "../index";
+import { userZone } from "../lib/user-zone";
 import { jakartaToday } from "../lib/engine";
 import type { Gender } from "../lib/engine";
 import { dateSchema } from "../lib/schemas";
@@ -18,12 +19,13 @@ export const waistRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       const [row] = await context.db
         .insert(waistLog)
         .values({
           id: crypto.randomUUID(),
           userId: context.session.user.id,
-          date: input.date ?? jakartaToday(),
+          date: input.date ?? jakartaToday(undefined, zone),
           waistCm: input.waistCm,
         })
         .onConflictDoUpdate({
@@ -38,6 +40,7 @@ export const waistRouter = {
   history: protectedProcedure
     .input(z.object({ limit: z.number().int().min(1).max(365).default(90) }))
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       const userId = context.session.user.id;
       const [rows, [prof]] = await Promise.all([
         context.db
@@ -57,7 +60,7 @@ export const waistRouter = {
       const latest = entries.at(-1);
       return {
         entries,
-        loggedToday: latest?.date === jakartaToday(),
+        loggedToday: latest?.date === jakartaToday(undefined, zone),
         deltaCm:
           first && latest && first !== latest
             ? Math.round((latest.waistCm - first.waistCm) * 10) / 10

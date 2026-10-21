@@ -11,6 +11,7 @@ import type { Context } from "../context";
 import type { Meal } from "../lib/engine";
 import { serverT } from "../lib/messages";
 import { dateSchema, mealSchema } from "../lib/schemas";
+import { zoneOfUser } from "../lib/user-zone";
 import { cloudUnlocked } from "../lib/watch-workout-store";
 import { computePortion, ingredientSource, INGREDIENTS, recipeAllergens, recipeById, recipeTags } from "../lib/meal/catalog";
 import { normalizeCookPref } from "../lib/meal/planner";
@@ -68,7 +69,7 @@ async function requirePro(context: Context, userId: string): Promise<void> {
 
 async function requireContext(context: Context, userId: string): Promise<PlanContext> {
   await requirePro(context, userId);
-  const ctx = await loadPlanContext(context.db, userId);
+  const ctx = await loadPlanContext(context.db, userId, await zoneOfUser(context.db, userId, context.region));
   if (!ctx) throw new ORPCError("PRECONDITION_FAILED", { message: serverT(context.locale, "mealPlan")("errors.noProfile") });
   return ctx;
 }
@@ -203,7 +204,7 @@ export const mealPlanRouter = {
   overview: protectedProcedure.handler(async ({ context }) => {
     const userId = context.session.user.id;
     const pro = await cloudUnlocked(context.db, context.env, userId);
-    const ctx = await loadPlanContext(context.db, userId);
+    const ctx = await loadPlanContext(context.db, userId, await zoneOfUser(context.db, userId, context.region));
     if (!ctx) return { status: "noProfile" as const };
     if (!pro) return { status: "locked" as const, preview: await previewView(ctx, context.locale) };
     const plan = await readPlan(ctx.db, userId, ctx.today);

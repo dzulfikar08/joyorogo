@@ -9,6 +9,7 @@
 import { and, between, desc, eq, sql } from "drizzle-orm";
 
 import type { Database } from "@joyorogo/db";
+import type { DayZone } from "@joyorogo/i18n";
 import { barcodeContribution, barcodeProduct } from "@joyorogo/db/schema/barcode";
 
 import { classifyProduct, fetchOffProduct, SourceUnavailableError } from "./barcode";
@@ -24,7 +25,7 @@ import type {
 import { consensus, submissionsAgree } from "./barcode-trust";
 import type { Submission } from "./barcode-trust";
 import { jakartaToday } from "./engine";
-import { wibDayBounds } from "./tiers";
+import { dayBounds } from "./tiers";
 
 /** Source id of values read from a user's label photo. */
 export const LABEL_SOURCE = "label_photo";
@@ -204,7 +205,7 @@ export async function lookupBarcode(
 // Label contributions
 // ---------------------------------------------------------------------------
 
-/** Contributions one user may save per WIB day: a real shopping trip, not a script. */
+/** Contributions one user may save per local day: a real shopping trip, not a script. */
 export const MAX_CONTRIBUTIONS_PER_DAY = 30;
 /** Submissions that can compete for one code; the newest ones. */
 const MAX_SUBMISSIONS_PER_CODE = 25;
@@ -264,8 +265,8 @@ function lockedByExternalSource(row: CacheRow | undefined): boolean {
   return rowToLookup(row.code, row).status === "found";
 }
 
-async function contributionsToday(db: Database, userId: string, now: number): Promise<number> {
-  const { startMs, endMs } = wibDayBounds(jakartaToday(new Date(now)));
+async function contributionsToday(db: Database, userId: string, now: number, zone: DayZone): Promise<number> {
+  const { startMs, endMs } = dayBounds(jakartaToday(new Date(now), zone), zone);
   const [row] = await db
     .select({ n: sql<number>`count(*)` })
     .from(barcodeContribution)
@@ -305,6 +306,7 @@ function toSubmission(row: typeof barcodeContribution.$inferSelect): Submission 
 export async function recordContribution(
   db: Database,
   userId: string,
+  zone: DayZone,
   code: string,
   input: ContributionInput,
   now: number = Date.now(),
@@ -325,7 +327,7 @@ export async function recordContribution(
     .from(barcodeContribution)
     .where(and(eq(barcodeContribution.code, code), eq(barcodeContribution.userId, userId)))
     .limit(1);
-  if (!own && (await contributionsToday(db, userId, now)) >= MAX_CONTRIBUTIONS_PER_DAY) {
+  if (!own && (await contributionsToday(db, userId, now, zone)) >= MAX_CONTRIBUTIONS_PER_DAY) {
     return { ok: false, reason: "daily_limit" };
   }
 

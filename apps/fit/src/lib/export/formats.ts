@@ -4,6 +4,7 @@
  */
 
 import type { WatchWorkoutDoc } from "@joyorogo/api/lib/watch-workout";
+import { dayZoneOffsetMs } from "@joyorogo/i18n";
 
 import { buildFit } from "./fit-activity";
 import { buildGpx } from "./gpx";
@@ -24,11 +25,9 @@ const MIME: Record<ExportFormat, string> = {
   json: "application/json",
 };
 
-const WIB_OFFSET_MS = 7 * 3_600_000;
-
-/** `joyofit-20260914-0612-run`: WIB date and time of the start (the app shows every day in WIB) and the sport. */
+/** `joyofit-20260914-0612-run`: date and time of the start in the user's day zone, and the sport. */
 export function fileBase(doc: WatchWorkoutDoc): string {
-  const stamp = new Date(doc.workout.start * 1000 + WIB_OFFSET_MS).toISOString();
+  const stamp = new Date(doc.workout.start * 1000 + dayZoneOffsetMs()).toISOString();
   const sport = (doc.analysis?.sport.name ?? doc.workout.sportName)
     .normalize("NFKD")
     .replace(/\p{M}+/gu, "")

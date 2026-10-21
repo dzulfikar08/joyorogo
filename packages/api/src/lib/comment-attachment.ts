@@ -9,6 +9,7 @@ import { and, desc, eq, isNull, ne, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Database } from "@joyorogo/db";
+import type { DayZone } from "@joyorogo/i18n";
 import { exerciseLog, foodLog, profile as profileTable, weightLog } from "@joyorogo/db/schema/fitness";
 import { plate } from "@joyorogo/db/schema/plans";
 import { watchWorkout } from "@joyorogo/db/schema/watch-workout";
@@ -32,7 +33,7 @@ export type Attachment = {
   kind: "image" | ItemKind;
   /** The item's own name (workout, plate); '' for kinds the clients title themselves (image, weight, recap). */
   title: string;
-  /** WIB day of the item, 'YYYY-MM-DD'. */
+  /** Day of the item in the sharer's zone, 'YYYY-MM-DD'. */
   date: string | null;
   /** Encoded polyline, only for kind 'route'. */
   mapLine: string | null;
@@ -125,11 +126,11 @@ function workoutAttachment(row: ExerciseRow, watch: WatchRow | undefined): Attac
   };
 }
 
-function routeAttachment(row: WatchRow, mapLine: string | null): Attachment {
+function routeAttachment(row: WatchRow, mapLine: string | null, zone: DayZone): Attachment {
   return {
     kind: "route",
     title: row.sportName,
-    date: jakartaToday(new Date(row.start * 1000)),
+    date: jakartaToday(new Date(row.start * 1000), zone),
     mapLine,
     hasPhoto: false,
     stats: {
@@ -281,6 +282,7 @@ export async function buildItemAttachment(
   userId: string,
   kind: ItemKind,
   refId: string,
+  zone: DayZone,
 ): Promise<{ ok: true; attachment: StoredAttachment } | { ok: false; reason: AttachmentFailure }> {
   const missing = { ok: false, reason: "notFound" } as const;
   if (kind === "workout") {
@@ -326,7 +328,7 @@ export async function buildItemAttachment(
   }
   if (kind === "recap") {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(refId)) return missing;
-    const loaded = await loadWeekRecap(db, userId, weekStartOf(refId));
+    const loaded = await loadWeekRecap(db, userId, weekStartOf(refId), zone);
     const share = loaded ? recapShare(loaded.recap) : null;
     return share ? { ok: true, attachment: recapAttachment(share) } : missing;
   }
@@ -342,7 +344,7 @@ export async function buildItemAttachment(
   const prof = await profileFor(db, userId);
   if (prof?.shareMaps === false) return { ok: false, reason: "mapOff" };
   const mapLine = row.hasGps ? await routeLineOf(bucket, userId, start) : null;
-  return mapLine ? { ok: true, attachment: routeAttachment(row, mapLine) } : { ok: false, reason: "noRoute" };
+  return mapLine ? { ok: true, attachment: routeAttachment(row, mapLine, zone) } : { ok: false, reason: "noRoute" };
 }
 
 // --- "Dari aplikasi" picker -----------------------------------------------------------------------------------
@@ -365,6 +367,7 @@ export async function listAttachables(
   db: Database,
   userId: string,
   kind: ItemKind,
+  zone: DayZone,
 ): Promise<{ items: Attachable[]; notice: "mapOff" | null }> {
   if (kind === "workout") {
     const rows = await db
@@ -429,9 +432,9 @@ export async function listAttachables(
     };
   }
   if (kind === "recap") {
-    const thisWeek = weekStartOf(jakartaToday());
+    const thisWeek = weekStartOf(jakartaToday(undefined, zone));
     const weeks = Array.from({ length: RECAP_PICKER_WEEKS }, (_, i) => shiftDate(thisWeek, -7 * i));
-    const loaded = await Promise.all(weeks.map((week) => loadWeekRecap(db, userId, week)));
+    const loaded = await Promise.all(weeks.map((week) => loadWeekRecap(db, userId, week, zone)));
     const items: Attachable[] = [];
     for (const entry of loaded) {
       const share = entry ? recapShare(entry.recap) : null;
@@ -450,7 +453,7 @@ export async function listAttachables(
     .limit(PICKER_LIMIT);
   return {
     notice: null,
-    items: rows.map((row) => ({ kind, refId: String(row.start), photoId: null, preview: routeAttachment(row, null) })),
+    items: rows.map((row) => ({ kind, refId: String(row.start), photoId: null, preview: routeAttachment(row, null, zone) })),
   };
 }
 

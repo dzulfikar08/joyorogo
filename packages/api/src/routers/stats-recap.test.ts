@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { call } from "@orpc/server";
-import { expect, test } from "bun:test";
+import { afterEach, expect, setSystemTime, test } from "bun:test";
 import { drizzle } from "drizzle-orm/libsql";
 
 // @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
@@ -35,6 +35,12 @@ await client.executeMultiple(`
     VALUES ('u', 1990, 'male', 170, 108, 90, '2031-01-01', 'light');
 `);
 
+await client.executeMultiple(`
+  INSERT INTO "user" (id, name, email, tier, created_at) VALUES ('my', 'my', 'my@test.id', 'founder', ${old});
+  INSERT INTO profile (user_id, birth_year, gender, height_cm, start_weight_kg, target_weight_kg, target_date, activity_level, timezone)
+    VALUES ('my', 1990, 'male', 170, 108, 90, '2031-01-01', 'light', 'Asia/Kuala_Lumpur');
+`);
+
 const db = drizzle(client) as unknown as Database;
 const as = {
   context: { db, env: {}, waitUntil: () => {}, session: { user: { id: "u", createdAt: new Date(old) } } } as unknown as Context,
@@ -50,4 +56,21 @@ test("a day with all-day activity is judged against the same budget day.summary 
   const recapDay = recap!.days.find((d) => d.date === day)!;
   expect(recapDay.targetKcal).toBe(Math.round(busy.targets!.eatKcal));
   expect(recapDay.targetKcal).toBeGreaterThan(recap!.days.find((d) => d.date === quiet)?.targetKcal ?? 0);
+});
+
+afterEach(() => setSystemTime());
+
+test("the week a person is shown starts on their own Monday: Sunday 23:30 in Jakarta is already Monday in Kuala Lumpur", async () => {
+  // 16:30 UTC on Sunday 2026-10-18: 23:30 WIB (still Sunday), 00:30 MYT (Monday 2026-10-19)
+  setSystemTime(new Date("2026-10-18T16:30:00Z"));
+  const forUser = (id: string) => ({
+    context: { db, env: {}, waitUntil: () => {}, session: { user: { id, createdAt: new Date(old) } } } as unknown as Context,
+  });
+
+  const indonesian = await call(statsRouter.weekRecap, {}, forUser("u"));
+  const malaysian = await call(statsRouter.weekRecap, {}, forUser("my"));
+  expect(indonesian!.weekStart).toBe("2026-10-12");
+  expect(malaysian!.weekStart).toBe("2026-10-19");
+  expect(indonesian!.weekEnd).toBe("2026-10-18");
+  expect(malaysian!.weekEnd).toBe("2026-10-25");
 });

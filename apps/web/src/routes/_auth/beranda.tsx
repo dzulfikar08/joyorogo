@@ -1,4 +1,4 @@
-import { kcalUnit } from "@joyorogo/i18n";
+import { getActiveDayZone, kcalUnit } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
@@ -151,7 +151,7 @@ function greetingKey(now: Date): "morning" | "noon" | "afternoon" | "evening" {
     new Intl.DateTimeFormat("en-GB", {
       hour: "numeric",
       hour12: false,
-      timeZone: "Asia/Jakarta",
+      timeZone: getActiveDayZone(),
     }).format(now),
   );
   if (hour < 11) return "morning";

@@ -1,5 +1,5 @@
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
-import { LOCALE_HEADER, i18n } from "@joyorogo/i18n";
+import { LOCALE_HEADER, dayIn, i18n } from "@joyorogo/i18n";
 import { ORPCError, createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
@@ -61,7 +61,7 @@ export const persister = createSyncStoragePersister({
 export function cacheBuster(): string {
   return cacheBusterKey({
     build: import.meta.env.VITE_BUILD_ID,
-    wibToday: new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    wibToday: dayIn(),
     owner: localStorage.getItem(CACHE_OWNER_KEY),
   });
 }

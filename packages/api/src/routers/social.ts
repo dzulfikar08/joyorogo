@@ -26,9 +26,11 @@ import {
   socialNotification,
   socialReport,
 } from "@joyorogo/db/schema/social";
+import type { DayZone } from "@joyorogo/i18n";
 
 import { publicProcedure, protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
+import { dayBounds } from "../lib/tiers";
 import { base64ToBytes, commentPhotoKey } from "../lib/sticker";
 import {
   attachmentInputSchema,
@@ -47,6 +49,7 @@ import { pushComment, pushFollow, pushKudos, pushNewPost } from "../lib/social-p
 import type { PushContext } from "../lib/social-push";
 import { premiumUnlocked } from "../lib/readiness-food";
 import { paywallConfig } from "../lib/tiers";
+import { userZone } from "../lib/user-zone";
 import {
   buildFeedMapLine,
   feedMapPoints,
@@ -201,12 +204,13 @@ async function preparePost(
   me: string,
   requested: "publik" | "grup" | undefined,
   t: TFunction<"feed">,
+  zone: DayZone,
 ) {
   const todayCount = await countRow(
     db
       .select({ total: count() })
       .from(postTable)
-      .where(and(eq(postTable.userId, me), gt(postTable.createdAt, new Date(dayStartWib())))),
+      .where(and(eq(postTable.userId, me), gt(postTable.createdAt, new Date(dayStartIn(zone))))),
   );
   if (todayCount >= MAX_POSTS_PER_DAY) {
     throw new ORPCError("BAD_REQUEST", { message: t("server.error.postQuota") });
@@ -495,7 +499,7 @@ async function countRow(query: Promise<{ total: number }[]>) {
   return row?.total ?? 0;
 }
 
-const dayStartWib = () => new Date(`${jakartaToday()}T00:00:00+07:00`).getTime();
+const dayStartIn = (zone: DayZone) => dayBounds(jakartaToday(undefined, zone), zone).startMs;
 
 // --- Komentar bertingkat -----------------------------------------------------------
 
@@ -766,7 +770,7 @@ export const socialRouter = {
       const me = context.session.user.id;
       const db = context.db;
 
-      const { meProfile, visibility } = await preparePost(db, me, input.visibility, t);
+      const { meProfile, visibility } = await preparePost(db, me, input.visibility, t, await userZone(context));
       let snapshot: {
         title: string;
         kcal: number | null;
@@ -1018,7 +1022,7 @@ export const socialRouter = {
       ) {
         throw new ORPCError("BAD_REQUEST", { message: t("server.error.analysisMismatch") });
       }
-      const { visibility } = await preparePost(db, me, input.visibility, t);
+      const { visibility } = await preparePost(db, me, input.visibility, t, await userZone(context));
 
       const hr = input.detail?.hr?.bpm.length ? input.detail.hr : null;
       const route = input.detail?.route?.length ? input.detail.route : null;
@@ -1500,7 +1504,7 @@ export const socialRouter = {
             actorId: me,
             actorName: context.session.user.name,
             actorHandle: mine?.handle ?? null,
-            day: jakartaToday(),
+            day: jakartaToday(undefined, await userZone(context)),
           });
         }
       } else {
@@ -1736,7 +1740,7 @@ export const socialRouter = {
           .select({ total: count() })
           .from(postComment)
           .where(
-            and(eq(postComment.userId, me), gt(postComment.createdAt, new Date(dayStartWib()))),
+            and(eq(postComment.userId, me), gt(postComment.createdAt, new Date(dayStartIn(await userZone(context))))),
           ),
       );
       if (dayCount >= MAX_COMMENTS_PER_DAY) {
@@ -1799,7 +1803,7 @@ export const socialRouter = {
         }
         stored = { kind: "image", title: "", date: null, mapLine: null, hasPhoto: true, stats: {}, photoId };
       } else if (input.attachment) {
-        const built = await buildItemAttachment(db, context.env.STICKERS, me, input.attachment.kind, input.attachment.refId);
+        const built = await buildItemAttachment(db, context.env.STICKERS, me, input.attachment.kind, input.attachment.refId, await userZone(context));
         if (!built.ok) {
           throw new ORPCError("NOT_FOUND", {
             message: t(
@@ -1884,7 +1888,7 @@ export const socialRouter = {
   /** Isi menu "Dari aplikasi": item terbaru milik sendiri per jenis. */
   commentAttachables: protectedProcedure
     .input(z.object({ kind: z.enum(ITEM_KINDS) }))
-    .handler(({ context, input }) => listAttachables(context.db, context.session.user.id, input.kind)),
+    .handler(async ({ context, input }) => listAttachables(context.db, context.session.user.id, input.kind, await userZone(context))),
 
   /**
    * Pengomentar boleh hapus miliknya; penulis postingan boleh hapus semua. Komentar yang punya balasan hanya dikosongkan
@@ -2024,7 +2028,7 @@ export const socialRouter = {
         context.db
           .select({ total: count() })
           .from(socialReport)
-          .where(and(eq(socialReport.reporterId, me), gt(socialReport.createdAt, new Date(dayStartWib())))),
+          .where(and(eq(socialReport.reporterId, me), gt(socialReport.createdAt, new Date(dayStartIn(await userZone(context)))))),
       );
       if (dayCount >= MAX_REPORTS_PER_DAY) {
         throw new ORPCError("BAD_REQUEST", { message: t("server.error.reportQuota") });

@@ -17,12 +17,11 @@
 
 import { decodePoints } from "@joyorogo/api/lib/watch-workout";
 import type { WatchPoint, WatchWorkoutDoc } from "@joyorogo/api/lib/watch-workout";
+import { dayZoneOffsetMs } from "@joyorogo/i18n";
 
 import { FitWriter, toFitTime, toSemicircles } from "./fit-encoder";
 import type { FitFieldDef, FitFieldType, FitValue } from "./fit-encoder";
 
-/** The wearer's offset from UTC for the activity's local time: JoyoFit shows every day in WIB (UTC+7). */
-const UTC_OFFSET_SEC = 7 * 3600;
 
 /** A watch active time this much shorter than the elapsed time is a pause (the same rule JoyoFit's Strava file uses). */
 const PAUSE_MIN_SEC = 30;
@@ -591,7 +590,7 @@ export function buildFit(doc: WatchWorkoutDoc): BuiltFit {
     [2, "enum", FIT.activityManual],
     [3, "enum", FIT.eventActivity],
     [4, "enum", FIT.eventTypeStop],
-    [5, "uint32", toFitTime(end) + UTC_OFFSET_SEC],
+    [5, "uint32", toFitTime(end) + dayZoneOffsetMs() / 1000],
   ]);
 
   return { bytes: fit.finish(), samples: samples.length };

@@ -8,6 +8,7 @@ import type { Meal } from "../lib/engine";
 import type { DayLog, FastingPattern } from "../lib/fasting";
 
 import { protectedProcedure } from "../index";
+import { userZone } from "../lib/user-zone";
 import { effectiveRamadan, jakartaToday, shiftDate } from "../lib/engine";
 import { dateSchema } from "../lib/schemas";
 import { readCalibrationPrefs } from "../lib/calibration-store";
@@ -85,8 +86,9 @@ export const fastingRouter = {
   today: protectedProcedure
     .input(z.object({ date: dateSchema.optional() }))
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       const userId = context.session.user.id;
-      const date = input.date ?? jakartaToday();
+      const date = input.date ?? jakartaToday(undefined, zone);
       const now = new Date();
       const [profRows, latest, weighIns, intake, exercise, prefRows, logRows] = await context.db.batch([
         ...planQueries(context.db, userId, date),
@@ -97,7 +99,7 @@ export const fastingRouter = {
       ]);
       const prof = profRows[0];
       if (!prof || prof.maternalMode !== "none" || !isFastingPattern(prof.fastingPattern)) {
-        const day = inactiveFastingDay(prof ? effectiveRamadan(prof.ramadanMode, now) : false);
+        const day = inactiveFastingDay(prof ? effectiveRamadan(prof.ramadanMode, now, zone) : false);
         return { date, eatKcal: 0, ...day };
       }
 
@@ -115,7 +117,7 @@ export const fastingRouter = {
       const logs: DayLog[] = logRows.map((row) => ({
         kcal: row.kcal,
         meal: row.meal as Meal,
-        min: wibMinutes(row.createdAt),
+        min: wibMinutes(row.createdAt, zone),
       }));
       // Same budget as day.summary: the plan plus the counted exercise.
       const credit = await loadDayCredit(context.db, userId, date, plan.targets.includedKcal);
@@ -125,16 +127,17 @@ export const fastingRouter = {
         windowStart: prof.fastingWindowStart,
         eatKcal,
         logs,
-        nowMin: wibMinutes(now),
-        ramadan: effectiveRamadan(prof.ramadanMode, now),
+        nowMin: wibMinutes(now, zone),
+        ramadan: effectiveRamadan(prof.ramadanMode, now, zone),
       });
       return { date, eatKcal, ...day };
     }),
 
-  /** Last 7 WIB days: did all food fall inside the window? */
+  /** Last 7 days in the user's zone: did all food fall inside the window? */
   week: protectedProcedure.handler(async ({ context }) => {
+    const zone = await userZone(context);
     const userId = context.session.user.id;
-    const today = jakartaToday();
+    const today = jakartaToday(undefined, zone);
     const [prof] = await context.db
       .select({
         pattern: profile.fastingPattern,
@@ -161,7 +164,7 @@ export const fastingRouter = {
       (byDate[row.date] ??= []).push({
         kcal: row.kcal,
         meal: row.meal as Meal,
-        min: wibMinutes(row.createdAt),
+        min: wibMinutes(row.createdAt, zone),
       });
     }
     const days = Array.from({ length: 7 }, (_, i) => {

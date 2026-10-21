@@ -18,7 +18,7 @@ notify(userId, event)
   category switch off, or no browser/phone to reach  -> nothing stored (two reads)
   same dedupeKey seen before                          -> nothing happens ("duplicate")
   row written to push_outbox, then delivered at once unless
-    quiet hours (default 21:30-06:30 WIB, adjustable)  -> row waits until they end ("queued", cron delivers)
+    quiet hours (default 21:30-06:30 local, adjustable) -> row waits until they end ("queued", cron delivers)
     category daily cap used up                         -> social/group: "digest", others: "dropped"
   fan-out (see Targets)                                -> "sent" (tickets kept for receipts)
   transient failure                                    -> back to "queued" with backoff 5/10/20 min, 4 attempts, then "failed"
@@ -48,7 +48,7 @@ wait out the night become one).
 
 ### Quiet hours, caps, digest
 
-| Category | Daily cap (WIB day) | Over the cap |
+| Category | Daily cap (local day) | Over the cap |
 |---|---|---|
 | social | 10 | digest |
 | group | 8 | digest |
@@ -56,9 +56,9 @@ wait out the night become one).
 | weigh | 1 | dropped |
 | recap | 2 | dropped |
 
-From 19:00 WIB `runDigest` sends one push per person and category for what the cap held back today ("3 notifikasi
+From 19:00 local time `runDigest` sends one push per person and category for what the cap held back today ("3 notifikasi
 sosial lainnya", link to the notification list / group inbox). Held rows of an earlier day are dropped, not digested.
-Quiet hours are per account (`push_prefs`), default 21:30 to 06:30 WIB, switchable, start later than end wraps midnight.
+Quiet hours are per account (`push_prefs`), default 21:30 to 06:30 local, switchable, start later than end wraps midnight.
 Everything queued during them goes out at the end time; the cron spreads a morning rush over a few ticks.
 
 ### Failure handling
@@ -79,7 +79,7 @@ All categories default ON. "Cap" is the category cap above; "limit" is an extra 
 | Comment | social / `comment` | post author (not when they are the one answered) | once per comment | post thread |
 | Reply | social / `reply` | whoever was answered | once per comment | post thread |
 | Mention (@) | not sent | | There is no @mention parsing today (`body` carries none, `replyTo` is the structure); a reply push covers "someone answered you". Add the kind when mentions exist. | |
-| New follower | social / `follow` | the followed | one per follower per WIB day | follower's profile |
+| New follower | social / `follow` | the followed | one per follower per local day | follower's profile |
 | New post from someone you follow | social / `post` | followers who may see the post (public: all; group-only: shared team), not blocked, with Sosial on | at most 1 per author per follower per 6 h; at most 200 followers per post; delivered by the cron (up to 5 min) | post |
 | Poke | group / `poke` | the poked | the existing 1 h limit per pair | group inbox |
 | Note | group / `note` | the recipient | the existing 20 notes a day quota | group inbox |
@@ -97,7 +97,7 @@ All categories default ON. "Cap" is the category cap above; "limit" is an extra 
 
 Reminder rules (`reminders.ts`, pure pieces are unit tested):
 
-- The cron looks at each reminder inside its WIB window every tick; a per-day dedupe key makes it fire once, a skipped
+- The cron looks at each reminder inside its local window every tick, once per zone group (Jakarta, Kuala Lumpur / Singapore: `profile.timezone`); a per-day dedupe key makes it fire once, a skipped
   tick only delays it, and a reminder delivered more than 30 minutes after its window closed is dropped as stale.
 - Only people who still use the app: food logged within 14 days, or an account younger than that. Nobody is nagged after
   two weeks of silence.
@@ -105,7 +105,7 @@ Reminder rules (`reminders.ts`, pure pieces are unit tested):
   18:00 OMAD window, an evening one after a 12:00-20:00 window closed). Ramadan: no lunch reminder, the evening one stays.
   Hamil/Menyusui never fast, so a leftover pattern setting is ignored; they get no weigh-in reminder (the plan has no
   weight target) but do get the food ones.
-- Everything is WIB, like the rest of the app; the quiet hours check applies on top (`meal` windows are before 21:30).
+- Every clock is the person's own zone (`profile.timezone`; no zone stored = Jakarta); the quiet hours check applies on top (`meal` windows are before 21:30). The daily outbox prune stays at midnight WIB.
 
 ### Local reminders: skipped, not migrated
 

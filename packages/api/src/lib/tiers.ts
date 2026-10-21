@@ -2,6 +2,8 @@ import { and, between, eq, sql } from "drizzle-orm";
 
 import { aiUsage } from "@joyorogo/db/schema/fitness";
 import type { Database } from "@joyorogo/db";
+import { DEFAULT_DAY_ZONE, dayBoundsIn } from "@joyorogo/i18n";
+import type { DayZone } from "@joyorogo/i18n";
 
 export type Tier = "free" | "founder";
 
@@ -299,19 +301,24 @@ export function appleSubscriptionGrant(
   return { until, amountIdr: priceIdr };
 }
 
-/** Epoch-ms window of one WIB calendar day ('YYYY-MM-DD', UTC+7, no DST). */
+/** Epoch-ms window of one calendar day ('YYYY-MM-DD') in the person's zone (`userZone`): the daily quota resets at its end. */
+export function dayBounds(day: string, zone: DayZone): { startMs: number; endMs: number } {
+  return dayBoundsIn(day, zone);
+}
+
+/** Window of one WIB calendar day: for admin and internal reports, which stay in WIB on purpose. A person's own day is `dayBounds`. */
 export function wibDayBounds(wibDay: string): { startMs: number; endMs: number } {
-  const startMs = Date.parse(`${wibDay}T00:00:00+07:00`);
-  return { startMs, endMs: startMs + 24 * 60 * 60 * 1000 };
+  return dayBoundsIn(wibDay, DEFAULT_DAY_ZONE);
 }
 
 /** Successful user scans billed against today's quota, from the ai_usage ledger. */
 export async function scansUsedToday(
   db: Database,
   userId: string,
-  wibDay: string,
+  day: string,
+  zone: DayZone,
 ): Promise<number> {
-  const { startMs, endMs } = wibDayBounds(wibDay);
+  const { startMs, endMs } = dayBounds(day, zone);
   const [row] = await db
     .select({ used: sql<number>`count(*)` })
     .from(aiUsage)

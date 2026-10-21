@@ -18,6 +18,7 @@ import { dayRouter } from "./day";
 import { diaryRouter } from "./diary";
 import { profileRouter } from "./profile";
 import { statsRouter } from "./stats";
+import { DEFAULT_DAY_ZONE } from "@joyorogo/i18n";
 
 // The automatic calibration end to end through the routers: every consumer of the plan builds it from `planQueries`
 // (history window and the calibration preferences), so they all see the same target. The numbers of the calibration
@@ -139,12 +140,12 @@ describe("every consumer sees the same plan", () => {
     const recap = await call(statsRouter.weekRecap, { weekStart: weekStartOf(today) }, as("on"));
     expect(recap?.targetKcal).toBe(mine.eatKcal);
 
-    const view = await getProfileView(db, "on", today);
+    const view = await getProfileView(db, "on", DEFAULT_DAY_ZONE, today);
     expect(view.dailyTargets?.eatKcal).toBe(mine.eatKcal);
     expect(view.dailyTargets?.tdeeKcal).toBe(mine.tdee);
 
     const offMine = (await call(profileRouter.myProfile, undefined, as("off"))).targets!;
-    const offView = await getProfileView(db, "off", today);
+    const offView = await getProfileView(db, "off", DEFAULT_DAY_ZONE, today);
     expect(offView.dailyTargets?.eatKcal).toBe(offMine.eatKcal);
     expect(offMine.eatKcal).toBeLessThan(mine.eatKcal);
   });

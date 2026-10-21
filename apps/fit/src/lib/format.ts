@@ -1,22 +1,34 @@
 // Number, date and duration text for the screens. Locale-aware through @joyorogo/i18n (the language the app renders in).
 
 import { formatPace } from "@joyorogo/api/lib/workout-analysis";
-import { fmtClock, fmtDateMedium, fmtDateShort, fmtDecimal, fmtInt, i18n } from "@joyorogo/i18n";
+import {
+  fmtClock as fmtClockIn,
+  fmtDateMedium,
+  fmtDateShort,
+  fmtDecimal,
+  fmtInt,
+  getActiveDayZone,
+  dayOfMs,
+  i18n,
+} from "@joyorogo/i18n";
 import { paceMode } from "@joyorogo/workout-view/analysis-math";
 import type { SportKind } from "@joyorogo/api/lib/workout-analysis";
 
-export { fmtClock, fmtDateMedium, fmtDateShort, fmtDecimal, fmtInt };
+export { fmtDateMedium, fmtDateShort, fmtDecimal, fmtInt };
 
-const WIB_OFFSET_MS = 7 * 3_600_000;
-
-/** WIB calendar day of a unix-seconds instant, 'YYYY-MM-DD'. */
-export function wibDay(unixSec: number): string {
-  return new Date(unixSec * 1000 + WIB_OFFSET_MS).toISOString().slice(0, 10);
+/** Wall-clock time of an instant in the user's day zone. */
+export function fmtClock(at: Date): string {
+  return fmtClockIn(at, undefined, getActiveDayZone());
 }
 
-/** "14 Sep 2026 · 06.12", both in WIB. */
+/** Calendar day of a unix-seconds instant in the user's day zone, 'YYYY-MM-DD'. */
+export function localDay(unixSec: number): string {
+  return dayOfMs(unixSec * 1000);
+}
+
+/** "14 Sep 2026 · 06.12", both in the user's day zone. */
 export function fmtStart(unixSec: number): string {
-  return `${fmtDateMedium(wibDay(unixSec))} · ${fmtClock(new Date(unixSec * 1000))}`;
+  return `${fmtDateMedium(localDay(unixSec))} · ${fmtClock(new Date(unixSec * 1000))}`;
 }
 
 /** "5,02 km" (one decimal from 100 km up, none for a bare 0). */

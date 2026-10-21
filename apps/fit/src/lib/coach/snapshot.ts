@@ -49,7 +49,7 @@ const MIN_HRV_RECENT = 3;
 const MIN_HRV_BASELINE = 7;
 
 export interface SnapshotInput {
-  /** WIB calendar day, `YYYY-MM-DD`. */
+  /** Calendar day in the user zone, `YYYY-MM-DD`. */
   today: string;
   /** Epoch ms, only for `generatedAt`. */
   nowMs: number;

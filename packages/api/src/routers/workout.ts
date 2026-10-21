@@ -16,6 +16,7 @@ import type { Locale } from "@joyorogo/i18n";
 import { serverT } from "../lib/messages";
 import { strengthWritesLocked } from "../lib/strength-lock";
 import { protectedProcedure } from "../index";
+import { userZone } from "../lib/user-zone";
 import { jakartaToday, shiftDate } from "../lib/engine";
 import { dateSchema } from "../lib/schemas";
 import {
@@ -320,9 +321,10 @@ export const workoutRouter = {
   saveSession: protectedProcedure
     .input(saveSchema)
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       assertStrengthWritable(context.locale);
       const userId = context.session.user.id;
-      const date = input.date ?? jakartaToday();
+      const date = input.date ?? jakartaToday(undefined, zone);
 
       const catalog = await loadCatalog(context.db, userId);
       const catalogById = new Map(
@@ -856,8 +858,9 @@ export const workoutRouter = {
 
   /** Beranda muscle map: this week's volumes, warnings, PRs, trend hint. */
   status: protectedProcedure.handler(async ({ context }) => {
+    const zone = await userZone(context);
     const userId = context.session.user.id;
-    const today = jakartaToday();
+    const today = jakartaToday(undefined, zone);
     const weekStart = shiftDate(today, -6);
     const historyStart = shiftDate(today, -364);
 

@@ -29,12 +29,16 @@ export const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD");
 // How far back a log date may be moved or chosen: a bounded recent window.
 export const LOG_DATE_WINDOW_DAYS = 30;
 
-/** A WIB day key from today down to LOG_DATE_WINDOW_DAYS ago. */
+/**
+ * A day key from today down to LOG_DATE_WINDOW_DAYS ago. The schema has no request, so "today" is the most advanced
+ * supported zone (Kuala Lumpur, UTC+8): a Malaysian user just past midnight is not rejected for a date that is
+ * still tomorrow in Jakarta; the window is an hour looser for the others.
+ */
 export const pastDateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD")
   .refine((date) => {
-    const today = jakartaToday();
+    const today = jakartaToday(undefined, "Asia/Kuala_Lumpur");
     return date <= today && date >= shiftDate(today, -LOG_DATE_WINDOW_DAYS);
   }, `Tanggal harus antara ${LOG_DATE_WINDOW_DAYS} hari lalu dan hari ini`);
 

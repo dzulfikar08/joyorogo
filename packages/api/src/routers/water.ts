@@ -1,11 +1,13 @@
 import { and, eq, sql } from "drizzle-orm";
 
 import type { Database } from "@joyorogo/db";
+import type { DayZone } from "@joyorogo/i18n";
 import { profile, waterLog } from "@joyorogo/db/schema/fitness";
 
 import { z } from "zod";
 
 import { protectedProcedure } from "../index";
+import { userZone } from "../lib/user-zone";
 import { jakartaToday } from "../lib/engine";
 import type { ActivityLevel, Gender } from "../lib/engine";
 import { computeMaternalTargets, maternalFromRow, maternalNutrient } from "../lib/maternal";
@@ -21,7 +23,7 @@ const dateInput = z.object({ date: dateSchema.optional() });
  * water figure of the stage (2,650 ml for a 26-year-old in pregnancy, which
  * counts water from food too) in whole glasses.
  */
-async function waterGoal(db: Database, userId: string): Promise<number> {
+async function waterGoal(db: Database, userId: string, zone: DayZone): Promise<number> {
   const [row] = await db.select().from(profile).where(eq(profile.userId, userId)).limit(1);
   if (!row) return GOAL;
   const maternal = maternalFromRow(row);
@@ -37,6 +39,7 @@ async function waterGoal(db: Database, userId: string): Promise<number> {
       activityLevel: row.activityLevel as ActivityLevel,
     },
     maternal,
+    { today: jakartaToday(undefined, zone) },
   );
   const water = maternalNutrient(targets, "water");
   return water ? Math.round(water.target / GLASS_ML) : GOAL;
@@ -44,6 +47,7 @@ async function waterGoal(db: Database, userId: string): Promise<number> {
 
 export const waterRouter = {
   today: protectedProcedure.input(dateInput.optional()).handler(async ({ context, input }) => {
+    const zone = await userZone(context);
     const [row, goal] = await Promise.all([
       context.db
         .select()
@@ -51,21 +55,22 @@ export const waterRouter = {
         .where(
           and(
             eq(waterLog.userId, context.session.user.id),
-            eq(waterLog.date, input?.date ?? jakartaToday()),
+            eq(waterLog.date, input?.date ?? jakartaToday(undefined, zone)),
           ),
         )
         .limit(1),
-      waterGoal(context.db, context.session.user.id),
+      waterGoal(context.db, context.session.user.id, zone),
     ]);
     return { glasses: row[0]?.glasses ?? 0, goal };
   }),
 
   add: protectedProcedure.input(dateInput.optional()).handler(async ({ context, input }) => {
+    const zone = await userZone(context);
     const [row] = await context.db
       .insert(waterLog)
       .values({
         userId: context.session.user.id,
-        date: input?.date ?? jakartaToday(),
+        date: input?.date ?? jakartaToday(undefined, zone),
         glasses: 1,
       })
       .onConflictDoUpdate({
@@ -73,20 +78,21 @@ export const waterRouter = {
         set: { glasses: sql`${waterLog.glasses} + 1` },
       })
       .returning();
-    return { glasses: row?.glasses ?? 0, goal: await waterGoal(context.db, context.session.user.id) };
+    return { glasses: row?.glasses ?? 0, goal: await waterGoal(context.db, context.session.user.id, zone) };
   }),
 
   remove: protectedProcedure.input(dateInput.optional()).handler(async ({ context, input }) => {
+    const zone = await userZone(context);
     const [row] = await context.db
       .update(waterLog)
       .set({ glasses: sql`max(${waterLog.glasses} - 1, 0)` })
       .where(
         and(
           eq(waterLog.userId, context.session.user.id),
-          eq(waterLog.date, input?.date ?? jakartaToday()),
+          eq(waterLog.date, input?.date ?? jakartaToday(undefined, zone)),
         ),
       )
       .returning({ glasses: waterLog.glasses });
-    return { glasses: row?.glasses ?? 0, goal: await waterGoal(context.db, context.session.user.id) };
+    return { glasses: row?.glasses ?? 0, goal: await waterGoal(context.db, context.session.user.id, zone) };
   }),
 };

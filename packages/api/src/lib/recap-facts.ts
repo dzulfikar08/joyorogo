@@ -1,4 +1,4 @@
-// Facts engine of the weekly reflection ("Refleksi minggu ini"). Pure and deterministic: the numbers of one WIB week
+// Facts engine of the weekly reflection ("Refleksi minggu ini"). Pure and deterministic: the numbers of one week
 // (the recap, food item names, weigh-ins, waist, JoyoFit watch workouts, load, sleep, steps) become typed facts with a
 // code, a variant, the numbers and a priority; a rule-based selection keeps 2-3 wins and up to 3 focus points. Every
 // word shown to the person comes from fixed templates keyed by (code, variant) (lib/recap-text.ts), and the AI text

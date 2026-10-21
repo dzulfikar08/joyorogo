@@ -4,10 +4,11 @@ import { and, eq, gt, isNotNull, lte, or, sql } from "drizzle-orm";
 import { emailLog, googlePurchase, payment } from "@joyorogo/db/schema/billing";
 import { user } from "@joyorogo/db/schema/auth";
 import type { Database } from "@joyorogo/db";
-import { DEFAULT_LOCALE, fmtIdr, getT } from "@joyorogo/i18n";
-import type { Locale } from "@joyorogo/i18n";
+import { DEFAULT_DAY_ZONE, DEFAULT_LOCALE, fmtIdr, getT } from "@joyorogo/i18n";
+import type { DayZone, Locale } from "@joyorogo/i18n";
 import { formatMinor } from "@joyorogo/api/lib/fx";
 import { userLocale } from "@joyorogo/api/lib/messages";
+import { zoneOfUser } from "@joyorogo/api/lib/user-zone";
 import { dayStartMs } from "@joyorogo/api/lib/accuracy-report";
 import type { AccuracyReport, EmailState, ShadowReport } from "@joyorogo/api/lib/accuracy-report";
 
@@ -34,10 +35,10 @@ const MUTED = "#6b7280";
 
 const INTL_TAG: Record<Locale, string> = { id: "id-ID", en: "en-US", ms: "ms-MY" };
 
-/** "13 Oktober 2026" / "October 13, 2026": the WIB calendar day of a period end. */
-export function formatWibDate(date: Date, locale: Locale = DEFAULT_LOCALE): string {
+/** "13 Oktober 2026" / "October 13, 2026": the calendar day of a period end in `zone` (the person's own; WIB for admin notices). */
+export function formatWibDate(date: Date, locale: Locale = DEFAULT_LOCALE, zone: DayZone = DEFAULT_DAY_ZONE): string {
   return new Intl.DateTimeFormat(INTL_TAG[locale], {
-    timeZone: "Asia/Jakarta",
+    timeZone: zone,
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -118,7 +119,7 @@ const RENEW_URL = "https://app.joyorogo.com/pro?from=profile&next=/profil";
 /** `<b>` in the HTML part, plain in the text part: one string serves both. */
 const bold = (html: boolean) => (value: string) => (html ? `<b>${value}</b>` : value);
 
-function receiptDraft(info: ReceiptInfo, locale: Locale): Draft {
+function receiptDraft(info: ReceiptInfo, locale: Locale, zone: DayZone): Draft {
   const t = getT(locale, "email");
   const part = (html: boolean) => {
     const b = bold(html);
@@ -128,7 +129,7 @@ function receiptDraft(info: ReceiptInfo, locale: Locale): Draft {
         amount: b(fmtIdr(info.amountIdr, locale)),
         plan: b(t(`plan.${info.plan}`)),
       }),
-      active: t("receipt.active", { until: b(formatWibDate(info.founderUntil, locale)) }),
+      active: t("receipt.active", { until: b(formatWibDate(info.founderUntil, locale, zone)) }),
       cap:
         info.founderDailyCap === null
           ? t("receipt.capUnlimited")
@@ -180,6 +181,7 @@ function adminDraft(info: PaidOrderInfo): Draft {
     ["Paket", `Pro ${planLabel}`],
     ["Gateway", info.gateway],
     ["Order", info.orderId],
+    // WIB on purpose: admin notice.
     ["Pro sampai", info.founderUntil ? formatWibDate(info.founderUntil) : "-"],
   ];
   const html = shell(
@@ -238,7 +240,7 @@ export async function sendOrderEmails(
       founderDailyCap: config.founderDailyCap,
     };
     const locale = await userLocale(db, order.userId);
-    await sendEmail(env, { ...receiptDraft(info, locale), to: row.email });
+    await sendEmail(env, { ...receiptDraft(info, locale, await zoneOfUser(db, order.userId)), to: row.email });
   }
 
   const admins = (env.ADMIN_EMAILS ?? "")
@@ -272,7 +274,7 @@ async function lockedMonthlyIdr(db: Database, userId: string): Promise<number | 
   return row?.lowest ?? null;
 }
 
-function endingDraft(name: string, until: Date, locked: number | null, locale: Locale): Draft {
+function endingDraft(name: string, until: Date, locked: number | null, locale: Locale, zone: DayZone): Draft {
   const t = getT(locale, "email");
   const part = (html: boolean) => {
     const b = bold(html);
@@ -281,19 +283,19 @@ function endingDraft(name: string, until: Date, locked: number | null, locale: L
         ? ""
         : ` ${t("ending.lockedPrice", { price: fmtIdr(Math.round(locked), locale) })}`;
     return {
-      intro: t("ending.intro", { name, until: b(formatWibDate(until, locale)) }),
+      intro: t("ending.intro", { name, until: b(formatWibDate(until, locale, zone)) }),
       renew: `${t("ending.renew")}${price}`,
     };
   };
   const h = part(true);
   const html = shell(
-    t("ending.subject", { until: formatWibDate(until, locale) }),
+    t("ending.subject", { until: formatWibDate(until, locale, zone) }),
     p(h.intro) + p(h.renew) + button(RENEW_URL, t("ending.cta")),
     locale,
   );
   const x = part(false);
   const text = [x.intro, x.renew, RENEW_URL].join("\n\n");
-  return { to: "", subject: t("ending.subject", { until: formatWibDate(until, locale) }), html, text };
+  return { to: "", subject: t("ending.subject", { until: formatWibDate(until, locale, zone) }), html, text };
 }
 
 function expiredDraft(name: string, locale: Locale): Draft {
@@ -356,7 +358,7 @@ export async function runFounderEmails(env: EmailEnv, db: Database): Promise<voi
     const locale = await userLocale(db, row.id);
     const draft = expired
       ? expiredDraft(row.name, locale)
-      : endingDraft(row.name, new Date(untilMs), locked, locale);
+      : endingDraft(row.name, new Date(untilMs), locked, locale, await zoneOfUser(db, row.id));
     await sendEmail(env, { ...draft, to: row.email });
     if (++sends >= 50) break;
   }

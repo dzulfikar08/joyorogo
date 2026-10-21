@@ -3,7 +3,8 @@
 // this file: callers pass the user id they already authenticated and decided may read.
 //
 // Conventions of every result:
-// - Days are WIB calendar days 'YYYY-MM-DD'; times are ISO 8601 with the +07:00 offset.
+// - Days are calendar days 'YYYY-MM-DD' in the person's day zone (Jakarta +07:00, Kuala Lumpur / Singapore +08:00); times
+//   are ISO 8601 with that zone's offset.
 // - Units sit in the key name: Kcal, G (grams), Kg, Cm, Bpm, M (metres), Sec, Min, Ms, Pct.
 // - Rows imported from Strava never appear (Strava's API terms keep that data out of AI); nothing here exposes
 //   photos, GPS tracks or other people's data.
@@ -16,6 +17,9 @@ import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 import { workoutCustomExercise, workoutSession, workoutSet } from "@joyorogo/db/schema/plans";
 import { watchWorkout } from "@joyorogo/db/schema/watch-workout";
 
+import { dayOfMs, isoInZone } from "@joyorogo/i18n";
+import type { DayZone } from "@joyorogo/i18n";
+
 import { ageFromBirthYear, jakartaToday, shiftDate } from "./engine";
 import { budgetKcal, exerciseCredit } from "./exercise-credit";
 import type { AddBackSettings } from "./exercise-credit";
@@ -26,7 +30,7 @@ import { readCalibrationPrefs } from "./calibration-store";
 import { buildPlan, planQueries, proteinGoalG } from "./plan";
 import { pickNightSleep } from "./sleep-night";
 import type { StickersBucket } from "./sticker";
-import { wibDayBounds } from "./tiers";
+import { dayBounds } from "./tiers";
 import { getBlob } from "./watch-workout-store";
 import { readDoc, WatchWorkoutDocError } from "./watch-workout";
 import type { WorkoutAnalysis } from "./workout-analysis";
@@ -50,22 +54,21 @@ export class FitDataError extends Error {
 }
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
-const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 
 export function isRealDay(value: string): boolean {
   return DAY_RE.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`)) && shiftDate(value, 0) === value;
 }
 
 /**
- * A validated [from, to] window. `to` defaults to today (WIB) and `from` to `defaultDays` days ending at `to`; a window
+ * A validated [from, to] window. `to` defaults to today in `zone` and `from` to `defaultDays` days ending at `to`; a window
  * longer than `maxDays` is refused (the caller names the limit so the model can ask again with a shorter one).
  */
 export function resolveRange(
   from: string | undefined,
   to: string | undefined,
-  opts: { maxDays: number; defaultDays: number; today?: string },
+  opts: { maxDays: number; defaultDays: number; zone: DayZone; today?: string },
 ): { from: string; to: string; days: number } {
-  const today = opts.today ?? jakartaToday();
+  const today = opts.today ?? jakartaToday(undefined, opts.zone);
   const end = to ?? today;
   if (!isRealDay(end)) throw new FitDataError("bad_date", `"to" must be a real day as YYYY-MM-DD, got "${end}".`);
   const start = from ?? shiftDate(end, -(opts.defaultDays - 1));
@@ -85,14 +88,6 @@ const round = (value: number, digits = 0): number => {
 
 const roundOrNull = (value: number | null | undefined, digits = 0): number | null =>
   value === null || value === undefined ? null : round(value, digits);
-
-function wibIso(ms: number): string {
-  return `${new Date(ms + WIB_OFFSET_MS).toISOString().slice(0, 19)}+07:00`;
-}
-
-function wibDayOf(ms: number): string {
-  return new Date(ms + WIB_OFFSET_MS).toISOString().slice(0, 10);
-}
 
 // --- Profile and targets ------------------------------------------------------------------------------------
 
@@ -143,7 +138,12 @@ export interface ProfileView {
   language?: string | null;
 }
 
-export async function getProfileView(db: Database, userId: string, today = jakartaToday()): Promise<ProfileView> {
+export async function getProfileView(
+  db: Database,
+  userId: string,
+  zone: DayZone,
+  today = jakartaToday(undefined, zone),
+): Promise<ProfileView> {
   const [profRows, latest, weighIns, intake, exercise, prefRows] = await db.batch(planQueries(db, userId, today));
   const prof = profRows[0];
   if (!prof) return { today, hasProfile: false, mode: null };
@@ -305,7 +305,13 @@ export interface TotalsView {
 }
 
 /** Eaten and burned totals per day against the current targets; one row for every day of the window. */
-export async function getDailyTotals(db: Database, userId: string, from: string, to: string): Promise<TotalsView> {
+export async function getDailyTotals(
+  db: Database,
+  userId: string,
+  from: string,
+  to: string,
+  zone: DayZone,
+): Promise<TotalsView> {
   const [food, exercise, activity, view, prefRows, scores] = await Promise.all([
     db
       .select({
@@ -341,7 +347,7 @@ export async function getDailyTotals(db: Database, userId: string, from: string,
       })
       .from(dailyActivity)
       .where(and(eq(dailyActivity.userId, userId), gte(dailyActivity.date, from), lte(dailyActivity.date, to))),
-    getProfileView(db, userId),
+    getProfileView(db, userId, zone),
     addBackPrefQuery(db, userId),
     db
       .select({ date: fitnessScore.date, activeKcal: fitnessScore.activeKcal })
@@ -429,14 +435,20 @@ export interface WeightView {
     smoothedKg: number;
     /** kg per week over the last 28 days, negative = losing. Null until 10 days of weigh-ins. */
     weeklyRateKg: number | null;
-    /** The WIB day the trend reaches the target at the current rate; null when not heading there. */
+    /** The day the trend reaches the target at the current rate; null when not heading there. */
     projectedDate: string | null;
   } | null;
   waist: { date: string; waistCm: number }[];
 }
 
-export async function getWeightView(db: Database, userId: string, from: string, to: string): Promise<WeightView> {
-  const today = jakartaToday();
+export async function getWeightView(
+  db: Database,
+  userId: string,
+  from: string,
+  to: string,
+  zone: DayZone,
+): Promise<WeightView> {
+  const today = jakartaToday(undefined, zone);
   const [entries, latest, waist, view, trendRows] = await Promise.all([
     db
       .select({ date: weightLog.date, weightKg: weightLog.weightKg })
@@ -454,7 +466,7 @@ export async function getWeightView(db: Database, userId: string, from: string, 
       .from(waistLog)
       .where(and(eq(waistLog.userId, userId), gte(waistLog.date, from), lte(waistLog.date, to)))
       .orderBy(asc(waistLog.date)),
-    getProfileView(db, userId, today),
+    getProfileView(db, userId, zone, today),
     db.batch(planQueries(db, userId, today)),
   ]);
   const [profRows, latestRows, weighIns, intake, exercise, prefRows] = trendRows;
@@ -618,9 +630,10 @@ export async function listWorkouts(
   from: string,
   to: string,
   limit: number,
+  zone: DayZone,
 ): Promise<WorkoutListItem[]> {
-  const startSec = Math.floor(wibDayBounds(from).startMs / 1000);
-  const endSec = Math.floor(wibDayBounds(to).endMs / 1000);
+  const startSec = Math.floor(dayBounds(from, zone).startMs / 1000);
+  const endSec = Math.floor(dayBounds(to, zone).endMs / 1000);
   const [watch, sessions] = await Promise.all([
     db
       .select()
@@ -666,8 +679,8 @@ export async function listWorkouts(
     ...watch.map((row) => ({
       id: `watch:${row.start}`,
       source: "joyofit_watch" as const,
-      date: wibDayOf(row.start * 1000),
-      startedAt: wibIso(row.start * 1000),
+      date: dayOfMs(row.start * 1000, zone),
+      startedAt: isoInZone(row.start * 1000, zone),
       name: row.sportName,
       kind: row.sportKind,
       durationMin: round(row.elapsedSec / 60, 1),
@@ -684,7 +697,7 @@ export async function listWorkouts(
         id: `strength:${session.id}`,
         source: "strength_session" as const,
         date: session.date,
-        startedAt: session.startedAt ? wibIso(session.startedAt.getTime()) : null,
+        startedAt: session.startedAt ? isoInZone(session.startedAt.getTime(), zone) : null,
         name: session.name,
         kind: "strength",
         durationMin: roundOrNull(session.durationMin, 1),
@@ -741,6 +754,7 @@ export async function getWatchWorkoutView(
   bucket: StickersBucket,
   userId: string,
   start: number,
+  zone: DayZone,
 ): Promise<WatchWorkoutView> {
   const [row] = await db
     .select()
@@ -751,8 +765,8 @@ export async function getWatchWorkoutView(
   const base = {
     id: `watch:${row.start}`,
     source: "joyofit_watch" as const,
-    startedAt: wibIso(row.start * 1000),
-    date: wibDayOf(row.start * 1000),
+    startedAt: isoInZone(row.start * 1000, zone),
+    date: dayOfMs(row.start * 1000, zone),
   };
   const bytes = await getBlob(db, bucket, userId, start);
   let analysis: WorkoutAnalysis | null = null;
@@ -832,7 +846,12 @@ export interface StrengthSessionView {
   }[];
 }
 
-export async function getStrengthSessionView(db: Database, userId: string, id: string): Promise<StrengthSessionView> {
+export async function getStrengthSessionView(
+  db: Database,
+  userId: string,
+  id: string,
+  zone: DayZone,
+): Promise<StrengthSessionView> {
   const [session] = await db
     .select()
     .from(workoutSession)
@@ -872,7 +891,7 @@ export async function getStrengthSessionView(db: Database, userId: string, id: s
     id: `strength:${session.id}`,
     source: "strength_session",
     date: session.date,
-    startedAt: session.startedAt ? wibIso(session.startedAt.getTime()) : null,
+    startedAt: session.startedAt ? isoInZone(session.startedAt.getTime(), zone) : null,
     name: session.name,
     durationMin: roundOrNull(session.durationMin, 1),
     note: session.note,

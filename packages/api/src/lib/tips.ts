@@ -1,5 +1,5 @@
-import { DEFAULT_LOCALE, getActiveLocale, resources } from "@joyorogo/i18n";
-import type { Locale } from "@joyorogo/i18n";
+import { DEFAULT_LOCALE, dayIn, getActiveLocale, resources } from "@joyorogo/i18n";
+import type { DayZone, Locale } from "@joyorogo/i18n";
 
 /**
  * Tips nutrisi & fat-loss berbasis bukti. Konten statis dan sudah direview:
@@ -308,20 +308,19 @@ export function localizeTip(meta: Tip, locale: Locale = getActiveLocale()): Loca
   };
 }
 
-function jakartaDayKey(now: Date): number {
-  // "2026-10-13" → 20261013; rotasi ganti tiap ganti hari Asia/Jakarta.
-  const iso = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(now);
-  return Number(iso.replaceAll("-", ""));
+function dayKey(now: Date, zone?: DayZone): number {
+  // "2026-10-13" → 20261013; rotasi ganti tiap ganti hari di zona pengguna.
+  return Number(dayIn(zone, now).replaceAll("-", ""));
 }
 
 /** Offset rotasi kartu tips di feed, sama untuk web dan native per hari. */
-export function tipRotationOffset(now: Date = new Date()): number {
-  return jakartaDayKey(now) % TIPS.length;
+export function tipRotationOffset(now: Date = new Date(), zone?: DayZone): number {
+  return dayKey(now, zone) % TIPS.length;
 }
 
 /** Tip harian untuk kartu "Tips hari ini" di Beranda; deterministik per hari. */
-export function dailyTip(now: Date = new Date()): Tip {
-  return TIPS[tipRotationOffset(now) % TIPS.length] ?? TIPS[0]!;
+export function dailyTip(now: Date = new Date(), zone?: DayZone): Tip {
+  return TIPS[tipRotationOffset(now, zone) % TIPS.length] ?? TIPS[0]!;
 }
 
 /**

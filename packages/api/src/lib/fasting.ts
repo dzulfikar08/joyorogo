@@ -1,11 +1,12 @@
 // Pure intermittent-fasting (IF) engine — no runtime dependencies, like
-// engine.ts. All clock math is WIB (UTC+7, no DST): minutes-of-day means
-// minutes since WIB midnight, so the server, web, and native clients agree
+// engine.ts. Clock math runs in the person's day zone (WIB, UTC+7, unless a
+// zone is passed; no DST): minutes-of-day means minutes since midnight there, so
+// the server, web, and native clients agree
 // without dragging in a date library. The eating window may cross midnight
 // (e.g. 22:00 → 06:00); `endMin` above 1440 encodes that.
 
-import { fmtInt, getActiveLocale, getT } from "@joyorogo/i18n";
-import type { Locale } from "@joyorogo/i18n";
+import { dayIn, dayZoneOffsetMs, fmtInt, getActiveLocale, getT } from "@joyorogo/i18n";
+import type { DayZone, Locale } from "@joyorogo/i18n";
 import { localizedLabels } from "./engine";
 import type { Meal } from "./engine";
 
@@ -40,7 +41,6 @@ export function isFastingPattern(value: string | null | undefined): value is Fas
 
 // --- WIB clock helpers -------------------------------------------------------
 
-const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 const DAY_MINUTES = 24 * 60;
 
 /** 'HH:MM' → minutes since midnight; null when malformed or out of range. */
@@ -59,14 +59,14 @@ export function fmtHHMM(minutes: number): string {
   return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 }
 
-/** Minutes since WIB midnight for a timestamp. */
-export function wibMinutes(now: Date): number {
-  return Math.floor(((now.getTime() + WIB_OFFSET_MS) % 86_400_000) / 60_000);
+/** Minutes since midnight in the day zone (omit = active zone; the server passes the person's zone). */
+export function wibMinutes(now: Date, zone?: DayZone): number {
+  return Math.floor(((now.getTime() + dayZoneOffsetMs(zone)) % 86_400_000) / 60_000);
 }
 
-/** WIB calendar day 'YYYY-MM-DD' for a timestamp (matches engine.jakartaToday). */
-export function wibDateKey(now: Date): string {
-  return new Date(now.getTime() + WIB_OFFSET_MS).toISOString().slice(0, 10);
+/** Calendar day 'YYYY-MM-DD' of a timestamp in the day zone (matches engine.jakartaToday). */
+export function wibDateKey(now: Date, zone?: DayZone): string {
+  return dayIn(zone, now);
 }
 
 // --- Window math ---------------------------------------------------------------

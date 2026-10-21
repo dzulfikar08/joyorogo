@@ -15,6 +15,7 @@ import { deleteAllUserData } from "../lib/privacy";
 import { sleepFindingsFor } from "../lib/sleep-insights-store";
 import { SLEEP_CONSENT_VERSION } from "../lib/sleep-insights-types";
 import { sleepInsightsRouter } from "./sleep-insights";
+import { DEFAULT_DAY_ZONE } from "@joyorogo/i18n";
 
 const client = createClient({ url: ":memory:" });
 const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
@@ -199,7 +200,7 @@ describe("sleepInsights.get: gating, a real finding and the free teaser", () => 
   });
 
   test("Pro sees a personal caffeine card with counts and nights; wording is descriptive", async () => {
-    const findings = await sleepFindingsFor(db, user);
+    const findings = await sleepFindingsFor(db, user, DEFAULT_DAY_ZONE);
     expect(findings.map((f) => f.factor)).toContain("caffeine");
     const view = await call(sleepInsightsRouter.get, { locale: "id" }, as(user, PAYWALL));
     expect(view.enabled).toBe(true);

@@ -16,7 +16,7 @@ Written 2026-10-21. Research dates and URL access dates are 2026-10-21. Nothing 
 | Data source notice (HPB attribution) in the apps | Built (Tentang / About) | `settings:dataSources` |
 | Polar MYR display config, customer IP to Polar | Built, off until env vars set; MYR prices not created in Polar | `polar.ts`, `billing.ts` |
 | `/my` landing, og image, hreflang, sitemap | Built by the landing task, see section 4 | `apps/web` |
-| Timezone: zone-aware day helpers | Helpers built and tested; nothing passes a zone yet (section 5) | `packages/i18n/src/day-zone.ts` |
+| Timezone: per-user day zone | `profile.timezone`, server and apps cut days in it (section 5) | `packages/i18n/src/day-zone.ts`, `packages/api/src/lib/user-zone.ts` |
 | PDPA privacy notice and terms (Malay and English), WhatsApp support | Built, see section 6. Street address of the company is missing (owner must supply it) | `/my/privasi`, `/my/privacy`, `/my/syarat`, `/my/terms`, `apps/web/src/lib/contact.ts` |
 | Malay store listings, MyFCD permission, RM prices, creators | Planned (sections 3 to 8) | |
 
@@ -35,7 +35,7 @@ Built:
 Left:
 
 1. A native speaker reviews all 42 files. Things the translators flagged: `koneksi` as "Sambungan", `kalibrasi` as "penentukuran", "Naik Berat" for the weight-gain mode, `LMP/EDD` for pregnancy dates, "doktor atau ustaz" in the Ramadan pregnancy note, "pasukan" vs "kumpulan" in server group errors, delivery apps (GoFood, GrabFood, ShopeeFood in the meal plan; foodpanda would be the Malaysian choice but needs a key change in `id`).
-2. Strings that are still Indonesian-specific: `scan:idle.info.how` ("masakan Indonesia"), the AKG 2019 (Permenkes 28/2019) pregnancy targets in `maternal` (cite the Malaysian RNI instead once its table is loaded), the TKPI citations in `tips`, "Buku KIA" becoming a generic phrase (Malaysia: Buku Kesihatan Ibu dan Anak), and the coach reset time "00:00 WIB" worded as "waktu tempatan" while the server still resets at 00:00 WIB.
+2. Strings that are still Indonesian-specific: `scan:idle.info.how` ("masakan Indonesia"), the AKG 2019 (Permenkes 28/2019) pregnancy targets in `maternal` (cite the Malaysian RNI instead once its table is loaded), the TKPI citations in `tips`, "Buku KIA" becoming a generic phrase (Malaysia: Buku Kesihatan Ibu dan Anak), and the coach reset time "00:00 WIB" (now the person's own midnight; the string still says WIB).
 3. Meal-plan recipes and names (`packages/api/src/lib/meal/`) are Indonesian dishes with `id`/`en` text; `ms` users see the `id` text. A Malaysian recipe set is separate work.
 4. iPhone: iOS only reports a language to the app when the bundle declares it. Test a TestFlight build on an iPhone set to Bahasa Melayu; if the app reports `en`, add `ms` to `CFBundleLocalizations` in `apps/native/app.json` (native build, not OTA).
 5. Public web pages other than `/my`, `/my/privasi`, `/my/privacy`, `/my/syarat` and `/my/terms` (`/harga`, `/pengembalian-dana`, blog) are Indonesian only. The Malay and English privacy notice and terms are built (section 6).
@@ -143,18 +143,25 @@ Today's store prices are about 3.9 times the proposed web prices and about 7.6 t
 
 ## 5. Timezone
 
-Malaysia is UTC+8 and Indonesia's WIB is UTC+7, neither has daylight saving. A Malaysian midnight is 23:00 WIB. Today every stored day is a WIB calendar day, and 238 call sites compute it with `jakartaToday`, `wibYesterday` or `jakartaClockHour` (46 files in `packages/api`, 35 in `apps/native`, 27 in `apps/web`, 3 in `apps/server`, 2 in `apps/fit`), plus 33 more files with their own WIB constant, `Asia/Jakarta` or `+07:00` (some overlap the first group) (reminders, quiet hours, push digest, Strava retention, fasting windows, fit-data, tips rotation, accuracy report, coach daily cap, the Ramadan check, e-mail dates). A Malaysian user logging at 00:30 MYT writes to the WIB day before and the day rolls over at 01:00 local time. Reminders, quiet hours (21:30 to 06:30 WIB), the 19:00 digest and the coach cap reset (00:00 WIB) are all one hour off.
+Malaysia and Singapore are UTC+8, Indonesia's WIB is UTC+7, none has daylight saving. A Malaysian midnight is 23:00 WIB. A day is `'YYYY-MM-DD'` in the person's zone, and every person has one.
 
-Built (the one place to cut a day): `packages/i18n/src/day-zone.ts` (`DayZone` = Asia/Jakarta | Asia/Kuala_Lumpur, `dayIn`, `yesterdayIn`, `clockHourIn`, `matchDayZone`), the optional `zone` argument of `jakartaToday`, `wibYesterday`, `jakartaClockHour`, `advanceClock` and `fmtClock`. Default is WIB, so nothing changes today. Tests cover the hour where the zones disagree (00:30 MYT is 23:30 WIB the day before), month and year ends, and the absence of daylight saving.
+**Built (live once deployed).**
 
-Why no caller passes a zone yet: switching only the clients would make the client and the server disagree between 00:00 and 01:00 MYT, and switching only the server would not fix reminders. It has to move together.
+- `profile.timezone` (migration 0059): `Asia/Jakarta` | `Asia/Kuala_Lumpur` | `Asia/Singapore` (`DayZone`). Null = a profile that predates zones, which means Asia/Jakarta: all its stored days were cut in WIB, so Indonesians see no change at all. A person who has not onboarded yet gets the zone of their request region (ID/MY/SG, `zoneForRegion`).
+- Where it is set: onboarding (`profile.upsert` takes the device's IANA zone; a zone we serve wins over the region), and `profile.setTimezone` (the apps call it once per launch when the resolved zone differs from the stored one). The device zone wins when it is one we serve (`resolveDayZone` in `packages/i18n/src/day-zone.ts`: device, then stored, then Jakarta for a legacy profile, else the region), so the day follows the person to Kuala Lumpur or Singapore; an unserved zone (Asia/Makassar) never changes anything. Asia/Kuching is Kuala Lumpur.
+- Server: every handler takes `const zone = await userZone(context)` (`packages/api/src/lib/user-zone.ts`, one profile read per request) and passes it down: diary day and `input.date ?? today`, the `eatenAt` window and the 04:00 late-night rule, daily scan quota and coach/correct/barcode/dishware windows (`dayBounds(day, zone)`, so the quota resets at the person's midnight), Beranda `today`, streaks, plan and energy budget, sleep (the morning it ended), fasting, Strava and watch day keys, JoyoFit data (`fit-data`, `fit-web`: day keys and `startedAt` carry the zone's offset, `+08:00` for MY/SG), tips rotation, Ramadan check, recap and period weeks, reflection windows, challenge and group days, social quotas. Cron jobs read zones from the profile: reminders and the push digest run per zone group (`ZONE_GROUPS`, `zone-sql.ts`) at each person's local time, quiet hours and "sent today" counts per zone, fasting reminders per subscriber, e-mail dates and `{tanggal}` in the recipient's zone.
+- Apps: `setActiveDayZone` (like `setActiveRegion`) is set synchronously from the device at start-up and refined when `profile.myProfile` loads (`DayZoneSync` in web and native, `locale-sync` in JoyoFit); a changed zone invalidates all queries. Every zone-less helper (`jakartaToday()`, `dayIn`, `fmtClock`, `advanceClock`, eaten-at) then follows it. The server never sets an active zone: a Worker serves everyone, so a call that omits the zone there gets Jakarta, never someone else's zone. The legacy `jakarta*`/`wib*` helper names are kept.
+- Tests: meal at 23:30 MYT lands on its MYT day and 00:30 MYT is not `wrong_day` (`eaten-at.test.ts`), the quota resets at MYT midnight and not at 23:30 WIB (`quota.test.ts`), a MY streak continues across 23:30/00:20 MYT while the same instants are one WIB day for an ID user (`routers/day-zone.test.ts`), reminders, quiet hours and the digest per zone (`reminders.test.ts`, `notify.test.ts`), onboarding and `setTimezone` (`profile-timezone.test.ts`), the zone helpers (`day-zone.test.ts`).
 
-Left, in order:
+**Deliberately still WIB.** Admin routes and UI (`apps/server/src/admin*.ts`, `apps/admin`), the daily accuracy digest, dataset export, billing and ledger days, blog and RSS dates, the global shadow-scan budget (`shadow-scan.ts`, one budget for everybody), the push outbox prune, and `strava-retention` (a rolling 7-day cutoff over all users).
 
-1. Add `profile.time_zone` (D1 migration; set by the clients from `Intl.DateTimeFormat().resolvedOptions().timeZone` through `matchDayZone`, default `Asia/Jakarta`), expose it on `context.dayZone`.
-2. Replace the 238 call sites with the zone: routers read `context.dayZone`; libs take a `zone` parameter; clients keep a module-level active zone like `setActiveLocale`. Replace the files with their own constants (`WIB_OFFSET_MS` in `fasting.ts`, `fit-data.ts`, `fit-web.ts`, `strava-retention.ts`; `Asia/Jakarta` in `reminders.ts`, `notify.ts`, `tips.ts`, `email.ts`, `story.ts`, `isRamadanDate`).
-3. Cron (`push-cron`, reminders, digest) needs the user's zone from the profile, not a request.
-4. Existing days stay as they are for Indonesians. For a Malaysian who joined before the switch, days stay WIB until the switch date; document it.
+**Known limits.**
+
+- Days stored before the switch stay WIB-cut: a Malaysian who joined before it keeps those days as they are, new days are MYT.
+- `pastDateSchema` (log dates up to 30 days back) has no request, so its "today" is Kuala Lumpur's: a Jakarta user is allowed to pick a date up to an hour early.
+- iOS HealthKit daily totals are bucketed at WIB midnight inside the native module (`AppleHealthModule.swift`); for a UTC+8 person they are an hour off until the module takes the zone, which needs a native build (not OTA-able). Health Connect (Android) is zone-aware.
+- JoyoFit watch app (`watch-fit` repo, `jakartaDay` in `rogoMap`) is not changed here: it still cuts days at WIB. The API now returns the person's zone days (`fitWeb.workouts` `items[].date`, recovery `days[].date`, MCP `list_workouts`/`get_workout`/`get_profile` `today`) and ISO times with `+08:00` for MY/SG; the watch client should read `profile.timezone` (or its own device zone) instead of a fixed +07:00.
+
 5. `isRamadanDate` uses the Umm al-Qura calendar; Malaysia starts Ramadan by its own moon sighting announcement (about 8 February 2027 [31]). Keep "tell users to switch Mode Ramadan on by hand" on day 1.
 
 ## 6. Compliance
@@ -252,7 +259,7 @@ Blocking, in this order:
 3. Native-speaker review of the Malay (section 1) and of the Malaysian scan prompt.
 4. Written permission request to MOH Nutrition Division and IMR for MyFCD; confirm the HPB reading in writing.
 5. Collect the Malaysian eval photos (section 2) and run the harness before any "knows Malaysian dishes" post.
-6. Timezone switch (section 5), before the first Malaysian user logs past midnight in volume: add the profile column and move the 238 call sites.
+6. Timezone (section 5) is built: deploy the server (migration 0059) and ship the web and native JS together, before Malaysian users log past midnight in volume.
 
 Release entries (all `available: code`): `releases/2026-10-21-bahasa-melayu-malaysia.md` (JRG-351), `releases/2026-10-21-hidangan-malaysia.md` (JRG-352), `releases/2026-10-21-halaman-malaysia.md` (JRG-353), `releases/2026-10-21-notis-privasi-malaysia.md` (JRG-355).
 

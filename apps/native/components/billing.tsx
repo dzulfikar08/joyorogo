@@ -8,7 +8,7 @@ import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
-import { LOCALE_HEADER, i18n, isRegion, setActiveRegion } from "@joyorogo/i18n";
+import { LOCALE_HEADER, dayOfMs, i18n, isRegion, setActiveRegion } from "@joyorogo/i18n";
 import type { Region } from "@joyorogo/i18n";
 
 import { appleIap } from "@/modules/apple-iap";
@@ -105,10 +105,9 @@ export function appConfigQuery() {
   };
 }
 
-/** "12 November 2026" / "November 12, 2026" in WIB, in the active language. */
+/** "12 November 2026" / "November 12, 2026" in the person's day zone, in the active language. */
 export function fmtFounderDate(value: string | Date): string {
-  const wibDay = new Date(new Date(value).getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
-  return fmtDateLong(wibDay).replace(/^\w+, /, "");
+  return fmtDateLong(dayOfMs(new Date(value).getTime())).replace(/^\w+, /, "");
 }
 
 // Better Auth Expo forwards the session cookie manually on native. The server

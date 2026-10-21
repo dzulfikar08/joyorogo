@@ -9,6 +9,7 @@ import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
+import { instantIn } from "@joyorogo/i18n";
 import type { DayStatus, WeekRecap } from "@joyorogo/api/lib/recap";
 import {
   defaultRecapWeek,
@@ -362,7 +363,7 @@ export default function Rekap() {
                 story={{
                   kind: "recap",
                   ...share,
-                  date: new Date(`${recap.weekEnd}T12:00:00+07:00`),
+                  date: new Date(instantIn(recap.weekEnd, 12, 0)),
                 }}
               />
             ) : null}

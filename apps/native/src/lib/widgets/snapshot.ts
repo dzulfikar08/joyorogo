@@ -25,7 +25,7 @@ export type WidgetDaySnapshot = {
 /**
  * Intermittent-fasting state for the widget status line. Null when IF is off,
  * inactive (no profile), or Ramadan owns the day. Times are absolute 'HH:MM'
- * WIB — widgets redraw every 30 minutes, so no live countdowns here.
+ * in the person's day zone — widgets redraw every 30 minutes, so no live countdowns here.
  */
 export type WidgetFasting = {
   state: "puasa" | "jendela_makan";

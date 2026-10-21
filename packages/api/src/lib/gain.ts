@@ -207,7 +207,7 @@ export type GainInfo = {
   band: GainBand;
   /** whole days to the target at the applied surplus */
   daysToTarget: number;
-  /** WIB day the target is reached at the applied surplus */
+  /** Day the target is reached at the applied surplus */
   reachDate: string;
   /** daily protein, g: the ISSN / Iraki range and the target inside it */
   protein: { minG: number; targetG: number; maxG: number };

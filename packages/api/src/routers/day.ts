@@ -46,6 +46,7 @@ import {
 } from "../lib/readiness-food";
 import type { GuidanceTargets, HistoryFood } from "../lib/readiness-food";
 import { paywallConfig } from "../lib/tiers";
+import { userZone } from "../lib/user-zone";
 
 const ZERO_MEALS: Record<Meal, number> = {
   sarapan: 0,
@@ -91,7 +92,8 @@ export const dayRouter = {
     .input(z.object({ date: dateSchema.optional() }))
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
-      const today = jakartaToday();
+      const zone = await userZone(context);
+      const today = jakartaToday(undefined, zone);
       const date = input.date ?? today;
       const weekStart = shiftDate(today, -6);
       const streakStart = shiftDate(today, -45);
@@ -292,7 +294,8 @@ export const dayRouter = {
         weightNowKg: plan.weightNowKg,
         exerciseLogs: exerciseRows,
         tdeeKcal: targets.tdee,
-        // past days are complete; today prorates by the live WIB clock
+        zone,
+        // past days are complete; today prorates by the live clock in the user's zone
         ...(date === today ? {} : { dayFraction: 1 }),
       });
       const weekTrendStart = shiftDate(date, -7);
@@ -379,15 +382,15 @@ export const dayRouter = {
               ? // Naikin BB: calorie-dense ideas for what is still to eat.
                 gainMealIdeas(
                   targets.eatKcal - eatenKcal,
-                  suggestMealNow(new Date(), effectiveRamadan(ramadanPref)),
+                  suggestMealNow(new Date(), effectiveRamadan(ramadanPref, new Date(), zone), zone),
                   3,
                   context.locale,
                 )
               : mealIdeas(
                   targets.eatKcal - eatenKcal,
-                  suggestMealNow(new Date(), effectiveRamadan(ramadanPref)),
+                  suggestMealNow(new Date(), effectiveRamadan(ramadanPref, new Date(), zone), zone),
                   3,
-                  (await loadIdeaValues(context.db, userId)) ?? undefined,
+                  (await loadIdeaValues(context.db, userId, zone)) ?? undefined,
                   context.locale,
                 ),
         date,
@@ -436,6 +439,7 @@ export const dayRouter = {
    */
   readinessGuidance: protectedProcedure.handler(async ({ context }) => {
     const userId = context.session.user.id;
+    const zone = await userZone(context);
     const [userRow] = await context.db
       .select({ tier: user.tier, founderUntil: user.founderUntil })
       .from(user)
@@ -445,7 +449,7 @@ export const dayRouter = {
       return { status: "locked" as const };
     }
 
-    const today = jakartaToday();
+    const today = jakartaToday(undefined, zone);
     const dayCount = sql`count(distinct ${foodLog.date})`;
     const [
       scoreRows,
@@ -556,7 +560,7 @@ export const dayRouter = {
           names: todayRows.map((row) => row.name),
         },
         history,
-        slot: suggestMealNow(new Date(), effectiveRamadan(prof?.ramadanMode)),
+        slot: suggestMealNow(new Date(), effectiveRamadan(prof?.ramadanMode, new Date(), zone), zone),
       },
       context.locale,
     );

@@ -1,9 +1,12 @@
 import {
+  DEFAULT_DAY_ZONE,
   DEFAULT_LOCALE,
+  deviceDayZone,
   i18n,
   initI18n,
   isLocale,
   resolveLocale,
+  setActiveDayZone,
   setActiveLocale,
 } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
@@ -36,6 +39,8 @@ export function storedLocale(): Locale | null {
 const initial = resolveLocale({ stored: storedChoice(), device: navigator.languages });
 initI18n({ locale: initial, plugins: [initReactI18next] });
 apply(initial);
+// Days are cut in the device zone from the first render; <LocaleSync/> refines it once the profile loads.
+setActiveDayZone(deviceDayZone() ?? DEFAULT_DAY_ZONE);
 
 /** Switches the UI language now. `remember` stores it as the device choice. */
 export async function setLocale(locale: Locale, { remember = true } = {}): Promise<void> {

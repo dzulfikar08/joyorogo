@@ -55,6 +55,9 @@ export const profile = sqliteTable("profile", {
   activityLevel: text("activity_level", { enum: ["sedentary", "light", "moderate", "active", "very_active"] }).notNull(),
   // Nightly sleep goal in hours (api lib/engine SLEEP_TARGET_HOURS: 6 to 9 in half hours). Null = the default, 8.
   sleepTargetHours: real("sleep_target_hours"),
+  // Zone this person's calendar days are cut in: Asia/Jakarta | Asia/Kuala_Lumpur | Asia/Singapore (DayZone in
+  // @joyorogo/i18n). Null on a profile created before zones: every day it stored is WIB, so null means Asia/Jakarta.
+  timezone: text("timezone"),
   // The person's own maintenance kcal ("Pakai TDEE sendiri"): replaces BMR x factor (and the automatic calibration) as
   // the TDEE the plan is built on. Null = the computed TDEE. manualTdeeSetAt is when it was last saved;
   // manualTdeeDismissedOn is the WIB day they answered "Biarkan" to the calibration's suggestion (api lib/manual-tdee).

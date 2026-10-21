@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { SectionTitle } from "@/components/ui";
 import { TipCard } from "@/components/tips/tip-card";
 
-/** "Tips hari ini" di Beranda; tip-nya deterministik per hari Asia/Jakarta. */
+/** "Tips hari ini" di Beranda; tip-nya deterministik per hari di zona waktu pengguna. */
 export function DailyTipCard() {
   const { t } = useTranslation("tips");
   return (

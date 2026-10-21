@@ -174,7 +174,7 @@ describe("decideAi", () => {
 describe("free account", () => {
   test("gets the template, locked, with wins and focus", async () => {
     const { deps } = depsFor(faithfulModel());
-    const view = (await getWeekReflection(deps, "free", week, "id"))!;
+    const view = (await getWeekReflection(deps, "free", week, "id", "Asia/Jakarta"))!;
     expect(view).toMatchObject({ source: "template", ai: "locked", weekStart: week, complete: true, generatedAt: null });
     expect(view.text).toContain("Kabar baiknya:");
     expect(view.focus.length).toBeGreaterThan(0);
@@ -186,7 +186,7 @@ describe("free account", () => {
   test("the model is never called and generate is refused with the paywall flag", async () => {
     const model = faithfulModel();
     const { deps } = depsFor(model);
-    await expect(generateWeekReflection(deps, "free", week, "id")).rejects.toThrow("reflection-locked");
+    await expect(generateWeekReflection(deps, "free", week, "id", "Asia/Jakarta")).rejects.toThrow("reflection-locked");
     expect(model.calls).toHaveLength(0);
     expect(await rowOf("free")).toBeNull();
   });
@@ -201,7 +201,7 @@ describe("free account", () => {
 
   test("in English the same week reads in English", async () => {
     const { deps } = depsFor(undefined);
-    const view = (await getWeekReflection(deps, "free", week, "en"))!;
+    const view = (await getWeekReflection(deps, "free", week, "en", "Asia/Jakarta"))!;
     expect(view.text).toContain("Focus for next week:");
     expect(view.text).not.toContain("Kabar baiknya");
   });
@@ -210,10 +210,10 @@ describe("free account", () => {
 describe("nothing to say", () => {
   test("no profile, no data and a week that has not started give null", async () => {
     const { deps } = depsFor(faithfulModel());
-    expect(await getWeekReflection(deps, "noprof", week, "id")).toBeNull();
-    expect(await getWeekReflection(deps, "blank", week, "id")).toBeNull();
-    expect(await generateWeekReflection(deps, "blank", week, "id")).toBeNull();
-    expect(await getWeekReflection(deps, "pro", weekStartOf(jakartaToday()), "id")).toBeNull();
+    expect(await getWeekReflection(deps, "noprof", week, "id", "Asia/Jakarta")).toBeNull();
+    expect(await getWeekReflection(deps, "blank", week, "id", "Asia/Jakarta")).toBeNull();
+    expect(await generateWeekReflection(deps, "blank", week, "id", "Asia/Jakarta")).toBeNull();
+    expect(await getWeekReflection(deps, "pro", weekStartOf(jakartaToday()), "id", "Asia/Jakarta")).toBeNull();
   });
 });
 
@@ -221,7 +221,7 @@ describe("Pro account", () => {
   test("first view is pending (the client then asks to generate), still showing the template", async () => {
     const model = faithfulModel();
     const { deps } = depsFor(model);
-    const view = (await getWeekReflection(deps, "pro", week, "id"))!;
+    const view = (await getWeekReflection(deps, "pro", week, "id", "Asia/Jakarta"))!;
     expect(view).toMatchObject({ ai: "pending", source: "template" });
     expect(model.calls).toHaveLength(0);
   });
@@ -229,7 +229,7 @@ describe("Pro account", () => {
   test("generate writes the AI text once, counts the run in ai_usage and caches it", async () => {
     const model = faithfulModel();
     const { deps, settle } = depsFor(model, { AI_RECAP_MODEL: "@cf/test/model" });
-    const view = (await generateWeekReflection(deps, "pro", week, "id"))!;
+    const view = (await generateWeekReflection(deps, "pro", week, "id", "Asia/Jakarta"))!;
     await settle();
     expect(view).toMatchObject({ ai: "ready", source: "ai" });
     expect(view.generatedAt).toBeGreaterThan(0);
@@ -248,9 +248,9 @@ describe("Pro account", () => {
   test("a reopened recap and a second generate read the cache: no second model call", async () => {
     const model = faithfulModel();
     const { deps, settle } = depsFor(model);
-    const seen = (await getWeekReflection(deps, "pro", week, "id"))!;
+    const seen = (await getWeekReflection(deps, "pro", week, "id", "Asia/Jakarta"))!;
     expect(seen).toMatchObject({ ai: "ready", source: "ai" });
-    const again = (await generateWeekReflection(deps, "pro", week, "id"))!;
+    const again = (await generateWeekReflection(deps, "pro", week, "id", "Asia/Jakarta"))!;
     await settle();
     expect(again.text).toBe(seen.text);
     expect(model.calls).toHaveLength(0);
@@ -266,7 +266,7 @@ describe("Pro account", () => {
   test("another language is its own row, so it is pending on its own", async () => {
     const model = faithfulModel();
     const { deps } = depsFor(model);
-    const en = (await getWeekReflection(deps, "pro", week, "en"))!;
+    const en = (await getWeekReflection(deps, "pro", week, "en", "Asia/Jakarta"))!;
     expect(en).toMatchObject({ ai: "pending", source: "template" });
     expect(model.calls).toHaveLength(0);
   });
@@ -277,11 +277,11 @@ describe("Pro account", () => {
     const row = (await rowOf("pro"))!;
     // The week's data changes materially: protein and food are edited later.
     await client.execute(`UPDATE food_log SET kcal = 100 WHERE user_id = 'pro'`);
-    const soon = (await getWeekReflection(deps, "pro", week, "id", row.generatedAt + 1000))!;
+    const soon = (await getWeekReflection(deps, "pro", week, "id", "Asia/Jakarta", row.generatedAt + 1000))!;
     expect(soon).toMatchObject({ ai: "unavailable", source: "template" });
-    const later = (await getWeekReflection(deps, "pro", week, "id", row.generatedAt + REFLECTION_LIMITS.regenGapMs + 1))!;
+    const later = (await getWeekReflection(deps, "pro", week, "id", "Asia/Jakarta", row.generatedAt + REFLECTION_LIMITS.regenGapMs + 1))!;
     expect(later).toMatchObject({ ai: "pending", source: "template" });
-    const rewritten = (await generateWeekReflection(deps, "pro", week, "id", row.generatedAt + REFLECTION_LIMITS.regenGapMs + 1))!;
+    const rewritten = (await generateWeekReflection(deps, "pro", week, "id", "Asia/Jakarta", row.generatedAt + REFLECTION_LIMITS.regenGapMs + 1))!;
     await settle();
     expect(rewritten).toMatchObject({ ai: "ready", source: "ai" });
     expect(rewritten.text).not.toBe(row.aiText);
@@ -293,7 +293,7 @@ describe("Pro account", () => {
     await client.execute(`UPDATE week_reflection SET status = 'running', generated_at = ${Date.now()}, signature = 'x' WHERE user_id = 'pro'`);
     const model = faithfulModel();
     const { deps } = depsFor(model);
-    const view = (await generateWeekReflection(deps, "pro", week, "id"))!;
+    const view = (await generateWeekReflection(deps, "pro", week, "id", "Asia/Jakarta"))!;
     expect(view).toMatchObject({ ai: "pending", source: "template" });
     expect(model.calls).toHaveLength(0);
   });
@@ -375,7 +375,7 @@ describe("fallback path", () => {
       INSERT INTO profile (user_id, birth_year, gender, height_cm, start_weight_kg, target_weight_kg, target_date, activity_level) VALUES ('liar', 1988, 'male', 175, 107.7, 90, '2031-01-01', 'light');
     `);
     await seedWeek("liar");
-    const view = (await generateWeekReflection(deps, "liar", week, "id"))!;
+    const view = (await generateWeekReflection(deps, "liar", week, "id", "Asia/Jakarta"))!;
     await settle();
     expect(view).toMatchObject({ source: "template", ai: "unavailable", generatedAt: null });
     expect(view.text).toContain("Kabar baiknya:");
@@ -385,16 +385,16 @@ describe("fallback path", () => {
     expect(usage.map((u) => JSON.parse(u.usageJson!).outcome)).toEqual(["invalid", "invalid"]);
     expect(usage.map((u) => JSON.parse(u.usageJson!).reason)).toEqual(["number", "number"]);
 
-    const again = (await generateWeekReflection(deps, "liar", week, "id"))!;
+    const again = (await generateWeekReflection(deps, "liar", week, "id", "Asia/Jakarta"))!;
     expect(again).toMatchObject({ source: "template", ai: "unavailable" });
     expect(liar.calls).toBe(2);
   });
 
   test("no AI binding at all: the template with nothing pending", async () => {
     const { deps } = depsFor(undefined);
-    const view = (await getWeekReflection(deps, "liar", week, "id"))!;
+    const view = (await getWeekReflection(deps, "liar", week, "id", "Asia/Jakarta"))!;
     expect(view).toMatchObject({ source: "template", ai: "unavailable" });
-    const generated = (await generateWeekReflection(deps, "liar", week, "id"))!;
+    const generated = (await generateWeekReflection(deps, "liar", week, "id", "Asia/Jakarta"))!;
     expect(generated).toMatchObject({ source: "template", ai: "unavailable" });
   });
 });
@@ -404,19 +404,19 @@ describe("Strava stays out of the facts", () => {
     await client.execute(
       `INSERT INTO exercise_log (id, user_id, date, name, duration_min, kcal, source, external_id) VALUES ('sx', 'strava', '${day(1)}', 'Ride', 120, 1500, 'strava', 'ext1')`,
     );
-    const withStrava = (await loadWeekRecap(db, "strava", week))!;
-    const without = (await loadWeekRecap(db, "strava", week, { excludeStrava: true }))!;
+    const withStrava = (await loadWeekRecap(db, "strava", week, "Asia/Jakarta"))!;
+    const without = (await loadWeekRecap(db, "strava", week, "Asia/Jakarta", { excludeStrava: true }))!;
     expect(without.recap.days[1]!.targetKcal).toBeLessThan(withStrava.recap.days[1]!.targetKcal);
     expect(without.recap.exercise.sessions).toBe(0);
     expect(withStrava.recap.exercise.sessions).toBe(1);
-    const baseline = (await loadWeekRecap(db, "pro", week, { excludeStrava: true }))!;
+    const baseline = (await loadWeekRecap(db, "pro", week, "Asia/Jakarta", { excludeStrava: true }))!;
     expect(without.recap.days[1]!.targetKcal).toBe(baseline.recap.days[1]!.targetKcal);
   });
 
   test("the reflection of that week never sees the activity", async () => {
     const model = faithfulModel();
     const { deps } = depsFor(model);
-    const view = (await generateWeekReflection(deps, "strava", week, "id"))!;
+    const view = (await generateWeekReflection(deps, "strava", week, "id", "Asia/Jakarta"))!;
     expect(view.text).not.toMatch(/ride|strava/i);
     expect(model.calls[0]!.user).not.toMatch(/ride|strava|1500 kcal/i);
   });

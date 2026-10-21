@@ -3,6 +3,7 @@
 import { and, desc, eq, gte, inArray, isNotNull } from "drizzle-orm";
 
 import type { Database } from "@joyorogo/db";
+import type { DayZone } from "@joyorogo/i18n";
 import { foodLog } from "@joyorogo/db/schema/fitness";
 
 import { jakartaToday, shiftDate } from "./engine";
@@ -16,8 +17,9 @@ const HISTORY_ROWS = 1500;
 export async function loadPortionPriors(
   db: Database,
   userId: string,
-  today: string = jakartaToday(),
+  zone: DayZone,
 ): Promise<Map<string, PortionPrior>> {
+  const today = jakartaToday(undefined, zone);
   const rows = await db
     .select({
       name: foodLog.name,

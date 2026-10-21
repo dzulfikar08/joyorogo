@@ -13,7 +13,7 @@ export function weightSecondary(input: {
   weightKg: number | null;
   /** Day the last weight on or before the viewed day was logged; null or undefined when the backend does not say. */
   latestWeightDate: string | null | undefined;
-  /** Today in Jakarta, YYYY-MM-DD. */
+  /** Today in the user's day zone, YYYY-MM-DD. */
   today: string;
   /** The weight was logged today (only meaningful when the viewed day is today). */
   loggedToday?: boolean;

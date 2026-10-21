@@ -10,7 +10,7 @@ import { fmtDate } from "@joyorogo/i18n";
 
 import { Chip, Sheet, Text } from "@/components/ui";
 
-// How far back a log date may be moved: bounded recent window, WIB day keys.
+// How far back a log date may be moved: bounded recent window, day keys.
 const WINDOW_DAYS = 30;
 
 const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
@@ -33,7 +33,7 @@ export function DayChips({ value, onChange }: { value: string; onChange: (date: 
   );
 }
 
-/** Month grid in WIB day keys: future days and anything outside the window
+/** Month grid in day keys: future days and anything outside the window
  * are rendered dim and untappable. Months step one at a time within bounds.
  * `month` is a 'YYYY-MM' key — everything is parsed by hand because the
  * string Date constructor and Intl are unreliable on Hermes. */

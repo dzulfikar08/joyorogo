@@ -7,6 +7,7 @@ import { generateWeekReflection, getWeekReflection, ReflectionLockedError } from
 import { loadPeriodProgress } from "../lib/period-store";
 import { loadWeekRecap } from "../lib/recap-store";
 import { dateSchema } from "../lib/schemas";
+import { userZone } from "../lib/user-zone";
 
 const weekInput = z.object({ weekStart: dateSchema.optional() });
 const periodInput = z
@@ -15,12 +16,12 @@ const periodInput = z
 
 export const statsRouter = {
   /**
-   * Recap of the WIB week (Monday-Sunday) containing `weekStart`, default the
+   * Recap of the week (Monday-Sunday) containing `weekStart`, default the
    * current week. Only days before today are judged, so a running week is
    * never scored on a half-logged today. Future weeks resolve to this week.
    */
   weekRecap: protectedProcedure.input(weekInput).handler(async ({ context, input }) => {
-    const loaded = await loadWeekRecap(context.db, context.session.user.id, input.weekStart);
+    const loaded = await loadWeekRecap(context.db, context.session.user.id, input.weekStart, await userZone(context));
     return loaded?.recap ?? null;
   }),
 
@@ -29,8 +30,8 @@ export const statsRouter = {
    * and the series the card draws (lib/period-progress). `from` defaults to the first weigh-in or food log, `to` to
    * today. Null for Hamil / Menyusui and without a profile.
    */
-  periodProgress: protectedProcedure.input(periodInput).handler(({ context, input }) =>
-    loadPeriodProgress(context.db, context.session.user.id, input),
+  periodProgress: protectedProcedure.input(periodInput).handler(async ({ context, input }) =>
+    loadPeriodProgress(context.db, context.session.user.id, input, await userZone(context)),
   ),
 
   /**
@@ -39,8 +40,8 @@ export const statsRouter = {
    * (`ai: "pending"` tells the client to call `generateWeekReflection`). Null when the week has nothing to say yet.
    * Contract: docs/weekly-recap-ai.md.
    */
-  weekReflection: protectedProcedure.input(weekInput).handler(({ context, input }) =>
-    getWeekReflection(context, context.session.user.id, input.weekStart, context.locale),
+  weekReflection: protectedProcedure.input(weekInput).handler(async ({ context, input }) =>
+    getWeekReflection(context, context.session.user.id, input.weekStart, context.locale, await userZone(context)),
   ),
 
   /**
@@ -49,7 +50,7 @@ export const statsRouter = {
    */
   generateWeekReflection: protectedProcedure.input(weekInput).handler(async ({ context, input }) => {
     try {
-      return await generateWeekReflection(context, context.session.user.id, input.weekStart, context.locale);
+      return await generateWeekReflection(context, context.session.user.id, input.weekStart, context.locale, await userZone(context));
     } catch (error) {
       if (error instanceof ReflectionLockedError) {
         throw new ORPCError("FORBIDDEN", { message: serverT(context.locale, "reflection")("locked"), data: { paywall: true } });

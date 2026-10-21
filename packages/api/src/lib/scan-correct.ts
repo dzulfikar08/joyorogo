@@ -30,7 +30,7 @@ export const DEFAULT_CORRECT_MODEL = DEFAULT_VISION_MODEL;
 
 /** Corrections one scan session (photo id) may use; the daily cap backs it up. */
 export const MAX_CORRECTIONS_PER_SCAN = 10;
-/** Corrections per user per WIB day, across all scans. */
+/** Corrections per user per local day, across all scans. */
 export const MAX_CORRECTIONS_PER_DAY = 60;
 /** Same cap addScan accepts. */
 export const MAX_CORRECTED_ITEMS = 15;

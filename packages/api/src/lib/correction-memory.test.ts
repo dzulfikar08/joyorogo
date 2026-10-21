@@ -6,6 +6,7 @@ import { describe, expect, test } from "bun:test";
 import { drizzle } from "drizzle-orm/libsql";
 
 import type { Database } from "@joyorogo/db";
+import { DEFAULT_DAY_ZONE } from "@joyorogo/i18n";
 import { aiUsage } from "@joyorogo/db/schema/fitness";
 
 import { buildMemory, chipsFor, correctionMemoryEnabled, keptNames, loadCorrectionMemory, sessionPairs, tallyPairs } from "./correction-memory";
@@ -110,9 +111,9 @@ describe("loadCorrectionMemory", () => {
     await put("u1", [item("es mambo susu", 150)], [item("putih telur", 100)]);
     await put("u1", [item("es mambo susu", 100)], [item("putih telur", 100)]);
     await put("u2", [item("tahu", 100)], [item("nasi", 200)]);
-    const memory = await loadCorrectionMemory(db, "u1");
+    const memory = await loadCorrectionMemory(db, "u1", DEFAULT_DAY_ZONE);
     expect(memory.pairs).toBe(1);
     expect(memory.learned).toEqual(["putih telur"]);
-    expect((await loadCorrectionMemory(db, "u2")).pairs).toBe(0);
+    expect((await loadCorrectionMemory(db, "u2", DEFAULT_DAY_ZONE)).pairs).toBe(0);
   });
 });

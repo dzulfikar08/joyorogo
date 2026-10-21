@@ -102,7 +102,7 @@ export default function Tidur() {
   const gate = useSessionGate();
   const today = jakartaToday();
   // The switcher picks a day; that day's sleep is the night keyed the
-  // previous WIB day (day.summary reads it the same way).
+  // previous day (day zone) (day.summary reads it the same way).
   const [viewDate, setViewDate] = useState(today);
   const isToday = viewDate === today;
   const sleepDate = shiftDate(viewDate, -1);

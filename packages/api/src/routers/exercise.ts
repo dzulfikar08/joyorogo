@@ -7,7 +7,8 @@ import { exerciseLog } from "@joyorogo/db/schema/fitness";
 import { workoutSession } from "@joyorogo/db/schema/plans";
 
 import { protectedProcedure } from "../index";
-import { jakartaToday } from "../lib/engine";
+import { userZone } from "../lib/user-zone";
+import { jakartaToday, shiftDate } from "../lib/engine";
 import {
   EXERCISE_MAX_DURATION,
   EXERCISE_MAX_KCAL,
@@ -66,8 +67,9 @@ export const exerciseRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       const userId = context.session.user.id;
-      const date = input.date ?? jakartaToday();
+      const date = input.date ?? jakartaToday(undefined, zone);
       if (input.source !== "manual") {
         const absorber = await workoutAbsorbedBy(context.db, userId, "imported", {
           date,
@@ -224,13 +226,14 @@ export const exerciseRouter = {
   listByDate: protectedProcedure
     .input(z.object({ date: dateSchema.optional() }))
     .handler(async ({ context, input }) => {
+      const zone = await userZone(context);
       const items = await context.db
         .select()
         .from(exerciseLog)
         .where(
           and(
             eq(exerciseLog.userId, context.session.user.id),
-            eq(exerciseLog.date, input.date ?? jakartaToday()),
+            eq(exerciseLog.date, input.date ?? jakartaToday(undefined, zone)),
           ),
         )
         .orderBy(asc(exerciseLog.createdAt));
@@ -238,18 +241,15 @@ export const exerciseRouter = {
       return { items, totalKcal };
     }),
 
-  // Health Connect / Apple Health imports land on the workout's own WIB day,
+  // Health Connect / Apple Health imports land on the workout's own day (zone-cut),
   // which is often not today — screens show this window so imported
   // activities from the last few days stay visible.
   recent: protectedProcedure
     .input(z.object({ days: z.number().int().min(1).max(30).default(7) }))
     .handler(async ({ context, input }) => {
-      const end = jakartaToday();
-      const start = new Date(
-        Date.now() + 7 * 60 * 60 * 1000 - (input.days - 1) * 86_400_000,
-      )
-        .toISOString()
-        .slice(0, 10);
+      const zone = await userZone(context);
+      const end = jakartaToday(undefined, zone);
+      const start = shiftDate(end, -(input.days - 1));
       const items = await context.db
         .select()
         .from(exerciseLog)

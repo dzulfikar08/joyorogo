@@ -4,6 +4,8 @@
 import { and, asc, eq, gt, gte, isNull, lt } from "drizzle-orm";
 
 import type { Database } from "@joyorogo/db";
+import { dayZoneOffsetMs } from "@joyorogo/i18n";
+import type { DayZone } from "@joyorogo/i18n";
 import { foodLog, profile } from "@joyorogo/db/schema/fitness";
 import { sleepInsightCache, sleepInsightPref, sleepNight } from "@joyorogo/db/schema/sleep-insights";
 import { watchWorkout } from "@joyorogo/db/schema/watch-workout";
@@ -72,8 +74,14 @@ export interface SleepInputs {
 }
 
 /** Loads the 42-day window: main nights, the food log around them and the watch-workout backup. */
-export async function loadInputs(db: Database, userId: string, pref: SleepPref, now: Date): Promise<SleepInputs> {
-  const today = jakartaToday(now);
+export async function loadInputs(
+  db: Database,
+  userId: string,
+  pref: SleepPref,
+  now: Date,
+  zone: DayZone,
+): Promise<SleepInputs> {
+  const today = jakartaToday(now, zone);
   const from = shiftDate(today, -WINDOW_DAYS);
   const nightRows = await db
     .select()
@@ -152,7 +160,8 @@ export async function loadInputs(db: Database, userId: string, pref: SleepPref, 
       userId,
       freeDaysMask: pref.freeDaysMask,
       maternal: (prof?.maternalMode ?? "none") !== "none",
-      ramadanOn: (date) => effectiveRamadan(ramadanPref, new Date(`${date}T05:00:00Z`)),
+      ramadanOn: (date) => effectiveRamadan(ramadanPref, new Date(`${date}T05:00:00Z`), zone),
+      dayOffsetMin: dayZoneOffsetMs(zone) / 60_000,
     },
   };
 }
@@ -175,8 +184,14 @@ function parseState(json: string): FactorState | null {
  * Evaluates every factor (cached per factor by input signature), runs the gate with hysteresis and the one-new-a-day
  * release, and persists what changed. The returned states are what the view and the reflection read.
  */
-export async function computeState(db: Database, userId: string, pref: SleepPref, now: Date): Promise<SleepState> {
-  const inputs = await loadInputs(db, userId, pref, now);
+export async function computeState(
+  db: Database,
+  userId: string,
+  pref: SleepPref,
+  now: Date,
+  zone: DayZone,
+): Promise<SleepState> {
+  const inputs = await loadInputs(db, userId, pref, now, zone);
   const through = inputs.nights.length ? inputs.nights[inputs.nights.length - 1]!.wakeDate : inputs.today;
   const seedKey = `${userId}|${through}`;
 
@@ -237,9 +252,14 @@ export async function computeState(db: Database, userId: string, pref: SleepPref
  * Findings a person may see, for the weekly reflection and the cards: empty when the switch is off. Hidden
  * (dismissed) findings are left out. Callers check Pro themselves.
  */
-export async function sleepFindingsFor(db: Database, userId: string, now: Date = new Date()): Promise<SleepFinding[]> {
+export async function sleepFindingsFor(
+  db: Database,
+  userId: string,
+  zone: DayZone,
+  now: Date = new Date(),
+): Promise<SleepFinding[]> {
   const pref = await readPref(db, userId);
   if (!pref.enabled) return [];
-  const { states } = await computeState(db, userId, pref, now);
+  const { states } = await computeState(db, userId, pref, now, zone);
   return visibleFindings(states).filter((f) => !pref.dismissed.includes(`personal:${f.factor}`));
 }

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 
 import {
   WATCH_WORKOUT_DOC_VERSION,
@@ -6,6 +6,8 @@ import {
   parseDoc,
   summarize,
 } from "@joyorogo/api/lib/watch-workout";
+
+import { setActiveDayZone } from "@joyorogo/i18n";
 
 import { buildExport, fileBase } from "./formats";
 import { START, indoorDoc, rideDoc, runDoc } from "./fixtures";
@@ -20,7 +22,14 @@ describe("fixtures are real documents", () => {
   });
 });
 
+afterEach(() => setActiveDayZone("Asia/Jakarta"));
+
 describe("fileBase", () => {
+  test("the stamp follows the user's zone (07:12 in Kuala Lumpur)", () => {
+    setActiveDayZone("Asia/Kuala_Lumpur");
+    expect(fileBase(runDoc())).toBe("joyofit-20260914-0712-run");
+  });
+
   test("WIB date and time of the start, and the sport", () => {
     // START is 2026-09-14 06:12:03 WIB.
     expect(fileBase(runDoc())).toBe("joyofit-20260914-0612-run");

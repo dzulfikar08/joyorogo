@@ -1,6 +1,6 @@
 // Number and date formatting is shared with native and the server: see
 // @joyorogo/i18n (docs/i18n.md). Re-exported here so screens keep one import.
-import { fmtNumber } from "@joyorogo/i18n";
+import { dayOfMs, fmtNumber } from "@joyorogo/i18n";
 
 export {
   fmtClock,
@@ -24,9 +24,9 @@ export function fmtFactor(factor: number): string {
   return fmtNumber(factor, 3);
 }
 
-/** WIB date N days from now as 'YYYY-MM-DD' (fixed UTC+7, no DST). */
+/** The user's date N days from now as 'YYYY-MM-DD' (their day zone, no DST). */
 export function jakartaDatePlusDays(days: number): string {
-  return new Date(Date.now() + 7 * 3_600_000 + days * 86_400_000).toISOString().slice(0, 10);
+  return dayOfMs(Date.now() + days * 86_400_000);
 }
 
 /** Lenient numeric field parser: trims, accepts decimal comma, null when invalid. */

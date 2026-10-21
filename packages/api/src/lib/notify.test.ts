@@ -16,7 +16,7 @@ import {
   targets,
 } from "./notify";
 import type { NotifyDeps, PushEvent } from "./notify";
-import { pushTestDb, seedDevice, seedUser, wib } from "./push-test-db";
+import { myt, pushTestDb, seedDevice, seedUser, wib } from "./push-test-db";
 import type { TestClient } from "./push-test-db";
 
 // ---- A fake Expo + web push world -----------------------------------------------------------
@@ -98,10 +98,11 @@ describe("quiet hours math", () => {
     expect(inQuietHours({ enabled: true, start: "01:00", end: "05:00" }, 2 * 60)).toBe(true);
   });
 
-  test("quietEndsAt is the next time the WIB clock reads the end", () => {
+  test("quietEndsAt is the next time the clock of the person's zone reads the end", () => {
     const quiet = { enabled: true, start: "21:30", end: "06:30" };
-    expect(quietEndsAt(quiet, wib("2026-10-19", "22:00")).toISOString()).toBe(wib("2026-10-20", "06:30").toISOString());
-    expect(quietEndsAt(quiet, wib("2026-10-20", "03:10")).toISOString()).toBe(wib("2026-10-20", "06:30").toISOString());
+    expect(quietEndsAt(quiet, wib("2026-10-19", "22:00"), "Asia/Jakarta").toISOString()).toBe(wib("2026-10-20", "06:30").toISOString());
+    expect(quietEndsAt(quiet, wib("2026-10-20", "03:10"), "Asia/Jakarta").toISOString()).toBe(wib("2026-10-20", "06:30").toISOString());
+    expect(quietEndsAt(quiet, myt("2026-10-19", "22:00"), "Asia/Kuala_Lumpur").toISOString()).toBe(myt("2026-10-20", "06:30").toISOString());
   });
 });
 
@@ -239,6 +240,33 @@ describe("notify", () => {
     expect((await db.select().from(pushOutbox)).filter((r) => r.status === "digested")).toHaveLength(3);
     // a second run the same evening sends nothing
     expect(await runDigest(deps(wib("2026-10-19", "19:10")))).toBe(0);
+  });
+
+  test("quiet hours and the evening digest follow each person's own zone", async () => {
+    const { client, db, deps } = await world();
+    await seedUser(client, "my", { timezone: "Asia/Kuala_Lumpur" });
+    await seedDevice(client, "u1", "aaa");
+    await seedDevice(client, "my", "bbb");
+
+    // 21:45 in Kuala Lumpur is 20:45 in Jakarta: quiet for the Malaysian, awake for the Indonesian
+    const evening = myt("2026-10-19", "21:45");
+    expect((await notify(deps(evening), "u1", kudos({ dedupeKey: "a" }))).status).toBe("sent");
+    expect((await notify(deps(evening), "my", kudos({ dedupeKey: "b" }))).status).toBe("queued");
+    const [queued] = await db.select().from(pushOutbox).where(eq(pushOutbox.userId, "my"));
+    expect(queued?.sendAfter.toISOString()).toBe(myt("2026-10-20", "06:30").toISOString());
+
+    // over the cap at noon: held for the digest, which goes out from 19:00 of each person's own clock
+    for (let i = 0; i < CATEGORY_CAP.social + 1; i++) {
+      await notify(deps(NOON), "u1", kudos({ dedupeKey: `u${i}` }));
+      await notify(deps(NOON), "my", kudos({ dedupeKey: `m${i}` }));
+    }
+    // 19:05 in Kuala Lumpur is 18:05 in Jakarta
+    expect(await runDigest(deps(myt("2026-10-19", "19:05")))).toBe(1);
+    expect((await db.select().from(pushOutbox).where(eq(pushOutbox.userId, "my"))).filter((r) => r.status === "digested")).toHaveLength(1);
+    expect((await db.select().from(pushOutbox).where(eq(pushOutbox.userId, "u1"))).filter((r) => r.status === "digested")).toHaveLength(0);
+    expect(await runDigest(deps(wib("2026-10-19", "19:05")))).toBe(1);
+    // the evening kudos "a" already used one slot of the cap, so two of u1's noon ones are held
+    expect((await db.select().from(pushOutbox).where(eq(pushOutbox.userId, "u1"))).filter((r) => r.status === "digested")).toHaveLength(2);
   });
 
   test("held rows of an earlier day are dropped, not digested", async () => {

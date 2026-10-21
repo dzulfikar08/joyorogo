@@ -3,8 +3,10 @@ import { and, eq, inArray, notInArray } from "drizzle-orm";
 
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
 import type { Database } from "@joyorogo/db";
-import type { Locale } from "@joyorogo/i18n";
+import { DEFAULT_REGION, resolveDayZone } from "@joyorogo/i18n";
+import type { DayZone, Locale } from "@joyorogo/i18n";
 import { user } from "@joyorogo/db/schema/auth";
+import { profile } from "@joyorogo/db/schema/fitness";
 import { emailLog } from "@joyorogo/db/schema/billing";
 
 import { BROADCAST_SENDER } from "./broadcast-campaign";
@@ -53,7 +55,7 @@ export type BroadcastDeps = {
   sender?: typeof BROADCAST_SENDER;
 };
 
-type Recipient = { id: string; name: string; email: string; founderUntil?: Date | null };
+type Recipient = { id: string; name: string; email: string; founderUntil?: Date | null; zone?: DayZone };
 
 type BroadcastState = Campaign & {
   status: "sending" | "done";
@@ -98,11 +100,11 @@ const unsubscribeUrl = async (deps: BroadcastDeps, userId: string) =>
 export async function renderFor(
   deps: BroadcastDeps,
   campaign: Campaign,
-  to: Pick<Recipient, "id" | "name" | "founderUntil">,
+  to: Pick<Recipient, "id" | "name" | "founderUntil" | "zone">,
   locale?: Locale,
 ) {
   const url = await unsubscribeUrl(deps, to.id);
-  return { mail: renderBroadcast({ campaign, name: to.name, unsubscribeUrl: url, locale, date: to.founderUntil ? formatDateWib(to.founderUntil) : undefined }), unsubscribeUrl: url };
+  return { mail: renderBroadcast({ campaign, name: to.name, unsubscribeUrl: url, locale, date: to.founderUntil ? formatDateWib(to.founderUntil, to.zone) : undefined }), unsubscribeUrl: url };
 }
 
 /** Sends one mail; never throws. */
@@ -162,10 +164,11 @@ const writeState = (bucket: StickersBucket, state: BroadcastState) =>
 async function audience(deps: BroadcastDeps, campaign: Pick<Campaign, "id" | "recipients">, state: BroadcastState | null) {
   const campaignId = campaign.id;
   const kind = `broadcast:${campaignId}` as const;
-  const [users, optedOut, sentRows] = await Promise.all([
+  const [userRows, optedOut, sentRows] = await Promise.all([
     deps.db
-      .select({ id: user.id, name: user.name, email: user.email, founderUntil: user.founderUntil })
+      .select({ id: user.id, name: user.name, email: user.email, founderUntil: user.founderUntil, timezone: profile.timezone, profileId: profile.userId })
       .from(user)
+      .leftJoin(profile, eq(profile.userId, user.id))
       // Our own logins (App Review, QA) never get campaigns, whatever their verified flag says.
       .where(
         and(
@@ -178,6 +181,11 @@ async function audience(deps: BroadcastDeps, campaign: Pick<Campaign, "id" | "re
     listOptedOut(deps.bucket),
     deps.db.select({ ref: emailLog.ref }).from(emailLog).where(eq(emailLog.kind, kind)),
   ]);
+  // The {tanggal} date reads in the recipient's own zone.
+  const users = userRows.map(({ timezone, profileId, ...rest }) => ({
+    ...rest,
+    zone: resolveDayZone({ stored: timezone, hasProfile: profileId !== null, region: DEFAULT_REGION }),
+  }));
   const sentIds = new Set(sentRows.map((row) => row.ref));
   const eligible = users.filter((u) => u.email.includes("@"));
   const optedOutUsers = eligible.filter((u) => optedOut.has(u.id));

@@ -41,6 +41,8 @@ import { leaveTeamChallenges } from "../lib/challenge-db";
 import { serverT } from "../lib/messages";
 import { loadPublicGroupPreview, previewAllowed } from "../lib/group-preview";
 import { requireAiQuota } from "../lib/quota";
+import { dayBounds } from "../lib/tiers";
+import { userZone } from "../lib/user-zone";
 import { CALIBRATION_HISTORY_DAYS } from "../lib/calibration";
 import { calibrationPrefsOfUsersQuery, readCalibrationPrefs } from "../lib/calibration-store";
 import { buildPlan, planQueries } from "../lib/plan";
@@ -338,7 +340,8 @@ export const groupRouter = {
     .input(z.object({ groupId: z.string(), date: dateSchema.optional() }))
     .handler(async ({ context, input }) => {
       const db = context.db;
-      const today = jakartaToday();
+      const zone = await userZone(context);
+      const today = jakartaToday(undefined, zone);
       const date = input.date ?? today;
       await requireMember(db, input.groupId, context.session.user.id, context.locale);
 
@@ -584,7 +587,8 @@ export const groupRouter = {
               weightNowKg: plan.weightNowKg,
               exerciseLogs: exerciseDay.filter((r) => r.userId === m.userId),
               tdeeKcal: plan.targets.tdee,
-              // past days are complete; today prorates by the live WIB clock
+              zone,
+              // past days are complete; today prorates by the live clock of the viewer's zone
               ...(date === today ? {} : { dayFraction: 1 }),
             });
             // Hamil / Menyusui: the daily need is health data and stays out of the group.
@@ -660,6 +664,7 @@ export const groupRouter = {
     .input(z.object({ groupId: z.string(), limit: z.number().int().min(1).max(50).default(20) }))
     .handler(async ({ context, input }) => {
       const db = context.db;
+      const zone = await userZone(context);
       await requireMember(db, input.groupId, context.session.user.id, context.locale);
 
       const memberRows = await db
@@ -675,7 +680,7 @@ export const groupRouter = {
       const nameByUser = new Map(names.map((n) => [n.id, n.name]));
 
       const since = new Date(Date.now() - ACTIVITY_WINDOW_DAYS * 24 * 3600 * 1000);
-      const weekStart = shiftDate(jakartaToday(), -(ACTIVITY_WINDOW_DAYS - 1));
+      const weekStart = shiftDate(jakartaToday(undefined, zone), -(ACTIVITY_WINDOW_DAYS - 1));
       const [foods, exercises, weights] = await db.batch([
         db
           .select({
@@ -793,7 +798,8 @@ export const groupRouter = {
         if (input.message === undefined) {
           throw new ORPCError("BAD_REQUEST", { message: errT(context)("server.error.noteEmpty") });
         }
-        const dayStart = new Date(`${jakartaToday()}T00:00:00+07:00`).getTime();
+        const zone = await userZone(context);
+        const dayStart = dayBounds(jakartaToday(undefined, zone), zone).startMs;
         const [sent] = await db
           .select({ total: count() })
           .from(teamNudge)
@@ -892,7 +898,7 @@ export const groupRouter = {
     .input(z.object({ groupId: z.string(), userId: z.string(), date: dateSchema.optional() }))
     .handler(async ({ context, input }) => {
       const db = context.db;
-      const date = input.date ?? jakartaToday();
+      const date = input.date ?? jakartaToday(undefined, await userZone(context));
       await requireMember(db, input.groupId, context.session.user.id, context.locale);
       const target = await memberRow(db, input.groupId, input.userId);
       if (!target) throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.notInGroup") });
@@ -1066,9 +1072,10 @@ export const groupRouter = {
           message: serverT(context.locale, "errors")("ai.storageUnavailable"),
         });
       }
-      const date = jakartaToday();
+      const zone = await userZone(context);
+      const date = jakartaToday(undefined, zone);
 
-      // Objective signal first: the tape entry of the same WIB day rides
+      // Objective signal first: the tape entry of the same day rides
       // along in the DB row and in the AI prompt (meteran, bukan tebakan).
       const [waistToday] = await db
         .select({ waistCm: waistLog.waistCm })
@@ -1097,6 +1104,7 @@ export const groupRouter = {
           context.env,
           userId,
           context.locale,
+          zone,
         );
         quotaReached = reached;
         const previousLabel = `scan ${previous.date}`;

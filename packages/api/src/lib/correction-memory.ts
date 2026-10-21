@@ -4,6 +4,8 @@
 import { and, desc, eq, gte, isNotNull, sql } from "drizzle-orm";
 
 import type { Database } from "@joyorogo/db";
+import { dayBoundsIn } from "@joyorogo/i18n";
+import type { DayZone } from "@joyorogo/i18n";
 import { aiUsage, foodLog } from "@joyorogo/db/schema/fitness";
 
 import { jakartaToday, shiftDate } from "./engine";
@@ -153,8 +155,9 @@ export function chipsFor(learned: readonly string[], topName: string | undefined
 }
 
 /** The user's memory, read from the ledger and the diary; a failed read is no memory, never a failed scan. */
-export async function loadCorrectionMemory(db: Database, userId: string, today: string = jakartaToday()): Promise<CorrectionMemory> {
-  const since = new Date(`${shiftDate(today, -WINDOW_DAYS)}T00:00:00+07:00`).getTime();
+export async function loadCorrectionMemory(db: Database, userId: string, zone: DayZone): Promise<CorrectionMemory> {
+  const today = jakartaToday(undefined, zone);
+  const since = dayBoundsIn(shiftDate(today, -WINDOW_DAYS), zone).startMs;
   const [rows, foodRows] = await Promise.all([
     db
       .select({ usageJson: aiUsage.usageJson })

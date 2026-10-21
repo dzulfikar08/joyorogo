@@ -545,7 +545,7 @@ export default function MakanAi() {
   const [retryCount, setRetryCount] = useState(0);
   const [references, setReferences] = useState<ScanReferences | null>(null);
   // "Hasilnya akurat?" — the server decides when to ask (every scan for the
-  // first 3, then once per WIB day). Answering or dismissing hides the card.
+  // first 3, then once per day). Answering or dismissing hides the card.
   const [model, setModel] = useState<string | null>(null);
   const [askFeedback, setAskFeedback] = useState(false);
   const [feedbackAnswered, setFeedbackAnswered] = useState(false);

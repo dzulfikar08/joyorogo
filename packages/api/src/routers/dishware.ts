@@ -3,6 +3,7 @@ import { and, between, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Database } from "@joyorogo/db";
+import type { DayZone } from "@joyorogo/i18n";
 import { aiUsage } from "@joyorogo/db/schema/fitness";
 import { dishware } from "@joyorogo/db/schema/dishware";
 
@@ -25,7 +26,8 @@ import { jakartaToday } from "../lib/engine";
 import { scaleReadoutEnabled } from "../lib/scale-reading";
 import { serverT } from "../lib/messages";
 import { base64ToBytes, dishwarePhotoKey } from "../lib/sticker";
-import { wibDayBounds } from "../lib/tiers";
+import { dayBounds } from "../lib/tiers";
+import { userZone } from "../lib/user-zone";
 import { DEFAULT_VISION_MODEL } from "../lib/vision";
 
 /** A registration photo as the clients send it: resized to <= 1024 px (~0.1-0.4 MB base64). */
@@ -77,7 +79,7 @@ async function analyzePhoto(context: AuthedContext, input: { imageBase64: string
   const ai = context.env.AI;
   if (!ai) throw new ORPCError("SERVICE_UNAVAILABLE", { message: t("ai.unavailable") });
   const userId = context.session.user.id;
-  if ((await analysesToday(context.db, userId)) >= DISHWARE_ANALYSES_PER_DAY) {
+  if ((await analysesToday(context.db, userId, await userZone(context))) >= DISHWARE_ANALYSES_PER_DAY) {
     throw new ORPCError("TOO_MANY_REQUESTS", {
       message: t("dishware.dailyLimit", { limit: DISHWARE_ANALYSES_PER_DAY }),
     });
@@ -97,8 +99,8 @@ async function analyzePhoto(context: AuthedContext, input: { imageBase64: string
   }
 }
 
-async function analysesToday(db: Database, userId: string): Promise<number> {
-  const { startMs, endMs } = wibDayBounds(jakartaToday());
+async function analysesToday(db: Database, userId: string, zone: DayZone): Promise<number> {
+  const { startMs, endMs } = dayBounds(jakartaToday(undefined, zone), zone);
   const [row] = await db
     .select({ n: sql<number>`count(*)` })
     .from(aiUsage)

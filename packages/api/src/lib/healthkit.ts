@@ -4,6 +4,9 @@
 // unioned before summing so double-reported sleep counts once, then each bout
 // is keyed with sleepNightKey, like the Health Connect import keys SleepSession rows.
 
+import { dayOfMs } from "@joyorogo/i18n";
+import type { DayZone } from "@joyorogo/i18n";
+
 export type SleepInterval = { startMs: number; endMs: number };
 
 // HKCategoryValueSleepAnalysis: 0 inBed, 1 asleepUnspecified, 2 awake,
@@ -27,18 +30,12 @@ export function unionIntervals(intervals: SleepInterval[]): SleepInterval[] {
   return merged;
 }
 
-// Same fixed UTC+7 day rule as the server's jakartaToday(): shift the instant
-// by +7h and take the UTC calendar date.
-function wibDayKey(ms: number): string {
-  return new Date(ms + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
-
-// sleep_log keys a night by the WIB evening it began ("tidur tadi malam" is
+// sleep_log keys a night by the evening it began in the person's day zone ("tidur tadi malam" is
 // read as date - 1 by day.summary, group and Tidur). Sleep that ends before
-// noon WIB belongs to the previous day, so the end shifted back 12 h gives the
+// noon there belongs to the previous day, so the end shifted back 12 h gives the
 // key; a nap ending in the afternoon stays on its own day.
-export function sleepNightKey(endMs: number): string {
-  return wibDayKey(endMs - 12 * 60 * 60 * 1000);
+export function sleepNightKey(endMs: number, zone?: DayZone): string {
+  return dayOfMs(endMs - 12 * 60 * 60 * 1000, zone);
 }
 
 // Unioned asleep hours per night (sleepNightKey of each bout's end). Standalone
@@ -47,13 +44,14 @@ export function sleepNightKey(endMs: number): string {
 // samples inside a long night are never lost.
 export function sleepHoursByWibDay(
   samples: Array<SleepInterval & { value: number }>,
+  zone?: DayZone,
 ): Map<string, number> {
   const bouts = unionIntervals(samples.filter((s) => ASLEEP_VALUES.includes(s.value)));
   const hoursByDay = new Map<string, number>();
   for (const bout of bouts) {
     const hours = (bout.endMs - bout.startMs) / 3_600_000;
     if (hours < 0.25) continue;
-    const day = sleepNightKey(bout.endMs);
+    const day = sleepNightKey(bout.endMs, zone);
     hoursByDay.set(day, (hoursByDay.get(day) ?? 0) + hours);
   }
   return hoursByDay;

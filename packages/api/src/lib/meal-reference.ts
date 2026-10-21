@@ -1,3 +1,5 @@
+import type { DayZone } from "@joyorogo/i18n";
+
 import { MEALS, daysBetween, jakartaClockHour, jakartaToday, shiftDate, suggestMealNow } from "./engine";
 import type { Meal } from "./engine";
 import type { CalibratedItem } from "./tkpi";
@@ -14,7 +16,7 @@ import type { CalibratedItem } from "./tkpi";
 /** How far back a reference may reach. */
 export const REFERENCE_WINDOW_DAYS = 14;
 
-/** Before 04:00 WIB a person still counts the day that just ended as "today". */
+/** Before 04:00 local time a person still counts the day that just ended as "today". */
 const NIGHT_OWL_HOUR = 4;
 /** From 17:00 on, "tadi malam" can only mean this evening, earlier. */
 const EVENING_HOUR = 17;
@@ -211,10 +213,10 @@ const SLOT_WORDS: Array<[RegExp, Meal[]]> = [
 ];
 
 /** Pull the day / slot / "last" words out of `text`; null when there are none. */
-function extractExpr(text: string, now: Date): { expr: Expr; rest: string } | null {
+function extractExpr(text: string, now: Date, zone: DayZone): { expr: Expr; rest: string } | null {
   const cursor: Cursor = { s: ` ${text} ` };
-  const today = jakartaToday(now);
-  const hour = jakartaClockHour(now);
+  const today = jakartaToday(now, zone);
+  const hour = jakartaClockHour(now, zone);
   let dayOffset: number | null = null;
   let dayWord = false;
   let slots: Meal[] | null = null;
@@ -423,7 +425,7 @@ function parseModifiers(rest: string): { mods: Modifiers; residual: string } {
  * text is a plain description ("sama sekali belum makan", "makan siang di
  * warung yang sama").
  */
-export function parseMealReference(text: string, now: Date = new Date()): MealReference | null {
+export function parseMealReference(text: string, now: Date, zone: DayZone): MealReference | null {
   const s = normalize(text);
   if (s.length === 0) return null;
 
@@ -433,10 +435,10 @@ export function parseMealReference(text: string, now: Date = new Date()): MealRe
   if (pre) {
     const head = s.slice(0, pre.index);
     const tail = s.slice(pre.index + pre[0].length);
-    const fromTail = extractExpr(tail, now);
+    const fromTail = extractExpr(tail, now, zone);
     if (!fromTail) return null;
     // "makan siang yang sama kayak kemarin": a slot said before the cue still counts.
-    const fromHead = extractExpr(`${head} ${pre[0]}`, now);
+    const fromHead = extractExpr(`${head} ${pre[0]}`, now, zone);
     expr = {
       dayOffset: fromTail.expr.dayOffset ?? fromHead?.expr.dayOffset ?? null,
       slots: fromTail.expr.slots ?? fromHead?.expr.slots ?? null,
@@ -449,7 +451,7 @@ export function parseMealReference(text: string, now: Date = new Date()): MealRe
     const needsDay = !take(cursor, ULANG) && Boolean(take(cursor, LAGI));
     const stripped = cursor.s;
     if (stripped === s) return null;
-    const parsed = extractExpr(stripped, now);
+    const parsed = extractExpr(stripped, now, zone);
     if (!parsed) return null;
     // "sarapan lagi" alone reads as a plain mention; "sarapan kemarin lagi" is a pointer.
     if (needsDay && !parsed.expr.dayWord && !parsed.expr.last) return null;
@@ -480,13 +482,14 @@ export type Target = { date: string; meal: Meal };
 /** Where a story lands: the sheet's slot (or the clock's) on the viewed day. */
 export function storyTarget(input: {
   now: Date;
+  zone: DayZone;
   date?: string;
   meal?: Meal;
   slots: readonly Meal[];
 }): Target {
-  const today = jakartaToday(input.now);
+  const today = jakartaToday(input.now, input.zone);
   const slots = input.slots.length > 0 ? input.slots : (MEALS as readonly Meal[]);
-  const suggested = suggestMealNow(input.now, slots.includes("sahur"));
+  const suggested = suggestMealNow(input.now, slots.includes("sahur"), input.zone);
   return {
     date: input.date && input.date <= today ? input.date : today,
     meal:
@@ -538,9 +541,10 @@ export function resolveReference(
   ref: Pick<MealReference, "dayOffset" | "slots" | "last">,
   rows: readonly MealRow[],
   target: Target,
-  now: Date = new Date(),
+  now: Date,
+  zone: DayZone,
 ): Resolution {
-  const today = jakartaToday(now);
+  const today = jakartaToday(now, zone);
   const oldest = shiftDate(today, -REFERENCE_WINDOW_DAYS);
   const groups = groupRows(rows).filter((g) => g.date <= today && g.date >= oldest);
   const isTarget = (g: MealGroup) => g.date === target.date && g.meal === target.meal;

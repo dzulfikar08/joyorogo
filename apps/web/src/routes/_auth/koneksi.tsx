@@ -1,3 +1,4 @@
+import { dayOfMs } from "@joyorogo/i18n";
 import { isMcpDataScope } from "@joyorogo/api/lib/mcp-scopes";
 import { Button } from "@joyorogo/ui/components/button";
 import { Sheet } from "@joyorogo/ui/components/sheet";
@@ -19,9 +20,6 @@ import { orpc } from "@/utils/orpc";
 export const Route = createFileRoute("/_auth/koneksi")({
   component: KoneksiPage,
 });
-
-/** Epoch ms to the WIB calendar day the date formatters take. */
-const wibDay = (ms: number) => new Date(ms + 7 * 3_600_000).toISOString().slice(0, 10);
 
 const OUTCOME_TONE: Record<string, string> = {
   ok: "bg-makan-soft text-makan-ink",
@@ -139,7 +137,7 @@ function KoneksiPage() {
                     </Button>
                   </div>
                   <ul className="mt-3 space-y-0.5 text-sm text-muted-foreground">
-                    <li>{t("list.connectedAt", { date: fmtDateMedium(wibDay(app.connectedAt)) })}</li>
+                    <li>{t("list.connectedAt", { date: fmtDateMedium(dayOfMs(app.connectedAt)) })}</li>
                     <li>
                       {app.lastUsedAt === null
                         ? t("list.neverUsed")

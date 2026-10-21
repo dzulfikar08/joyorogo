@@ -5,6 +5,7 @@ import { and, asc, desc, eq, gte, lte, min, sql } from "drizzle-orm";
 import type { Database } from "@joyorogo/db";
 import { dailyActivity, exerciseLog, foodLog, weightLog } from "@joyorogo/db/schema/fitness";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
+import type { DayZone } from "@joyorogo/i18n";
 
 import { gainStreak, jakartaToday, shiftDate, streakFromDates } from "./engine";
 import { readCalibrationPrefs } from "./calibration-store";
@@ -21,7 +22,7 @@ const WEIGH_IN_HISTORY = 365;
 const STREAK_WINDOW_DAYS = 45;
 
 /**
- * Progress over [from, to] (WIB days; `to` defaults to today and never passes it, `from` defaults to the first weigh-in
+ * Progress over [from, to] (days in the person's zone; `to` defaults to today and never passes it, `from` defaults to the first weigh-in
  * or food log, at most PERIOD_MAX_DAYS back). Null without a profile and for Hamil / Menyusui, who have no weight or
  * deficit framing.
  *
@@ -33,8 +34,9 @@ export async function loadPeriodProgress(
   db: Database,
   userId: string,
   requested: { from?: string; to?: string },
+  zone: DayZone,
 ): Promise<PeriodProgress | null> {
-  const today = jakartaToday();
+  const today = jakartaToday(undefined, zone);
   const to = requested.to !== undefined && requested.to < today ? requested.to : today;
 
   const [profileRows, latestRows, planWeighIns, planIntake, planExercise, calibrationRows, historyRows, firstFoodRows] =

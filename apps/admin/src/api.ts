@@ -97,6 +97,7 @@ export const fmtCompact = (n: number) => compactFormat.format(n);
 /** 15000 -> "Rp 15.000" */
 export const fmtIdr = (n: number | null | undefined) => idrFormat.format(n ?? 0);
 
+// WIB on purpose: admin report.
 /** Calendar day keys (YYYY-MM-DD, WIB) for the last `n` days, oldest first. */
 export function lastWibDays(n: number): string[] {
   const dayMs = 24 * 60 * 60 * 1000;

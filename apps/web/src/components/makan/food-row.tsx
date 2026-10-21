@@ -1,4 +1,4 @@
-import { fmtClock } from "@joyorogo/i18n";
+import { fmtClock, getActiveDayZone } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -30,7 +30,7 @@ export function FoodRow({
   const hasMacros = [item.protein, item.carbs, item.fat, item.fiber].some((g) => (g ?? 0) > 0);
   const created = new Date(item.createdAt);
   const meta = [
-    Number.isNaN(created.getTime()) ? null : fmtClock(created),
+    Number.isNaN(created.getTime()) ? null : fmtClock(created, undefined, getActiveDayZone()),
     item.grams ? `${fmtInt(item.grams)} g` : null,
   ].filter(Boolean);
   return (

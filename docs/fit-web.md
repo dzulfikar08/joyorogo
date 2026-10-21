@@ -73,7 +73,7 @@ Not an open relay: any other path or method is `404` and nothing is forwarded; n
 Everything is the existing oRPC router (`/rpc/*`, cookie session). New, in `packages/api/src/routers/fit-web.ts` (data in `lib/fit-web.ts`):
 
 - `fitWeb.recovery({ from?, to? })` -> `{ from, to, days }`: one row per day with sleep, scores or activity, **oldest first**. The rows are `getRecoveryDays` (`lib/fit-data.ts`), the reader the MCP connector and the coach already use, so a night reads the same on the web and in the AI apps. Default: last 30 days.
-- `fitWeb.workouts({ from?, to? })` -> `{ from, to, items, truncated }`: the cloud workouts that started in the window (WIB days), newest first, list numbers only (no document, no route). At most 2000, `truncated` says the oldest were cut. Default: last 90 days.
+- `fitWeb.workouts({ from?, to? })` -> `{ from, to, items, truncated }`: the cloud workouts that started in the window (days in the person's zone, `profile.timezone`; WIB when none), newest first, list numbers only (no document, no route). At most 2000, `truncated` says the oldest were cut. Default: last 90 days.
 
 Both are **Pro only** (`FORBIDDEN` with `data: { paywall: true }`, localized message), take windows of at most 366 days (`BAD_REQUEST` otherwise) and only ever read the caller's rows. The compare period is a second call with the window of the same length before the first.
 

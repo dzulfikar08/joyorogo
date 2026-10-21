@@ -3,7 +3,8 @@ import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { exerciseLog, profile, weightLog } from "@joyorogo/db/schema/fitness";
-import type { Locale } from "@joyorogo/i18n";
+import { dayOfMs } from "@joyorogo/i18n";
+import type { DayZone, Locale } from "@joyorogo/i18n";
 
 import type { Context } from "../context";
 
@@ -11,6 +12,7 @@ import { protectedProcedure } from "../index";
 import { serverT } from "../lib/messages";
 import { estimateKcal, metForStravaType } from "../lib/met";
 import { stravaRetentionCutoff } from "../lib/strava-retention";
+import { userZone } from "../lib/user-zone";
 import {
   StravaGrantError,
   deleteImportedActivities,
@@ -27,9 +29,9 @@ type AuthedContext = Context & { session: NonNullable<Context["session"]> };
 
 const STRAVA_ACTIVITIES_URL = "https://www.strava.com/api/v3/athlete/activities?per_page=30";
 
-// WIB calendar day of an ISO instant — same fixed UTC+7 rule as jakartaToday.
-function wibDate(iso: string): string {
-  return new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+// Calendar day of an ISO instant in the user's zone — same rule as jakartaToday.
+function localDate(iso: string, zone: DayZone): string {
+  return dayOfMs(new Date(iso).getTime(), zone);
 }
 
 type StravaActivity = {
@@ -133,6 +135,7 @@ export const stravaRouter = {
   // 7 days: lib/strava-retention deletes older rows (cron), and sync below never
   // imports an activity that is already past that window.
   sync: protectedProcedure.handler(async ({ context }) => {
+    const zone = await userZone(context);
     const accessToken = await getValidToken(context);
     const res = await fetch(STRAVA_ACTIVITIES_URL, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -153,7 +156,7 @@ export const stravaRouter = {
     // An activity already past the 7-day window (policy 6.2) is not kept at all.
     const cutoff = stravaRetentionCutoff();
     const imports = activities.filter(
-      (activity) => !isJoyofitUpload(activity.external_id) && wibDate(activity.start_date) > cutoff,
+      (activity) => !isJoyofitUpload(activity.external_id) && localDate(activity.start_date, zone) > cutoff,
     );
 
     // One weight query for the whole batch instead of two per activity.
@@ -179,7 +182,7 @@ export const stravaRouter = {
     };
 
     const statements = imports.map((activity) => {
-      const date = wibDate(activity.start_date);
+      const date = localDate(activity.start_date, zone);
       const durationMin = (activity.moving_time ?? 0) / 60;
       const kcal =
         activity.calories && activity.calories > 0

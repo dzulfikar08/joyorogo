@@ -18,6 +18,7 @@ import { COACH_DOC_LIMITS, coachDocSchema, readCoachDoc, writeCoachDoc } from ".
 import { coachDailyCap, coachUsedToday, reserveCoachSlot, settleCoachSlot } from "../lib/coach-limit";
 import { jakartaToday } from "../lib/engine";
 import { serverT } from "../lib/messages";
+import { userZone } from "../lib/user-zone";
 import { cloudUnlocked } from "../lib/watch-workout-store";
 
 /**
@@ -28,9 +29,10 @@ import { cloudUnlocked } from "../lib/watch-workout-store";
 export const coachRouter = {
   status: protectedProcedure.handler(async ({ context }) => {
     const userId = context.session.user.id;
+    const zone = await userZone(context);
     const [unlocked, used] = await Promise.all([
       cloudUnlocked(context.db, context.env, userId),
-      coachUsedToday(context.db, userId),
+      coachUsedToday(context.db, userId, zone),
     ]);
     return { unlocked, chatUsedToday: used, chatDailyCap: coachDailyCap(context.env) };
   }),
@@ -62,9 +64,10 @@ export const coachRouter = {
     if (!(await cloudUnlocked(context.db, context.env, userId))) {
       throw new ORPCError("FORBIDDEN", { message: t("locked"), data: { paywall: true } });
     }
-    const used = await coachUsedToday(context.db, userId);
+    const zone = await userZone(context);
+    const used = await coachUsedToday(context.db, userId, zone);
 
-    const today = jakartaToday();
+    const today = jakartaToday(undefined, zone);
     const server = await readCoachServerContext(
       context.db,
       userId,
@@ -87,7 +90,7 @@ export const coachRouter = {
 
     const model = coachModel(context.env);
     // The slot is taken before the model runs, in one conditional statement: concurrent requests cannot slip past the cap.
-    const slot = await reserveCoachSlot(context.db, userId, cap, model);
+    const slot = await reserveCoachSlot(context.db, userId, cap, model, zone);
     if (slot === null) {
       throw new ORPCError("TOO_MANY_REQUESTS", { message: t("capReached", { cap }), data: { coachCapReached: true, cap } });
     }
@@ -122,6 +125,6 @@ export const coachRouter = {
         data: { reason: outcome },
       });
     }
-    return { reply, used: await coachUsedToday(context.db, userId), cap, flagged: null };
+    return { reply, used: await coachUsedToday(context.db, userId, zone), cap, flagged: null };
   }),
 };

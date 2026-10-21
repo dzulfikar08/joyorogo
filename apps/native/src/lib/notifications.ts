@@ -19,7 +19,9 @@ import {
   type WaterReminder,
 } from "@joyorogo/api/lib/reminder-config";
 import { notePrefChanged } from "@joyorogo/api/lib/rogo-prefs-sync";
-import { i18n } from "@joyorogo/i18n";
+import { dayZoneOffsetMs, i18n } from "@joyorogo/i18n";
+
+import { zoneToLocalMinutes } from "@/src/lib/reminder-time";
 
 // --- Storage keys -------------------------------------------------------------
 
@@ -54,7 +56,7 @@ export type ReminderContext = {
   gain: { remainingKcal: number } | null;
 };
 
-/** One IF reminder of the day; hours/minutes are WIB wall-clock. */
+/** One IF reminder of the day; hours/minutes are wall-clock in the day zone. */
 export type FastingReminder = { hour: number; minute: number; title: string; body: string };
 
 
@@ -226,11 +228,9 @@ async function readFastingReminders(): Promise<FastingReminder[]> {
 
 type Slot = { channel: ChannelId; kind: string; title: string; body: string };
 
-/** WIB minutes-of-day → this device's wall-clock minutes-of-day. */
-function wibToLocalMinutes(wibMin: number): number {
-  const deviceOffsetMin = -new Date().getTimezoneOffset();
-  const shifted = wibMin + deviceOffsetMin - 7 * 60;
-  return ((shifted % 1440) + 1440) % 1440;
+/** Minutes-of-day in the person's day zone → this device's wall-clock minutes-of-day. */
+function zoneToDeviceMinutes(zoneMin: number): number {
+  return zoneToLocalMinutes(zoneMin, -new Date().getTimezoneOffset(), dayZoneOffsetMs() / 60_000);
 }
 
 function content(slot: Slot): Notifications.NotificationContentInput {
@@ -303,7 +303,7 @@ async function schedulePlan(
   // IF mode on → its schedule REPLACES the fixed meal reminders.
   if (fastingOn) {
     for (const reminder of await readFastingReminders()) {
-      await scheduleDaily(wibToLocalMinutes(reminder.hour * 60 + reminder.minute), {
+      await scheduleDaily(zoneToDeviceMinutes(reminder.hour * 60 + reminder.minute), {
         channel: "fasting",
         kind: "fasting",
         title: reminder.title,
@@ -378,7 +378,7 @@ async function schedulePlan(
     const closeLabel = fmtHHMM(window.endMin);
     // The IF set already nudges at window open; do not buzz twice.
     if (config.window.open && !fastingOn) {
-      await scheduleDaily(wibToLocalMinutes(window.startMin), {
+      await scheduleDaily(zoneToDeviceMinutes(window.startMin), {
         channel: "fasting",
         kind: "window-open",
         title: i18n.t("settings:reminders.notification.windowOpen.title"),
@@ -386,7 +386,7 @@ async function schedulePlan(
       });
     }
     if (config.window.close) {
-      await scheduleDaily(wibToLocalMinutes(window.endMin), {
+      await scheduleDaily(zoneToDeviceMinutes(window.endMin), {
         channel: "fasting",
         kind: "window-close",
         title: i18n.t("settings:reminders.notification.windowClose.title"),

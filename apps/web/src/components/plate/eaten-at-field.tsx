@@ -10,7 +10,7 @@ import { FieldLabel } from "@/components/kit/surface";
 /**
  * Optional "Jam makan" row for the add and edit flows. No value means "now" and
  * nothing is sent, so one-tap logging stays one tap. `value` is unix ms or null;
- * the time is read on the WIB clock of the diary day `date`.
+ * the time is read on the clock of the diary day `date`.
  */
 export function EatenAtField({
   id,
@@ -19,7 +19,7 @@ export function EatenAtField({
   onChange,
 }: {
   id: string;
-  /** Diary day (WIB key) the time must fall on. */
+  /** Diary day (key in the day zone) the time must fall on. */
   date: string;
   value: number | null;
   onChange: (eatenAt: number | null) => void;
