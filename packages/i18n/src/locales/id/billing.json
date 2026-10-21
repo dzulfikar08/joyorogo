@@ -19,7 +19,14 @@
       "profile": "Dukung JoyoRogo dan dapat jatah scan AI jauh lebih besar.",
       "fitness": "Dapat saran porsi dan menu harian dari skor JoyoFit, targetmu, dan makanan yang kamu catat.",
       "challenge": "Pro yang membuat tantangan grup. Kamu tetap bisa ikut tantangan temanmu gratis.",
-      "joyofit": "Cadangan cloud JoyoFit termasuk di Pro, satu paket dengan JoyoRogo."
+      "joyofit": "Cadangan cloud JoyoFit termasuk di Pro, satu paket dengan JoyoRogo.",
+      "scanleft": "Scan gratismu hampir habis hari ini. Pro dapat jatah jauh lebih besar.",
+      "chip": "Satu langganan untuk JoyoRogo dan JoyoFit. Ini yang dibuka Pro.",
+      "mealplan": "Menu harian dan mingguan yang pas dengan kalori dan proteinmu, plus daftar belanja dan resep.",
+      "sleep": "Pola tidur yang dikaitkan dengan kebiasaan makanmu, dihitung dari data jam.",
+      "recap": "Refleksi mingguan yang ditulis AI dari angka-angkamu sendiri.",
+      "workout": "Grafik, split, dan zona latihan yang dibagikan temanmu.",
+      "streak": "Streak {{days}} hari. Pro memberi jatah scan yang cukup untuk terus mencatat tiap hari."
     }
   },
   "plan": {
@@ -29,7 +36,10 @@
     "save": "hemat {{amount}}",
     "perMonth": "/bulan",
     "perYear": "/tahun",
-    "equivalent": "Setara {{price}}/bulan"
+    "equivalent": "Setara {{price}}/bulan",
+    "savePercent": "Hemat {{percent}}%",
+    "chargeYearly": "{{price}} per tahun.",
+    "chargeMonthly": "{{price}} per bulan."
   },
   "benefits": {
     "scansUnlimited": "Scan AI tanpa batas",
@@ -39,6 +49,35 @@
     "badge": "Badge Pro di profilmu",
     "support": "Dukung pengembangan JoyoRogo",
     "free_other": "Gratis tetap ada: {{count}} scan AI per hari, selamanya."
+  },
+  "value": {
+    "title": "Yang kamu dapat di Pro",
+    "scans": "{{pro}} scan AI per hari, bukan {{free}}",
+    "scansUnlimited": "Scan AI tanpa batas, bukan {{free}} per hari",
+    "mealPlan": "Rencana makan mingguan, resep, dan daftar belanja dari targetmu",
+    "advice": "Saran porsi dan menu harian dari skor JoyoFit",
+    "sleep": "Insight tidur dan refleksi mingguan yang ditulis AI",
+    "cloud": "Tanya coach dan cadangan cloud di JoyoFit",
+    "challenge": "Buat tantangan grup sebagai host"
+  },
+  "nudge": {
+    "chip": "Pro",
+    "chipLabel": "Lihat paket JoyoRogo Pro",
+    "scanLeft": "Sisa {{left}} dari {{total}} scan gratis hari ini",
+    "scanLeftNone": "Scan gratis hari ini habis",
+    "scanLeftAction": "Lihat Pro",
+    "streak": {
+      "title": "{{days}} hari berturut-turut mencatat",
+      "body": "Pro memberi jatah scan yang cukup untuk terus mencatat tiap hari, plus rencana makan dan saran dari JoyoFit.",
+      "cta": "Lihat Pro",
+      "dismiss": "Tutup"
+    },
+    "more": {
+      "title": "JoyoRogo Pro",
+      "bodyCapped": "{{pro}} scan AI per hari, rencana makan, dan cadangan cloud JoyoFit.",
+      "bodyUnlimited": "Scan AI tanpa batas, rencana makan, dan cadangan cloud JoyoFit.",
+      "cta": "Lihat Pro"
+    }
   },
   "details": {
     "title": "Cara bayar dan rincian",

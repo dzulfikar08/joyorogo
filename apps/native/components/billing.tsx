@@ -447,8 +447,16 @@ export function useAppleRestore() {
   });
 }
 
-/** Opens Apple's subscription management ("Kelola langganan"). */
+/** Google Play's subscription page for JoyoRogo Pro: cancel, change the payment method, see the next charge. */
+export const PLAY_SUBSCRIPTIONS_URL =
+  "https://play.google.com/store/account/subscriptions?sku=pro&package=com.joyodigitama.joyorogo";
+
+/** Opens the store's subscription management ("Kelola langganan"): Play on the Play build, Apple's sheet on iOS. */
 export async function openManageSubscriptions(): Promise<void> {
+  if (PLAY_ACTIVE) {
+    await Linking.openURL(PLAY_SUBSCRIPTIONS_URL);
+    return;
+  }
   if (appleIap && (await appleIap.showManageSubscriptions().catch(() => false))) return;
   await Linking.openURL(APPLE_SUBSCRIPTIONS_URL);
 }
@@ -802,7 +810,7 @@ export function FounderCards({
               })}
             </Text>
           </View>
-          {ios ? (
+          {ios || PLAY_ACTIVE ? (
             <Button
               size="sm"
               variant="secondary"

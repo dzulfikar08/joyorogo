@@ -26,7 +26,7 @@ export function LockedView({ preview }: { preview: Preview }) {
         <Text style={styles.body}>{t("locked.body")}</Text>
         <Button
           label={t("locked.cta")}
-          onPress={() => router.push({ pathname: "/founder", params: { from: "banner", next: "/rencana-makan" } })}
+          onPress={() => router.push({ pathname: "/founder", params: { from: "mealplan", next: "/rencana-makan" } })}
         />
       </Card>
 

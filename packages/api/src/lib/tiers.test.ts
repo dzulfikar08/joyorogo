@@ -13,6 +13,7 @@ import {
   paywallConfig,
   paywallEnabled,
   promoFor,
+  scanAllowance,
   wibDayBounds,
 } from "./tiers";
 
@@ -21,6 +22,23 @@ const PROD = paywallConfig({
   FOUNDER_DAILY_CAP: "100",
   ANON_SCANS: "2",
   FOUNDER_PRICE_IDR: "15000",
+});
+
+describe("scanAllowance", () => {
+  test("free account: scans left against the daily quota, never below zero", () => {
+    expect(scanAllowance("free", false, 1, PROD)).toEqual({ tier: "free", quota: 3, used: 1, left: 2 });
+    expect(scanAllowance("free", false, 3, PROD).left).toBe(0);
+    expect(scanAllowance("free", false, 5, PROD).left).toBe(0);
+  });
+
+  test("Pro account has the Pro cap", () => {
+    expect(scanAllowance("founder", false, 40, PROD)).toEqual({ tier: "founder", quota: 100, used: 40, left: 60 });
+  });
+
+  test("unlimited accounts and servers without a paywall report no limit", () => {
+    expect(scanAllowance("free", true, 9, PROD)).toEqual({ tier: "free", quota: null, used: 9, left: null });
+    expect(scanAllowance("free", false, 9, paywallConfig({})).left).toBeNull();
+  });
 });
 
 describe("paywallConfig", () => {

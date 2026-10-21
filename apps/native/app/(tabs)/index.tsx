@@ -68,6 +68,8 @@ import {
 } from "@/components/ui";
 import { MetaLine } from "@/components/meta-line";
 import { PressableScale, Reveal } from "@/components/motion";
+import { ProChip } from "@/components/pro/pro-chip";
+import { StreakNudge } from "@/components/pro/streak-nudge";
 import { WaterCard, useWater } from "@/components/water-card";
 import { FastingScheduleCard } from "@/components/fasting/schedule-card";
 import { DailyTipCard } from "@/components/tips/daily-tip-card";
@@ -965,7 +967,10 @@ export default function Dashboard() {
           <Text style={styles.greetTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
             {firstName}
           </Text>
-          <Text style={styles.greetCaption}>{fmtDateMedium(today)}</Text>
+          <View style={styles.greetCaptionRow}>
+            <Text style={styles.greetCaption}>{fmtDateMedium(today)}</Text>
+            <ProChip />
+          </View>
         </View>
         {!maternal && data.streakDays > 0 ? (
           <Pressable
@@ -1002,6 +1007,9 @@ export default function Dashboard() {
 
       {/* Day switcher */}
       <DaySwitcher date={date} today={today} onChange={(next) => setPickedDate(next >= today ? null : next)} />
+
+      {/* Free account that just hit a streak milestone: one Pro card, once per milestone */}
+      {maternal ? null : <StreakNudge userId={sessionData?.user.id ?? null} streakDays={data.streakDays} />}
 
       {/* The cards, in the order this person arranged them (daily report first by default) */}
       {visibleHomeCards(cardPrefs).map((id) => (
@@ -1254,6 +1262,11 @@ const styles = StyleSheet.create((theme) => ({
     fontWeight: "800",
     letterSpacing: -0.5,
     color: theme.colors.foreground,
+  },
+  greetCaptionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
   },
   greetCaption: {
     fontSize: theme.fontSize.sm,

@@ -18,6 +18,7 @@ import {
 } from "expo-iap";
 import type { ProductSubscription, Purchase } from "expo-iap";
 
+import type { StorePrice } from "@/src/lib/pro-plans";
 import { i18n } from "@joyorogo/i18n";
 
 export const PRO_PRODUCT_ID = "pro";
@@ -27,6 +28,8 @@ export type PlayPlan = "monthly" | "yearly";
 export type PlayPlanOffer = {
   /** Localized price from Play, e.g. "Rp15.000". */
   displayPrice: string;
+  /** The same price as an amount, for per-month and saving arithmetic; null when Play omits it. */
+  price: StorePrice | null;
   offerToken: string;
 };
 
@@ -58,6 +61,15 @@ function connect(): Promise<unknown> {
   return connection;
 }
 
+/** A Play pricing phase as an amount; null when Play sent no usable number. */
+function storePrice(
+  phase: { priceAmountMicros?: string; priceCurrencyCode?: string } | undefined,
+): StorePrice | null {
+  const micros = Number(phase?.priceAmountMicros);
+  if (!phase?.priceCurrencyCode || !Number.isFinite(micros) || micros <= 0) return null;
+  return { micros, currency: phase.priceCurrencyCode };
+}
+
 /**
  * The base-plan offer of each plan. Promotional offers carry extra pricing
  * phases (trial, intro price), so the offer with the fewest phases is the
@@ -82,6 +94,7 @@ export async function loadPlans(): Promise<PlayPlans> {
         phases: phases.length,
         offer: {
           displayPrice: recurring?.formattedPrice ?? offer.displayPrice,
+          price: storePrice(recurring),
           offerToken: offer.offerTokenAndroid,
         },
       };

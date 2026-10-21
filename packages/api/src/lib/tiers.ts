@@ -213,6 +213,26 @@ export function dailyScanQuota(tier: Tier, config: PaywallConfig): number | null
   return tier === "founder" ? config.founderDailyCap : config.freeDailyScans;
 }
 
+export type ScanAllowance = {
+  tier: Tier;
+  /** Scans a day this account may use; null = unlimited. */
+  quota: number | null;
+  used: number;
+  /** Scans still available today; null = unlimited. */
+  left: number | null;
+};
+
+/** What the scan screen shows: today's allowance, from the same rule `requireAiQuota` enforces. */
+export function scanAllowance(
+  tier: Tier,
+  aiUnlimited: boolean,
+  used: number,
+  config: PaywallConfig,
+): ScanAllowance {
+  const quota = aiUnlimited ? null : dailyScanQuota(tier, config);
+  return { tier, quota, used, left: quota === null ? null : Math.max(0, quota - used) };
+}
+
 /**
  * Founder while a paid period runs. `tier = 'founder'` stays a manual comp
  * (owner, early supporters) that never expires.

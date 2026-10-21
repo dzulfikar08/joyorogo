@@ -57,7 +57,7 @@ export function WorkoutDetail({
         <Button
           size="sm"
           label={t("watch.lockedCta")}
-          onPress={() => router.push("/founder")}
+          onPress={() => router.push({ pathname: "/founder", params: { from: "workout" } })}
         />
       </Card>
     );

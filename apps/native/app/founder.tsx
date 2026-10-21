@@ -15,7 +15,6 @@ import {
   Card,
   PageHeader,
   Screen,
-  Segmented,
   Text,
 } from "@/components/ui";
 import {
@@ -37,20 +36,21 @@ import { Disclosure } from "@/components/disclosure";
 import { useToast } from "@/components/toast";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtIdr } from "@/utils/format";
-import { useEnter } from "@/components/motion";
+import { PressableScale, useEnter } from "@/components/motion";
+import { benefitOrder, paywallMoment, type BenefitKey } from "@/src/lib/pro-nudge";
+import { formatStorePrice, yearlySaving, type StorePrice } from "@/src/lib/pro-plans";
 import { orpc } from "@/utils/orpc";
 
-/** Why the paywall opened; picks the subhead and nothing else. */
-const PAYWALL_FROM = [
-  "onboarding",
-  "quota",
-  "banner",
-  "profile",
-  "fitness",
-  "challenge",
-  "joyofit",
-] as const;
-type PaywallFrom = (typeof PAYWALL_FROM)[number];
+/** BCP-47 tags for Intl, by the app languages. */
+const INTL_TAG = { id: "id-ID", en: "en-US", ms: "ms-MY" } as const;
+
+const TERMS_URL = {
+  play: "https://joyorogo.com/syarat",
+  apple: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
+} as const;
+const PRIVACY_URL = "https://joyorogo.com/privasi";
+
+const idrPrice = (idr: number): StorePrice => ({ micros: idr * 1_000_000, currency: "IDR" });
 
 /** One benefit line; the check icon staggers in with its row on first mount only. */
 function BenefitRow({ index, text }: { index: number; text: string }) {
@@ -64,16 +64,70 @@ function BenefitRow({ index, text }: { index: number; text: string }) {
   );
 }
 
+/**
+ * One plan as a selectable row: radio mark (state is never colour alone), name, price and period, and for the
+ * yearly plan the per-month price and the saving against twelve monthly payments.
+ */
+function PlanOption({
+  selected,
+  onSelect,
+  title,
+  price,
+  per,
+  note,
+  badge,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  title: string;
+  price: string;
+  per: string;
+  note: string | null;
+  badge: string | null;
+}) {
+  const { theme } = useUnistyles();
+  return (
+    <PressableScale
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      accessibilityLabel={`${title}, ${price} ${per}`}
+      onPress={onSelect}
+      scaleTo={0.98}
+      style={[styles.plan, selected ? styles.planSelected : null]}
+    >
+      <Ionicons
+        name={selected ? "radio-button-on" : "radio-button-off"}
+        size={22}
+        color={selected ? theme.colors.primary : theme.colors.mutedForeground}
+      />
+      <View style={styles.planText}>
+        <View style={styles.planTitleRow}>
+          <Text style={styles.planTitle}>{title}</Text>
+          {badge ? (
+            <View style={styles.saveBadge}>
+              <Text style={styles.saveBadgeText}>{badge}</Text>
+            </View>
+          ) : null}
+        </View>
+        {note ? <Text style={styles.planNote}>{note}</Text> : null}
+      </View>
+      <View style={styles.planPrice}>
+        <Text style={styles.planAmount}>{price}</Text>
+        <Text style={styles.planPer}>{per}</Text>
+      </View>
+    </PressableScale>
+  );
+}
+
 export default function FounderPaywall() {
-  const { t } = useTranslation("billing");
+  const { t, i18n } = useTranslation("billing");
   const gate = useSessionGate();
   const toast = useToast();
-  const { next, from } = useLocalSearchParams<{ next?: string; from?: string }>();
+  const { next, from, days } = useLocalSearchParams<{ next?: string; from?: string; days?: string }>();
   // Callers only pass internal routes here ("/", "/makan", "/profil").
-  const destination = (
-    typeof next === "string" && next !== "" ? next : "/"
-  ) as Href;
-  const subheadFrom: PaywallFrom = PAYWALL_FROM.find((value) => value === from) ?? "banner";
+  const hasNext = typeof next === "string" && next !== "";
+  const destination = (hasNext ? next : "/") as Href;
+  const moment = paywallMoment(from);
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
   const config = useAppConfig();
   const ios = Platform.OS === "ios";
@@ -93,7 +147,6 @@ export default function FounderPaywall() {
   const heroEnter = useEnter(0);
   const priceEnter = useEnter(1);
   const detailsEnter = useEnter(5);
-  const actionsEnter = useEnter(6);
 
   // Android: coming back from the payment browser is when payment lands; refetch
   // the profile so this screen continues on its own after paying.
@@ -126,13 +179,17 @@ export default function FounderPaywall() {
     return <BootLoader />;
   }
 
+  // The one way out: back to where the person came from, or on to the screen the caller named.
+  const dismiss = () => {
+    if (!hasNext && router.canGoBack()) router.back();
+    else router.replace(destination);
+  };
   const buy = async () => {
     if (PLAY_ACTIVE) {
       try {
         const result = await playBuy.mutateAsync(plan);
-        if (result === "pending") {
-          toast.info(t("toast.waitingTitle"), t("toast.waitingPlay"));
-        }
+        if (result === "bought") toast.success(t("toast.subscribedTitle"), t("toast.subscribedBody"));
+        else if (result === "pending") toast.info(t("toast.waitingTitle"), t("toast.waitingPlay"));
       } catch (e) {
         toast.error(t("toast.payFailed"), errorMessage(e));
       }
@@ -162,7 +219,7 @@ export default function FounderPaywall() {
       toast.error(t("toast.restoreFailed"), errorMessage(e));
     }
   };
-  const restore = async () => {
+  const restorePlay = async () => {
     try {
       const summary = await playRestore.mutateAsync();
       if (summary.granted + summary.already > 0) {
@@ -180,30 +237,35 @@ export default function FounderPaywall() {
   };
   const buying = PLAY_ACTIVE ? playBuy.isPending : ios ? purchase.isPending : checkout.isPending;
 
-  const capText =
-    config.data.founderDailyCap === null
-      ? t("benefits.scansUnlimited")
-      : t("benefits.scansCapped", { count: config.data.founderDailyCap });
+  const cfg = config.data;
+  const freeScans = cfg.freeDailyScans ?? 0;
   const yearly = plan === "yearly";
-  const appleProduct = ios ? price.data?.[plan] : undefined;
-  const standardMonthly = config.data.promo?.nextPriceIdr ?? config.data.founderPriceIdr;
-  const yearlySaving = standardMonthly * 12 - config.data.founderYearlyPriceIdr;
-  // Play and the App Store charge their own localized price; never show the web one for them.
-  const playPrice = PLAY_ACTIVE ? playPrices.data?.[plan]?.displayPrice : undefined;
-  const priceLabel = PLAY_ACTIVE
-    ? (playPrice ?? "...")
-    : ios && appleProduct?.displayPrice
-      ? appleProduct.displayPrice
-      : fmtIdr(yearly ? config.data.founderYearlyPriceIdr : config.data.founderPriceIdr);
+  const localeTag = INTL_TAG[i18n.language as keyof typeof INTL_TAG] ?? INTL_TAG.id;
+
+  // What each store charges is its own localized price; the web price is the server's. Never show the web price for a store.
+  const play = playPrices.data;
+  const apple = price.data;
+  const priceOf = (which: CheckoutPlan): string => {
+    if (PLAY_ACTIVE) return play?.[which]?.displayPrice ?? "...";
+    if (ios && apple?.[which]?.displayPrice) return apple[which].displayPrice;
+    return fmtIdr(which === "yearly" ? cfg.founderYearlyPriceIdr : cfg.founderPriceIdr);
+  };
+  // The saving is worked out from the same amounts the buyer is charged. Apple reports no currency code, so only the
+  // percentage (currency-free) is claimed there, never a per-month figure.
+  const appleAmount = (which: CheckoutPlan): StorePrice | null => {
+    const value = Number(apple?.[which]?.price);
+    return Number.isFinite(value) && value > 0 ? { micros: value * 1_000_000, currency: "STORE" } : null;
+  };
+  const saving = PLAY_ACTIVE
+    ? yearlySaving(play?.monthly?.price, play?.yearly?.price)
+    : ios
+      ? yearlySaving(appleAmount("monthly"), appleAmount("yearly"))
+      : yearlySaving(idrPrice(cfg.founderPriceIdr), idrPrice(cfg.founderYearlyPriceIdr));
+  const perMonth = saving && !ios ? formatStorePrice(saving.perMonth, localeTag) : null;
+
   // Play needs the offer for the chosen plan: without it Play has nothing to sell.
-  const playUnavailable = PLAY_ACTIVE && playPrices.isSuccess && !playPrice;
-  const webYearly = yearly && !PLAY_ACTIVE && !ios;
-  const equivalent = [
-    t("plan.equivalent", { price: fmtIdr(Math.round(config.data.founderYearlyPriceIdr / 12)) }),
-    yearlySaving > 0 ? t("plan.save", { amount: fmtIdr(yearlySaving) }) : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const playUnavailable = PLAY_ACTIVE && playPrices.isSuccess && !play?.[plan]?.displayPrice;
+  const playLoading = PLAY_ACTIVE && playPrices.isPending;
   const renewalNote = PLAY_ACTIVE
     ? t("renewal.play")
     : ios
@@ -213,7 +275,7 @@ export default function FounderPaywall() {
     ? t(yearly ? "details.renewal.playYearly" : "details.renewal.playMonthly")
     : ios
       ? t(yearly ? "details.renewal.appleYearly" : "details.renewal.appleMonthly", {
-          price: priceLabel,
+          price: priceOf(plan),
         })
       : null;
   const paySteps = PLAY_ACTIVE || (ios && appleBilling)
@@ -224,49 +286,80 @@ export default function FounderPaywall() {
       ]
     : [t("details.step.web.one"), t("details.step.web.two"), t("details.step.done")];
 
+  const benefitText = (key: BenefitKey): string => {
+    if (key === "scans") {
+      return cfg.founderDailyCap === null
+        ? t("value.scansUnlimited", { free: freeScans })
+        : t("value.scans", { pro: cfg.founderDailyCap, free: freeScans });
+    }
+    return t(`value.${key}`);
+  };
+  const chargeLine = `${t(yearly ? "plan.chargeYearly" : "plan.chargeMonthly", { price: priceOf(plan) })} ${renewalNote}`;
+  const legalTerms = ios ? TERMS_URL.apple : PLAY_ACTIVE ? TERMS_URL.play : null;
+
   return (
-    <Screen>
+    <Screen
+      footer={
+        <View style={styles.footer}>
+          <Text style={styles.chargeLine}>{chargeLine}</Text>
+          <Button
+            label={PLAY_ACTIVE || ios ? t("paywall.buyStore") : t("paywall.buy")}
+            onPress={() => void buy()}
+            loading={buying}
+            disabled={playUnavailable || playLoading}
+          />
+          {playUnavailable ? <Text style={styles.skipHint}>{t("paywall.playUnavailable")}</Text> : null}
+          <View style={styles.footerRow}>
+            {PLAY_ACTIVE || ios ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                label={t("cards.restore")}
+                onPress={() => void (PLAY_ACTIVE ? restorePlay() : restoreApple())}
+                loading={PLAY_ACTIVE ? playRestore.isPending : appleRestore.isPending}
+              />
+            ) : null}
+            <Button variant="ghost" size="sm" label={t("paywall.later")} onPress={dismiss} />
+          </View>
+        </View>
+      }
+    >
       <Animated.View entering={heroEnter}>
-        <PageHeader title={t("paywall.title")} caption={t(`paywall.subhead.${subheadFrom}`)} />
+        <PageHeader
+          title={t("paywall.title")}
+          caption={t(`paywall.subhead.${moment}`, { days: Number(days) > 0 ? Number(days) : "" })}
+        />
       </Animated.View>
 
       {!ios && <FounderPromoCard />}
 
-      <Animated.View entering={priceEnter}>
-        <Card style={styles.priceCard}>
-          <Segmented
-            options={[
-              { value: "yearly", label: t("plan.yearly") },
-              { value: "monthly", label: t("plan.monthly") },
-            ]}
-            value={plan}
-            onChange={setPlan}
-          />
-          <View style={styles.priceRow}>
-            <Text style={styles.price}>{priceLabel}</Text>
-            <Text style={styles.pricePer}>{yearly ? t("plan.perYear") : t("plan.perMonth")}</Text>
-          </View>
-          {webYearly ? <Text style={styles.priceNote}>{equivalent}</Text> : null}
-          <Text style={styles.priceNote}>{renewalNote}</Text>
-        </Card>
+      <Animated.View entering={priceEnter} style={styles.plans} accessibilityRole="radiogroup">
+        <PlanOption
+          selected={yearly}
+          onSelect={() => setPlan("yearly")}
+          title={t("plan.yearly")}
+          price={priceOf("yearly")}
+          per={t("plan.perYear")}
+          note={perMonth ? t("plan.equivalent", { price: perMonth }) : null}
+          badge={saving ? t("plan.savePercent", { percent: saving.percent }) : null}
+        />
+        <PlanOption
+          selected={!yearly}
+          onSelect={() => setPlan("monthly")}
+          title={t("plan.monthly")}
+          price={priceOf("monthly")}
+          per={t("plan.perMonth")}
+          note={null}
+          badge={null}
+        />
       </Animated.View>
 
       <Card style={styles.benefitsCard}>
-        <Text style={styles.bundle}>{t("paywall.bundle")}</Text>
-        {[
-          capText,
-          t("benefits.advice"),
-          t("benefits.backup"),
-          t("benefits.badge"),
-          t("benefits.support"),
-        ].map((benefit, index) => (
-          <BenefitRow key={benefit} index={index + 2} text={benefit} />
+        <Text style={styles.bundle}>{t("value.title")}</Text>
+        {benefitOrder(moment).map((key, index) => (
+          <BenefitRow key={key} index={index + 2} text={benefitText(key)} />
         ))}
-        {config.data.freeDailyScans !== null ? (
-          <Text style={styles.freeNote}>
-            {t("benefits.free", { count: config.data.freeDailyScans })}
-          </Text>
-        ) : null}
+        <Text style={styles.freeNote}>{t("benefits.free", { count: freeScans })}</Text>
       </Card>
 
       <Animated.View entering={detailsEnter}>
@@ -281,128 +374,128 @@ export default function FounderPaywall() {
             </View>
           ))}
           <Text style={styles.detailText}>{t("details.backup")}</Text>
-          {webYearly ? <Text style={styles.detailText}>{t("details.stacks")}</Text> : null}
+          {yearly && !PLAY_ACTIVE && !ios ? <Text style={styles.detailText}>{t("details.stacks")}</Text> : null}
           {renewalDetail ? <Text style={styles.detailText}>{renewalDetail}</Text> : null}
           <Text style={styles.detailText}>{t("details.later")}</Text>
         </Disclosure>
       </Animated.View>
 
-      <Animated.View entering={actionsEnter} style={styles.actions}>
-        <Button
-          label={PLAY_ACTIVE || ios ? t("paywall.buyStore") : t("paywall.buy")}
-          onPress={() => void buy()}
-          loading={buying}
-          disabled={playUnavailable}
-        />
-        {playUnavailable ? <Text style={styles.skipHint}>{t("paywall.playUnavailable")}</Text> : null}
-        {PLAY_ACTIVE ? (
-          <Button
-            variant="secondary"
-            size="sm"
-            label={t("cards.restore")}
-            onPress={() => void restore()}
-            loading={playRestore.isPending}
-          />
-        ) : null}
-        {ios ? (
-          <>
-            <View style={styles.buttonRow}>
-              <Button
-                variant="secondary"
-                size="sm"
-                style={styles.rowButton}
-                label={t("cards.restore")}
-                onPress={() => void restoreApple()}
-                loading={appleRestore.isPending}
-              />
-              <Button
-                variant="secondary"
-                size="sm"
-                style={styles.rowButton}
-                label={t("cards.manage")}
-                onPress={() => void openManageSubscriptions()}
-              />
-            </View>
-            <View style={styles.legalRow}>
-              <Text
-                style={styles.legalLink}
-                accessibilityRole="link"
-                onPress={() =>
-                  void Linking.openURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")
-                }
-              >
-                {t("paywall.terms")}
-              </Text>
+      {PLAY_ACTIVE || ios ? (
+        <View style={styles.legalRow}>
+          {legalTerms ? (
+            <Text style={styles.legalLink} accessibilityRole="link" onPress={() => void Linking.openURL(legalTerms)}>
+              {t("paywall.terms")}
+            </Text>
+          ) : null}
+          <Text style={styles.skipHint}>·</Text>
+          <Text style={styles.legalLink} accessibilityRole="link" onPress={() => void Linking.openURL(PRIVACY_URL)}>
+            {t("paywall.privacy")}
+          </Text>
+          {ios ? (
+            <>
               <Text style={styles.skipHint}>·</Text>
               <Text
                 style={styles.legalLink}
                 accessibilityRole="link"
-                onPress={() => void Linking.openURL("https://joyorogo.com/privasi")}
+                onPress={() => void openManageSubscriptions()}
               >
-                {t("paywall.privacy")}
+                {t("cards.manage")}
               </Text>
-            </View>
-          </>
-        ) : null}
-        {!ios && !PLAY_ACTIVE ? checkout.sheet : null}
-        <Button
-          variant="ghost"
-          size="sm"
-          label={t("paywall.later")}
-          onPress={() => router.replace(destination)}
-        />
-      </Animated.View>
+            </>
+          ) : null}
+        </View>
+      ) : null}
+      {!ios && !PLAY_ACTIVE ? checkout.sheet : null}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
-  priceCard: {
-    gap: 4,
+  plans: {
+    gap: theme.spacing.sm,
+  },
+  plan: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md,
+    minHeight: 72,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.radius.tile,
+    borderWidth: 2,
+    borderColor: theme.colors.hairline,
+    backgroundColor: theme.colors.card,
+  },
+  planSelected: {
+    borderColor: theme.colors.primary,
     backgroundColor: theme.colors.makanSoft,
   },
-  priceRow: {
+  planText: {
+    flex: 1,
+    gap: 2,
+  },
+  planTitleRow: {
     flexDirection: "row",
-    alignItems: "baseline",
-    gap: 6,
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm,
   },
-  price: {
-    fontSize: theme.fontSize.hero,
-    fontWeight: "800",
-    letterSpacing: -1.5,
-    color: theme.colors.makanText,
+  planTitle: {
+    fontSize: theme.fontSize.md,
+    fontWeight: "700",
+    color: theme.colors.foreground,
   },
-  pricePer: {
-    fontSize: theme.fontSize.base,
-    fontWeight: "600",
-    color: theme.colors.makanText,
-  },
-  priceNote: {
+  planNote: {
     fontSize: theme.fontSize.sm,
-    color: theme.colors.makanText,
+    color: theme.colors.mutedForeground,
+  },
+  planPrice: {
+    alignItems: "flex-end",
+  },
+  planAmount: {
+    fontSize: theme.fontSize.xl,
+    fontWeight: "800",
+    color: theme.colors.foreground,
+  },
+  planPer: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
+  saveBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.primary,
+  },
+  saveBadgeText: {
+    fontSize: theme.fontSize.xs,
+    fontWeight: "800",
+    color: theme.colors.primaryForeground,
   },
   benefitsCard: {
     gap: 2,
   },
   bundle: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: "700",
+    fontSize: theme.fontSize.md,
+    fontWeight: "800",
     color: theme.colors.foreground,
     marginBottom: 4,
   },
   benefitRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: theme.spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   benefitText: {
     flex: 1,
     fontSize: theme.fontSize.base,
+    lineHeight: 21,
     color: theme.colors.foreground,
   },
   freeNote: {
-    marginTop: theme.spacing.xs,
+    marginTop: theme.spacing.sm,
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
     lineHeight: 19,
@@ -443,19 +536,26 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.foreground,
     lineHeight: 20,
   },
-  actions: {
+  footer: {
     gap: theme.spacing.sm,
-    marginTop: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
   },
-  buttonRow: {
+  chargeLine: {
+    textAlign: "center",
+    fontSize: theme.fontSize.sm,
+    lineHeight: 18,
+    color: theme.colors.mutedForeground,
+  },
+  footerRow: {
     flexDirection: "row",
-    gap: theme.spacing.sm,
-  },
-  rowButton: {
-    flex: 1,
+    justifyContent: "center",
+    gap: theme.spacing.md,
   },
   legalRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "center",
     gap: theme.spacing.xs,
   },

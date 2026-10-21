@@ -213,3 +213,35 @@ describe("profile.setActivityLevel", () => {
     await expect(call(profileRouter.setActivityLevel, { level: "light" }, as("fresh"))).rejects.toThrow();
   });
 });
+
+describe("profile.scanAllowance", () => {
+  const paywall = { FREE_DAILY_SCANS: "3", FOUNDER_DAILY_CAP: "100" };
+  const withEnv = (userId: string, env: Record<string, string>) => ({
+    context: { ...as(userId).context, env } as unknown as Context,
+  });
+  const nowMs = Date.now();
+
+  test("a free account sees its quota and what today's scans left of it", async () => {
+    await client.executeMultiple(`
+      INSERT INTO "user" (id, name, email, tier) VALUES ('allow-free', 'f', 'allow-free@test.id', 'free');
+      INSERT INTO ai_usage (id, user_id, model, scan_type, latency_ms, created_at) VALUES
+        ('au1', 'allow-free', 'm', 'user', 1, ${nowMs}),
+        ('au2', 'allow-free', 'm', 'user', 1, ${nowMs}),
+        ('au3', 'allow-free', 'm', 'retry', 1, ${nowMs});
+    `);
+    const out = await call(profileRouter.scanAllowance, undefined, withEnv("allow-free", paywall));
+    expect(out).toEqual({ tier: "free", quota: 3, used: 2, left: 1 });
+  });
+
+  test("a Pro account has the Pro cap", async () => {
+    await client.execute(`INSERT INTO "user" (id, name, email, tier) VALUES ('allow-pro', 'p', 'allow-pro@test.id', 'founder')`);
+    const out = await call(profileRouter.scanAllowance, undefined, withEnv("allow-pro", paywall));
+    expect(out).toEqual({ tier: "founder", quota: 100, used: 0, left: 100 });
+  });
+
+  test("an unlimited account and a server without a paywall report no limit", async () => {
+    await client.execute(`INSERT INTO "user" (id, name, email, tier, ai_unlimited) VALUES ('allow-vip', 'v', 'allow-vip@test.id', 'free', 1)`);
+    expect(await call(profileRouter.scanAllowance, undefined, withEnv("allow-vip", paywall))).toMatchObject({ quota: null, left: null });
+    expect(await call(profileRouter.scanAllowance, undefined, withEnv("allow-free", {}))).toMatchObject({ quota: null, left: null });
+  });
+});

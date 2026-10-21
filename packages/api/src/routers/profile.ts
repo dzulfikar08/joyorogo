@@ -28,7 +28,7 @@ import { activityLevelSchema, dateSchema, manualTdeeKcalSchema, maternalInputSch
 import { readCalibrationPrefs } from "../lib/calibration-store";
 import { buildPlan, planQueries } from "../lib/plan";
 import { serverT } from "../lib/messages";
-import { effectiveTier } from "../lib/tiers";
+import { effectiveTier, paywallConfig, scanAllowance, scansUsedToday } from "../lib/tiers";
 
 /**
  * Entering Hamil / Menyusui: fasting reminders and the public progress page go off, and
@@ -132,6 +132,21 @@ export const profileRouter = {
       tier,
       founderUntil,
     };
+  }),
+
+  // Today's AI scan allowance, so the scan screen can say "2 of 3 free scans left" before the limit hits. The same
+  // rule requireAiQuota enforces (quota.ts); `quota`/`left` are null for an unlimited account or a server without a paywall.
+  scanAllowance: protectedProcedure.handler(async ({ context }) => {
+    const userId = context.session.user.id;
+    const [[userRow], used] = await Promise.all([
+      context.db
+        .select({ tier: user.tier, founderUntil: user.founderUntil, aiUnlimited: user.aiUnlimited })
+        .from(user)
+        .where(eq(user.id, userId))
+        .limit(1),
+      scansUsedToday(context.db, userId, jakartaToday()),
+    ]);
+    return scanAllowance(effectiveTier(userRow), userRow?.aiUnlimited ?? false, used, paywallConfig(context.env));
   }),
 
   // Where the activity level is chosen: what each of the five levels would make of THIS person's target, plus the two

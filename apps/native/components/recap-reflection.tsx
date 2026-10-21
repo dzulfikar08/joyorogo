@@ -121,7 +121,7 @@ export function RecapReflection({ weekStart }: { weekStart: string }) {
             <Button
               variant="ghost"
               label={t("upsell.cta")}
-              onPress={() => router.push({ pathname: "/founder", params: { from: "profile" } })}
+              onPress={() => router.push({ pathname: "/founder", params: { from: "recap" } })}
               style={styles.upsellCta}
             />
           </View>

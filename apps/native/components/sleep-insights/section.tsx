@@ -213,7 +213,7 @@ function LockedTeaser({ count }: { count: number }) {
         <Button
           variant="ghost"
           label={t("ui.lockedCta")}
-          onPress={() => router.push({ pathname: "/founder", params: { from: "profile" } })}
+          onPress={() => router.push({ pathname: "/founder", params: { from: "sleep" } })}
           style={styles.cta}
         />
       ) : null}

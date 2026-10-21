@@ -31,6 +31,9 @@ Users buy **JoyoRogo Pro** inside the Play build as a Play subscription. It gran
    5. **only then** acknowledges the purchase (`purchases.subscriptions.acknowledge`). If acknowledge fails the request errors, the app retries on its next start, and the credit is not repeated. Play refunds purchases left unacknowledged for 3 days, which is why a credit is never lost behind a missing acknowledge.
 5. Restore: "Pulihkan pembelian" (on `/founder` and in Profil) and an automatic replay at start re-read the Google account's subscriptions from Play and post each token. This also covers a purchase made on a new phone or after a reinstall. A token belonging to another JoyoRogo account answers "terhubung ke akun JoyoRogo lain".
 6. Pending purchases (convenience store, cash, bank transfer): the sheet returns `pending`. The server links the token but credits and acknowledges nothing. When the buyer pays, Play sends `SUBSCRIPTION_PURCHASED`, and the RTDN endpoint credits it (or the next app start does through the replay).
+7. Manage: an account that is already Pro sees "Kelola langganan" (Profil, Langganan) instead of "Perpanjang". It opens `https://play.google.com/store/account/subscriptions?sku=pro&package=com.joyodigitama.joyorogo` (cancel, payment method, next charge). Pro bought on the web has nothing to manage there.
+
+Where the app points a free account at this screen (Pro pill in the Beranda header, "Sisa N dari M scan" on the camera, streak milestones, Lainnya, locked features) is listed in `docs/billing-status.md`, which also records what is set up in production.
 
 ### Real-time notifications
 

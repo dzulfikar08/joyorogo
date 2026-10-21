@@ -19,7 +19,14 @@
       "profile": "Support JoyoRogo and get a much bigger AI scan allowance.",
       "fitness": "Get daily portion and menu tips based on your JoyoFit score, your targets and what you log.",
       "challenge": "Pro members create group challenges. Joining a friend's challenge is still free.",
-      "joyofit": "JoyoFit cloud backup comes with Pro, in one plan with JoyoRogo."
+      "joyofit": "JoyoFit cloud backup comes with Pro, in one plan with JoyoRogo.",
+      "scanleft": "Your free scans are almost used up today. Pro gives you a much bigger allowance.",
+      "chip": "One plan for JoyoRogo and JoyoFit. This is what Pro opens.",
+      "mealplan": "Daily and weekly menus that fit your calories and protein, plus a shopping list and recipes.",
+      "sleep": "Sleep patterns tied to your eating habits, worked out from your watch data.",
+      "recap": "A weekly reflection written by AI from your own numbers.",
+      "workout": "The charts, splits and zones of workouts your friends share.",
+      "streak": "A {{days}}-day streak. Pro gives you enough scans to keep logging every day."
     }
   },
   "plan": {
@@ -29,7 +36,10 @@
     "save": "save {{amount}}",
     "perMonth": "/month",
     "perYear": "/year",
-    "equivalent": "That's {{price}}/month"
+    "equivalent": "That's {{price}}/month",
+    "savePercent": "Save {{percent}}%",
+    "chargeYearly": "{{price}} per year.",
+    "chargeMonthly": "{{price}} per month."
   },
   "benefits": {
     "scansUnlimited": "Unlimited AI scans",
@@ -41,6 +51,35 @@
     "support": "Support JoyoRogo's development",
     "free_one": "The free plan keeps {{count}} AI scan per day, forever.",
     "free_other": "The free plan keeps {{count}} AI scans per day, forever."
+  },
+  "value": {
+    "title": "What Pro gives you",
+    "scans": "{{pro}} AI scans a day instead of {{free}}",
+    "scansUnlimited": "Unlimited AI scans instead of {{free}} a day",
+    "mealPlan": "A weekly meal plan, recipes and a shopping list built from your targets",
+    "advice": "Daily portion and menu tips from your JoyoFit score",
+    "sleep": "Sleep insights and a weekly reflection written by AI",
+    "cloud": "Ask the coach and back up to the cloud in JoyoFit",
+    "challenge": "Host group challenges"
+  },
+  "nudge": {
+    "chip": "Pro",
+    "chipLabel": "See JoyoRogo Pro",
+    "scanLeft": "{{left}} of {{total}} free scans left today",
+    "scanLeftNone": "No free scans left today",
+    "scanLeftAction": "See Pro",
+    "streak": {
+      "title": "{{days}} days in a row logged",
+      "body": "Pro gives you enough scans to keep logging every day, plus the meal plan and tips from JoyoFit.",
+      "cta": "See Pro",
+      "dismiss": "Close"
+    },
+    "more": {
+      "title": "JoyoRogo Pro",
+      "bodyCapped": "{{pro}} AI scans a day, a meal plan and JoyoFit cloud backup.",
+      "bodyUnlimited": "Unlimited AI scans, a meal plan and JoyoFit cloud backup.",
+      "cta": "See Pro"
+    }
   },
   "details": {
     "title": "How to pay and details",
