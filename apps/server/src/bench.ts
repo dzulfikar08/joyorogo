@@ -3,6 +3,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 
 import { correctScanItems, correctionItemSchema } from "@joyorogo/api/lib/scan-correct";
+import { LOCALES } from "@joyorogo/i18n";
 import { analyzeFoodPhoto, DEFAULT_VISION_MODEL } from "@joyorogo/api/lib/vision";
 
 type AiRunner = { run(model: string, input: unknown): Promise<unknown> };
@@ -18,7 +19,7 @@ const benchCorrectSchema = z.object({
   items: z.array(correctionItemSchema).min(1).max(15),
   texts: z.array(z.string().min(2).max(300)).min(1).max(20),
   model: z.string().optional(),
-  locale: z.enum(["id", "en"]).optional(),
+  locale: z.enum(LOCALES).optional(),
 });
 
 type Deps = {

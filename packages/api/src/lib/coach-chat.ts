@@ -5,7 +5,7 @@
 
 import { z } from "zod";
 
-import { getT } from "@joyorogo/i18n";
+import { getT, LOCALES } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 
 import type { CoachServerContext } from "./coach-context";
@@ -85,7 +85,7 @@ export const coachChatInputSchema = z.object({
     .max(COACH_LIMITS.maxMessages)
     .refine((list) => list[list.length - 1]?.role === "user", "last message must be from the user"),
   snapshot: coachSnapshotSchema,
-  locale: z.enum(["id", "en"]).optional(),
+  locale: z.enum(LOCALES).optional(),
 });
 
 // ---- safety pass ----

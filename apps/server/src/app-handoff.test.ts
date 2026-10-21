@@ -78,6 +78,14 @@ describe("androidAppHandoff", () => {
     expect(html).toContain("Open JoyoFit");
   });
 
+  test("speaks Malay to a Malay browser", async () => {
+    const page = await handoff(browserRequest(ANDROID_CHROME, { language: "ms-MY,ms;q=0.9,en;q=0.8" }), redirect(APP_URL));
+    const html = await page?.text();
+    expect(html).toContain('lang="ms"');
+    expect(html).toContain("Buka JoyoFit");
+    expect(html).toContain("ketik butang");
+  });
+
   test("passes through the redirects that must stay redirects", async () => {
     // iOS: ASWebAuthenticationSession follows the scheme redirect itself.
     expect(await handoff(browserRequest(IPHONE_SAFARI), redirect(APP_URL))).toBeNull();

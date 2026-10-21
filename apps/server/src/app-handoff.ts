@@ -13,6 +13,9 @@
  * (ASWebAuthenticationSession) and desktop browsers keep the plain redirect, as do https and loopback targets.
  */
 
+import { DEFAULT_LOCALE, matchAcceptLanguage } from "@joyorogo/i18n";
+import type { Locale } from "@joyorogo/i18n";
+
 const APPS: Readonly<Record<string, string>> = { joyofit: "JoyoFit", joyorogo: "JoyoRogo" };
 
 const COPY = {
@@ -26,7 +29,12 @@ const COPY = {
     body: (app: string) => `${app} should open in a moment. If it does not, tap the button below.`,
     button: (app: string) => `Open ${app}`,
   },
-} as const;
+  ms: {
+    title: (app: string) => `Kembali ke ${app}`,
+    body: (app: string) => `${app} akan dibuka sebentar lagi. Jika tidak dibuka, ketik butang di bawah.`,
+    button: (app: string) => `Buka ${app}`,
+  },
+} as const satisfies Record<Locale, unknown>;
 
 const REDIRECTS = new Set([301, 302, 303, 307, 308]);
 
@@ -50,10 +58,10 @@ function appScheme(location: string): string | null {
 }
 
 /** The hand-off page for `target` (a URL in the app's own scheme). */
-export function handoffHtml(target: string, language: "id" | "en"): string {
+export function handoffHtml(target: string, language: Locale): string {
   const scheme = appScheme(target) ?? "";
   const copy = COPY[language];
-  const app = APPS[scheme] ?? (language === "id" ? "aplikasi" : "the app");
+  const app = APPS[scheme] ?? (language === "en" ? "the app" : "aplikasi");
   return (
     `<!doctype html><html lang="${language}"><head><meta charset="utf-8">` +
     `<meta name="viewport" content="width=device-width,initial-scale=1">` +
@@ -122,7 +130,7 @@ async function replayTarget(request: Request, secret: string): Promise<string | 
 }
 
 function handoffResponse(target: string, request: Request, headers: Headers): Response {
-  const language = /^\s*en\b/i.test(request.headers.get("accept-language") ?? "") ? "en" : "id";
+  const language = matchAcceptLanguage(request.headers.get("accept-language")) ?? DEFAULT_LOCALE;
   headers.delete("location");
   headers.delete("content-length");
   headers.set("content-type", "text/html; charset=utf-8");
