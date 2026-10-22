@@ -20,10 +20,23 @@ import { orpc } from "@/utils/orpc";
 
 const profileOptions = orpc.profile.myProfile.queryOptions();
 
+const PROFILE_WAIT_MS = 3_000;
+
+/**
+ * The route waits for the profile only so a Pro account does not see the offer flash before it is sent on. A slow or failed profile
+ * must not hold the page on its skeleton, and the page also reads the profile itself, so after a short wait it renders anyway.
+ */
+function waitForProfile(profile: Promise<unknown>): Promise<unknown> {
+  return Promise.race([
+    profile.catch(() => undefined),
+    new Promise((resolve) => setTimeout(resolve, PROFILE_WAIT_MS)),
+  ]);
+}
+
 /** Skippable Pro offer; `next` is where "Not now" and redirects land. */
 export const Route = createFileRoute("/_auth/pro")({
   validateSearch: validatePaywallSearch,
-  loader: ({ context }) => context.queryClient.ensureQueryData(profileOptions),
+  loader: ({ context }) => waitForProfile(context.queryClient.ensureQueryData(profileOptions)),
   pendingComponent: FounderSkeleton,
   component: ProRoute,
 });
