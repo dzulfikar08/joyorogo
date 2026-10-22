@@ -244,7 +244,7 @@ const PRIVACY_MS: LegalDoc = {
           "Perbualan disimpan pada peranti anda sahaja: dalam pelayar untuk web, dalam telefon untuk aplikasi. Perbualan tidak disegerakkan ke akaun anda atau peranti lain. Di web, Padam semua perbualan dalam sejarah Joyo AI memadamkannya, begitu juga memadam data laman dalam pelayar, yang sekali gus menarik balik persetujuan anda.",
           "Mesej yang menyebut kecederaan, sakit, gejala, ubat atau gangguan pemakanan dijawab dengan saranan berjumpa doktor atau pakar pemakanan, tanpa petua diet. Joyo AI tidak tersedia untuk pengguna di bawah 18 tahun.",
         ] },
-        "Dalam aplikasi telefon, Joyo AI juga boleh menggunakan kunci API anda sendiri tanpa Pro. Laluan itu berasingan: telefon anda menghantar terus kepada penyedia pilihan anda (OpenRouter, OpenAI, Anthropic atau Google Gemini), tidak melalui pelayan JoyoRogo, dan kunci itu kekal dalam storan selamat telefon anda. Selepas data sampai kepada penyedia itu, peraturan privasi penyedia itu pula yang terpakai. Web tidak menyokong kunci sendiri.",
+        "Dalam aplikasi telefon, Joyo AI juga boleh menggunakan kunci API anda sendiri tanpa Pro. Laluan itu berasingan: telefon anda menghantar terus kepada penyedia pilihan anda (OpenRouter, OpenAI, Anthropic atau Google Gemini), tidak melalui pelayan JoyoRogo, dan kunci itu kekal dalam storan selamat telefon anda. Selepas data sampai kepada penyedia itu, peraturan privasi penyedia itu pula yang terpakai. Data daripada Health Connect atau Apple Health (langkah, senaman, tidur, degupan jantung) tidak pernah dihantar melalui laluan ini. Web tidak menyokong kunci sendiri.",
       ],
     },
     {
@@ -666,7 +666,7 @@ const PRIVACY_EN: LegalDoc = {
           "Conversations are kept on your own device only: in the browser for the web, on the phone for the app. They are not synced to your account or other devices. On the web, Delete all conversations in the Joyo AI history removes them, and so does clearing the site data in the browser, which also withdraws your consent.",
           "Messages that mention injury, pain, symptoms, medication or an eating disorder are answered with advice to see a doctor or a dietitian, with no diet tips. Joyo AI is not available to users under 18.",
         ] },
-        "In the phone app, Joyo AI can also use your own API key without Pro. That route is separate: your phone sends straight to the provider you choose (OpenRouter, OpenAI, Anthropic or Google Gemini), not through the JoyoRogo server, and the key stays in your phone's secure storage. Once the data reaches that provider, the provider's own privacy rules apply. The web does not support your own key.",
+        "In the phone app, Joyo AI can also use your own API key without Pro. That route is separate: your phone sends straight to the provider you choose (OpenRouter, OpenAI, Anthropic or Google Gemini), not through the JoyoRogo server, and the key stays in your phone's secure storage. Once the data reaches that provider, the provider's own privacy rules apply. Data from Health Connect or Apple Health (steps, workouts, sleep, heart rate) is never sent on this route. The web does not support your own key.",
       ],
     },
     {

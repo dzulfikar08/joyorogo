@@ -106,7 +106,7 @@ export const joyoRouter = {
       }
 
       const day = deviceDay(input.today, zoneToday);
-      const data = createToolData(rpcFromContext(context), { today: () => day });
+      const data = createToolData(rpcFromContext(context), { today: () => day, engine: "hosted" });
       const channel = new EventChannel<JoyoEvent>();
       const stop = new AbortController();
       signal?.addEventListener("abort", () => stop.abort(), { once: true });

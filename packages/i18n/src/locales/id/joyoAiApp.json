@@ -155,6 +155,7 @@
     },
     "notSentTitle": "Tidak pernah dikirim",
     "notSent": "Data siklus haid, mode hamil atau menyusui, nama, email, foto, lokasi GPS, ID perangkat, dan data Strava.",
+    "notSentOwnKey": "Data dari Health Connect / Apple Health (langkah, olahraga, tidur, detak jantung), data siklus haid, mode hamil atau menyusui, nama, email, foto, lokasi GPS, ID perangkat, dan data Strava.",
     "terms": "Setelah sampai di {{provider}}, data diperlakukan menurut syarat dan kebijakan privasi mereka sendiri. Baca dulu syaratnya di situs {{provider}}.",
     "hostedKept": "Server JoyoRogo tidak menyimpan pertanyaan maupun jawaban. Yang dicatat hanya jumlah pertanyaan per hari untuk batas harian.",
     "sample": "Lihat contoh data",

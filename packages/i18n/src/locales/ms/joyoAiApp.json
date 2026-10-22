@@ -155,6 +155,7 @@
     },
     "notSentTitle": "Tidak pernah dihantar",
     "notSent": "Data kitaran haid, mod mengandung atau menyusu, nama, e-mel, foto, lokasi GPS, ID peranti dan data Strava.",
+    "notSentOwnKey": "Data daripada Health Connect / Apple Health (langkah, senaman, tidur, degupan jantung), data kitaran haid, mod mengandung atau menyusu, nama, e-mel, foto, lokasi GPS, ID peranti dan data Strava.",
     "terms": "Selepas sampai ke {{provider}}, data dikendalikan mengikut syarat dan dasar privasi mereka sendiri. Baca syaratnya di laman {{provider}} dahulu.",
     "hostedKept": "Pelayan JoyoRogo tidak menyimpan soalan mahupun jawapan. Yang dicatat hanya bilangan soalan sehari untuk had harian.",
     "sample": "Lihat contoh data",

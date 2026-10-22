@@ -5,7 +5,9 @@
  * photo ids, places or device ids; the birth year becomes an age; free text (food names) is flattened and capped.
  *
  * NOT in it, on purpose: menstrual-cycle data, pregnancy / breastfeeding mode and maternal targets (no AI path reads either),
- * Strava, GPS. `digest.test.ts` builds a digest from a source that carries those fields and checks they cannot appear.
+ * Strava, GPS, and (own-key engine) anything Health Connect / Apple Health wrote: steps, workouts, active energy, sleep, heart rate,
+ * imported weigh-ins, and the exercise credit in the kcal budget (see `createToolData` with `engine: "byok"`).
+ * `digest.test.ts` builds a digest from a source that carries those fields and checks they cannot appear.
  * Every key below is listed in `DIGEST_FIELDS`, and `digest.test.ts` ties that list to `CONSENT_VERSION` through the hash.
  */
 
@@ -87,7 +89,7 @@ export function fieldsHash(fields: readonly string[] = DIGEST_FIELDS): string {
 }
 
 /** Frozen per consent version: never edit an old entry; a changed field list needs a new version and a new entry. */
-export const CONSENT_FIELDS_HASH: Record<number, string> = { 1: "f4b22e82" };
+export const CONSENT_FIELDS_HASH: Record<number, string> = { 1: "f4b22e82", 2: "f4b22e82" };
 
 export interface Digest {
   v: typeof DIGEST_VERSION;

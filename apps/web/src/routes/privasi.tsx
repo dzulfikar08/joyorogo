@@ -280,7 +280,8 @@ function PrivasiPage() {
               itu terpisah: ponselmu mengirim langsung ke penyedia yang kamu pilih (OpenRouter,
               OpenAI, Anthropic, atau Google Gemini), tanpa lewat server JoyoRogo, dan kuncinya hanya
               ada di penyimpanan aman ponselmu. Setelah data sampai di penyedia itu, aturan privasi
-              penyedia itu yang berlaku. Web tidak mendukung kunci sendiri.
+              penyedia itu yang berlaku. Data dari Health Connect atau Apple Health (langkah, olahraga,
+              tidur, detak jantung) tidak pernah dikirim lewat jalur ini. Web tidak mendukung kunci sendiri.
             </p>
           </section>
 

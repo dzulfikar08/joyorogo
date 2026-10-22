@@ -98,6 +98,7 @@ describe("runJoyoChat", () => {
   const person = { ageYears: 30, sex: "male" as const, heightCm: 175, goal: null };
   const never = (): Promise<never> => Promise.withResolvers<never>().promise;
   const data: ToolData = {
+    engine: "hosted",
     today: () => TODAY,
     day: () => never(),
     range: () => Promise.reject(new Error("no")),

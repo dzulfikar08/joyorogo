@@ -8,6 +8,7 @@ import { daysBetween, macroTargets, shiftDate } from "../engine";
 import { flat } from "./digest";
 import { lookupFood, normalize } from "./foods";
 import type { Nutrient, Remaining } from "./foods";
+import type { Engine } from "./types";
 
 // ---------------------------------------------------------------------------------------------------------------------
 // The wrapped procedures (types follow the router: a rename breaks the build)
@@ -154,6 +155,11 @@ export interface ProfileData {
 }
 
 export interface ToolData {
+  /**
+   * Who reads this data. `byok` (the person's own provider key) never carries anything that came from Health Connect or Apple Health
+   * (see `HEALTH_STORE_SOURCES`); `hosted` (our server, Workers AI) keeps everything.
+   */
+  readonly engine: Engine;
   /** Today as `YYYY-MM-DD` (the device's day). */
   today(): string;
   day(date: string): Promise<DayData>;
@@ -228,7 +234,18 @@ function partialOf(missing: Record<(typeof NUTRIENT_KEYS)[number], number>): Nut
   return NUTRIENT_KEYS.filter((k) => missing[k] > 0);
 }
 
-export function createToolData(rpc: RogoRpc, opts: { today: () => string }): ToolData {
+/** Where a row can come from when a health store (Android Health Connect, iOS HealthKit) wrote it: never sent to an own-key provider. */
+export const HEALTH_STORE_SOURCES: readonly string[] = ["health_connect", "apple_health"];
+
+/**
+ * The model-facing sentence every own-key tool result and the system prompt carry: activity, steps, workouts, sleep, heart rate
+ * and weigh-ins that a health store wrote are not shared, and the kcal budget is the base budget without the activity credit.
+ */
+export const BYOK_HEALTH_NOTE =
+  "Data from Health Connect / Apple Health (steps, workouts and active energy, sleep, heart rate, imported weight) is not shared with own-key AI and is NOT zero: it is unknown. The kcal budget here is the base budget without any credit for counted exercise, so do not say or assume the person did or did not exercise."; // i18n-ok: model-facing text
+
+export function createToolData(rpc: RogoRpc, opts: { today: () => string; engine: Engine }): ToolData {
+  const byok = opts.engine === "byok";
   const today = opts.today;
   let diaryUnsupported = rpc.diaryRange === undefined;
   let recentIndex: Promise<Map<string, number>> | null = null;
@@ -264,7 +281,11 @@ export function createToolData(rpc: RogoRpc, opts: { today: () => string }): Too
 
     const s = rec(summary);
     const t = rec(s.targets);
-    const eatKcal = num(t.eatKcal);
+    const exerciseKcal = num(t.exerciseKcal);
+    // The eat budget is the base plus the counted exercise, and the credit comes from Health Connect / Apple Health readings and
+    // workouts, which an own-key provider never gets: its budget is the base alone. Without `exerciseKcal` the base cannot be
+    // told apart from the budget, so there is no target rather than one that may carry the credit.
+    const eatKcal = byok ? (num(t.eatKcal) === null || exerciseKcal === null ? null : num(t.eatKcal)! - exerciseKcal) : num(t.eatKcal);
     const proteinTarget = num(rec(s.protein).targetG);
     let targets: DayTargets | null = null;
     if (eatKcal !== null) {
@@ -414,6 +435,8 @@ export function createToolData(rpc: RogoRpc, opts: { today: () => string }): Too
     for (const e of Array.isArray(out.entries) ? out.entries : []) {
       const r = rec(e);
       const kg = num(r.weightKg);
+      // A weigh-in a health store wrote is not shared with an own-key provider.
+      if (byok && typeof r.source === "string" && HEALTH_STORE_SOURCES.includes(r.source)) continue;
       if (typeof r.date === "string" && kg !== null && r.date >= from) entries.push({ date: r.date.slice(0, 10), kg: round1(kg) });
     }
     entries.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
@@ -424,10 +447,12 @@ export function createToolData(rpc: RogoRpc, opts: { today: () => string }): Too
 
   async function profile(): Promise<ProfileData> {
     profileCache ??= (async () => {
-      const [out, allowance, maternal] = await Promise.all([
+      // The own-key engine's latest weight comes from the weigh-ins it may read (the server's figure can be a health store's).
+      const [out, allowance, maternal, ownWeights] = await Promise.all([
         rpc.myProfile(),
         rpc.scanAllowance ? rpc.scanAllowance().catch(() => null) : Promise.resolve(null),
         isMaternalPlan().catch(() => false),
+        byok ? weights("0000-01-01").catch(() => null) : Promise.resolve(null),
       ]);
       const p = rec(rec(out).profile);
       const t = rec(rec(out).targets);
@@ -445,7 +470,9 @@ export function createToolData(rpc: RogoRpc, opts: { today: () => string }): Too
         tdeeKcal: num(t.tdee) === null ? null : Math.round(num(t.tdee) as number),
         targetWeightKg: maternal || num(p.targetWeightKg) === null ? null : round1(num(p.targetWeightKg) as number),
         targetDate: maternal || typeof p.targetDate !== "string" ? null : flat(p.targetDate, 10),
-        latestWeightKg: num(rec(out).latestWeightKg) === null ? null : round1(num(rec(out).latestWeightKg) as number),
+        latestWeightKg: byok
+          ? (ownWeights?.entries.at(-1)?.kg ?? null)
+          : num(rec(out).latestWeightKg) === null ? null : round1(num(rec(out).latestWeightKg) as number),
         scanAllowance: allowance ? { used: num(a.used) ?? 0, quota: num(a.quota), left: num(a.left) } : null,
       };
     })();
@@ -476,5 +503,5 @@ export function createToolData(rpc: RogoRpc, opts: { today: () => string }): Too
       }
     : undefined;
 
-  return { today, day, range, weights, profile, ...(usualGrams ? { usualGrams } : {}) };
+  return { engine: opts.engine, today, day, range, weights, profile, ...(usualGrams ? { usualGrams } : {}) };
 }

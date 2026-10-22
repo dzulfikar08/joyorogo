@@ -6,8 +6,10 @@ import type { ProviderId } from './types';
 /**
  * The version of the consent text and of the list of data the digest sends. Change what the digest sends (`DIGEST_FIELDS`, owned by
  * `digest.ts`, pinned there to this number) and bump this together: everyone is asked again (Apple 5.1.2(i), Google Play AI rules).
+ * 2: the own-key engine no longer gets Health Connect / Apple Health data (the digest fields are unchanged; the consent wording now
+ * lists it under "never sent", so earlier own-key yeses are asked again).
  */
-export const CONSENT_VERSION = 1;
+export const CONSENT_VERSION = 2;
 
 /** The kinds of data that leave the device, in the order the consent screen lists them (`joyoAiApp:consent.data.<id>`). */
 export const CONSENT_CATEGORIES = ['body', 'food', 'water', 'weight', 'fasting', 'chat'] as const;

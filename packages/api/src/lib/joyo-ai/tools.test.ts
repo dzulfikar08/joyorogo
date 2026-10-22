@@ -5,7 +5,7 @@ import { TOOL_LIMITS, TOOL_NAMES, TOOL_SPECS, isToolName, runTool } from "./tool
 import { createToolData } from "./tool-data";
 import type { RogoRpc } from "./tool-data";
 
-const dataFor = (rpc: RogoRpc = fakeRpc()) => createToolData(rpc, { today: () => TODAY });
+const dataFor = (rpc: RogoRpc = fakeRpc()) => createToolData(rpc, { today: () => TODAY, engine: "hosted" });
 const run = async (name: string, args: Record<string, unknown>, rpc?: RogoRpc) => {
   const out = await runTool({ id: "t1", name, args }, dataFor(rpc));
   return { ...out, json: JSON.parse(out.content) };

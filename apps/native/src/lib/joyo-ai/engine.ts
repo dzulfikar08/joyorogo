@@ -42,8 +42,8 @@ import { joyoSettings, joyoUsage, joyoVault } from "./stores";
 
 const nowSec = (): number => Math.floor(Date.now() / 1000);
 
-/** The person's data over the app's own oRPC procedures: the same seam the hosted engine reads on the server. */
-const toolDataNow = () => createToolData(rpcFromClient(client), { today: () => jakartaToday() });
+/** The person's data over the app's own oRPC procedures, for the own-key engine only: nothing a health store wrote leaves the phone. */
+const toolDataNow = () => createToolData(rpcFromClient(client), { today: () => jakartaToday(), engine: "byok" });
 
 export interface AskInput {
   history: readonly ChatLine[];

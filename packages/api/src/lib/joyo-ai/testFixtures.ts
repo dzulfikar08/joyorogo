@@ -113,6 +113,7 @@ export function sampleSource(over: Partial<DigestSource> = {}): DigestSource {
 export function fakeToolData(over: Partial<ToolData> = {}): ToolData & { calls: string[] } {
   const calls: string[] = [];
   const base: ToolData = {
+    engine: 'hosted',
     today: () => TODAY,
     async day(date) {
       calls.push(`day ${date}`);
