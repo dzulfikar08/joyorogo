@@ -49,7 +49,7 @@ import { CountUp } from "@/components/kit/count-up";
 import { KalenderView } from "@/components/makan/kalender-view";
 import { KindFilter } from "@/components/makan/kind-filter";
 import { FotoView } from "@/components/makan/foto-view";
-import { QuickAddCard } from "@/components/makan/quick-add";
+import { QuickAddCard, recentAddFields } from "@/components/makan/quick-add";
 import { MakanViewSwitcher } from "@/components/makan/view-switcher";
 import { KindPicker, SnackAdviceCard, useSnackAdvice } from "@/components/makan/snack-advice";
 import type { PickableKind } from "@/components/makan/snack-advice";
@@ -749,7 +749,7 @@ function AddFoodSheet({
                   active={false}
                   disabled={addPending}
                   className={food.scanId ? "max-w-full gap-2 pl-1.5" : "max-w-full"}
-                  onClick={() => void onAdd({ date, meal, name: food.name, kcal: food.kcal })}
+                  onClick={() => void onAdd({ date, meal, ...recentAddFields(food) })}
                 >
                   {food.scanId ? (
                     <CutoutTile

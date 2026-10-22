@@ -39,6 +39,7 @@ describe("place router", () => {
         meal: "makan_siang",
         name: "Nasi ayam",
         kcal: 500,
+        source: "barcode",
         scanId: "a".repeat(32),
         plate: { place: "Warung Bu Tini", priceIdr: 20000, lat: -7.98391, lng: 112.63003 },
       },
@@ -51,6 +52,7 @@ describe("place router", () => {
         meal: "makan_siang",
         name: "Nasi ayam",
         kcal: 520,
+        source: "barcode",
         plate: { place: "warung  bu tini", priceIdr: 24000, lat: -7.98391, lng: 112.63003 },
       },
       u1,
@@ -58,7 +60,7 @@ describe("place router", () => {
     // lat/lng without a place are dropped; a plate without a place is not a place
     await call(
       foodRouter.add,
-      { date: "2026-10-14", meal: "snack", name: "Roti", kcal: 200, plate: { priceIdr: 5000, lat: -7.9, lng: 112.6 } },
+      { date: "2026-10-14", meal: "snack", name: "Roti", kcal: 200, source: "barcode", plate: { priceIdr: 5000, lat: -7.9, lng: 112.6 } },
       u1,
     );
     await call(

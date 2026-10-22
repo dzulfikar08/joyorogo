@@ -13,6 +13,19 @@ import { CutoutTile } from "@/components/sticker";
 import type { FoodAddInput, FoodRecentItem } from "@/lib/api-types";
 import { fmtDateLong, fmtInt } from "@/lib/format";
 
+/** food.add fields that repeat a recent food as it was logged: kcal and P/K/L (null = never filled in, left out). */
+export function recentAddFields(food: FoodRecentItem): Pick<FoodAddInput, "name" | "kcal" | "grams" | "protein" | "carbs" | "fat" | "fiber"> {
+  return {
+    name: food.name,
+    kcal: food.kcal,
+    ...(food.grams ? { grams: food.grams } : {}),
+    ...(food.protein != null ? { protein: food.protein } : {}),
+    ...(food.carbs != null ? { carbs: food.carbs } : {}),
+    ...(food.fat != null ? { fat: food.fat } : {}),
+    ...(food.fiber != null ? { fiber: food.fiber } : {}),
+  };
+}
+
 const ACTION =
   "flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-2xl bg-muted px-2 py-2.5 text-sm font-semibold transition-colors hover:bg-border focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none";
 
@@ -99,7 +112,7 @@ export function QuickAddCard({
                 key={food.name}
                 disabled={addPending}
                 className={food.scanId ? "max-w-[16rem] shrink-0 gap-2 pl-1.5" : "max-w-[16rem] shrink-0"}
-                onClick={() => onAdd({ date, meal, name: food.name, kcal: food.kcal })}
+                onClick={() => onAdd({ date, meal, ...recentAddFields(food) })}
               >
                 {food.scanId ? (
                   <CutoutTile scanId={food.scanId} className="size-8 rounded-lg" iconClassName="size-4" />

@@ -14,7 +14,29 @@ import { StickerMini } from "@/components/sticker";
 import { Card, Chip, Text } from "@/components/ui";
 import { fmtInt } from "@/utils/format";
 
-export type RecentFood = { name: string; kcal: number; scanId?: string | null };
+export type RecentFood = {
+  name: string;
+  kcal: number;
+  grams?: number | null;
+  protein?: number | null;
+  carbs?: number | null;
+  fat?: number | null;
+  fiber?: number | null;
+  scanId?: string | null;
+};
+
+/** food.add fields that repeat a recent food as it was logged: kcal and P/K/L (null = never filled in, left out). */
+export function recentAddFields(food: RecentFood) {
+  return {
+    name: food.name,
+    kcal: food.kcal,
+    ...(food.grams ? { grams: food.grams } : {}),
+    ...(food.protein != null ? { protein: food.protein } : {}),
+    ...(food.carbs != null ? { carbs: food.carbs } : {}),
+    ...(food.fat != null ? { fat: food.fat } : {}),
+    ...(food.fiber != null ? { fiber: food.fiber } : {}),
+  };
+}
 
 /**
  * Quick add: photo, barcode and story as three equal actions, then the saved

@@ -34,6 +34,8 @@ export function FoodRow({
 }) {
   const { t } = useTranslation("makan");
   const hasMacros = [item.protein, item.carbs, item.fat, item.fiber].some((g) => (g ?? 0) > 0);
+  // Never filled in (null, not 0 g): the day total counts nothing for it, so say so and let a tap open the editor.
+  const macrosMissing = item.protein == null && item.carbs == null && item.fat == null && item.kcal > 0;
   const created = new Date(item.createdAt);
   const meta = [
     Number.isNaN(created.getTime()) ? null : fmtClock(created, undefined, getActiveDayZone()),
@@ -101,6 +103,8 @@ export function FoodRow({
                 fat={item.fat}
                 fiber={item.fiber}
               />
+            ) : macrosMissing ? (
+              <span className="block text-xs text-muted-foreground">{t("foodRow.noMacros")}</span>
             ) : item.source === "ai" ? (
               <span className="block text-xs text-muted-foreground">{t("foodRow.fromAi")}</span>
             ) : null}

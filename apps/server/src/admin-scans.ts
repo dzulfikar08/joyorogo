@@ -8,7 +8,7 @@ import { wibDayBounds } from "@joyorogo/api/lib/tiers";
  * the same ledger that bills the free daily quota (tiers.scansUsedToday). A user
  * scan is written for every successful food analysis of a signed-in user (photo,
  * typed or spoken story), for free and paid accounts alike; "retry",
- * "correction", "label", "coach", "recap", "failed" and anon rows are not scans.
+ * "correction", "label", "coach", "recap", "macros", "failed" and anon rows are not scans.
  * Days are Jakarta days (UTC+7), like every other day in the app.
  */
 export const DAY_MS = 24 * 60 * 60 * 1000;
