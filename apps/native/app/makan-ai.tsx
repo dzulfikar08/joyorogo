@@ -52,7 +52,7 @@ import type { ScaleReadChip } from "@joyorogo/api/lib/scale-chip";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 import { cupPick } from "@joyorogo/api/lib/drink-options";
 import type { CupChoice } from "@joyorogo/api/lib/drink-options";
-import { fmtPercent, getActiveLocale } from "@joyorogo/i18n";
+import { getActiveLocale } from "@joyorogo/i18n";
 import { scanFailReason } from "@joyorogo/api/lib/scan-errors";
 import type { ScanFailReason } from "@joyorogo/api/lib/scan-errors";
 
@@ -1628,11 +1628,7 @@ export default function MakanAi() {
                           item.portion,
                           // a cup's portion already says "350 ml"; the same number as grams is noise
                           item.grams !== undefined && !item.cup ? `±${fmtGramsLabel(item.grams)}` : null,
-                          item.confidence !== undefined
-                            ? t("result.items.confidenceShort", {
-                                percent: fmtPercent(Math.round(item.confidence * 100)),
-                              })
-                            : t("result.items.estimate"),
+                          t("result.items.estimate"),
                         ]}
                       />
                       {item.cup ? (

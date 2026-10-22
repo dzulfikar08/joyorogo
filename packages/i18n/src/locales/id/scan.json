@@ -172,7 +172,6 @@
       "label": "Makanan yang dikenali",
       "title": "Yang AI lihat",
       "editable": "Angkanya bisa dikoreksi",
-      "confidenceShort": "yakin {{percent}}",
       "estimate": "perkiraan AI",
       "kcalAria": "Kalori {{name}}",
       "cupWhich": "Isi gelasnya tidak terlihat. Pilih yang sesuai:",
