@@ -8,6 +8,7 @@ import {
 } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
+import { proteinPerKg } from "@joyorogo/api/lib/safety";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
@@ -39,6 +40,7 @@ import { ScreenError } from "@/components/screen-state";
 import { CutoutTile } from "@/components/sticker";
 import { FoodRow } from "@/components/makan/food-row";
 import { FitnessCard } from "@/components/makan/fitness-card";
+import { FastLossNote } from "@/components/makan/fast-loss-note";
 import { MealPlanEntry } from "@/components/meal-plan/entry-card";
 import type { FoodAddInput, FoodItem, FoodRecentItem } from "@/lib/api-types";
 import { fmtDateLong, fmtInt, parseNum } from "@/lib/format";
@@ -330,6 +332,14 @@ function MakanPage() {
 
   const items = list.data?.items ?? [];
   const totals = list.data?.totals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+  // Protein per kg against the guide: only from rows that carry a protein figure (unknown is not zero) and a weigh-in.
+  const proteinGuide = proteinPerKg({
+    proteinG: totals.protein,
+    proteinKnown: items.some((item) => item.protein != null),
+    weightKg: daySummary.data?.latestWeightKg ?? null,
+    gaining: (daySummary.data?.targets?.gain ?? null) !== null,
+    maternal: (daySummary.data?.targets?.maternal ?? null) !== null,
+  });
 
   return (
     <Page className="md:max-w-3xl">
@@ -356,10 +366,19 @@ function MakanPage() {
                 eatKcal={daySummary.data.targets?.eatKcal ?? null}
                 eatenKcal={totals.kcal}
                 proteinTargetG={daySummary.data.protein?.targetG ?? null}
+                proteinGuide={proteinGuide}
                 totals={totals}
                 neutral={(daySummary.data.targets?.maternal ?? null) !== null}
               />
             </div>
+          )}
+
+          {isToday && daySummary.data && (
+            <FastLossNote
+              className="mt-3"
+              note={daySummary.data.fastLoss}
+              today={daySummary.data.date}
+            />
           )}
 
           <div className="mt-3">

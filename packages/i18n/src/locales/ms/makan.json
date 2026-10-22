@@ -766,5 +766,18 @@
     "clear": "Padam waktu makan",
     "sheetTitle": "Waktu makan",
     "hint": "Pilihan. Digunakan untuk melihat corak makan malam dan tidur anda."
+  },
+  "daySummary": {
+    "proteinPerKg": "Protein {{perKg}} g/kg · panduan {{min}}-{{max}} g/kg"
+  },
+  "safety": {
+    "fastLoss": {
+      "title": "Perlahan dulu",
+      "weight": "Berat badan turun agak cepat minggu ini (kira-kira {{pct}}% seminggu). Cuba perlahankan sedikit dan cukupkan protein.",
+      "intake": "Beberapa hari kebelakangan ini pengambilan makanan anda jauh di bawah keperluan asas badan. Cuba perlahankan sedikit dan cukupkan protein.",
+      "both": "Berat badan turun agak cepat minggu ini (kira-kira {{pct}}% seminggu) dan pengambilan makanan beberapa hari kebelakangan ini jauh di bawah keperluan asas badan. Cuba perlahankan sedikit dan cukupkan protein.",
+      "hint": "Jika ragu, tanya doktor atau pakar pemakanan.",
+      "dismiss": "Tutup"
+    }
   }
 }

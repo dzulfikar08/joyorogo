@@ -43,6 +43,7 @@ import { StravaRetentionNotice } from "@/components/strava-retention-notice";
 import { CalibrationNotice } from "@/components/calibration-notice";
 import { ManualTdeeSuggestionCard } from "@/components/manual-tdee";
 import { EnergyNotice } from "@/components/energy-notice";
+import { FastLossNote } from "@/components/makan/fast-loss-note";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { StorySpec } from "@/components/story/story-spec";
 import { Sticker, useStickerTarget } from "@/components/sticker";
@@ -507,6 +508,7 @@ function Dashboard({
       case "notices":
         return (
           <>
+            {!maternal && isToday && <FastLossNote note={summary.fastLoss} today={summary.date} />}
             <StravaRetentionNotice />
             <EnergyNotice notice={summary.energyNotice} />
             <CalibrationNotice notice={summary.calibrationNotice} />

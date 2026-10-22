@@ -31,6 +31,7 @@ import { CalibrationNotice } from "@/components/calibration-notice";
 import { SetupChecklist, useSetupChecklist } from "@/components/setup-checklist";
 import { ManualTdeeSuggestionCard } from "@/components/manual-tdee";
 import { EnergyNotice } from "@/components/energy-notice";
+import { FastLossNote } from "@/components/makan/fast-loss-note";
 import { BelanjaCompact } from "@/components/plate/belanja";
 import { MealPlanEntry } from "@/components/meal-plan/entry-card";
 import {
@@ -788,6 +789,7 @@ export default function Dashboard() {
     notices: (
       <>
         {!maternal && isToday ? <TargetPaceNotice pace={data.targets.datePace} /> : null}
+        {!maternal && isToday ? <FastLossNote note={data.fastLoss} today={data.date} /> : null}
         <StravaRetentionNotice />
         <EnergyNotice notice={data.energyNotice} />
         <CalibrationNotice notice={data.calibrationNotice} />

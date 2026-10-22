@@ -297,3 +297,6 @@ accepts and returns the old shapes at the boundary only; each point is marked `C
 The Kartu Progres on Berat sums (TDEE + counted activity - eaten) over a period's logged, finished, complete days as an
 estimate (`lib/period-progress.ts`, see [story-sharing.md](story-sharing.md)). It uses today's calibrated TDEE for past days and
 the same counted activity as Sisa, and only offers the 7.700 kcal per kg fat equivalent when the weight trend agrees.
+
+The "Pelan-pelan dulu" note (weight falling past 1% a week, or several complete days far under BMR) and the protein-per-kg line of the
+day summary are in [fast-loss-safety.md](fast-loss-safety.md).

@@ -785,5 +785,18 @@
     "clear": "Clear meal time",
     "sheetTitle": "Meal time",
     "hint": "Optional. Used to spot patterns between late dinners and your sleep."
+  },
+  "daySummary": {
+    "proteinPerKg": "Protein {{perKg}} g/kg · guide {{min}}-{{max}} g/kg"
+  },
+  "safety": {
+    "fastLoss": {
+      "title": "Ease off a little",
+      "weight": "Your weight is dropping fairly fast this week (about {{pct}}% per week). Try easing off a little and get enough protein.",
+      "intake": "For the last few days you have eaten well below what your body needs at rest. Try easing off a little and get enough protein.",
+      "both": "Your weight is dropping fairly fast this week (about {{pct}}% per week) and the last few days you have eaten well below what your body needs at rest. Try easing off a little and get enough protein.",
+      "hint": "If you are unsure, ask a doctor or dietitian.",
+      "dismiss": "Close"
+    }
   }
 }

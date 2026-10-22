@@ -766,5 +766,18 @@
     "clear": "Hapus jam makan",
     "sheetTitle": "Jam makan",
     "hint": "Opsional. Dipakai untuk melihat pola makan malam dan tidurmu."
+  },
+  "daySummary": {
+    "proteinPerKg": "Protein {{perKg}} g/kg · panduan {{min}}-{{max}} g/kg"
+  },
+  "safety": {
+    "fastLoss": {
+      "title": "Pelan-pelan dulu",
+      "weight": "Berat turun cukup cepat minggu ini (sekitar {{pct}}% per minggu). Coba pelankan sedikit dan cukupi protein.",
+      "intake": "Beberapa hari terakhir asupanmu jauh di bawah kebutuhan dasar tubuh. Coba pelankan sedikit dan cukupi protein.",
+      "both": "Berat turun cukup cepat minggu ini (sekitar {{pct}}% per minggu) dan asupan beberapa hari terakhir jauh di bawah kebutuhan dasar tubuh. Coba pelankan sedikit dan cukupi protein.",
+      "hint": "Kalau ragu, tanyakan ke dokter atau ahli gizi.",
+      "dismiss": "Tutup"
+    }
   }
 }

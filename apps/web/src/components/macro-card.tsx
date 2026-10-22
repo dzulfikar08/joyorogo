@@ -1,4 +1,5 @@
 import { eatTone, macroTargets } from "@joyorogo/api/lib/engine";
+import type { ProteinPerKg } from "@joyorogo/api/lib/safety";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useTranslation } from "react-i18next";
 
@@ -7,7 +8,7 @@ import { useGain } from "@/components/gain/use-gain";
 import { CountUp } from "@/components/kit/count-up";
 import { Card } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
-import { fmtInt } from "@/lib/format";
+import { fmtDecimal, fmtInt } from "@/lib/format";
 import { MACRO_META, type MacroKey } from "@/lib/macro-icons";
 
 export type MacroTotals = {
@@ -82,12 +83,15 @@ export function MakanSummaryCard({
   eatKcal,
   eatenKcal,
   proteinTargetG,
+  proteinGuide,
   totals,
   neutral: neutralProp = false,
 }: {
   eatKcal: number | null;
   eatenKcal: number;
   proteinTargetG: number | null;
+  /** Eaten protein per kg of the latest weigh-in against the guide range; null when it cannot be said honestly. */
+  proteinGuide: ProteinPerKg | null;
   totals: MacroTotals;
   /** Hamil / Menyusui: progress toward a need, never an over-target tone. */
   neutral?: boolean;
@@ -149,7 +153,18 @@ export function MakanSummaryCard({
       )}
       {budgets && proteinTargetG !== null ? (
         <div className="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-2">
-          <MacroBar macro="protein" eaten={totals.protein} budget={proteinTargetG} neutral={neutral} />
+          <div>
+            <MacroBar macro="protein" eaten={totals.protein} budget={proteinTargetG} neutral={neutral} />
+            {proteinGuide && (
+              <p className="mt-1 text-xs leading-snug text-muted-foreground tabular-nums">
+                {t("makan:daySummary.proteinPerKg", {
+                  perKg: fmtDecimal(proteinGuide.gPerKg, 1),
+                  min: fmtDecimal(proteinGuide.guide.min, 1),
+                  max: fmtDecimal(proteinGuide.guide.max, 1),
+                })}
+              </p>
+            )}
+          </div>
           <MacroBar macro="carbs" eaten={totals.carbs} budget={budgets.carbsG} neutral={neutral} />
           <MacroBar macro="fat" eaten={totals.fat} budget={budgets.fatG} neutral={neutral} />
           <MacroBar macro="fiber" eaten={totals.fiber} budget={budgets.fiberG} neutral={neutral} />
