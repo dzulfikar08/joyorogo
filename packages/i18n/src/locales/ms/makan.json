@@ -126,6 +126,7 @@
   },
   "foodRow": {
     "fromAi": "Daripada imbasan AI",
+    "noMacros": "Makro belum diisi · ketuk untuk isi",
     "delete": "Padam {{name}}"
   },
   "viewSwitcher": {
@@ -413,7 +414,8 @@
     },
     "nameAria": "Nama makanan",
     "weightAria": "Berat dalam gram",
-    "kcalAria": "Kalori dalam kcal"
+    "kcalAria": "Kalori dalam kcal",
+    "macrosMissing": "Makro belum diisi (g). Isi yang anda tahu."
   },
   "story": {
     "copy": {

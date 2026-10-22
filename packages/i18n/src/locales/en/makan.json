@@ -127,6 +127,7 @@
   },
   "foodRow": {
     "fromAi": "From AI scan",
+    "noMacros": "No macros yet · tap to add",
     "delete": "Delete {{name}}"
   },
   "viewSwitcher": {
@@ -422,7 +423,8 @@
     },
     "nameAria": "Food name",
     "weightAria": "Weight in grams",
-    "kcalAria": "Calories in kcal"
+    "kcalAria": "Calories in kcal",
+    "macrosMissing": "No macros yet (g). Add what you know."
   },
   "story": {
     "copy": {

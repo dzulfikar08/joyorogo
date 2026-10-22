@@ -175,6 +175,14 @@ export function FoodPortionSheet({
   const [multText, setMultText] = useState("1");
   // The user typed kcal themselves: an unlinked weight edit must not overwrite it.
   const [kcalTyped, setKcalTyped] = useState(false);
+  // A row saved by name and kcal alone has no macros: P/K/L the person types here are stored as typed.
+  const macrosMissing = base.protein === null && base.carbs === null && base.fat === null && base.kcal > 0;
+  const [macroText, setMacroText] = useState({ protein: "", carbs: "", fat: "" });
+  const typedMacro = (text: string) => {
+    const n = parseNum(text);
+    return n === null ? null : Math.min(500, Math.max(0, n));
+  };
+  const macrosTyped = macrosMissing && Object.values(macroText).some((text) => typedMacro(text) !== null);
 
   const typedKcal = parseNum(kcalText);
   const typedGrams = parseNum(gramsText);
@@ -183,6 +191,13 @@ export function FoodPortionSheet({
     ...scaled,
     kcal: typedKcal === null ? scaled.kcal : Math.round(typedKcal),
     grams: hasGrams && typedGrams !== null ? Math.round(typedGrams) : scaled.grams,
+    ...(macrosMissing
+      ? {
+          protein: typedMacro(macroText.protein),
+          carbs: typedMacro(macroText.carbs),
+          fat: typedMacro(macroText.fat),
+        }
+      : {}),
   };
   const valid =
     name.trim() !== "" &&
@@ -200,7 +215,8 @@ export function FoodPortionSheet({
     name.trim() !== row.name ||
     values.kcal !== row.kcal ||
     values.grams !== row.grams ||
-    ratio !== 1;
+    ratio !== 1 ||
+    macrosTyped;
 
   /** A moved day carries the chosen clock time along, so the time never points at the old day. */
   const setDay = (next: string) => {
@@ -419,6 +435,25 @@ export function FoodPortionSheet({
               </div>
             </>
           )}
+
+          {macrosMissing ? (
+            <div>
+              <FieldLabel htmlFor="food-protein">{t("portionSheet.macrosMissing")}</FieldLabel>
+              <div className="mt-1.5 grid grid-cols-3 gap-2">
+                {(["protein", "carbs", "fat"] as const).map((key) => (
+                  <Input
+                    key={key}
+                    id={`food-${key}`}
+                    inputMode="decimal"
+                    value={macroText[key]}
+                    onChange={(event) => setMacroText((old) => ({ ...old, [key]: event.target.value }))}
+                    placeholder={t(`diary.macro.${key}`)}
+                    aria-label={t(`diary.macro.${key}`)}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="rounded-2xl bg-muted px-4 py-3 text-sm" aria-live="polite">
             <p className="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-semibold tabular-nums">

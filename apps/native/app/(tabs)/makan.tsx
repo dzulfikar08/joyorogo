@@ -66,7 +66,7 @@ import type { MakanView } from "@joyorogo/api/lib/diary-view";
 import { DaySummary } from "@/components/makan/day-summary";
 import { KalenderView } from "@/components/makan/kalender-view";
 import { KindFilter } from "@/components/makan/kind-filter";
-import { QuickAdd } from "@/components/makan/quick-add";
+import { QuickAdd, recentAddFields } from "@/components/makan/quick-add";
 import { FotoView } from "@/components/makan/foto-view";
 import { KindPicker, SnackAdviceSection } from "@/components/makan/snack-advice";
 import type { PickableKind } from "@/components/makan/snack-advice";
@@ -766,8 +766,7 @@ export default function Makan() {
               addFood.mutate({
                 date,
                 meal: suggestMealNow(new Date(), ramadan),
-                name: food.name,
-                kcal: food.kcal,
+                ...recentAddFields(food),
               });
             }}
             onStory={() => {
@@ -904,8 +903,7 @@ export default function Makan() {
                     addFood.mutate({
                       date,
                       meal: sheetMeal ?? "sarapan",
-                      name: food.name,
-                      kcal: food.kcal,
+                      ...recentAddFields(food),
                     });
                   }}
                 />

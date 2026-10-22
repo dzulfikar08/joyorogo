@@ -13,6 +13,7 @@ import { MEALS, jakartaToday } from "../lib/engine";
 import { copyLoggedMeal, recentMealGroups } from "../lib/meal-copy";
 import { storyTarget } from "../lib/meal-reference";
 import { MAX_GRAMS, MAX_KCAL, resolvePortion } from "../lib/portion";
+import { estimateMacros } from "../lib/macro-estimate";
 import { recalcRow } from "../lib/plate-recalc";
 import type { RecalcValues } from "../lib/plate-recalc";
 import { toStoredCoords } from "../lib/places";
@@ -276,6 +277,28 @@ export const foodRouter = {
         if (!owned) attachId = null;
       }
       const date = input.date ?? jakartaToday(undefined, zone);
+      // A typed name + kcal with no macros at all would count as 0 g in every total: resolve P/K/L from the
+      // name (food table, then the story text parse). Photo, barcode and copied rows keep what they carry.
+      const macros =
+        input.source === "manual" &&
+        input.protein === undefined &&
+        input.carbs === undefined &&
+        input.fat === undefined &&
+        input.kcal > 0
+          ? await estimateMacros(
+              {
+                db: context.db,
+                ai: context.env.AI,
+                model: context.env.AI_VISION_MODEL || undefined,
+                userId: context.session.user.id,
+                locale: context.locale,
+                region: context.region,
+                zone,
+              },
+              input.name,
+              input.kcal,
+            )
+          : null;
       const plateId =
         attachId ??
         (await createPlate(context.db, context.session.user.id, {
@@ -294,9 +317,9 @@ export const foodRouter = {
           name: input.name,
           kcal: input.kcal,
           grams: input.grams,
-          protein: input.protein,
-          carbs: input.carbs,
-          fat: input.fat,
+          protein: macros?.protein ?? input.protein,
+          carbs: macros?.carbs ?? input.carbs,
+          fat: macros?.fat ?? input.fat,
           fiber: input.fiber,
           source: input.source,
           eatenAt: input.eatenAt,
@@ -499,12 +522,19 @@ export const foodRouter = {
     }),
 
   // Quick-add source: last 10 distinct names. SQLite serves bare columns from
-  // the max(date) row, so kcal/meal are each name's latest values.
+  // the max(date) row, so kcal, grams and the macros are each name's latest
+  // values, all from the same row. They ride along so a one-tap chip logs the
+  // same P/K/L as the row it repeats instead of a kcal-only entry.
   recent: protectedProcedure.handler(async ({ context }) => {
     const items = await context.db
       .select({
         name: foodLog.name,
         kcal: foodLog.kcal,
+        grams: foodLog.grams,
+        protein: foodLog.protein,
+        carbs: foodLog.carbs,
+        fat: foodLog.fat,
+        fiber: foodLog.fiber,
         meal: foodLog.meal,
         scanId: foodLog.scanId,
         lastDate: sql<string>`max(${foodLog.date})`,

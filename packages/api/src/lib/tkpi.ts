@@ -588,6 +588,39 @@ export function libraryKcal(name: string, grams: number, region?: Region): numbe
   return dish ? Math.round((dish.kcalPer100g * grams) / 100) : undefined;
 }
 
+/**
+ * P/K/L (grams) of a food typed by name with the kcal the person entered, from the official TKPI 2019 per-100 g
+ * row it names: the curated dish's own name or alias is tried too ("nasgor" -> "nasi goreng"). The row's macros
+ * per kcal are applied to `kcal`, so the numbers always agree with the energy that is logged, whatever the portion.
+ * Undefined when the name is a combination ("nasi goreng telur"), a condimented dish, or no row with all three
+ * macros fits: nothing is guessed from a partial match.
+ */
+export function libraryMacros(
+  name: string,
+  kcal: number,
+  region?: Region,
+): { protein: number; carbs: number; fat: number } | undefined {
+  if (!(kcal > 0)) return undefined;
+  const index = indexFor(region);
+  if (isCombination(name, index) || isCondimentedDish(name) || isCompoundOfIngredient(name, index)) return undefined;
+  const dish = matchDish(name, index);
+  for (const candidate of dish ? [name, dish.name, ...dish.aliases] : [name]) {
+    const row = lookupTkpi2019(candidate);
+    if (!row || row.kcalPer100g <= 0) continue;
+    const { proteinPer100g: p, carbPer100g: c, fatPer100g: f } = row;
+    if (p === null || c === null || f === null) continue;
+    const ratio = kcal / row.kcalPer100g;
+    const scaled = atwaterAdjust({
+      kcal,
+      protein: round1(Math.min(500, p * ratio)),
+      carbs: round1(Math.min(500, c * ratio)),
+      fat: round1(Math.min(500, f * ratio)),
+    });
+    return { protein: scaled.protein, carbs: scaled.carbs, fat: scaled.fat };
+  }
+  return undefined;
+}
+
 function round1(v: number): number {
   return Math.round(v * 10) / 10;
 }
