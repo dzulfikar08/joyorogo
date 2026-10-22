@@ -14,6 +14,8 @@ import { Container } from "@/components/container";
 import { Mascot } from "@/components/mascot";
 import { BootLoader, Button, Field, Input, Text } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
+import { signInWithNativeGoogle } from "@/src/lib/google-native";
+import { nativeGoogleAvailable, requestGoogleIdToken } from "@/src/lib/google-native-device";
 import { restoreAccountPrefs } from "@/src/lib/prefs-sync";
 import { queryClient } from "@/utils/orpc";
 
@@ -71,17 +73,38 @@ export default function Login() {
     return restoredFor === userId ? <Redirect href={destination} /> : <BootLoader />;
   }
 
+  const runBrowserGoogleSignIn = async () => {
+    const { error } = await authClient.signIn.social({
+      provider: "google",
+      // expoClient rewrites this to the joyorogo:// deep link after OAuth
+      callbackURL: Linking.createURL("/"),
+    });
+    if (error) setSignInError(t("login.error.googleFailed"));
+  };
+
   const handleGoogleSignIn = async () => {
     if (googleBusy) return;
     setSignInError(null);
     setGoogleBusy(true);
     try {
-      const { error } = await authClient.signIn.social({
-        provider: "google",
-        // expoClient rewrites this to the joyorogo:// deep link after OAuth
-        callbackURL: Linking.createURL("/"),
+      // Android: Google's account picker from Play services, then the ID token goes to better-auth. The browser flow
+      // is only for binaries without the native module and installs where native sign-in cannot work.
+      const outcome = await signInWithNativeGoogle({
+        available: nativeGoogleAvailable,
+        requestIdToken: requestGoogleIdToken,
+        exchange: (token) => authClient.signIn.social({ provider: "google", idToken: { token } }),
+        log: (message) => console.log(message),
       });
-      if (error) setSignInError(t("login.error.googleFailed"));
+      if (outcome.kind === "cancelled") return;
+      if (outcome.kind === "failed") {
+        setSignInError(`${t("login.error.googleFailed")} (${outcome.reason.slice(0, 120)})`);
+        return;
+      }
+      if (outcome.kind === "fallback") {
+        await runBrowserGoogleSignIn();
+        return;
+      }
+      queryClient.invalidateQueries();
     } catch (e) {
       // The request or the browser never started (nothing reached the server): say so, with the reason, instead of
       // leaving a button that looks dead.

@@ -28,6 +28,7 @@
     "@joyorogo/sticker": "workspace:*",
     "@orpc/client": "catalog:",
     "@orpc/tanstack-query": "catalog:",
+    "@react-native-google-signin/google-signin": "16.1.5",
     "@tanstack/react-form": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@varlock/expo-integration": "1.2.1",
