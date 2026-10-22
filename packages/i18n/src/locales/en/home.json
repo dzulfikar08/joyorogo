@@ -336,5 +336,28 @@
     "weigh": "Calibration starts with your first weigh-in",
     "waiting": "Calibration starts {{date}}",
     "hint": "Open the progress of the eat-target calibration"
+  },
+  "setup": {
+    "title": "Get started",
+    "count": "{{done}}/{{total}}",
+    "countLabel": "{{done}} of {{total}} steps done",
+    "dismiss": "Dismiss this list",
+    "meal": {
+      "title": "Log your first meal",
+      "sub": "Photograph the plate or type its name; kcal and macros are worked out for you.",
+      "done": "First meal logged"
+    },
+    "weigh": {
+      "title": "Weigh in on another day",
+      "sub": "One entry a day; two different days open the trend line.",
+      "subToday": "You weighed in today. Weigh in again tomorrow to start the trend line.",
+      "done": "Trend line started"
+    },
+    "source": {
+      "title": "Connect an activity source",
+      "subAndroid": "Health Connect, Strava or JoyoFit: workouts and steps arrive on their own.",
+      "subIos": "Apple Health, Strava or JoyoFit: workouts and steps arrive on their own.",
+      "done": "Activity source connected"
+    }
   }
 }
