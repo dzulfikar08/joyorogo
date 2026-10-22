@@ -14,6 +14,7 @@ import { dateSchema, mealSchema } from "../lib/schemas";
 import { zoneOfUser } from "../lib/user-zone";
 import { cloudUnlocked } from "../lib/watch-workout-store";
 import { computePortion, ingredientSource, INGREDIENTS, recipeAllergens, recipeById, recipeTags } from "../lib/meal/catalog";
+import { insertFoodRows } from "../lib/food-rows";
 import { normalizeCookPref } from "../lib/meal/planner";
 import { planWeek } from "../lib/meal/week";
 import type { DaySpec } from "../lib/meal/week";
@@ -280,38 +281,40 @@ export const mealPlanRouter = {
     // One diary row per person, day and slot: the id is the claim, so two taps (or two devices) at once log it once.
     const logId = mealPlanLogId(ctx.userId, input.date, input.slot);
     const recipe = item.ref.startsWith("r:") ? recipeById(item.ref.slice(2)) : undefined;
-    const inserted = await ctx.db
-      .insert(foodLog)
-      .values({
-        id: logId,
-        userId: ctx.userId,
-        date: input.date,
-        meal: input.slot,
-        name: view.name,
-        kcal: nutrition.kcal,
-        protein: nutrition.proteinG,
-        carbs: nutrition.carbsG,
-        fat: nutrition.fatG,
-        fiber: nutrition.fiberG,
-        grams,
-        source: "manual",
-        itemsJson: JSON.stringify({
-          from: "meal-plan",
-          ref: item.ref,
-          scale: item.scale,
-          carbScale: item.carbScale,
-          lines: recipe ? computePortion(recipe, item.scale, item.carbScale).lines : undefined,
-        }),
-      })
-      .onConflictDoNothing()
-      .returning({ id: foodLog.id });
+    const inserted = await insertFoodRows(
+      ctx.db,
+      [
+        {
+          id: logId,
+          userId: ctx.userId,
+          date: input.date,
+          meal: input.slot,
+          name: view.name,
+          kcal: nutrition.kcal,
+          protein: nutrition.proteinG,
+          carbs: nutrition.carbsG,
+          fat: nutrition.fatG,
+          fiber: nutrition.fiberG,
+          grams,
+          source: "manual",
+          itemsJson: JSON.stringify({
+            from: "meal-plan",
+            ref: item.ref,
+            scale: item.scale,
+            carbScale: item.carbScale,
+            lines: recipe ? computePortion(recipe, item.scale, item.carbScale).lines : undefined,
+          }),
+        },
+      ],
+      { ignoreConflicts: true },
+    );
     if (inserted.length === 0) {
       // already logged (another tap, another device): make sure the plan item points at that row, then say so
       if (item.logId !== logId) await setLogId(ctx, plan, input.date, input.slot, logId);
       throw new ORPCError("CONFLICT", { message: t("errors.alreadyEaten") });
     }
     const next = await setLogId(ctx, plan, input.date, input.slot, logId);
-    return { logId, plan: await weekView(ctx, next, context.locale) };
+    return { logId, row: inserted[0]!, plan: await weekView(ctx, next, context.locale) };
   }),
 
   /** Takes a "Sudah makan" back: removes the diary row it created. */
@@ -324,7 +327,8 @@ export const mealPlanRouter = {
     if (!item.logId) throw new ORPCError("CONFLICT", { message: t("errors.notEaten") });
     await ctx.db.delete(foodLog).where(and(eq(foodLog.id, item.logId), eq(foodLog.userId, ctx.userId)));
     const next = await setLogId(ctx, plan, input.date, input.slot, null);
-    return weekView(ctx, next, context.locale);
+    // removedLogId lets the phone drop the same record from its Health Connect mirror.
+    return { ...(await weekView(ctx, next, context.locale)), removedLogId: item.logId };
   }),
 
   /** One recipe at a portion size: ingredients in grams, steps, nutrition per portion (TKPI). */

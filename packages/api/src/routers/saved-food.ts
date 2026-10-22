@@ -13,7 +13,8 @@ import { userZone } from "../lib/user-zone";
 import { serverT } from "../lib/messages";
 import { dateSchema, mealSchema } from "../lib/schemas";
 import { assertEatenAt, eatenAtSchema } from "../lib/eaten-at";
-import { foodSavedKey, parseSavedItems, plateSavedKey } from "../lib/saved-foods";
+import { insertFoodRows } from "../lib/food-rows";
+import { carriesMoreNutrition, foodSavedKey, parseSavedItems, plateSavedKey } from "../lib/saved-foods";
 import type { SavedItem } from "../lib/saved-foods";
 import { photoKey, stickerKey } from "../lib/sticker";
 import type { StickersBucket } from "../lib/sticker";
@@ -190,6 +191,15 @@ export const savedFoodRouter = {
         .where(and(eq(savedFood.userId, userId), eq(savedFood.key, key)))
         .limit(1);
       if (!saved) throw new ORPCError("INTERNAL_SERVER_ERROR", { message: serverT(context.locale, "errors")("misc.savedFood.saveFailed") });
+      // Same dish starred again after its macros were filled in: the favorite takes the richer copy.
+      if (carriesMoreNutrition(items, parseSavedItems(saved.itemsJson))) {
+        const [refreshed] = await context.db
+          .update(savedFood)
+          .set({ itemsJson: JSON.stringify(items) })
+          .where(eq(savedFood.id, saved.id))
+          .returning();
+        return present(refreshed ?? saved);
+      }
       return present(saved);
     }),
 
@@ -225,29 +235,27 @@ export const savedFoodRouter = {
           priceIdr: saved.priceIdr,
         });
       }
-      const rows = await context.db
-        .insert(foodLog)
-        .values(
-          items.map((item) => ({
-            id: crypto.randomUUID(),
-            userId,
-            date,
-            meal: input.meal,
-            name: item.name,
-            kcal: item.kcal,
-            grams: item.grams,
-            protein: item.protein,
-            carbs: item.carbs,
-            fat: item.fat,
-            fiber: item.fiber,
-            source: item.scanId ? "ai" : "manual",
-            eatenAt: input.eatenAt,
-            scanId: item.scanId,
-            photoId: item.photoId,
-            plateId,
-          })),
-        )
-        .returning();
+      const rows = await insertFoodRows(
+        context.db,
+        items.map((item) => ({
+          id: crypto.randomUUID(),
+          userId,
+          date,
+          meal: input.meal,
+          name: item.name,
+          kcal: item.kcal,
+          grams: item.grams,
+          protein: item.protein,
+          carbs: item.carbs,
+          fat: item.fat,
+          fiber: item.fiber,
+          source: item.scanId ? "ai" : "manual",
+          eatenAt: input.eatenAt,
+          scanId: item.scanId,
+          photoId: item.photoId,
+          plateId,
+        })),
+      );
       await context.db
         .update(savedFood)
         .set({ useCount: sql`${savedFood.useCount} + 1`, lastUsedAt: new Date() })

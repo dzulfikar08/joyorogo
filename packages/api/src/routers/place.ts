@@ -9,6 +9,7 @@ import { protectedProcedure } from "../index";
 import { userZone } from "../lib/user-zone";
 import { assertEatenAt, eatenAtSchema } from "../lib/eaten-at";
 import { jakartaToday, suggestMealNow } from "../lib/engine";
+import { insertFoodRows } from "../lib/food-rows";
 import { serverT } from "../lib/messages";
 import { aggregatePlaces, dishesOfPlace, normalizePlaceKey, visitsOfPlace } from "../lib/places";
 import type { PlaceVisitRow, PlateNutrition } from "../lib/places";
@@ -185,29 +186,27 @@ export const placeRouter = {
         lng: source.lng,
         priceIdr: source.priceIdr,
       });
-      const rows = await context.db
-        .insert(foodLog)
-        .values(
-          items.map((item) => ({
-            id: crypto.randomUUID(),
-            userId,
-            date,
-            meal,
-            name: item.name,
-            kcal: item.kcal,
-            grams: item.grams,
-            protein: item.protein,
-            carbs: item.carbs,
-            fat: item.fat,
-            fiber: item.fiber,
-            source: item.source,
-            eatenAt: input.eatenAt,
-            scanId: item.scanId,
-            photoId: item.photoId,
-            plateId,
-          })),
-        )
-        .returning();
+      const rows = await insertFoodRows(
+        context.db,
+        items.map((item) => ({
+          id: crypto.randomUUID(),
+          userId,
+          date,
+          meal,
+          name: item.name,
+          kcal: item.kcal,
+          grams: item.grams,
+          protein: item.protein,
+          carbs: item.carbs,
+          fat: item.fat,
+          fiber: item.fiber,
+          source: item.source,
+          eatenAt: input.eatenAt,
+          scanId: item.scanId,
+          photoId: item.photoId,
+          plateId,
+        })),
+      );
       return { items: rows, plateId, date, meal };
     }),
 

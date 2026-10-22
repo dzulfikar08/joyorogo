@@ -30,6 +30,8 @@ export function recentAddFields(food: RecentFood) {
   return {
     name: food.name,
     kcal: food.kcal,
+    // A repeat of a logged row, not a new typed or scanned meal: keeps AI-meal counts and the portion prior honest.
+    source: "copy" as const,
     ...(food.grams ? { grams: food.grams } : {}),
     ...(food.protein != null ? { protein: food.protein } : {}),
     ...(food.carbs != null ? { carbs: food.carbs } : {}),

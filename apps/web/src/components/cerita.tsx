@@ -2,6 +2,7 @@ import { kcalUnit } from "@joyorogo/i18n";
 import { MEALS, jakartaToday, relativeDayLabel, storySlotLabel } from "@joyorogo/api/lib/engine";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
 import { copyChipLabel, copyWantedLabel } from "@joyorogo/api/lib/meal-copy-label";
+import { macrosForTypedKcal } from "@joyorogo/api/lib/portion";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import type { TFunction } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
@@ -359,10 +360,7 @@ export function Cerita({
           name: item.name,
           kcal: values[index]!,
           grams: item.grams,
-          protein: item.protein,
-          carbs: item.carbs,
-          fat: item.fat,
-          fiber: item.fiber,
+          ...macrosForTypedKcal(item, values[index]!),
           source: item.copied ? "copy" : "ai",
           ...(startsGroup
             ? {

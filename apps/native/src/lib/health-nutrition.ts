@@ -19,17 +19,42 @@ export async function backfillNutritionToHealth() {
   return mod.backfillNutrition();
 }
 
+// Routers other than food whose procedures add or remove food_log rows.
+const OTHER_WRITERS: Record<string, readonly string[]> = {
+  savedFood: ["relog"],
+  place: ["relog"],
+  mealPlan: ["eat", "undoEat"],
+};
+
+function mirrorOtherWriter(mod: typeof Nutrition, router: string, op: string, output: unknown): Promise<unknown> | null {
+  if (op === "relog") {
+    const items = (output as { items?: Nutrition.MealRow[] } | null)?.items;
+    return items?.length ? mod.writeMeals(items) : null;
+  }
+  if (router === "mealPlan" && op === "eat") {
+    const row = (output as { row?: Nutrition.MealRow } | null)?.row;
+    return row ? mod.writeMeals([row]) : null;
+  }
+  if (router === "mealPlan" && op === "undoEat") {
+    const id = (output as { removedLogId?: string } | null)?.removedLogId;
+    return id ? mod.deleteMeal(id) : null;
+  }
+  return null;
+}
+
 /**
  * Called by the oRPC link after food.add / addScan / update / recalculatePlate (applied) / remove succeed.
  * Fire-and-forget: a Health Connect failure must never break meal logging.
  */
 export function mirrorFoodCall(path: readonly string[], input: unknown, output: unknown): void {
-  if (path[0] !== "food") return;
-  const mod = load();
+  const mod = path[0] === "food" || path[0] in OTHER_WRITERS ? load() : null;
   if (!mod) return;
   const op = path[1];
   let job: Promise<unknown> | null = null;
-  if (op === "add" || op === "update") {
+  if (path[0] !== "food") {
+    // Favorit and place re-logs create diary rows; the plan screen logs / un-logs one planned meal.
+    if (OTHER_WRITERS[path[0]]?.includes(op ?? "")) job = mirrorOtherWriter(mod, path[0], op ?? "", output);
+  } else if (op === "add" || op === "update") {
     if (output) job = mod.writeMeals([output as Nutrition.MealRow]);
   } else if (op === "addScan") {
     const items = (output as { items?: Nutrition.MealRow[] } | null)?.items;

@@ -41,7 +41,7 @@ import type { LiveRow } from "@joyorogo/api/lib/scan-live";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
-import { scalePortion } from "@joyorogo/api/lib/portion";
+import { macrosForTypedKcal, scalePortion } from "@joyorogo/api/lib/portion";
 import { modelNumbers, swapPortionPrior, withoutPortionPrior } from "@joyorogo/api/lib/portion-chip";
 import { swapScaleRead, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
@@ -997,10 +997,7 @@ function AiFoodPage() {
           name: item.name,
           kcal: values[index]!,
           grams: item.grams,
-          protein: item.protein,
-          carbs: item.carbs,
-          fat: item.fat,
-          fiber: item.fiber,
+          ...macrosForTypedKcal(item, values[index]!),
           box: item.box,
           // Already-cut stickers are promoted on save; unfinished ones are
           // cut by the server in the background.

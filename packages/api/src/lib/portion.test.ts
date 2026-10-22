@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { rescaleForGrams, resolvePortion } from "./portion";
+import { macrosForTypedKcal, rescaleForGrams, resolvePortion } from "./portion";
 import type { PortionValues } from "./portion";
 
 // 200 g of nasi goreng as logged.
@@ -94,5 +94,35 @@ describe("resolvePortion", () => {
 
   test("grams on a row without a stored weight keeps the kcal", () => {
     expect(resolvePortion({ ...NASI, grams: null }, { grams: 99 })).toEqual({ ...NASI, grams: 99 });
+  });
+});
+
+describe("macrosForTypedKcal (review lists: photo scan, Cerita)", () => {
+  const item = { kcal: 500, protein: 30, carbs: 50, fat: 20, fiber: 4 };
+
+  test("halving the kcal halves the macros: 500 -> 250 kcal no longer logs the full 30 g protein", () => {
+    expect(macrosForTypedKcal(item, 250)).toEqual({ protein: 15, carbs: 25, fat: 10, fiber: 2 });
+    expect(macrosForTypedKcal(item, 750)).toEqual({ protein: 45, carbs: 75, fat: 30, fiber: 6 });
+  });
+
+  test("an untouched row keeps its macros exactly, even when the shown kcal was rounded", () => {
+    expect(macrosForTypedKcal({ ...item, kcal: 499.6 }, 500)).toEqual({ protein: 30, carbs: 50, fat: 20, fiber: 4 });
+  });
+
+  test("macros the item never had stay undefined, never 0", () => {
+    expect(macrosForTypedKcal({ kcal: 200, protein: 10 }, 100)).toEqual({ protein: 5, carbs: undefined, fat: undefined, fiber: undefined });
+    expect(macrosForTypedKcal({ kcal: 200 }, 100)).toEqual({ protein: undefined, carbs: undefined, fat: undefined, fiber: undefined });
+  });
+
+  test("no usable baseline or typed number: unchanged; scaling is capped at 500 g", () => {
+    expect(macrosForTypedKcal({ kcal: 0, protein: 3 }, 100)).toEqual({ protein: 3, carbs: undefined, fat: undefined, fiber: undefined });
+    expect(macrosForTypedKcal(item, Number.NaN)).toEqual({ protein: 30, carbs: 50, fat: 20, fiber: 4 });
+    expect(macrosForTypedKcal({ kcal: 10, protein: 400 }, 5000).protein).toBe(500);
+  });
+
+  test("same ratio as the portion edit (food.update with kcal only)", () => {
+    const stored = { grams: 200, kcal: 500, protein: 30, carbs: 50, fat: 20, fiber: 4 };
+    const edited = resolvePortion(stored, { kcal: 350 });
+    expect(macrosForTypedKcal(item, 350)).toEqual({ protein: edited.protein ?? undefined, carbs: edited.carbs ?? undefined, fat: edited.fat ?? undefined, fiber: edited.fiber ?? undefined });
   });
 });

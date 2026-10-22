@@ -10,6 +10,7 @@ import { plate } from "@joyorogo/db/schema/plans";
 import { protectedProcedure } from "../index";
 import { assertEatenAt, eatenAtDay, eatenAtProblem, eatenAtSchema } from "../lib/eaten-at";
 import { MEALS, jakartaToday } from "../lib/engine";
+import { insertFoodRows } from "../lib/food-rows";
 import { copyLoggedMeal, recentMealGroups } from "../lib/meal-copy";
 import { storyTarget } from "../lib/meal-reference";
 import { MAX_GRAMS, MAX_KCAL, resolvePortion } from "../lib/portion";
@@ -117,9 +118,11 @@ export const foodRouter = {
               meal: mealSchema,
               name: z.string().trim().min(1).max(200),
               kcal: z.number().min(0).max(MAX_KCAL),
+              grams: z.number().min(1).max(MAX_GRAMS).optional(),
               protein: z.number().min(0).max(500).optional(),
               carbs: z.number().min(0).max(500).optional(),
               fat: z.number().min(0).max(500).optional(),
+              fiber: z.number().min(0).max(500).optional(),
               eatenAt: eatenAtSchema.optional(),
             }),
           )
@@ -150,23 +153,27 @@ export const foodRouter = {
         if (twin.length > 0) continue;
         const eatenAt =
           m.eatenAt !== undefined && m.eatenAt <= Date.now() && eatenAtDay(m.eatenAt, zone) === m.date ? m.eatenAt : null;
-        const rows = await context.db
-          .insert(foodLog)
-          .values({
-            id: `${IMPORT_SOURCE}:${userId}:${m.key}`,
-            userId,
-            date: m.date,
-            meal: m.meal,
-            name: m.name,
-            kcal: m.kcal,
-            protein: m.protein,
-            carbs: m.carbs,
-            fat: m.fat,
-            source: IMPORT_SOURCE,
-            eatenAt,
-          })
-          .onConflictDoNothing({ target: foodLog.id })
-          .returning({ id: foodLog.id });
+        const rows = await insertFoodRows(
+          context.db,
+          [
+            {
+              id: `${IMPORT_SOURCE}:${userId}:${m.key}`,
+              userId,
+              date: m.date,
+              meal: m.meal,
+              name: m.name,
+              kcal: m.kcal,
+              grams: m.grams ?? null,
+              protein: m.protein ?? null,
+              carbs: m.carbs ?? null,
+              fat: m.fat ?? null,
+              fiber: m.fiber ?? null,
+              source: IMPORT_SOURCE,
+              eatenAt,
+            },
+          ],
+          { ignoreConflicts: true },
+        );
         added += rows.length;
       }
       return { added, skipped: input.meals.length - added };
@@ -253,30 +260,28 @@ export const foodRouter = {
         fallbackName: input.items[0]?.name ?? "Piring",
         plate: input.plate,
       });
-      const rows = await context.db
-        .insert(foodLog)
-        .values(
-          input.items.map((item, index) => ({
-            id: crypto.randomUUID(),
-            userId,
-            date,
-            meal: input.meal,
-            name: item.name,
-            kcal: item.kcal,
-            grams: item.grams,
-            protein: item.protein,
-            carbs: item.carbs,
-            fat: item.fat,
-            fiber: item.fiber,
-            source: "ai",
-            eatenAt: input.eatenAt,
-            itemsJson: input.itemsJson,
-            scanId: promoted[index] ?? jobs[index]?.scanId,
-            photoId,
-            plateId,
-          })),
-        )
-        .returning();
+      const rows = await insertFoodRows(
+        context.db,
+        input.items.map((item, index) => ({
+          id: crypto.randomUUID(),
+          userId,
+          date,
+          meal: input.meal,
+          name: item.name,
+          kcal: item.kcal,
+          grams: item.grams ?? null,
+          protein: item.protein ?? null,
+          carbs: item.carbs ?? null,
+          fat: item.fat ?? null,
+          fiber: item.fiber ?? null,
+          source: "ai",
+          eatenAt: input.eatenAt,
+          itemsJson: input.itemsJson,
+          scanId: promoted[index] ?? jobs[index]?.scanId,
+          photoId,
+          plateId,
+        })),
+      );
       const queued = jobs.filter((job): job is StickerJob => job !== null);
       if (bucket && queued.length > 0) {
         context.waitUntil(storeStickers(images, bucket, bytes, queued));
@@ -356,9 +361,11 @@ export const foodRouter = {
       }
       const date = input.date ?? jakartaToday(undefined, zone);
       // A typed name + kcal with no macros at all would count as 0 g in every total: resolve P/K/L from the
-      // name (food table, then the story text parse). Photo, barcode and copied rows keep what they carry.
+      // name (food table, then the story text parse). That covers a typed entry and a repeat ("copy": the recent-food
+      // chips, a story copy) of a row that never had macros. A row that carries any macro keeps what it carries;
+      // photo and barcode rows are never guessed.
       const macros =
-        input.source === "manual" &&
+        (input.source === "manual" || input.source === "copy") &&
         input.protein === undefined &&
         input.carbs === undefined &&
         input.fat === undefined &&
@@ -385,27 +392,26 @@ export const foodRouter = {
           fallbackName: input.name,
           plate: input.plate,
         }));
-      const [row] = await context.db
-        .insert(foodLog)
-        .values({
+      const [row] = await insertFoodRows(context.db, [
+        {
           id: crypto.randomUUID(),
           userId: context.session.user.id,
           date,
           meal: input.meal,
           name: input.name,
           kcal: input.kcal,
-          grams: input.grams,
-          protein: macros?.protein ?? input.protein,
-          carbs: macros?.carbs ?? input.carbs,
-          fat: macros?.fat ?? input.fat,
-          fiber: input.fiber,
+          grams: input.grams ?? null,
+          protein: macros?.protein ?? input.protein ?? null,
+          carbs: macros?.carbs ?? input.carbs ?? null,
+          fat: macros?.fat ?? input.fat ?? null,
+          fiber: input.fiber ?? macros?.fiber ?? null,
           source: input.source,
           eatenAt: input.eatenAt,
           itemsJson: input.itemsJson,
           scanId: input.scanId,
           plateId,
-        })
-        .returning();
+        },
+      ]);
       return row;
     }),
 

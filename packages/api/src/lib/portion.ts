@@ -113,3 +113,24 @@ export function resolvePortion(base: PortionValues, patch: PortionPatch): Portio
     fiber: patch.fiber ?? next.fiber,
   };
 }
+
+/** The P/K/L/fibre of a review-list item (photo scan, story): optional, undefined = never estimated. */
+export type ItemMacros = { protein?: number; carbs?: number; fat?: number; fiber?: number };
+
+/**
+ * A kcal typed over an item's estimate in a review list (photo scan, "Cerita") moves the item's macros with it,
+ * the same ratio food.update applies to a kcal-only edit. Without it the row kept the estimate's macros at the
+ * old energy: halve 500 kcal to 250 and it still logged the full protein. Weight is left alone (the typed
+ * number may fix the model's density, and the stored weight is what the portion prior compares against).
+ * An untouched row (typed kcal equals the shown, rounded estimate) keeps its macros exactly; macros the item
+ * never had stay undefined, never 0.
+ */
+export function macrosForTypedKcal(item: ItemMacros & { kcal: number }, typedKcal: number): ItemMacros {
+  const { protein, carbs, fat, fiber } = item;
+  if (!(item.kcal > 0) || !Number.isFinite(typedKcal) || typedKcal < 0 || Math.round(item.kcal) === Math.round(typedKcal)) {
+    return { protein, carbs, fat, fiber };
+  }
+  const ratio = typedKcal / item.kcal;
+  const scale = (n: number | undefined) => (n === undefined ? undefined : round1(Math.min(500, n * ratio)));
+  return { protein: scale(protein), carbs: scale(carbs), fat: scale(fat), fiber: scale(fiber) };
+}

@@ -47,3 +47,17 @@ export function plateSavedKey(
   const total = items.reduce((sum, item) => sum + item.kcal, 0);
   return `plate:${plateKey(name, place)}|${Math.round(total)}|${items.length}`;
 }
+
+const known = (item: SavedItem) =>
+  [item.grams, item.protein, item.carbs, item.fat, item.fiber].filter((value) => value !== null).length;
+
+/**
+ * Starring the same dish again (same key) used to answer the stored favorite untouched, so a favorite saved from a
+ * row that had no macros stayed macro-less after the row was filled in. True when `next` carries more known
+ * nutrition than `stored` for the same components, so the favorite can take it over; never the other way around.
+ */
+export function carriesMoreNutrition(next: readonly SavedItem[], stored: readonly SavedItem[]): boolean {
+  if (next.length !== stored.length || next.length === 0) return false;
+  const total = (items: readonly SavedItem[]) => items.reduce((sum, item) => sum + known(item), 0);
+  return next.every((item, i) => known(item) >= known(stored[i]!)) && total(next) > total(stored);
+}

@@ -14,10 +14,12 @@ import type { FoodAddInput, FoodRecentItem } from "@/lib/api-types";
 import { fmtDateLong, fmtInt } from "@/lib/format";
 
 /** food.add fields that repeat a recent food as it was logged: kcal and P/K/L (null = never filled in, left out). */
-export function recentAddFields(food: FoodRecentItem): Pick<FoodAddInput, "name" | "kcal" | "grams" | "protein" | "carbs" | "fat" | "fiber"> {
+export function recentAddFields(food: FoodRecentItem): Pick<FoodAddInput, "name" | "kcal" | "source" | "grams" | "protein" | "carbs" | "fat" | "fiber"> {
   return {
     name: food.name,
     kcal: food.kcal,
+    // A repeat of a logged row, not a new typed or scanned meal: keeps AI-meal counts and the portion prior honest.
+    source: "copy" as const,
     ...(food.grams ? { grams: food.grams } : {}),
     ...(food.protein != null ? { protein: food.protein } : {}),
     ...(food.carbs != null ? { carbs: food.carbs } : {}),

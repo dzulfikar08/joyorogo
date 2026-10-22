@@ -156,3 +156,24 @@ describe("water.importHistory", () => {
     expect(r.map((x) => [x.date, x.glasses])).toEqual([[day(31), 7], [day(30), 3]]);
   });
 });
+
+describe("food.importHistory carries what the export has", () => {
+  test("weight in grams, P/K/L and fibre are stored; what the export lacks stays null, never 0", async () => {
+    const out = await call(
+      foodRouter.importHistory,
+      {
+        meals: [
+          { key: "full", date: day(30), meal: "sarapan", name: "Bubur ayam", kcal: 320, grams: 250, protein: 14, carbs: 48, fat: 8, fiber: 2 },
+          { key: "kcalonly", date: day(30), meal: "snack", name: "Roti", kcal: 150 },
+        ],
+      },
+      as("b"),
+    );
+    expect(out).toEqual({ added: 2, skipped: 0 });
+    const r = (await rows("food_log", "b")).filter((x) => String(x.id).endsWith(":full") || String(x.id).endsWith(":kcalonly")).sort((x, y) => String(x.name).localeCompare(String(y.name)));
+    expect(r.map((x) => [x.name, x.grams, x.protein, x.carbs, x.fat, x.fiber, x.source])).toEqual([
+      ["Bubur ayam", 250, 14, 48, 8, 2, "huawei"],
+      ["Roti", null, null, null, null, null, "huawei"],
+    ]);
+  });
+});

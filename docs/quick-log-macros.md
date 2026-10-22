@@ -16,8 +16,10 @@ day total silently lost the macros.
 
 ## `food.add` without macros
 
-Only for `source = "manual"` with protein, carbs and fat all absent and `kcal > 0` (`lib/macro-estimate.ts`). Photo, barcode
-and copied rows keep what they carry; a typed value, even `0`, is never replaced.
+Only for `source = "manual"` or `"copy"` (the recent-food chips and a story copy log as `copy`) with protein, carbs and fat all
+absent and `kcal > 0` (`lib/macro-estimate.ts`). Photo and barcode rows keep what they carry; a typed value, even `0`, is never
+replaced, and a row that carries any macro keeps exactly that. Fibre comes with the estimate (table row, or the parse when every
+item has it) unless the caller sent one.
 
 1. The TKPI 2019 per-100 g row the name names (`libraryMacros` in `lib/tkpi.ts`; quantity and a typed "350 kcal" are stripped
    first), scaled to the kcal that was entered. Combinations ("nasi goreng telur") and condimented dishes are skipped.
@@ -36,6 +38,9 @@ opens the portion sheet, which then has P/K/L fields; what is typed is stored as
 
 ## Backfill
 
-`scripts/backfill-quick-log-macros.ts` (dry run by default, `--apply` writes): for manual rows with kcal > 0 and no macros it
-uses the person's own latest row of the same name that has macros, else the TKPI table, scaled to the row's kcal. It does not
+`scripts/backfill-quick-log-macros.ts` (dry run by default, `--apply` writes): for manual, copy and ai rows with kcal > 0 and no
+macros it uses the person's own latest row of the same name that has macros, else the TKPI table, scaled to the row's kcal. It does not
 call the model; rows it cannot resolve stay NULL and show the marker above.
+
+A second pass fills fibre only, for manual/copy rows that carry macros but no fibre (own latest row of the same name, else the table).
+See `food-log-writers-audit.md` for the other writers.

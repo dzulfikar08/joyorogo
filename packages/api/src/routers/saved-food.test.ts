@@ -79,3 +79,24 @@ describe("savedFood router", () => {
     await expect(call(savedFoodRouter.relog, { id: single.id, meal: "snack" }, u1)).rejects.toThrow();
   });
 });
+
+describe("savedFood router: starring again", () => {
+  test("a favorite saved from a macro-less row takes the macros once the row is filled in; a poorer copy never overwrites", async () => {
+    const bare = await call(foodRouter.add, { date: "2026-10-16", meal: "sarapan", name: "Kue ajaib favorit", kcal: 321, source: "barcode" }, u1);
+    expect(bare).toMatchObject({ protein: null, carbs: null, fat: null });
+    const first = await call(savedFoodRouter.save, { foodId: bare!.id }, u1);
+    expect(first.items[0]).toMatchObject({ protein: null });
+
+    await call(foodRouter.update, { id: bare!.id, protein: 7, carbs: 41, fat: 6 }, u1);
+    const second = await call(savedFoodRouter.save, { foodId: bare!.id }, u1);
+    expect(second.id).toBe(first.id);
+    expect(second.items[0]).toMatchObject({ protein: 7, carbs: 41, fat: 6 });
+
+    // A later macro-less duplicate of the same dish does not blank the favorite again.
+    const poor = await call(foodRouter.add, { date: "2026-10-17", meal: "sarapan", name: "Kue ajaib favorit", kcal: 321, source: "barcode" }, u1);
+    const third = await call(savedFoodRouter.save, { foodId: poor!.id }, u1);
+    expect(third.items[0]).toMatchObject({ protein: 7, carbs: 41, fat: 6 });
+    const relogged = await call(savedFoodRouter.relog, { id: first.id, date: "2026-10-18", meal: "snack" }, u1);
+    expect(relogged.items[0]).toMatchObject({ protein: 7, carbs: 41, fat: 6 });
+  });
+});

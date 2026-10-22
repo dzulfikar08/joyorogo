@@ -599,7 +599,7 @@ export function libraryMacros(
   name: string,
   kcal: number,
   region?: Region,
-): { protein: number; carbs: number; fat: number } | undefined {
+): { protein: number; carbs: number; fat: number; fiber?: number } | undefined {
   if (!(kcal > 0)) return undefined;
   const index = indexFor(region);
   if (isCombination(name, index) || isCondimentedDish(name) || isCompoundOfIngredient(name, index)) return undefined;
@@ -616,7 +616,14 @@ export function libraryMacros(
       carbs: round1(Math.min(500, c * ratio)),
       fat: round1(Math.min(500, f * ratio)),
     });
-    return { protein: scaled.protein, carbs: scaled.carbs, fat: scaled.fat };
+    // Fibre scales with the same ratio; Atwater never touches it, and a row without a fibre value just has none.
+    const fiber = row.fiberPer100g === null ? undefined : round1(Math.min(500, row.fiberPer100g * ratio));
+    return {
+      protein: scaled.protein,
+      carbs: scaled.carbs,
+      fat: scaled.fat,
+      ...(fiber !== undefined ? { fiber } : {}),
+    };
   }
   return undefined;
 }

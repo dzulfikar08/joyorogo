@@ -128,13 +128,40 @@ describe("quick log keeps macros", () => {
     expect(ai.calls).toBe(0);
   });
 
-  test("photo, barcode and copied rows are left as they come", async () => {
+  test("photo and barcode rows are left as they come", async () => {
     const ai = aiAnswering([{ name: "x", kcal: 100, protein: 5, carbs: 5, fat: 5 }]);
-    for (const source of ["ai", "barcode", "copy"] as const) {
+    for (const source of ["ai", "barcode"] as const) {
       const row = await call(foodRouter.add, { date: DAY, meal: "snack", name: "nasi goreng", kcal: 350, source }, as(ai));
       expect(row).toMatchObject({ protein: null, carbs: null, fat: null });
     }
     expect(ai.calls).toBe(0);
+  });
+
+  test("a copy (the recent-food chips log as one) of a row that never had macros is resolved; one that carries a macro is left", async () => {
+    const ai = aiAnswering([{ name: "Nasi goreng", grams: 250, kcal: 400, protein: 12, carbs: 60, fat: 12 }]);
+    const bare = await call(foodRouter.add, { date: DAY, meal: "snack", name: "nasi goreng", kcal: 350, source: "copy" }, as(ai));
+    expect(bare).toMatchObject({ source: "copy", protein: 10.5, carbs: 52.5, fat: 10.5 });
+    const partial = await call(foodRouter.add, { date: DAY, meal: "snack", name: "nasi goreng", kcal: 350, source: "copy", protein: 9 }, as(ai));
+    expect(partial).toMatchObject({ protein: 9, carbs: null, fat: null });
+    expect(ai.calls).toBe(1);
+  });
+
+  test("an estimate from the table also carries fibre (the manual form has no fibre field), unless the person typed one", async () => {
+    const ai = aiAnswering([]);
+    const row = await call(foodRouter.add, { date: DAY, meal: "snack", name: "2 tahu goreng", kcal: 230 }, as(ai));
+    expect(row!.fiber).toBeGreaterThanOrEqual(0);
+    expect(row!.fiber).not.toBeNull();
+    const typed = await call(foodRouter.add, { date: DAY, meal: "snack", name: "2 tahu goreng", kcal: 230, fiber: 7 }, as(ai));
+    expect(typed!.fiber).toBe(7);
+  });
+
+  test("an estimate from the text parse carries fibre only when every parsed item has it", () => {
+    expect(
+      macrosFromParsed([{ kcal: 100, protein: 1, carbs: 1, fat: 1, fiber: 2 }, { kcal: 100, protein: 1, carbs: 1, fat: 1, fiber: 3 }], 200),
+    ).toMatchObject({ fiber: 5 });
+    expect(
+      macrosFromParsed([{ kcal: 100, protein: 1, carbs: 1, fat: 1, fiber: 2 }, { kcal: 100, protein: 1, carbs: 1, fat: 1 }], 200),
+    ).not.toHaveProperty("fiber");
   });
 
   test("no model, an empty answer or a failing model leaves the row saved without macros", async () => {
