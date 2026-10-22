@@ -428,6 +428,13 @@
       "when": 1792647190725,
       "tag": "0060_payment_is_test",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "6",
+      "when": 1792669120654,
+      "tag": "0061_food_log_plate_scan",
+      "breakpoints": true
     }
   ]
 }

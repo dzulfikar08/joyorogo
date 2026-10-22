@@ -76,7 +76,7 @@ import { CORRECTED_ROW_CLASS, CorrectBadge, CorrectBox } from "@/components/scan
 import type { CorrectScanResult, CorrectionKind } from "@/components/scan/correct-box";
 import { LiveRows } from "@/components/scan/live-rows";
 import { CountUp } from "@/components/kit/count-up";
-import { STICKER_FILTER, stickerUrl } from "@/components/sticker";
+import { STICKER_FILTER, stickerReady, stickerUrl } from "@/components/sticker";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { cropItems } from "@/lib/crop";
 import type { ItemBox } from "@/lib/crop";
@@ -365,6 +365,20 @@ function AiFoodPage() {
   const [crops, setCrops] = useState<Array<string | null>>([]);
   // Ids of the real cutouts (ai.scanSticker), parallel to items; null until ready.
   const [stickers, setStickers] = useState<Array<string | null>>([]);
+  // Sticker of the whole plate (ai.analyzeFood), cut in the background. The share cards use it as their
+  // cutout once it loads (`plateReadyId`); until then they keep the photo alone.
+  const [plateScanId, setPlateScanId] = useState<string | null>(null);
+  const [plateReadyId, setPlateReadyId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!plateScanId) return;
+    let cancelled = false;
+    void stickerReady(plateScanId, () => cancelled).then((ok) => {
+      if (ok && !cancelled) setPlateReadyId(plateScanId);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [plateScanId]);
   const stickerRunRef = useRef(0);
   // Crops are cut after the result is on screen; tiles shimmer until then.
   const [cropping, setCropping] = useState(false);
@@ -735,6 +749,7 @@ function AiFoodPage() {
       setTooMany(result.tooMany);
       setPlateNote({ plate: result.plate, card: result.card });
       setPhotoId(result.photoId ?? null);
+      setPlateScanId(result.plateScanId ?? null);
       setMemoryChips(result.memoryChips ?? []);
       setCorrectionsLeft(null);
       setRetriesLeft(result.retriesLeft ?? 0);
@@ -879,6 +894,7 @@ function AiFoodPage() {
     setTooMany(false);
     setPlateNote(null);
     setPhotoId(null);
+    setPlateScanId(null);
     setCorrectionsLeft(null);
     setRetriesLeft(0);
     setMemoryChips([]);
@@ -996,6 +1012,7 @@ function AiFoodPage() {
         mimeType: image.mimeType,
         itemsJson: JSON.stringify(withoutScaleRead(withoutPortionPrior(baseList))),
         ...(photoId ? { scanPhotoId: photoId } : {}),
+        ...(plateScanId ? { plateScanId } : {}),
         ...(plate.name || plate.place || plate.priceIdr != null ? { plate } : {}),
         ...(eatenAt !== null
           ? { eatenAt: eatenAtFromClock(scanDate ?? jakartaToday(), eatenAtClock(eatenAt)) ?? undefined }
@@ -1197,6 +1214,7 @@ function AiFoodPage() {
                 fat: items.reduce((sum, item) => sum + (item.fat ?? 0), 0),
                 reaction: reactionText ?? undefined,
                 photoSrc: photoUrl,
+                scanId: plateReadyId === plateScanId ? plateReadyId : null,
               }}
             />
           )}

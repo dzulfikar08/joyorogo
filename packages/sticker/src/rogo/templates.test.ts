@@ -237,6 +237,21 @@ describe("data builders", () => {
     const plain = availableTemplates(FIXTURES["meal-plain"].spec, {}).map((t) => t.id);
     expect(plain).not.toContain("meal.cutout.story");
   });
+
+  test("a meal with a plate sticker and a photo offers both kinds of card, each with its own image", () => {
+    const { spec } = FIXTURES["meal-plate"];
+    const photo = { uri: "fixture:meal.jpg" };
+    const data = buildStickerData({ ...spec, photoUri: photo.uri }, {});
+    expect(data.assets?.cutout?.uri).toBe("fixture:cutout.png");
+    expect(data.assets?.photo?.uri).toBe("fixture:meal.jpg");
+    const offered = availableTemplates({ ...spec, photoUri: photo.uri }, {}).map((t) => t.id);
+    expect(offered).toContain("meal.cutout.story");
+    expect(offered).toContain("meal.photo.story");
+    // The plate sticker beats a cutout passed as the photo, so the plate shows once.
+    const both = buildStickerData({ ...spec, photoUri: "fixture:component.png", photoCutout: true }, {});
+    expect(both.assets?.cutout?.uri).toBe("fixture:cutout.png");
+    expect(both.assets?.photo).toBeUndefined();
+  });
 });
 
 describe("share sheet selection", () => {

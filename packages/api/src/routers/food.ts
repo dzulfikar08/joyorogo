@@ -11,6 +11,7 @@ import { protectedProcedure } from "../index";
 import { assertEatenAt, eatenAtDay, eatenAtProblem, eatenAtSchema } from "../lib/eaten-at";
 import { MEALS, jakartaToday } from "../lib/engine";
 import { insertFoodRows } from "../lib/food-rows";
+import { barcodeFromItemsJson, productImageUrl, storeProductSticker } from "../lib/barcode-image";
 import { copyLoggedMeal, recentMealGroups } from "../lib/meal-copy";
 import { storyTarget } from "../lib/meal-reference";
 import { MAX_GRAMS, MAX_KCAL, resolvePortion } from "../lib/portion";
@@ -28,10 +29,11 @@ import {
   photoKey,
   pendingStickerKey,
   stickerKey,
+  storePlateStickerFromPhoto,
   storeStickers,
 } from "../lib/sticker";
 import { purgeUnreferencedMedia } from "./saved-food";
-import type { StickerJob } from "../lib/sticker";
+import type { StickerJob, StickersBucket } from "../lib/sticker";
 import { datasetEnabled, recordFinal } from "../lib/dataset";
 import { recordKeptSaved } from "../lib/feedback-keep";
 import { compactItems, recordSessionSaved } from "../lib/scan-outcome";
@@ -61,6 +63,22 @@ const plateInput = z.object({
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
 });
+
+/**
+ * Moves a cutout made during review from the expiring scan-src/ prefix to its
+ * final key. False when it is missing (still running, failed, expired) or
+ * belongs to someone else, so the caller cuts a fresh one.
+ */
+async function promotePending(bucket: StickersBucket, userId: string, id: string): Promise<boolean> {
+  try {
+    const pending = await bucket.get(pendingStickerKey(id));
+    if (!pending || pending.customMetadata?.userId !== userId) return false;
+    await bucket.put(stickerKey(id), await pending.arrayBuffer(), { httpMetadata: { contentType: "image/png" } });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Creates the plate row a save is anchored to. `name` falls back to the first
@@ -194,6 +212,9 @@ export const foodRouter = {
         // Scan session id (ai.analyzeFood's photoId): lets the owner's dataset
         // record the final saved items next to the AI answer. Ignored for everyone else.
         scanPhotoId: z.string().regex(SCAN_ID_RE).optional(),
+        // Cutout of the whole plate (ai.analyzeFood's plateScanId): kept next to the component cutouts and
+        // stored on every row of the scan. Cut here from the photo when it is not ready (or not ours).
+        plateScanId: z.string().regex(SCAN_ID_RE).optional(),
         plate: plateInput.optional(),
         eatenAt: eatenAtSchema.optional(),
       }),
@@ -232,20 +253,15 @@ export const foodRouter = {
       // missing (still running, failed, expired, not ours) falls through to
       // the background job below.
       const promoted = await Promise.all(
-        input.items.map(async (item): Promise<string | null> => {
-          if (!bucket || !item.scanId) return null;
-          try {
-            const pending = await bucket.get(pendingStickerKey(item.scanId));
-            if (!pending || pending.customMetadata?.userId !== userId) return null;
-            await bucket.put(stickerKey(item.scanId), await pending.arrayBuffer(), {
-              httpMetadata: { contentType: "image/png" },
-            });
-            return item.scanId;
-          } catch {
-            return null;
-          }
-        }),
+        input.items.map(async (item): Promise<string | null> =>
+          bucket && item.scanId && (await promotePending(bucket, userId, item.scanId)) ? item.scanId : null,
+        ),
       );
+      // The plate sticker follows the same rule, and only for builds that ask for one (they send the id from
+      // the scan). A fresh cut always gets a new id, never the client's, so a client cannot aim the background
+      // job at a sticker that is not its own.
+      const plateKept = Boolean(bucket && input.plateScanId && (await promotePending(bucket, userId, input.plateScanId)));
+      const plateScanId = !input.plateScanId ? null : plateKept ? input.plateScanId : bucket && images ? newScanId() : null;
       const jobs: Array<StickerJob | null> = input.items.map((_, index) => {
         if (!bucket || !images || promoted[index]) return null;
         const box = boxes[index];
@@ -280,11 +296,15 @@ export const foodRouter = {
           scanId: promoted[index] ?? jobs[index]?.scanId,
           photoId,
           plateId,
+          plateScanId,
         })),
       );
       const queued = jobs.filter((job): job is StickerJob => job !== null);
       if (bucket && queued.length > 0) {
         context.waitUntil(storeStickers(images, bucket, bytes, queued));
+      }
+      if (bucket && images && plateScanId && !plateKept) {
+        context.waitUntil(storePlateStickerFromPhoto(images, bucket, bytes, plateScanId));
       }
       // Implicit accuracy label of this scan session: saved as the AI answered,
       // or with edits (lib/scan-outcome.ts). A scan the user opted in to keep
@@ -392,6 +412,13 @@ export const foodRouter = {
           fallbackName: input.name,
           plate: input.plate,
         }));
+      // A barcode meal with no photo of its own shows the product's front photo as its sticker (lib/barcode-image.ts).
+      // A cutout the client sends (a photo the person took) always wins.
+      const bucket = context.env.STICKERS;
+      const images = context.env.IMAGES;
+      const productCode = input.source === "barcode" && !input.scanId && bucket && images ? barcodeFromItemsJson(input.itemsJson) : null;
+      const productImage = productCode ? await productImageUrl(context.db, productCode) : null;
+      const productScanId = productCode && productImage ? newScanId() : undefined;
       const [row] = await insertFoodRows(context.db, [
         {
           id: crypto.randomUUID(),
@@ -408,10 +435,13 @@ export const foodRouter = {
           source: input.source,
           eatenAt: input.eatenAt,
           itemsJson: input.itemsJson,
-          scanId: input.scanId,
+          scanId: input.scanId ?? productScanId,
           plateId,
         },
       ]);
+      if (bucket && images && productCode && productImage && productScanId) {
+        context.waitUntil(storeProductSticker(images, bucket, productCode, productImage, productScanId));
+      }
       return row;
     }),
 
@@ -564,7 +594,12 @@ export const foodRouter = {
       const [row] = await context.db
         .delete(foodLog)
         .where(and(eq(foodLog.id, input.id), eq(foodLog.userId, context.session.user.id)))
-        .returning({ scanId: foodLog.scanId, photoId: foodLog.photoId, plateId: foodLog.plateId });
+        .returning({
+          scanId: foodLog.scanId,
+          plateScanId: foodLog.plateScanId,
+          photoId: foodLog.photoId,
+          plateId: foodLog.plateId,
+        });
       // A plate with no components left is deleted with its last item.
       if (row?.plateId) {
         const [remaining] = await context.db

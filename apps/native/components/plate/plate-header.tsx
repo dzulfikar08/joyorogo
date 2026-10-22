@@ -11,7 +11,7 @@ import { Num, Text } from "@/components/ui";
 import { fmtIdr, fmtInt } from "@/utils/format";
 
 /**
- * Header of a diary plate group: the cutout of its first component (or the food tile), "Piring: Nasi
+ * Header of a diary plate group: the plate sticker (else the cutout of its first component, or the food tile), "Piring: Nasi
  * padang", time and price, the plate's total kcal on the right and its macros underneath. The components
  * follow it indented under a left rule (PlateGroup). Tapping the header opens the plate edit sheet
  * (PlateEditSheet); the thumbnail opens the full-size cutout.
@@ -25,6 +25,7 @@ export function PlateHeader({
   fat,
   fiber,
   scanId,
+  plateScanId,
   eatenAt,
   onEdit,
   onViewSticker,
@@ -40,6 +41,8 @@ export function PlateHeader({
   fiber: number | null;
   /** Cutout of the first component that has one. */
   scanId: string | null;
+  /** Whole-plate sticker of the scan; the thumbnail shows it, falling back to `scanId`. */
+  plateScanId: string | null;
   /** When the plate was logged (its first component). */
   eatenAt: Date | null;
   onEdit: () => void;
@@ -52,10 +55,11 @@ export function PlateHeader({
   return (
     <View style={styles.header}>
       <FoodSticker
-        scanId={scanId}
+        scanId={plateScanId ?? scanId}
+        fallbackScanId={plateScanId ? scanId : null}
         name={name}
         size={48}
-        onPress={scanId ? onViewSticker : undefined}
+        onPress={plateScanId || scanId ? onViewSticker : undefined}
       />
       <Pressable
         accessibilityRole="button"

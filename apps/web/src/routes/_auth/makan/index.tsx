@@ -433,6 +433,7 @@ function MakanPage() {
                             <FoodRow
                               key={item.id}
                               item={item}
+                              dayRows={presence.rows}
                               nested={nested}
                               presence={presence.presenceOf(item.id)}
                               onEdit={() => setEditItem(item)}

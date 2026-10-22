@@ -63,11 +63,11 @@ export async function purgeUnreferencedMedia(
   db: Database,
   bucket: StickersBucket | undefined,
   userId: string,
-  media: Array<{ scanId?: string | null; photoId?: string | null }>,
+  media: Array<{ scanId?: string | null; plateScanId?: string | null; photoId?: string | null }>,
 ): Promise<void> {
   if (!bucket) return;
   const seen = new Set<string>();
-  for (const { scanId, photoId } of media) {
+  for (const { scanId, plateScanId, photoId } of media) {
     try {
       const refs = await mediaReferences(db, userId, { scanId, photoId });
       if (scanId && !refs.scan && !seen.has(`s:${scanId}`)) {
@@ -77,6 +77,16 @@ export async function purgeUnreferencedMedia(
       if (photoId && !refs.photo && !seen.has(`p:${photoId}`)) {
         seen.add(`p:${photoId}`);
         await bucket.delete(photoKey(userId, photoId));
+      }
+      // The plate sticker lives on the scan's rows only (favorites do not carry it): it goes with the last of them.
+      if (plateScanId && !seen.has(`s:${plateScanId}`)) {
+        seen.add(`s:${plateScanId}`);
+        const [inLog] = await db
+          .select({ id: foodLog.id })
+          .from(foodLog)
+          .where(and(eq(foodLog.userId, userId), eq(foodLog.plateScanId, plateScanId)))
+          .limit(1);
+        if (!inLog) await bucket.delete(stickerKey(plateScanId));
       }
     } catch {
       // orphaned objects are harmless

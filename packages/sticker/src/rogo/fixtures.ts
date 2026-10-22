@@ -55,6 +55,20 @@ export const FIXTURES = {
       date: DAY,
     },
   },
+  "meal-plate": {
+    note: "meal with a photo and a whole-plate sticker (photo cards use the photo, cutout cards the plate sticker)",
+    photo: "meal.jpg",
+    spec: {
+      kind: "meal",
+      name: "Nasi Goreng Kampung",
+      kcal: 612,
+      protein: 24,
+      carbs: 78,
+      fat: 21,
+      cutoutUri: "fixture:cutout.png",
+      date: DAY,
+    },
+  },
   "meal-plain": {
     note: "meal without photo or macros",
     spec: { kind: "meal", name: "Es teh manis", kcal: 120, date: DAY },

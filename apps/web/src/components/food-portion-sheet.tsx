@@ -21,7 +21,7 @@ import { MealSlotField } from "@/components/plate/meal-slot-field";
 import { CalendarSheet, DayChips } from "@/components/plate/plate-group";
 import { FoodSafetyNotes } from "@/components/maternal/food-safety-notes";
 import { SheetActions } from "@/components/sheet-actions";
-import { StickerHero } from "@/components/sticker";
+import { StickerHero, useStickerTarget } from "@/components/sticker";
 import type { FoodItem } from "@/lib/api-types";
 import { fmtDateLong, fmtGramsLabel, fmtKcalLabel, parseNum } from "@/lib/format";
 import { askText } from "@/lib/joyo-chat";
@@ -162,6 +162,7 @@ export function FoodPortionSheet({
 }) {
   const { t } = useTranslation(["makan", "common", "joyoAiWeb"]);
   const queryClient = useQueryClient();
+  const stickerTarget = useStickerTarget();
   const navigate = useNavigate();
   const base = portionOf(row);
   const hasGrams = base.grams !== null;
@@ -360,7 +361,13 @@ export function FoodPortionSheet({
             submit();
           }}
         >
-          <StickerHero scanId={row.scanId} photoId={row.photoId} name={row.name} kcal={row.kcal} />
+          <StickerHero
+            scanId={row.scanId}
+            photoId={row.photoId}
+            name={row.name}
+            kcal={row.kcal}
+            {...stickerTarget(row, queryClient.getQueryData(listKey(row.date))?.items ?? [row])}
+          />
           <div>
             <FieldLabel htmlFor="food-name">{t("portionSheet.name")}</FieldLabel>
             <Input id="food-name" value={name} onChange={(event) => setName(event.target.value)} />

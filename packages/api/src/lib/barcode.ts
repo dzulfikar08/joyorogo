@@ -28,6 +28,7 @@ const OFF_FIELDS = [
   "serving_quantity_unit",
   "product_quantity_unit",
   "nutriments",
+  "image_front_url",
   "image_front_small_url",
 ].join(",");
 
@@ -186,7 +187,8 @@ export function parseOffProduct(raw: unknown): ProductData | null {
     fat100: per100(nutriments, "fat"),
     fiber100: per100(nutriments, "fiber"),
     sugar100: per100(nutriments, "sugars"),
-    imageUrl: str(p.image_front_small_url, 500),
+    // The 400 px front photo: it is also what a logged product's sticker is cut from (barcode-image.ts).
+    imageUrl: str(p.image_front_url, 500) ?? str(p.image_front_small_url, 500),
   };
 }
 

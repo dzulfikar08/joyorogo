@@ -125,6 +125,7 @@ export function useFavorites(): Favorites {
           source: item.scanId ? "ai" : "manual",
           itemsJson: null,
           scanId: item.scanId,
+          plateScanId: null,
           photoId: item.photoId,
           plateId: null,
           eatenAt: null,
