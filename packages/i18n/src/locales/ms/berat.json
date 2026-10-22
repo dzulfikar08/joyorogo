@@ -86,7 +86,12 @@
     "title": "Kalori masuk setiap hari",
     "titleWeekly": "Purata kalori setiap minggu",
     "target": "Sasaran {{kcal}}",
-    "a11y": "Graf kalori masuk, satu bar setiap hari atau setiap minggu"
+    "a11y": "Graf kalori masuk, satu bar setiap hari atau setiap minggu",
+    "hintDay": "Ketik bar untuk lihat harinya",
+    "hintWeek": "Ketik bar untuk lihat minggunya",
+    "readoutDay": "{{date}}: {{kcal}}",
+    "readoutWeek": "{{range}}: purata {{kcal}} sehari",
+    "readoutNone": "{{date}}: belum dicatat"
   },
   "detail": {
     "title": "Butiran",

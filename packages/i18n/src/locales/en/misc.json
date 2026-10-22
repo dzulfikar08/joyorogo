@@ -171,6 +171,23 @@
         "over": "Over",
         "under": "Under half the target",
         "target": "Target"
+      },
+      "hint": "Tap a bar to see that day"
+    },
+    "ongoing": "In progress",
+    "range": {
+      "w1": "1W",
+      "w4": "4W",
+      "w13": "13W"
+    },
+    "list": {
+      "sub": "{{status}} · target {{kcal}}",
+      "status": {
+        "on_target": "on target",
+        "over": "over target",
+        "under": "under target",
+        "empty": "not logged",
+        "pending": "not judged yet"
       }
     }
   },

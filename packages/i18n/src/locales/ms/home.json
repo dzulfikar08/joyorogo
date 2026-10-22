@@ -190,7 +190,11 @@
       "summary": "Purata {{avg}} gelas pada hari yang dicatat. {{hit}} daripada {{total}} hari capai sasaran.",
       "a11y": "Gelas air sehari, sasaran {{goal}}. {{days}}",
       "a11yDay_other": "{{date}} {{count}} gelas",
-      "empty": "Belum ada catatan air dalam julat ini. Ketik + untuk mula."
+      "empty": "Belum ada catatan air dalam julat ini. Ketik + untuk mula.",
+      "readoutWeek": "{{range}}: purata {{avg}} daripada {{goal}} gelas/hari",
+      "glasses_other": "{{count}} gelas",
+      "weekRow": "purata sehari",
+      "a11yShort": "Gelas air sehari, {{range}}, sasaran {{goal}}. Angkanya ada dalam senarai di bawah graf."
     }
   },
   "movement": {

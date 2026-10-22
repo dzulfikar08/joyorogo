@@ -89,7 +89,12 @@
     "title": "Calories eaten per day",
     "titleWeekly": "Average calories per week",
     "target": "Target {{kcal}}",
-    "a11y": "Calories eaten chart, one bar per day or per week"
+    "a11y": "Calories eaten chart, one bar per day or per week",
+    "hintDay": "Tap a bar to see that day",
+    "hintWeek": "Tap a bar to see that week",
+    "readoutDay": "{{date}}: {{kcal}}",
+    "readoutWeek": "{{range}}: average {{kcal}} a day",
+    "readoutNone": "{{date}}: not logged"
   },
   "detail": {
     "title": "Details",

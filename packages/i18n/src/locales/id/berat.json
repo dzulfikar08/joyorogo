@@ -86,7 +86,12 @@
     "title": "Kalori masuk per hari",
     "titleWeekly": "Rata-rata kalori per minggu",
     "target": "Target {{kcal}}",
-    "a11y": "Grafik kalori masuk, satu batang per hari atau per minggu"
+    "a11y": "Grafik kalori masuk, satu batang per hari atau per minggu",
+    "hintDay": "Ketuk batang untuk lihat harinya",
+    "hintWeek": "Ketuk batang untuk lihat minggunya",
+    "readoutDay": "{{date}}: {{kcal}}",
+    "readoutWeek": "{{range}}: rata-rata {{kcal}} per hari",
+    "readoutNone": "{{date}}: belum dicatat"
   },
   "detail": {
     "title": "Detail",

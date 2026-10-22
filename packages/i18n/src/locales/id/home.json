@@ -190,7 +190,11 @@
       "summary": "Rata-rata {{avg}} gelas di hari yang dicatat. {{hit}} dari {{total}} hari capai target.",
       "a11y": "Gelas air per hari, target {{goal}}. {{days}}",
       "a11yDay_other": "{{date}} {{count}} gelas",
-      "empty": "Belum ada catatan air di rentang ini. Ketuk + untuk mulai."
+      "empty": "Belum ada catatan air di rentang ini. Ketuk + untuk mulai.",
+      "readoutWeek": "{{range}}: rata-rata {{avg}} dari {{goal}} gelas/hari",
+      "glasses_other": "{{count}} gelas",
+      "weekRow": "rata-rata/hari",
+      "a11yShort": "Gelas air per hari, {{range}}, target {{goal}}. Angkanya ada di daftar di bawah grafik."
     }
   },
   "movement": {

@@ -118,5 +118,23 @@
       "subtitleUnlimited": "Pro: scan AI tanpa batas",
       "subtitleCapped_other": "Pro: {{count}} scan AI per hari"
     }
+  },
+  "range": {
+    "d7": "7H",
+    "d30": "30H",
+    "d90": "90H",
+    "d365": "1 thn",
+    "all": "Semua",
+    "label": "Rentang",
+    "prev": "Periode sebelumnya",
+    "next": "Periode berikutnya",
+    "reset": "Terbaru",
+    "resetLabel": "Kembali ke periode terbaru",
+    "clearSelection": "Hapus pilihan",
+    "list": "Per hari",
+    "listWeekly": "Per minggu",
+    "today": "hari ini",
+    "showAll": "Tampilkan {{count}} baris",
+    "showLess": "Ringkas"
   }
 }

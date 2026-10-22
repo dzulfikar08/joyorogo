@@ -118,5 +118,23 @@
       "subtitleUnlimited": "Pro: imbasan AI tanpa had",
       "subtitleCapped_other": "Pro: {{count}} imbasan AI sehari"
     }
+  },
+  "range": {
+    "d7": "7H",
+    "d30": "30H",
+    "d90": "90H",
+    "d365": "1 thn",
+    "all": "Semua",
+    "label": "Julat",
+    "prev": "Tempoh sebelumnya",
+    "next": "Tempoh seterusnya",
+    "reset": "Terkini",
+    "resetLabel": "Kembali ke tempoh terkini",
+    "clearSelection": "Kosongkan pilihan",
+    "list": "Setiap hari",
+    "listWeekly": "Setiap minggu",
+    "today": "hari ini",
+    "showAll": "Tunjuk semua {{count}} baris",
+    "showLess": "Ringkaskan"
   }
 }
