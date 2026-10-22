@@ -68,7 +68,7 @@ describe("ai.analyzeFood: Seperti biasanya", () => {
   test("a food the user logged before takes their last kcal per gram, with the model's number in the note", async () => {
     const result = await call(aiRouter.analyzeFood, INPUT, { context: ctx("hist") });
     const [rice, tempe] = result.items;
-    expect(rice).toMatchObject({ name: "nasi putih", grams: 100, kcal: 195, protein: 3.5, carbs: 40, usualDensity: { modelKcal: 231, n: 2 } });
+    expect(rice).toMatchObject({ name: "nasi putih", grams: 100, kcal: 195, protein: 3.5, carbs: 40, usualDensity: { modelKcal: 130, n: 2 } });
     expect(tempe && "usualDensity" in tempe).toBe(false);
     expect(tempe).toMatchObject({ name: "tempe goreng", grams: 50 });
   });
@@ -78,13 +78,13 @@ describe("ai.analyzeFood: Seperti biasanya", () => {
     await Promise.all(background);
     const { rows } = await client.execute(`SELECT usage_json FROM ai_usage WHERE user_id = 'hist' AND scan_type = 'user' ORDER BY created_at DESC LIMIT 1`);
     const usage = JSON.parse(String(rows[0]?.usage_json)) as { aiItems?: Array<{ n: string; k: number }> };
-    // aiItems only exists when the photo was stored (no R2 in tests): the shown number is never the model's 231.
+    // aiItems only exists when the photo was stored (no R2 in tests): the shown number is never the model's 130.
     if (usage.aiItems) expect(usage.aiItems.find((item) => item.n === "nasi putih")?.k).toBe(195);
   });
 
   test("a user with no history gets the model's numbers untouched", async () => {
     const result = await call(aiRouter.analyzeFood, INPUT, { context: ctx("fresh") });
-    expect(result.items[0]).toMatchObject({ name: "nasi putih", kcal: 231 });
+    expect(result.items[0]).toMatchObject({ name: "nasi putih", kcal: 130 });
     expect(result.items[0] && "usualDensity" in result.items[0]).toBe(false);
   });
 });
