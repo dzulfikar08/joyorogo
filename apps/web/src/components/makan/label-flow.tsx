@@ -15,6 +15,7 @@ import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { Card, FieldLabel, Segmented } from "@/components/kit/surface";
+import { Switch } from "@/components/kit/switch";
 import { fmtInt, parseNum } from "@/lib/format";
 import { prepareImageFile } from "@/lib/image";
 import { client } from "@/utils/orpc";
@@ -39,6 +40,10 @@ type Step = "capture" | "reading" | "form";
 
 // ---------------------------------------------------------------------------
 // Flow: capture -> reading -> form. The parent shows <LabelThanks/> afterwards.
+// The photos live in memory and are deleted by the server after reading, unless
+// the person turns on "keep the front photo as my meal's sticker" (off by
+// default): the server then also keeps the front photo's cutout, and its id
+// (`stickerScanId`) goes up with `onSaved` to be sent with the meal they log.
 // ---------------------------------------------------------------------------
 
 export function LabelFlow({
@@ -50,13 +55,16 @@ export function LabelFlow({
   code: string;
   known?: KnownProduct;
   onCancel: () => void;
-  onSaved: (result: ContributeResult) => void;
+  onSaved: (result: ContributeResult, stickerScanId: string | null) => void;
 }) {
   const { t } = useTranslation(["barcode", "common"]);
   const [step, setStep] = useState<Step>("capture");
   const [photos, setPhotos] = useState<Record<Slot, Photo | null>>({ label: null, front: null });
   const [readError, setReadError] = useState<string | null>(null);
   const [draft, setDraft] = useState<LabelDraft | null>(null);
+  // Opt-in, off every time the flow opens.
+  const [keepFront, setKeepFront] = useState(false);
+  const [stickerScanId, setStickerScanId] = useState<string | null>(null);
   const photosRef = useRef(photos);
   photosRef.current = photos;
   const rootRef = useRef<HTMLDivElement>(null);
@@ -99,14 +107,17 @@ export function LabelFlow({
         prepareImageFile(label.file, LABEL_MAX_SIDE),
         front ? prepareImageFile(front.file, LABEL_MAX_SIDE) : null,
       ]);
+      const keep = keepFront && frontImage !== null;
       const result = await client.barcode.readLabel({
         code,
         label: { imageBase64: labelImage.base64, mimeType: labelImage.mimeType },
         front: frontImage
           ? { imageBase64: frontImage.base64, mimeType: frontImage.mimeType }
           : undefined,
+        ...(keep ? { keepFront: true } : {}),
       });
       setDraft(result.draft);
+      setStickerScanId(keep ? result.stickerScanId : null);
       setStep("form");
     } catch (err) {
       setReadError(err instanceof ORPCError ? err.message : t("errors.labelFailed"));
@@ -116,6 +127,7 @@ export function LabelFlow({
 
   const manual = () => {
     setDraft(null);
+    setStickerScanId(null);
     setStep("form");
   };
 
@@ -146,8 +158,22 @@ export function LabelFlow({
             what={t("label.capture.frontWhat")}
             hint={t("label.capture.frontHint")}
             photo={photos.front}
-            onPick={(file) => setPhoto("front", file)}
+            onPick={(file) => {
+              setPhoto("front", file);
+              if (!file) setKeepFront(false);
+            }}
           />
+          {photos.front && (
+            <div className="flex items-center gap-3 rounded-2xl bg-muted/60 px-4 py-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">{t("label.capture.keep.title")}</p>
+                <p className="mt-0.5 text-xs leading-snug text-muted-foreground" aria-live="polite">
+                  {keepFront ? t("label.capture.keep.on") : t("label.capture.keep.off")}
+                </p>
+              </div>
+              <Switch checked={keepFront} onCheckedChange={setKeepFront} label={t("label.capture.keep.title")} />
+            </div>
+          )}
           {readError && (
             <p role="alert" className="px-1 text-sm text-destructive">
               {readError}
@@ -182,7 +208,7 @@ export function LabelFlow({
           draft={draft}
           known={known}
           onBack={() => setStep("capture")}
-          onSaved={onSaved}
+          onSaved={(result) => onSaved(result, stickerScanId)}
         />
       )}
     </div>

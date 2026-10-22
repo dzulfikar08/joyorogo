@@ -144,7 +144,8 @@ const PRIVACY_MS: LegalDoc = {
       title: "Kamera, galeri dan kod bar",
       blocks: [
         "Kamera hanya digunakan apabila anda memotret makanan untuk dikira kalorinya, mengimbas kod bar bungkusan, atau memotret jadual \"Maklumat Pemakanan\" pada bungkusan. Galeri hanya untuk foto yang anda pilih sendiri (foto makanan, foto label, foto profil, foto cerita). Kami tidak membaca isi galeri anda di luar foto yang anda pilih. Untuk kod bar, hanya nombor kod bar dihantar melalui pelayan kami dan pangkalan data produk luar, seperti Open Food Facts (pangkalan data produk terbuka), untuk mendapatkan maklumat pemakanan. Nombor itu tidak disertakan dengan nama atau e-mel anda.",
-        "Jika anda memotret label pemakanan produk, foto itu dihantar sekali ke pelayan kami untuk dibaca oleh AI, kemudian dibuang: foto itu tidak disimpan dan tidak ditahan. Yang disimpan hanyalah nama produk dan angka pemakanan yang anda taip atau sahkan sendiri dalam borang. Data produk itu dikongsi dengan semua pengguna JoyoRogo supaya mereka boleh mengimbas produk yang sama. Sumbangan anda kekal dikaitkan dengan akaun anda supaya kami boleh mengira berapa orang yang mengesahkan angka itu dan menghadkan penyalahgunaan, tetapi nama anda tidak dipaparkan kepada pengguna lain.",
+        "Jika anda memotret label pemakanan produk, foto jadual pemakanan itu (dan foto depan bungkusan, jika anda mengambilnya) dihantar sekali ke pelayan kami untuk dibaca oleh AI, kemudian dibuang: foto itu tidak disimpan dan tidak ditahan. Yang disimpan hanyalah nama produk dan angka pemakanan yang anda taip atau sahkan sendiri dalam borang. Data produk itu dikongsi dengan semua pengguna JoyoRogo supaya mereka boleh mengimbas produk yang sama. Sumbangan anda kekal dikaitkan dengan akaun anda supaya kami boleh mengira berapa orang yang mengesahkan angka itu dan menghadkan penyalahgunaan, tetapi nama anda tidak dipaparkan kepada pengguna lain.",
+        "Ada satu pengecualian, dan hanya jika anda menghidupkannya: pada skrin foto label terdapat pilihan \"Guna foto depan sebagai pelekat makanan\", yang sentiasa mati dan hanya muncul selepas anda mengambil foto depan bungkusan. Jika dihidupkan, pelayan memotong foto depan itu (tanpa latar) dan menyimpan potongannya sahaja, melalui alamat rawak yang tidak boleh diteka, sebagai pelekat makanan yang anda catat daripada produk itu. Foto asal dan foto jadual pemakanan tetap dibuang. Potongan itu tidak dimasukkan ke dalam data produk yang dikongsi. Padam catatan makanan itu dan pelekatnya turut terpadam, begitu juga apabila anda memadam akaun atau semua data. Jika anda tidak mencatat makanan itu, potongan itu dipadam secara automatik dalam kira-kira 2 hari. Jika pilihan itu mati, produk daripada label tidak mendapat pelekat daripada foto anda.",
       ],
     },
     {
@@ -407,7 +408,7 @@ const PRIVACY_MS: LegalDoc = {
       blocks: [
         { list: [
           "Akaun dan catatan harian: sehingga anda memadamnya (Padam semua data saya) atau memadam akaun. Padam semua data tidak memadam sejarah pembayaran dan status Pro; memadam akaun memadamnya.",
-          "Foto makanan: ditahan sementara kira-kira 2 hari, kemudian dipadam. Foto label pemakanan dan rakaman suara tidak disimpan.",
+          "Foto makanan: ditahan sementara kira-kira 2 hari, kemudian dipadam. Foto label pemakanan dan rakaman suara tidak disimpan. Foto depan bungkusan juga tidak, kecuali anda menghidupkan pilihan pelekat: hanya potongannya disimpan, bersama catatan makanan itu.",
           "Senaman daripada Strava: 7 hari sejak aktivitinya.",
           "Wawasan tidur: paling banyak 90 malam terakhir.",
           "Ringkasan Keluarga: 30 hari (pemantau Percuma) atau 90 hari (pemantau Pro).",
@@ -549,7 +550,8 @@ const PRIVACY_EN: LegalDoc = {
       title: "Camera, gallery and barcodes",
       blocks: [
         "The camera is used only when you photograph food to count its calories, scan a package barcode, or photograph the \"Nutrition Information\" table on a package. The gallery is used only for photos you pick yourself (food photos, label photos, profile photos, story photos). We do not read your gallery beyond the photos you pick. For barcodes, only the barcode number goes through our server and external product databases, such as Open Food Facts (an open product database), to fetch nutrition info. The number is not sent with your name or email.",
-        "If you photograph a product's nutrition label, the photo is sent once to our server to be read by AI, then discarded: the photo is not stored or kept. What is stored is only the product name and the nutrition figures you type or confirm yourself in the form. That product data is shared with all JoyoRogo users so they can scan the same product. Your contribution stays linked to your account so we can count how many people confirmed the figures and limit abuse, but your name is not shown to other users.",
+        "If you photograph a product's nutrition label, the photo of the table (and the photo of the front of the pack, if you take one) is sent once to our server to be read by AI, then discarded: the photo is not stored or kept. What is stored is only the product name and the nutrition figures you type or confirm yourself in the form. That product data is shared with all JoyoRogo users so they can scan the same product. Your contribution stays linked to your account so we can count how many people confirmed the figures and limit abuse, but your name is not shown to other users.",
+        "There is one exception, and only if you switch it on: the label photo screen has an option \"Use the front photo as my meal's sticker\", which is always off and only appears after you take a photo of the front of the pack. When it is on, the server cuts that front photo out (background removed) and keeps only the cutout, at a random address that cannot be guessed, as the sticker of the meal you log from that product. The original photo and the nutrition table photo are still discarded. The cutout is not part of the shared product data. Delete the food entry and its sticker is deleted too, as it is when you delete your account or all your data. If you never log the meal, the cutout is deleted automatically after about 2 days. With the option off, a product from a label gets no sticker made from your photo.",
       ],
     },
     {
@@ -812,7 +814,7 @@ const PRIVACY_EN: LegalDoc = {
       blocks: [
         { list: [
           "Account and daily records: until you delete them (Delete all my data) or delete the account. Delete all my data does not delete payment history and Pro status; deleting the account does.",
-          "Food photos: held temporarily for about 2 days, then deleted. Nutrition label photos and voice recordings are not stored.",
+          "Food photos: held temporarily for about 2 days, then deleted. Nutrition label photos and voice recordings are not stored. Neither is the front-of-pack photo, unless you switch on the sticker option: only its cutout is kept, with that food entry.",
           "Workouts from Strava: 7 days from the activity.",
           "Sleep insights: at most the last 90 nights.",
           "Family summaries: 30 days (Free monitors) or 90 days (Pro monitors).",

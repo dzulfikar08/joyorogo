@@ -42,7 +42,9 @@ Kalau beberapa pengguna memotret produk yang sama, angka yang dipakai adalah kes
 
 ## Privasi
 
-Foto label dikirim sekali untuk dibaca lalu dibuang. Yang tersimpan hanya nama produk dan angka yang kamu konfirmasi, dan itu dibagikan ke pengguna lain tanpa namamu. Rinciannya di halaman [Privasi](/privasi).
+Biasanya foto label dikirim sekali untuk dibaca lalu dibuang. Yang tersimpan hanya nama produk dan angka yang kamu konfirmasi, dan itu dibagikan ke pengguna lain tanpa namamu.
+
+Ada satu pilihan yang selalu mati sampai kamu menyalakannya: setelah mengambil foto depan kemasan, kamu bisa memakainya sebagai stiker makanan yang kamu catat. Kalau menyala, foto depan itu dipotong tanpa latar dan hanya potongannya yang disimpan bersama catatanmu, tidak ikut dibagikan, dan hilang kalau catatannya dihapus. Foto tabel gizi tetap dibuang. Rinciannya di halaman [Privasi](/privasi).
 
 ## Pertanyaan
 

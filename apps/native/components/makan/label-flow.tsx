@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, Image, View } from "react-native";
+import { ActivityIndicator, Image, Switch, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import type { BarcodeLookup } from "@joyorogo/api/lib/barcode";
@@ -63,7 +63,10 @@ type Step = "capture" | "reading" | "form";
 /**
  * Photo of the "Informasi Nilai Gizi" panel (and optionally the pack front),
  * read into an editable draft, confirmed on a form and saved for everyone.
- * Photos live in memory only; the server deletes them after reading.
+ * Photos live in memory only and the server deletes them after reading, unless
+ * the person turns on "keep the front photo as my meal's sticker" (off by
+ * default): the server then also keeps the front photo's cutout, and its id
+ * (`stickerScanId`) goes up with `onSaved` to be sent with the meal they log.
  */
 export function LabelFlow({
   code,
@@ -74,7 +77,7 @@ export function LabelFlow({
   code: string;
   initial?: LabelInitial;
   onCancel: () => void;
-  onSaved: (response: LabelResponse) => void;
+  onSaved: (response: LabelResponse, stickerScanId: string | null) => void;
 }) {
   const { t } = useTranslation(["barcode", "common"]);
   const { theme } = useUnistyles();
@@ -85,6 +88,9 @@ export function LabelFlow({
   // Slot waiting on the pre-prompt card, and whether the OS refused the camera.
   const [prompting, setPrompting] = useState<Slot | null>(null);
   const [denied, setDenied] = useState(false);
+  // Opt-in, off every time the flow opens: keep the front photo as the sticker of the meal logged next.
+  const [keepFront, setKeepFront] = useState(false);
+  const [stickerScanId, setStickerScanId] = useState<string | null>(null);
 
   const setPhoto = (slot: Slot, photo: Photo | null) =>
     setPhotos((current) => ({ ...current, [slot]: photo }));
@@ -149,6 +155,7 @@ export function LabelFlow({
   const openManual = () => {
     setError(null);
     setDraft(EMPTY_DRAFT);
+    setStickerScanId(null);
     setStep("form");
   };
 
@@ -169,12 +176,15 @@ export function LabelFlow({
         setStep("capture");
         return;
       }
+      const keep = keepFront && front !== null;
       const response = await client.barcode.readLabel({
         code,
         label,
         ...(front ? { front } : {}),
+        ...(keep ? { keepFront: true } : {}),
       });
       setDraft(response.draft);
+      setStickerScanId(keep ? response.stickerScanId : null);
       setStep("form");
     } catch (e) {
       setError(errorMessage(e));
@@ -198,7 +208,7 @@ export function LabelFlow({
         draft={draft}
         initial={initial}
         onBack={() => setStep("capture")}
-        onSaved={onSaved}
+        onSaved={(response) => onSaved(response, stickerScanId)}
       />
     );
   }
@@ -243,8 +253,28 @@ export function LabelFlow({
         photo={photos.front}
         onTake={() => void takePhoto("front")}
         onChoose={() => void chooseFromGallery("front")}
-        onRemove={() => setPhoto("front", null)}
+        onRemove={() => {
+          setPhoto("front", null);
+          setKeepFront(false);
+        }}
       />
+      {photos.front ? (
+        <View style={styles.keepRow}>
+          <View style={styles.flexOne}>
+            <Text style={styles.slotTitle}>{t("label.capture.keep.title")}</Text>
+            <Text style={styles.caption}>
+              {keepFront ? t("label.capture.keep.on") : t("label.capture.keep.off")}
+            </Text>
+          </View>
+          <Switch
+            value={keepFront}
+            onValueChange={setKeepFront}
+            trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+            thumbColor={theme.colors.background}
+            accessibilityLabel={t("label.capture.keep.title")}
+          />
+        </View>
+      ) : null}
 
       {error ? (
         <Text style={styles.errorText} accessibilityLiveRegion="polite">
@@ -719,6 +749,15 @@ const styles = StyleSheet.create((theme) => ({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: theme.spacing.sm,
+  },
+  keepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md,
+    backgroundColor: theme.colors.muted,
+    borderRadius: theme.radius.tile,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
   },
   thumb: {
     width: 72,

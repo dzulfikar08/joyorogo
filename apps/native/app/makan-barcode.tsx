@@ -81,6 +81,8 @@ export default function MakanBarcode() {
   const [thanks, setThanks] = useState<{ outcome: ContributeOutcome; contributors: number } | null>(
     null,
   );
+  // The cutout of the pack photo the person chose to keep in the label flow (opt-in); it becomes the logged meal's sticker.
+  const [keptSticker, setKeptSticker] = useState<string | null>(null);
   const scrollRef = useRef<KeyboardAwareScrollViewRef>(null);
   const bodyY = useRef(0);
 
@@ -111,6 +113,7 @@ export default function MakanBarcode() {
     setKindOverride(null);
     setLabelOpen(false);
     setThanks(null);
+    setKeptSticker(null);
     setHalfUndo(null);
     addFood.reset();
   };
@@ -349,6 +352,7 @@ export default function MakanBarcode() {
             ...(scaled.fat !== null ? { fat: scaled.fat } : {}),
             ...(scaled.fiber !== null ? { fiber: scaled.fiber } : {}),
             source: "barcode",
+            ...(keptSticker ? { scanId: keptSticker } : {}),
             ...eatenAtInput(),
             itemsJson: JSON.stringify({
               barcode: data.code,
@@ -526,8 +530,9 @@ export default function MakanBarcode() {
           code={code}
           initial={product ?? undefined}
           onCancel={() => setLabelOpen(false)}
-          onSaved={(response) => {
+          onSaved={(response, stickerScanId) => {
             setLabelOpen(false);
+            setKeptSticker(stickerScanId);
             setThanks({ outcome: response.outcome, contributors: response.contributors });
           }}
         />

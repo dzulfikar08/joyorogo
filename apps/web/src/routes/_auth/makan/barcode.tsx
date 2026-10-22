@@ -286,6 +286,8 @@ function BarcodeResult({
   } | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [communityDone, setCommunityDone] = useState(false);
+  // The cutout of the pack photo the person chose to keep in the label flow (opt-in); it becomes the logged meal's sticker.
+  const [keptSticker, setKeptSticker] = useState<string | null>(null);
   const foundRef = useRef<HTMLElement>(null);
 
   const save = async (input: Parameters<typeof client.food.add>[0]) => {
@@ -485,8 +487,9 @@ function BarcodeResult({
         code={code}
         known={product ?? undefined}
         onCancel={() => setLabelOpen(false)}
-        onSaved={(result) => {
+        onSaved={(result, stickerScanId) => {
           applyResult(result);
+          setKeptSticker(stickerScanId);
           setThanks({ outcome: result.outcome, contributors: result.contributors });
           setLabelOpen(false);
         }}
@@ -712,6 +715,7 @@ function BarcodeResult({
             fat: scaled.fat ?? undefined,
             fiber: scaled.fiber ?? undefined,
             source: "barcode",
+            scanId: keptSticker ?? undefined,
             itemsJson: JSON.stringify({
               barcode: data.code,
               brand: data.product.brand,

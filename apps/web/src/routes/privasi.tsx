@@ -65,13 +65,26 @@ function PrivasiPage() {
               gizi; nomor itu tidak disertai nama atau emailmu.
             </p>
             <p className="mt-3 text-sm leading-relaxed">
-              Kalau kamu memotret label gizi produk, fotonya dikirim sekali ke server kami untuk
-              dibaca oleh AI, lalu dibuang: foto itu tidak disimpan dan tidak ditahan. Yang
-              tersimpan hanya nama produk dan angka gizi yang kamu ketik atau konfirmasi sendiri di
-              formulir, dan data produk itu dibagikan ke semua pengguna JoyoRogo supaya mereka bisa
-              memindai produk yang sama. Kontribusimu tetap terhubung ke akunmu supaya kami bisa
-              menghitung berapa orang yang mengonfirmasi angkanya dan membatasi penyalahgunaan,
-              tapi namamu tidak ditampilkan ke pengguna lain.
+              Kalau kamu memotret label gizi produk, foto tabel gizinya (dan foto depan kemasan,
+              kalau kamu mengambilnya) dikirim sekali ke server kami untuk dibaca oleh AI, lalu
+              dibuang: foto itu tidak disimpan dan tidak ditahan. Yang tersimpan hanya nama produk
+              dan angka gizi yang kamu ketik atau konfirmasi sendiri di formulir, dan data produk
+              itu dibagikan ke semua pengguna JoyoRogo supaya mereka bisa memindai produk yang
+              sama. Kontribusimu tetap terhubung ke akunmu supaya kami bisa menghitung berapa
+              orang yang mengonfirmasi angkanya dan membatasi penyalahgunaan, tapi namamu tidak
+              ditampilkan ke pengguna lain.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              Ada satu pengecualian, dan hanya kalau kamu menyalakannya: di layar foto label ada
+              pilihan "Pakai foto depan jadi stiker makanan", yang selalu mati dan baru muncul
+              setelah kamu mengambil foto depan kemasan. Kalau menyala, server memotong foto depan
+              itu (tanpa latar) dan menyimpan potongannya saja, lewat alamat acak yang tidak bisa
+              ditebak, sebagai stiker makanan yang kamu catat dari produk itu. Foto aslinya dan foto
+              tabel gizi tetap dibuang. Potongan itu tidak masuk ke data produk yang dibagikan.
+              Hapus catatan makanannya, stikernya ikut terhapus, begitu juga saat kamu menghapus
+              akun atau semua data. Kalau kamu tidak jadi mencatat makanannya, potongan itu
+              terhapus otomatis dalam sekitar 2 hari. Kalau pilihan itu mati, produk dari label
+              tidak punya stiker dari fotomu.
             </p>
           </section>
 

@@ -1,4 +1,4 @@
-// Whole-plate stickers and barcode product stickers through the food router.
+// Whole-plate stickers, barcode product stickers and the opt-in kept pack photo through the food and barcode routers.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -11,10 +11,12 @@ import { createClient } from "../../../db/node_modules/@libsql/client";
 import type { Database } from "@joyorogo/db";
 
 import type { Context } from "../context";
+import { LABEL_PROMPT } from "../lib/barcode-label";
 import { productStickerKey } from "../lib/barcode-image";
 import { makePng } from "../lib/png-fixture";
 import { pendingStickerKey, stickerKey } from "../lib/sticker";
 import type { ImagesBinding } from "../lib/sticker";
+import { barcodeRouter } from "./barcode";
 import { foodRouter } from "./food";
 
 const client = createClient({ url: ":memory:" });
@@ -170,9 +172,36 @@ describe("food.add barcode product sticker", () => {
   test("a photo cutout the client already has wins over the product photo", async () => {
     await seedProduct("https://images.openfoodfacts.org/images/products/front.400.jpg");
     const mine = "5".repeat(32);
+    objects.set(pendingStickerKey(mine), { bytes: new Uint8Array([7, 7]).buffer, userId: "u1" });
+    objects.delete(productStickerKey(CODE));
     const row = await log({ scanId: mine });
     await settle();
     expect(row!.scanId).toBe(mine);
+    expect(new Uint8Array(objects.get(stickerKey(mine))!.bytes)).toEqual(new Uint8Array([7, 7]));
+    // The product photo was never fetched or cut for this row.
+    expect(objects.has(productStickerKey(CODE))).toBe(false);
+  });
+
+  test("a kept cutout that expired or is someone else's falls back to the product photo", async () => {
+    await seedProduct("https://images.openfoodfacts.org/images/products/front.400.jpg");
+    globalThis.fetch = (async () =>
+      new Response(new Uint8Array([1, 2, 3]), { headers: { "content-type": "image/jpeg" } })) as unknown as typeof fetch;
+    try {
+      const gone = "6".repeat(32);
+      const expired = await log({ scanId: gone });
+      const theirs = "7".repeat(32);
+      objects.set(pendingStickerKey(theirs), { bytes: new Uint8Array([9]).buffer, userId: "u2" });
+      const stolen = await log({ scanId: theirs });
+      await settle();
+      for (const [row, asked] of [[expired, gone], [stolen, theirs]] as const) {
+        expect(row!.scanId).toMatch(/^[a-f0-9]{32}$/);
+        expect(row!.scanId).not.toBe(asked);
+        expect(objects.has(stickerKey(asked))).toBe(false);
+        expect(objects.has(stickerKey(row!.scanId!))).toBe(true);
+      }
+    } finally {
+      globalThis.fetch = original;
+    }
   });
 
   test("a product without a usable photo stays without a sticker", async () => {
@@ -186,5 +215,75 @@ describe("food.add barcode product sticker", () => {
     await seedProduct("https://images.openfoodfacts.org/images/products/front.400.jpg");
     const row = await log({ source: "manual" });
     expect(row!.scanId).toBeNull();
+  });
+});
+
+describe("barcode.readLabel keepFront (opt-in pack photo sticker)", () => {
+  const CODE = "8999999000028";
+  const LABEL_ANSWER = JSON.stringify({
+    servingSize: 34,
+    unit: "g",
+    perServing: { kcal: 180, protein: 2, carbs: 18, fat: 11, fiber: 1, sugar: 1 },
+  });
+  const ai = (answer: string) => ({
+    run: (_model: string, input: unknown) => {
+      const text = (input as { messages: Array<{ content: Array<{ text?: string }> }> }).messages[0]!.content[0]!.text;
+      return Promise.resolve({ response: text === LABEL_PROMPT ? answer : JSON.stringify({ name: "Keripik", brand: "X" }) });
+    },
+  });
+  const readAs = (userId: string, answer: string, extra: Record<string, unknown>) =>
+    call(
+      barcodeRouter.readLabel,
+      { code: CODE, label: { imageBase64: PHOTO, mimeType: "image/jpeg" }, front: { imageBase64: PHOTO, mimeType: "image/jpeg" }, ...extra },
+      {
+        context: {
+          db,
+          env: { AI: ai(answer), AI_VISION_MODEL: "m", STICKERS: bucket, IMAGES: images },
+          locale: "id",
+          waitUntil: (work: Promise<unknown>) => {
+            background.push(work);
+          },
+          session: { user: { id: userId } },
+        } as unknown as Context,
+      },
+    );
+  const pendingKeys = () => [...objects.keys()].filter((key) => key.startsWith("scan-src/stk/"));
+
+  test("off by default: nothing of the photos is kept", async () => {
+    const before = pendingKeys().length;
+    const result = await readAs("u1", LABEL_ANSWER, {});
+    await settle();
+    expect(result.stickerScanId).toBeNull();
+    expect(pendingKeys()).toHaveLength(before);
+  });
+
+  test("opted in: the front photo's cutout is parked for the user and logs as the meal's sticker", async () => {
+    const result = await readAs("u1", LABEL_ANSWER, { keepFront: true });
+    await settle();
+    const id = result.stickerScanId!;
+    expect(id).toMatch(/^[a-f0-9]{32}$/);
+    expect(objects.get(pendingStickerKey(id))?.userId).toBe("u1");
+    const row = await call(
+      foodRouter.add,
+      { meal: "snack", name: "Keripik", kcal: 100, source: "barcode", itemsJson: JSON.stringify({ barcode: CODE, source: "label_photo" }), scanId: id },
+      u1,
+    );
+    expect(row!.scanId).toBe(id);
+    expect(objects.has(stickerKey(id))).toBe(true);
+  });
+
+  test("opted in without a front photo keeps nothing", async () => {
+    const before = pendingKeys().length;
+    const result = await readAs("u1", LABEL_ANSWER, { keepFront: true, front: undefined });
+    await settle();
+    expect(result.stickerScanId).toBeNull();
+    expect(pendingKeys()).toHaveLength(before);
+  });
+
+  test("a label that cannot be read leaves no cutout behind", async () => {
+    const before = pendingKeys().length;
+    await readAs("u1", JSON.stringify({ problem: "buram" }), { keepFront: true }).catch(() => undefined);
+    await settle();
+    expect(pendingKeys()).toHaveLength(before);
   });
 });

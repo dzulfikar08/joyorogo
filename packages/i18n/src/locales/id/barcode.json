@@ -139,10 +139,10 @@
   "label": {
     "title": "Foto label gizi",
     "intro": "Foto tabel \"Informasi Nilai Gizi\" di kemasan. Angkanya dibaca otomatis, kamu cek dulu sebelum disimpan.",
-    "privacy": "Fotonya cuma dibaca lalu dihapus. Yang tersimpan hanya nama dan angka gizinya, dibagikan ke semua pengguna JoyoRogo.",
+    "privacy": "Biasanya fotonya cuma dibaca lalu dihapus. Kalau kamu menyalakan opsi stiker untuk foto depan, potongannya (tanpa latar) disimpan sebagai stiker makanan yang kamu catat, dan ikut hilang kalau catatannya kamu hapus. Foto tabel gizi selalu dihapus. Yang dibagikan ke semua pengguna JoyoRogo hanya nama dan angka gizinya.",
     "permission": {
       "title": "Kamera untuk memotret label",
-      "body": "JoyoRogo butuh kamera untuk memotret tabel gizi di kemasan. Foto dikirim sekali untuk dibaca, lalu dihapus.",
+      "body": "JoyoRogo butuh kamera untuk memotret tabel gizi di kemasan. Foto dikirim sekali untuk dibaca, lalu dihapus. Foto depan hanya jadi stiker makananmu kalau kamu menyalakan opsinya.",
       "continue": "Lanjut",
       "denied": "Izin kamera ditolak. Buka pengaturan ponsel untuk mengizinkan kamera, atau pilih foto dari galeri."
     },
@@ -161,7 +161,12 @@
       "photoAlt": "Foto {{what}}",
       "manual": "Isi angkanya sendiri",
       "labelWhat": "tabel gizi",
-      "frontWhat": "depan kemasan"
+      "frontWhat": "depan kemasan",
+      "keep": {
+        "title": "Pakai foto depan jadi stiker makanan",
+        "off": "Mati: foto depan dibaca lalu dihapus.",
+        "on": "Nyala: foto depan dipotong tanpa latar dan disimpan sebagai stiker makanan yang kamu catat. Fotonya sendiri tetap dihapus."
+      }
     },
     "form": {
       "title": "Cek angkanya",

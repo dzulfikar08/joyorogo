@@ -139,10 +139,10 @@
   "label": {
     "title": "Foto label pemakanan",
     "intro": "Ambil foto jadual \"Maklumat Pemakanan\" pada bungkusan. Angkanya dibaca secara automatik, anda semak dahulu sebelum disimpan.",
-    "privacy": "Foto hanya dibaca kemudian dipadam. Yang disimpan hanyalah nama dan angka pemakanan, dikongsi kepada semua pengguna JoyoRogo.",
+    "privacy": "Biasanya foto hanya dibaca kemudian dipadam. Jika anda menghidupkan pilihan pelekat untuk foto depan, potongannya (tanpa latar) disimpan sebagai pelekat makanan yang anda catat, dan turut hilang apabila catatan itu dipadam. Foto jadual pemakanan sentiasa dipadam. Yang dikongsi kepada semua pengguna JoyoRogo hanyalah nama dan angka pemakanan.",
     "permission": {
       "title": "Kamera untuk memotret label",
-      "body": "JoyoRogo memerlukan kamera untuk memotret jadual pemakanan pada bungkusan. Foto dihantar sekali untuk dibaca, kemudian dipadam.",
+      "body": "JoyoRogo memerlukan kamera untuk memotret jadual pemakanan pada bungkusan. Foto dihantar sekali untuk dibaca, kemudian dipadam. Foto depan hanya menjadi pelekat makanan anda jika anda menghidupkan pilihan itu.",
       "continue": "Teruskan",
       "denied": "Kebenaran kamera ditolak. Buka tetapan telefon untuk membenarkan kamera, atau pilih foto daripada galeri."
     },
@@ -161,7 +161,12 @@
       "photoAlt": "Foto {{what}}",
       "manual": "Isi angkanya sendiri",
       "labelWhat": "jadual pemakanan",
-      "frontWhat": "bahagian depan bungkusan"
+      "frontWhat": "bahagian depan bungkusan",
+      "keep": {
+        "title": "Guna foto depan sebagai pelekat makanan",
+        "off": "Mati: foto depan dibaca kemudian dipadam.",
+        "on": "Hidup: foto depan dipotong tanpa latar dan disimpan sebagai pelekat makanan yang anda catat. Foto itu sendiri tetap dipadam."
+      }
     },
     "form": {
       "title": "Semak angkanya",
