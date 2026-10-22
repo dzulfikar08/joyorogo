@@ -1,10 +1,10 @@
 import { ORPCError } from "@orpc/server";
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Database } from "@joyorogo/db";
 import type { DayZone, Locale } from "@joyorogo/i18n";
-import { aiUsage, profile, scanCorrection, scanFeedback, weightLog } from "@joyorogo/db/schema/fitness";
+import { aiUsage, foodLog, profile, scanCorrection, scanFeedback, weightLog } from "@joyorogo/db/schema/fitness";
 import {
   SCAN_ID_RE,
   base64ToBytes,
@@ -32,7 +32,7 @@ import type {
 import { protectedProcedure } from "../index";
 import { serverT } from "../lib/messages";
 import { scanFailMessage } from "../lib/scan-fail-message";
-import { MEALS, jakartaToday } from "../lib/engine";
+import { MEALS, jakartaToday, shiftDate } from "../lib/engine";
 import { GAIN_PROMPT_NOTE, isGainGap } from "../lib/gain";
 import { maternalFromRow, maternalNoteFor } from "../lib/maternal";
 import { dateSchema, mealSchema } from "../lib/schemas";
@@ -101,6 +101,8 @@ const CORRECTION_ERROR_KEY = {
 const MAX_STICKERS_PER_PHOTO = 12 * (1 + MAX_SCAN_RETRIES);
 /** How long scanSticker waits on a cut another request is running. */
 const STICKER_WAIT_MS = 15_000;
+/** Longest range `ai.diaryRange` (Joyo AI) serves. */
+const DIARY_RANGE_MAX_DAYS = 90;
 
 /** The distinct boxes of an analysis (at most 12: one cutout per item). */
 function distinctBoxes(items: ReadonlyArray<{ box?: ItemBox }>): ItemBox[] {
@@ -1267,5 +1269,59 @@ export const aiRouter = {
         })),
       );
       return { logged: input.items.length };
+    }),
+
+  /**
+   * Joyo AI's read of the diary over a range, one grouped query: per logged day the kcal and the macro sums plus how many
+   * rows carry each macro (quick-log and imported rows have none, so a sum is only over the rows that HAVE the value: a
+   * macro nobody has is `null`, never 0). A day with no rows is absent. No names, no photos, no ids.
+   */
+  diaryRange: protectedProcedure
+    .input(
+      z
+        .object({ from: dateSchema, to: dateSchema })
+        .refine((v) => v.from <= v.to, "from must not be after to")
+        .refine((v) => shiftDate(v.to, -DIARY_RANGE_MAX_DAYS) < v.from, `range is capped at ${DIARY_RANGE_MAX_DAYS} days`),
+    )
+    .handler(async ({ context, input }) => {
+      const rows = await context.db
+        .select({
+          date: foodLog.date,
+          kcal: sql<number>`sum(${foodLog.kcal})`,
+          items: sql<number>`count(*)`,
+          meals: sql<number>`count(distinct ${foodLog.meal})`,
+          protein: sql<number | null>`sum(${foodLog.protein})`,
+          carbs: sql<number | null>`sum(${foodLog.carbs})`,
+          fat: sql<number | null>`sum(${foodLog.fat})`,
+          fiber: sql<number | null>`sum(${foodLog.fiber})`,
+          proteinRows: sql<number>`count(${foodLog.protein})`,
+          carbsRows: sql<number>`count(${foodLog.carbs})`,
+          fatRows: sql<number>`count(${foodLog.fat})`,
+          fiberRows: sql<number>`count(${foodLog.fiber})`,
+        })
+        .from(foodLog)
+        .where(
+          and(
+            eq(foodLog.userId, context.session.user.id),
+            gte(foodLog.date, input.from),
+            lte(foodLog.date, input.to),
+          ),
+        )
+        .groupBy(foodLog.date)
+        .orderBy(foodLog.date);
+      const round1 = (v: number | null) => (v === null ? null : Math.round(v * 10) / 10);
+      return {
+        days: rows.map((r) => ({
+          date: r.date,
+          kcal: Math.round(r.kcal),
+          protein: round1(r.protein),
+          carbs: round1(r.carbs),
+          fat: round1(r.fat),
+          fiber: round1(r.fiber),
+          meals: r.meals,
+          items: r.items,
+          rowsWith: { protein: r.proteinRows, carbs: r.carbsRows, fat: r.fatRows, fiber: r.fiberRows },
+        })),
+      };
     }),
 };
