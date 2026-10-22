@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lt, lte, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { user } from "@joyorogo/db/schema/auth";
@@ -31,6 +31,7 @@ import { energyNotice, showEnergyNotice } from "../lib/energy-notice";
 import { budgetKcal, exerciseCredit } from "../lib/exercise-credit";
 import { addBackPrefQuery, dayReadings, loadDayCredit, readAddBackPrefs } from "../lib/exercise-credit-store";
 import { READINESS_LABELS, hasFitnessData } from "../lib/fitness-hint";
+import { IMPORT_SOURCE } from "../lib/history-import";
 import { dateSchema } from "../lib/schemas";
 import { loadIdeaValues } from "./plate";
 import { gainMealIdeas, mealIdeas } from "../lib/ideas";
@@ -167,12 +168,13 @@ export const dayRouter = {
         context.db
           .select({ date: foodLog.date, kcal: sql<number>`sum(${foodLog.kcal})` })
           .from(foodLog)
-          .where(and(eq(foodLog.userId, userId), gte(foodLog.date, streakStart)))
+          // Imported history (source "huawei") never counts toward a streak.
+          .where(and(eq(foodLog.userId, userId), gte(foodLog.date, streakStart), ne(foodLog.source, IMPORT_SOURCE)))
           .groupBy(foodLog.date),
         context.db
           .selectDistinct({ date: weightLog.date })
           .from(weightLog)
-          .where(and(eq(weightLog.userId, userId), gte(weightLog.date, streakStart))),
+          .where(and(eq(weightLog.userId, userId), gte(weightLog.date, streakStart), ne(weightLog.source, IMPORT_SOURCE))),
         context.db
           .select({
             steps: dailyActivity.steps,

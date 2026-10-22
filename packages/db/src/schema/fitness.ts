@@ -129,7 +129,8 @@ export const weightLog = sqliteTable(
     visceralFat: real("visceral_fat"),
     bmrKcal: real("bmr_kcal"),
     proteinPct: real("protein_pct"),
-    source: text("source", { enum: ["manual", "scale"] }).notNull().default("manual"),
+    // 'huawei': a weigh-in imported from a Huawei Health export (weight.importHistory); never counted in streaks.
+    source: text("source", { enum: ["manual", "scale", "huawei"] }).notNull().default("manual"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),
@@ -205,7 +206,8 @@ export const foodLog = sqliteTable(
     // Portion weight in grams when known (AI scan/Cerita estimate or typed in);
     // null when unknown. Baseline for the proportional portion edit.
     grams: real("grams"),
-    // 'manual' | 'ai' | 'barcode' | 'copy' (a repeat of an earlier meal, Cerita "sama kayak ...")
+    // 'manual' | 'ai' | 'barcode' | 'copy' (a repeat of an earlier meal, Cerita "sama kayak ...") | 'huawei' (a meal imported
+    // from a Huawei Health export, food.importHistory: kept out of streaks and challenge days)
     source: text("source").notNull().default("manual"),
     // scan_id keys this item's background-removed sticker in R2
     // (scans/<id>.png); photo_id keys the original photo shared by every item

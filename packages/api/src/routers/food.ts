@@ -8,7 +8,7 @@ import { foodLog, profile } from "@joyorogo/db/schema/fitness";
 import { plate } from "@joyorogo/db/schema/plans";
 
 import { protectedProcedure } from "../index";
-import { assertEatenAt, eatenAtProblem, eatenAtSchema } from "../lib/eaten-at";
+import { assertEatenAt, eatenAtDay, eatenAtProblem, eatenAtSchema } from "../lib/eaten-at";
 import { MEALS, jakartaToday } from "../lib/engine";
 import { copyLoggedMeal, recentMealGroups } from "../lib/meal-copy";
 import { storyTarget } from "../lib/meal-reference";
@@ -18,6 +18,7 @@ import type { RecalcValues } from "../lib/plate-recalc";
 import { toStoredCoords } from "../lib/places";
 import { userZone } from "../lib/user-zone";
 import { dateSchema, mealSchema, pastDateSchema } from "../lib/schemas";
+import { IMPORT_EARLIEST_DAY, IMPORT_SOURCE } from "../lib/history-import";
 import {
   SCAN_ID_RE,
   base64ToBytes,
@@ -92,7 +93,84 @@ async function createPlate(
   return row?.id ?? null;
 }
 
+/** Most meals one `importHistory` call takes. */
+const IMPORT_MAX_MEALS = 100;
+
 export const foodRouter = {
+  /**
+   * Past meals from another app (JoyoFit's Huawei Health import), as diary rows with `source: "huawei"`. Idempotent: a row's
+   * id is built from the user and the import's own `key`, so the same record sent again is a no-op; a meal the person already
+   * has on that day and slot with the same kcal (to the kcal) is not added a second time. Only days before today are taken, and the
+   * rows are kept out of streaks and challenge days (`source = "huawei"` is filtered there), so a backdated import
+   * cannot make or break a streak. `eatenAt` is kept only when it falls on the diary day in the person's zone. Answers
+   * how many were added and how many skipped.
+   */
+  importHistory: protectedProcedure
+    .input(
+      z.object({
+        meals: z
+          .array(
+            z.object({
+              key: z.string().min(1).max(80).regex(/^[A-Za-z0-9:_.-]+$/),
+              date: dateSchema,
+              meal: mealSchema,
+              name: z.string().trim().min(1).max(200),
+              kcal: z.number().min(0).max(MAX_KCAL),
+              protein: z.number().min(0).max(500).optional(),
+              carbs: z.number().min(0).max(500).optional(),
+              fat: z.number().min(0).max(500).optional(),
+              eatenAt: eatenAtSchema.optional(),
+            }),
+          )
+          .min(1)
+          .max(IMPORT_MAX_MEALS),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      const zone = await userZone(context);
+      const today = jakartaToday(undefined, zone);
+      let added = 0;
+      for (const m of input.meals) {
+        if (m.date >= today || m.date < IMPORT_EARLIEST_DAY) continue;
+        const twin = await context.db
+          .select({ id: foodLog.id })
+          .from(foodLog)
+          .where(
+            and(
+              eq(foodLog.userId, userId),
+              eq(foodLog.date, m.date),
+              eq(foodLog.meal, m.meal),
+              sql`abs(${foodLog.kcal} - ${m.kcal}) < 1`,
+              sql`${foodLog.source} != ${IMPORT_SOURCE}`,
+            ),
+          )
+          .limit(1);
+        if (twin.length > 0) continue;
+        const eatenAt =
+          m.eatenAt !== undefined && m.eatenAt <= Date.now() && eatenAtDay(m.eatenAt, zone) === m.date ? m.eatenAt : null;
+        const rows = await context.db
+          .insert(foodLog)
+          .values({
+            id: `${IMPORT_SOURCE}:${userId}:${m.key}`,
+            userId,
+            date: m.date,
+            meal: m.meal,
+            name: m.name,
+            kcal: m.kcal,
+            protein: m.protein,
+            carbs: m.carbs,
+            fat: m.fat,
+            source: IMPORT_SOURCE,
+            eatenAt,
+          })
+          .onConflictDoNothing({ target: foodLog.id })
+          .returning({ id: foodLog.id });
+        added += rows.length;
+      }
+      return { added, skipped: input.meals.length - added };
+    }),
+
   // Saves a reviewed photo scan in one call: the original photo is stored
   // privately once, every kept item becomes its own row, and each boxed item
   // gets its own sticker cut out in the background (the response never waits).

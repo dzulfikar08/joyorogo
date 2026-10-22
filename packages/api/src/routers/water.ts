@@ -11,6 +11,7 @@ import { userZone } from "../lib/user-zone";
 import { jakartaToday, shiftDate } from "../lib/engine";
 import type { ActivityLevel, Gender } from "../lib/engine";
 import { computeMaternalTargets, maternalFromRow, maternalNutrient } from "../lib/maternal";
+import { IMPORT_EARLIEST_DAY } from "../lib/history-import";
 import { dateSchema } from "../lib/schemas";
 
 const GOAL = 8;
@@ -93,6 +94,33 @@ export const waterRouter = {
         days.push({ date: d, glasses: byDate.get(d) ?? 0 });
       }
       return { goal, days };
+    }),
+
+  /**
+   * Past days' water from another app (JoyoFit's Huawei Health import), as glasses per day. A day that already has a row
+   * (the person's own count) is never written over, so a second import adds nothing; only days before today are taken.
+   * Water has no streak, so there is nothing else to exclude.
+   */
+  importHistory: protectedProcedure
+    .input(
+      z.object({
+        days: z.array(z.object({ date: dateSchema, glasses: z.number().int().min(1).max(40) })).min(1).max(100),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      const today = jakartaToday(undefined, await userZone(context));
+      let added = 0;
+      for (const d of new Map(input.days.map((x) => [x.date, x])).values()) {
+        if (d.date >= today || d.date < IMPORT_EARLIEST_DAY) continue;
+        const rows = await context.db
+          .insert(waterLog)
+          .values({ userId, date: d.date, glasses: d.glasses })
+          .onConflictDoNothing({ target: [waterLog.userId, waterLog.date] })
+          .returning({ date: waterLog.date });
+        added += rows.length;
+      }
+      return { added, skipped: input.days.length - added };
     }),
 
   add: protectedProcedure.input(dateInput.optional()).handler(async ({ context, input }) => {

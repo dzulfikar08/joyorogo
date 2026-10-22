@@ -9,9 +9,61 @@ import { jakartaToday } from "../lib/engine";
 import { isGainGap, paceBandKgPerWeek } from "../lib/gain";
 import { maternalFromRow, weightGainChart } from "../lib/maternal";
 import { gainedKg } from "../lib/plan";
+import { IMPORT_EARLIEST_DAY } from "../lib/history-import";
 import { dateSchema } from "../lib/schemas";
 
+/** Most weigh-ins one `importHistory` call takes. */
+const IMPORT_MAX = 100;
+
 export const weightRouter = {
+  /**
+   * Past weigh-ins from another app (JoyoFit's Huawei Health import), each on its own day with `source: "huawei"`. Never
+   * writes over a day that already has a weigh-in (the person's own entry or a scale reading wins), so one row per day stays, a second
+   * import of the same file adds nothing, and a backdated weight cannot replace a newer one: every reader takes the
+   * newest day, and an imported day is only ever a day with no row. Only days before today are taken; the streak counts
+   * these rows out (`source = "huawei"`). Answers how many were added and how many days were already there or out of range.
+   */
+  importHistory: protectedProcedure
+    .input(
+      z.object({
+        entries: z
+          .array(
+            z.object({
+              date: dateSchema,
+              weightKg: z.number().min(25).max(400),
+              bodyFatPct: z.number().min(2).max(75).nullish(),
+              musclePct: z.number().min(5).max(80).nullish(),
+              waterPct: z.number().min(20).max(85).nullish(),
+              boneKg: z.number().min(0.5).max(8).nullish(),
+              visceralFat: z.number().min(1).max(60).nullish(),
+              bmrKcal: z.number().min(500).max(5000).nullish(),
+              proteinPct: z.number().min(2).max(40).nullish(),
+            }),
+          )
+          .min(1)
+          .max(IMPORT_MAX),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      const today = jakartaToday(undefined, await userZone(context));
+      const past = input.entries.filter((e) => e.date < today && e.date >= IMPORT_EARLIEST_DAY);
+      // The last weigh-in of a day wins inside the file, like a scale's own pushes.
+      const byDate = new Map(past.map((e) => [e.date, e]));
+      let added = 0;
+      for (const e of byDate.values()) {
+        const { date, weightKg, ...body } = e;
+        const given = Object.fromEntries(Object.entries(body).filter(([, v]) => v !== undefined && v !== null));
+        const rows = await context.db
+          .insert(weightLog)
+          .values({ id: crypto.randomUUID(), userId, date, weightKg, ...given, source: "huawei" })
+          .onConflictDoNothing({ target: [weightLog.userId, weightLog.date] })
+          .returning({ id: weightLog.id });
+        added += rows.length;
+      }
+      return { added, skipped: input.entries.length - added };
+    }),
+
   checkIn: protectedProcedure
     .input(
       z.object({
