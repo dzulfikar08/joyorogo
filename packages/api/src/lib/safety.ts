@@ -7,14 +7,16 @@ import { PROTEIN_G_PER_KG } from "./gain";
 import { daysBetween, emaTrendPoints, shiftDate } from "./engine";
 import type { WeighIn } from "./engine";
 
-/** A smoothed fall faster than this (% of body weight per week) trips the note. 0.5-1% a week is the usual "steady" pace; past 1% the fall is mostly water and muscle. Gain plans keep their own, stricter 0.5% flag (gain.ts RAPID_LOSS_PCT_PER_WEEK). */
+/** A sustained fall faster than this (% of body weight per week) trips the note. 0.5-1% a week is the usual "steady" pace; past 1% the fall is mostly water and muscle. Gain plans keep their own, stricter 0.5% flag (gain.ts RAPID_LOSS_PCT_PER_WEEK). */
 export const FAST_LOSS_PCT_PER_WEEK = 1;
-/** The trend is read over the last 7 days (today included) ... */
-export const FAST_LOSS_WINDOW_DAYS = 7;
-/** ... from at least 3 weigh-ins, so one noisy reading (a heavy meal, a salty day) can never trip it ... */
-export const FAST_LOSS_MIN_WEIGH_INS = 3;
-/** ... that span at least 4 days, because a pace extrapolated from two close readings is mostly noise. */
-export const FAST_LOSS_MIN_SPAN_DAYS = 4;
+/** The first days of a new weigh-in habit or plan drop water and glycogen (a kilo in the first week is normal), so nothing the weight says counts until this many days after the first weigh-in ... */
+export const FAST_LOSS_SETTLE_DAYS = 14;
+/** ... then the pace is the least-squares slope of the weigh-ins of the last 28 days (settled days only) ... */
+export const FAST_LOSS_WINDOW_DAYS = 28;
+/** ... from at least 4 weigh-ins, so one noisy reading (a heavy meal, a salty day) can never trip it ... */
+export const FAST_LOSS_MIN_WEIGH_INS = 4;
+/** ... that span at least 14 days, because a pace extrapolated from a few close readings is mostly noise. */
+export const FAST_LOSS_MIN_SPAN_DAYS = 14;
 
 /** A day this far under the body's resting energy (BMR, Mifflin-St Jeor) is "far below"; 0.8 x BMR is a larger gap than any deficit the plan itself asks for. */
 export const LOW_INTAKE_BMR_FRACTION = 0.8;
@@ -51,18 +53,32 @@ export type LoggedDay = {
   meals: number;
 };
 
-/** Weekly fall in % of body weight over the last 7 days of the smoothed trend; null when the weigh-ins cannot say. */
+/**
+ * Weekly fall in % of body weight: the least-squares slope of the raw weigh-ins of the last 28 days, counting only
+ * days at least 14 days after the first weigh-in (`weighIns` is the whole history the caller has, ascending, ~60 days;
+ * a history cut short only makes this more cautious). Null when the weigh-ins cannot say.
+ */
 export function weeklyLossPct(weighIns: WeighIn[], today: string): number | null {
-  // The trend is seeded from the whole history (callers pass ~60 days) so the window starts on a warmed-up line.
+  const first = weighIns[0];
+  if (!first) return null;
+  const settled = shiftDate(first.date, FAST_LOSS_SETTLE_DAYS);
   const from = shiftDate(today, -(FAST_LOSS_WINDOW_DAYS - 1));
-  const window = emaTrendPoints(weighIns).filter((p) => p.date >= from && p.date <= today);
-  const first = window[0];
-  const last = window.at(-1);
-  if (!first || !last || window.length < FAST_LOSS_MIN_WEIGH_INS) return null;
-  const span = daysBetween(first.date, last.date);
-  if (span < FAST_LOSS_MIN_SPAN_DAYS || last.trendKg <= 0) return null;
-  const kgPerWeek = ((last.trendKg - first.trendKg) / span) * 7;
-  return (-kgPerWeek / last.trendKg) * 100;
+  const points = weighIns.filter((w) => w.date >= settled && w.date >= from && w.date <= today);
+  const start = points[0];
+  const end = points.at(-1);
+  if (!start || !end || points.length < FAST_LOSS_MIN_WEIGH_INS) return null;
+  if (daysBetween(start.date, end.date) < FAST_LOSS_MIN_SPAN_DAYS) return null;
+  const xs = points.map((w) => daysBetween(start.date, w.date));
+  const meanX = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const meanY = points.reduce((a, w) => a + w.weightKg, 0) / points.length;
+  let num = 0;
+  let den = 0;
+  points.forEach((w, i) => {
+    num += (xs[i]! - meanX) * (w.weightKg - meanY);
+    den += (xs[i]! - meanX) ** 2;
+  });
+  if (den === 0 || meanY <= 0) return null;
+  return (-((num / den) * 7) / meanY) * 100;
 }
 
 /** Days among the last 5 before `today` that look fully logged and sit far below the body's resting energy. */

@@ -47,18 +47,40 @@ describe("weeklyLossPct", () => {
     expect(weeklyLossPct(steady(-0.5), TODAY)!).toBeLessThan(0);
   });
 
-  test("fewer than 3 weigh-ins in the 7 days says nothing", () => {
-    const history = [...steady(1).slice(0, -7), ...weighIns([6, 66.5], [0, 65.5])];
+  test("the owner's first week (107.7, 107.5, 106.6, 105.5 kg over 4 days) is water, not a fast loss", () => {
+    const first = weighIns([4, 107.7], [2, 107.5], [1, 106.6], [0, 105.5]);
+    expect(weeklyLossPct(first, TODAY)).toBeNull();
+    expect(fastLossNote({ today: TODAY, weighIns: first, days: [], bmrKcal: 1700, maternal: false, gaining: false })).toBeNull();
+  });
+
+  test("weigh-ins in the first 14 days after the first one never count, however steep", () => {
+    const history = [...weighIns([13, 100], [11, 99], [9, 98], [7, 97], [5, 96], [3, 95], [0, 94])];
     expect(weeklyLossPct(history, TODAY)).toBeNull();
   });
 
-  test("three weigh-ins inside 3 days are too close to define a pace", () => {
-    expect(weeklyLossPct(weighIns([2, 70], [1, 69], [0, 68]), TODAY)).toBeNull();
+  test("a sustained 1.5% a week for three weeks trips it", () => {
+    // First weigh-in 35 days ago and flat for 2 weeks (settling), then 1.5 kg a week on 100 kg for 3 weeks.
+    const out: WeighIn[] = [];
+    for (let ago = 35; ago >= 0; ago -= 2) {
+      const falling = Math.max(0, 21 - ago);
+      out.push({ date: day(-ago), weightKg: 100 - (1.5 / 7) * falling });
+    }
+    const pct = weeklyLossPct(out, TODAY);
+    expect(pct).not.toBeNull();
+    expect(pct!).toBeGreaterThan(1.4);
+    const note = fastLossNote({ today: TODAY, weighIns: out, days: [], bmrKcal: 1700, maternal: false, gaining: false });
+    expect(note?.reasons).toEqual(["weight"]);
   });
 
-  test("an old fall outside the 7 days is not counted", () => {
-    const flat = weighIns([30, 80], [29, 79], [28, 78], [6, 70], [3, 70], [0, 70]);
-    expect(weeklyLossPct(flat, TODAY)!).toBeLessThan(0.5);
+  test("fewer than 4 settled weigh-ins, or a span under 14 days, says nothing", () => {
+    const old = weighIns([40, 80], [39, 80]);
+    expect(weeklyLossPct([...old, ...weighIns([12, 78], [6, 76], [0, 74])], TODAY)).toBeNull();
+    expect(weeklyLossPct([...old, ...weighIns([13, 78], [10, 77], [7, 76], [4, 75], [0, 74])], TODAY)).toBeNull();
+  });
+
+  test("an old fall outside the 28 days is not counted", () => {
+    const flat = weighIns([50, 90], [45, 85], [40, 80], [27, 70], [20, 70], [13, 70], [6, 70], [0, 70]);
+    expect(weeklyLossPct(flat, TODAY)!).toBeLessThan(0.3);
   });
 });
 
