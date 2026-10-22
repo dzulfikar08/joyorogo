@@ -17,7 +17,9 @@ import { MacroLine } from "@/components/macro-line";
 import { DateSheet, DayChips } from "@/components/plate/date-sheet";
 import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { MealSlotField } from "@/components/plate/meal-slot-field";
+import { AskJoyoAction, useAskT } from "@/components/joyo/ask-button";
 import { SheetActions } from "@/components/sheet-actions";
+import { foodQuestion } from "@/src/lib/joyo-ai/ask";
 import { StickerHero } from "@/components/sticker";
 import { MacroIcon } from "@/utils/macro-icons";
 import { Button, Chip, Field, Input, Num, Sheet, Text } from "@/components/ui";
@@ -203,6 +205,7 @@ export function FoodPortionSheet({
   const { t } = useTranslation(["makan", "common"]);
   const { theme } = useUnistyles();
   const queryClient = useQueryClient();
+  const askT = useAskT();
   const base = portionOf(row);
   const hasGrams = base.grams !== null;
   const [name, setName] = useState(row.name);
@@ -562,6 +565,13 @@ export function FoodPortionSheet({
             onFavorite={onFavorite}
             onShare={onShare}
             onDelete={onDelete}
+            ask={
+              <AskJoyoAction
+                question={foodQuestion(askT, { name: name.trim() || row.name, grams: hasGrams ? values.grams : null })}
+                kind="food"
+                beforeOpen={onClose}
+              />
+            }
           />
         </View>
       </Sheet>

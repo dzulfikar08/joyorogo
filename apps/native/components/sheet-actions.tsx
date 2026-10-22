@@ -6,18 +6,21 @@ import { Button } from "@/components/ui";
 
 /**
  * Secondary actions at the bottom of the diary edit sheets: Favorit toggle,
- * share and delete. Share and delete are optional (a plate has neither).
+ * share, ask Joyo AI and delete. Share, ask and delete are optional (a plate has none of them).
  */
 export function SheetActions({
   favorite,
   onFavorite,
   onShare,
   onDelete,
+  ask,
 }: {
   favorite: boolean;
   onFavorite: () => void;
   onShare?: () => void;
   onDelete?: () => void;
+  /** The "Tanya Joyo AI" action of a logged food (see components/joyo/ask-button). */
+  ask?: React.ReactNode;
 }) {
   const { t } = useTranslation(["makan", "common"]);
   return (
@@ -38,6 +41,7 @@ export function SheetActions({
           onPress={onShare}
         />
       ) : null}
+      {ask}
       {onDelete ? (
         <Button
           variant="secondary"
