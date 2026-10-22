@@ -1,0 +1,115 @@
+{
+  "title": "Joyo AI",
+  "nav": {
+    "subtitle": "Tanya tentang makanan dan data anda"
+  },
+  "entry": {
+    "label": "Tanya Joyo AI"
+  },
+  "status": {
+    "loading": "Memuatkan Joyo AI",
+    "today": "{{used}} daripada {{cap}} soalan hari ini",
+    "retry": "Cuba lagi"
+  },
+  "chat": {
+    "emptyTitle": "Tanya Joyo AI",
+    "emptyBody": "Tanya tentang catatan makanan anda, atau banding makanan sebelum anda makan. Angkanya diambil daripada data JoyoRogo.",
+    "storedHere": "Perbualan hanya disimpan dalam pelayar ini.",
+    "placeholder": "Tanya tentang makanan atau data anda",
+    "composerLabel": "Mesej kepada Joyo AI",
+    "shortcuts": "Enter untuk hantar, Shift+Enter untuk baris baharu, Esc untuk berhenti",
+    "send": "Hantar",
+    "stop": "Berhenti",
+    "new": "Perbualan baharu",
+    "newTitle": "Perbualan baharu",
+    "history": "Sejarah",
+    "jump": "Ke terkini",
+    "copy": "Salin jawapan",
+    "copied": "Disalin",
+    "regenerate": "Tulis semula jawapan",
+    "edit": "Ubah soalan",
+    "editing": "Mengubah soalan. Soalan dan jawapan selepasnya akan diganti.",
+    "editCancel": "Batal ubah",
+    "retry": "Hantar semula",
+    "stopped": "Dihentikan",
+    "thinking": "Berfikir",
+    "thought": "Proses berfikir",
+    "writing": "Menulis jawapan",
+    "answering": "Joyo AI sedang menjawab",
+    "answered": "Joyo AI selesai menjawab",
+    "you": "Anda",
+    "flagged": "Mesej anda menyentuh perkara yang sebaiknya dibincangkan dengan doktor atau pakar pemakanan, jadi Joyo AI menjawab dengan mesej tetap.",
+    "toolsOff": "Kali ini Joyo AI menjawab tanpa membaca data tambahan.",
+    "dismiss": "Tutup mesej"
+  },
+  "steps": {
+    "group_other": "{{count}} langkah membaca data",
+    "call": "Panggilan",
+    "failed": "Gagal",
+    "open": "Tunjuk langkah",
+    "close": "Sembunyikan langkah"
+  },
+  "history": {
+    "title": "Sejarah",
+    "description": "Disimpan dalam pelayar ini sahaja dan tidak mengikut anda ke peranti lain.",
+    "empty": "Belum ada perbualan.",
+    "messages_other": "{{count}} mesej",
+    "delete": "Padam perbualan",
+    "cancel": "Batal",
+    "deleteAll": "Padam semua perbualan",
+    "deleteAllTitle": "Padam semua perbualan?",
+    "deleteAllBody": "Semua perbualan Joyo AI dalam pelayar ini dipadam. Ini tidak boleh dibatalkan.",
+    "deleteAllConfirm": "Padam semua"
+  },
+  "gate": {
+    "pro": {
+      "title": "Joyo AI di web untuk Pro",
+      "body": "Joyo AI di JoyoRogo menjawab melalui pelayan kami dan memerlukan JoyoRogo Pro.",
+      "cta": "Lihat JoyoRogo Pro"
+    },
+    "own": {
+      "title": "Kunci sendiri, percuma dalam aplikasi",
+      "body": "Dalam aplikasi JoyoRogo untuk telefon, Joyo AI boleh menggunakan kunci API anda sendiri tanpa Pro. Web hanya menggunakan enjin JoyoRogo.",
+      "android": "Sertai penguji Android",
+      "iphone": "Cuba di iPhone",
+      "webApp": "iPhone tanpa TestFlight? Pasang web app ke Skrin Utama"
+    },
+    "minor": {
+      "title": "Joyo AI belum tersedia untuk anda",
+      "body": "Joyo AI hanya untuk umur 18 tahun ke atas."
+    },
+    "unavailable": {
+      "title": "Joyo AI belum tersedia",
+      "body": "Pelayan belum menyokong Joyo AI. Cuba lagi nanti."
+    },
+    "off": {
+      "title": "Joyo AI tidak tersedia buat masa ini",
+      "body": "Perkhidmatan dimatikan seketika. Cuba lagi nanti."
+    }
+  },
+  "consent": {
+    "title": "Sebelum mula",
+    "lead": "Apabila anda bertanya, JoyoRogo menghantar data ini kepada penyedia AI supaya jawapan menggunakan data anda:",
+    "data": {
+      "body": "Umur, jantina, tinggi dan matlamat anda",
+      "food": "Catatan makanan anda: nama, berat dan pemakanan setiap makanan",
+      "water": "Catatan air minuman",
+      "weight": "Sejarah berat badan dan sasaran anda",
+      "fasting": "Status puasa, jika anda berpuasa",
+      "chat": "Mesej yang anda taip dalam perbualan ini"
+    },
+    "whereTitle": "Ke mana dihantar",
+    "where": "Melalui pelayan JoyoRogo ke Cloudflare Workers AI, hanya untuk menjawab soalan anda. Mesej dan jawapan tidak disimpan di pelayan kami, dan tidak digunakan untuk melatih model.",
+    "notSentTitle": "Tidak pernah dihantar",
+    "notSent": "Nama, e-mel, foto, lokasi, data kitaran haid, mod hamil atau menyusu, Strava dan ID peranti.",
+    "adults": "Dengan bersetuju, anda mengesahkan anda berumur 18 tahun ke atas. Jawapan boleh tersilap dan bukan nasihat perubatan.",
+    "privacy": "Baca selanjutnya di halaman Privasi",
+    "agree": "Setuju dan mula",
+    "later": "Nanti sahaja"
+  },
+  "ask": {
+    "food": "Saya hendak makan {{name}} ({{grams}} g). Sesuaikah dengan baki sasaran hari ini?",
+    "foodNoGrams": "Saya hendak makan {{name}}. Sesuaikah dengan baki sasaran hari ini?",
+    "items": "Saya hendak makan: {{list}}. Sesuaikah dengan baki sasaran hari ini?"
+  }
+}

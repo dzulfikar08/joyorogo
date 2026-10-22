@@ -1,0 +1,86 @@
+{
+  "disclaimerLine": "Ini bukan nasihat perubatan atau nasihat pakar pemakanan.",
+  "refuseLeak": "Itu di luar apa yang boleh saya bantu. Tanyalah tentang makanan, pemakanan, berat badan, air, atau puasa.",
+  "safe": {
+    "injury": "Jika anda mengalami kecederaan atau sakit yang tajam atau tidak hilang, berhenti dahulu dan jangan paksa bersenam. Berjumpa doktor atau ahli fisioterapi sebelum meneruskan. Saya tidak boleh merancang makan atau latihan di sekitar kecederaan, jadi tunggu panduan mereka dahulu.",
+    "medical": "Simptom seperti sakit dada, sesak nafas, pening teruk, pengsan, atau paras gula darah yang tidak normal perlu diperiksa doktor, bukan diteka melalui aplikasi. Berjumpa doktor atau pakar pemakanan. Jika teruk atau tiba-tiba, segera ke jabatan kecemasan atau hubungi perkhidmatan kecemasan. Untuk ubat dan dos, tanyalah doktor atau ahli farmasi.",
+    "eatingDisorder": "Terima kasih kerana berkongsi. Saya tidak akan memberi nasihat untuk menyekat makan atau mengurangkan kcal. Corak pemakanan seperti ini sebaiknya dibincangkan dengan doktor, ahli psikologi, atau orang dewasa yang anda percayai. Anda tidak keseorangan, dan bantuan sentiasa ada.",
+    "minorDiet": "Bagi umur di bawah 18 tahun, saya tidak memberi nasihat diet, kiraan kcal untuk menurunkan berat, atau mengurangkan makan. Badan yang sedang membesar perlukan makanan yang cukup. Jika anda risau tentang berat badan, bincanglah dengan ibu bapa, doktor, atau pakar pemakanan."
+  },
+  "errors": {
+    "badKey": "Kunci ditolak oleh penyedia. Semak sama ada kunci disalin penuh tanpa ruang kosong, atau cipta kunci baharu di akaun penyedia.",
+    "forbidden": "Penyedia menolak akses. Akaun atau kunci ini belum dibenarkan menggunakan model tersebut (kebenaran, wilayah, atau akaun belum aktif). Semak di akaun penyedia.",
+    "quota": "Kuota atau baki telah habis. Tambah nilai atau naikkan had perbelanjaan di akaun penyedia, kemudian cuba lagi.",
+    "rateLimit": "Permintaan dihadkan buat sementara. Tunggu sebentar, kemudian hantar semula.",
+    "modelNotFound": "Model ini tidak ditemui. Mungkin ia telah ditamatkan atau akaun anda belum mempunyai akses. Pilih model lain.",
+    "noTools": "Model ini tidak menyokong pembacaan data tambahan. Pilih model lain.",
+    "badRequest": "Permintaan ini tidak dapat diproses. Cuba soalan yang lebih pendek, atau pilih model lain.",
+    "server": "Pelayan sedang bermasalah. Cuba lagi sebentar nanti.",
+    "network": "Tiada sambungan. Semak sambungan internet anda, kemudian cuba lagi.",
+    "timeout": "Jawapan mengambil masa terlalu lama. Cuba lagi, atau pilih model yang lebih pantas.",
+    "empty": "Model tidak menghantar jawapan yang boleh digunakan. Hantar semula, atau ubah soalan.",
+    "truncated": "Model terus berfikir dan kehabisan ruang sebelum menulis jawapan. Hantar semula, atau pilih model yang lebih pantas atau tanpa mod berfikir.",
+    "aborted": "Dibatalkan."
+  },
+  "blocked": {
+    "minor": "Joyo AI tidak tersedia untuk umur di bawah 18 tahun.",
+    "noProvider": "Belum ada penyedia ditetapkan, jadi tiada apa yang dihantar. Sediakan kunci sendiri dahulu.",
+    "badUrl": "Alamat pelayan tidak boleh digunakan, jadi tiada apa yang dihantar. Betulkan alamat di tetapan kunci.",
+    "noKey": "Kunci tiada pada telefon ini, jadi tiada apa yang dihantar. Masukkan kunci semula.",
+    "noConsent": "Kebenaran berkongsi data belum ada, jadi tiada apa yang dihantar. Setuju dahulu.",
+    "ceiling": "Had panggilan hari ini telah dicapai, jadi tiada apa yang dihantar. Naikkan had di tetapan Joyo AI, atau cuba lagi esok.",
+    "notPro": "Joyo AI di JoyoRogo memerlukan JoyoRogo Pro. Dalam aplikasi telefon anda boleh menggunakan kunci sendiri secara percuma.",
+    "cap": "Had soalan Joyo AI hari ini telah dicapai. Cuba lagi esok.",
+    "off": "Joyo AI tidak tersedia buat masa ini. Cuba lagi nanti.",
+    "notSignedIn": "Log masuk ke JoyoRogo dahulu untuk menggunakan Joyo AI."
+  },
+  "steps": {
+    "get_day": {
+      "running": "Membaca catatan makan {{date}}...",
+      "done": "Membaca catatan makan {{date}}",
+      "none": "Tiada catatan makan {{date}}"
+    },
+    "get_range": {
+      "running": "Membaca catatan {{from}} hingga {{to}}...",
+      "done": "Membaca catatan {{from}} hingga {{to}}",
+      "none": "Tiada catatan {{from}} hingga {{to}}"
+    },
+    "get_weight_trend": {
+      "running": "Membaca trend berat {{days}} hari...",
+      "done": "Membaca trend berat {{days}} hari",
+      "none": "Belum ada data berat {{days}} hari"
+    },
+    "get_targets": {
+      "running": "Membaca sasaran anda...",
+      "done": "Membaca sasaran anda",
+      "none": "Sasaran belum ditetapkan"
+    },
+    "search_foods": {
+      "running": "Mencari makanan {{foods}}...",
+      "done": "Mencari makanan {{foods}}",
+      "none": "Makanan {{foods}} tidak ditemui"
+    },
+    "compare_foods": {
+      "running": "Membandingkan {{foods}}...",
+      "done": "Membandingkan {{foods}}",
+      "none": "Tiada data untuk membandingkan {{foods}}"
+    },
+    "fits_today": {
+      "running": "Menyemak {{foods}} berbanding baki hari ini...",
+      "done": "Menyemak {{foods}} berbanding baki hari ini",
+      "none": "Tiada data untuk menyemak {{foods}}"
+    }
+  },
+  "suggestions": {
+    "fiber": "Yang mana paling tinggi serat: betik, tembikai susu, atau tembikai?",
+    "remaining": "Baki kcal hari ini cukup untuk apa?",
+    "weight": "Kenapa berat saya naik minggu ini?"
+  },
+  "provider": {
+    "openrouter": "OpenRouter",
+    "openai": "OpenAI",
+    "anthropic": "Anthropic",
+    "gemini": "Gemini",
+    "custom": "Lain-lain"
+  }
+}

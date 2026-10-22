@@ -41,6 +41,9 @@ import idFitWebUpload from "./locales/id/fitWebUpload.json";
 import idFitWebConnect from "./locales/id/fitWebConnect.json";
 import idMealPlan from "./locales/id/mealPlan.json";
 import idSumber from "./locales/id/sumber.json";
+import idJoyoAi from "./locales/id/joyoAi.json";
+import idJoyoAiApp from "./locales/id/joyoAiApp.json";
+import idJoyoAiWeb from "./locales/id/joyoAiWeb.json";
 
 import enAuth from "./locales/en/auth.json";
 import enBerat from "./locales/en/berat.json";
@@ -85,6 +88,9 @@ import enFitWebUpload from "./locales/en/fitWebUpload.json";
 import enFitWebConnect from "./locales/en/fitWebConnect.json";
 import enMealPlan from "./locales/en/mealPlan.json";
 import enSumber from "./locales/en/sumber.json";
+import enJoyoAi from "./locales/en/joyoAi.json";
+import enJoyoAiApp from "./locales/en/joyoAiApp.json";
+import enJoyoAiWeb from "./locales/en/joyoAiWeb.json";
 
 import msAuth from "./locales/ms/auth.json";
 import msBerat from "./locales/ms/berat.json";
@@ -129,6 +135,9 @@ import msFitWebUpload from "./locales/ms/fitWebUpload.json";
 import msFitWebConnect from "./locales/ms/fitWebConnect.json";
 import msMealPlan from "./locales/ms/mealPlan.json";
 import msSumber from "./locales/ms/sumber.json";
+import msJoyoAi from "./locales/ms/joyoAi.json";
+import msJoyoAiApp from "./locales/ms/joyoAiApp.json";
+import msJoyoAiWeb from "./locales/ms/joyoAiWeb.json";
 
 import type { Locale } from "./locale";
 
@@ -177,6 +186,9 @@ const id = {
   fitWebConnect: idFitWebConnect,
   mealPlan: idMealPlan,
   sumber: idSumber,
+  joyoAi: idJoyoAi,
+  joyoAiApp: idJoyoAiApp,
+  joyoAiWeb: idJoyoAiWeb,
 };
 
 /**
@@ -227,6 +239,9 @@ const en: typeof id = {
   fitWebConnect: enFitWebConnect,
   mealPlan: enMealPlan,
   sumber: enSumber,
+  joyoAi: enJoyoAi,
+  joyoAiApp: enJoyoAiApp,
+  joyoAiWeb: enJoyoAiWeb,
 };
 
 const ms: typeof id = {
@@ -273,6 +288,9 @@ const ms: typeof id = {
   fitWebConnect: msFitWebConnect,
   mealPlan: msMealPlan,
   sumber: msSumber,
+  joyoAi: msJoyoAi,
+  joyoAiApp: msJoyoAiApp,
+  joyoAiWeb: msJoyoAiWeb,
 };
 
 export const resources = { id, en, ms } satisfies Record<Locale, typeof id>;

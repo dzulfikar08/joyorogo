@@ -1,0 +1,117 @@
+{
+  "title": "Joyo AI",
+  "nav": {
+    "subtitle": "Ask about your food and your data"
+  },
+  "entry": {
+    "label": "Ask Joyo AI"
+  },
+  "status": {
+    "loading": "Loading Joyo AI",
+    "today": "{{used}} of {{cap}} questions today",
+    "retry": "Try again"
+  },
+  "chat": {
+    "emptyTitle": "Ask Joyo AI",
+    "emptyBody": "Ask about your food log, or compare foods before you eat. The numbers come from JoyoRogo's data.",
+    "storedHere": "Conversations are stored in this browser only.",
+    "placeholder": "Ask about food or your data",
+    "composerLabel": "Message to Joyo AI",
+    "shortcuts": "Enter to send, Shift+Enter for a new line, Esc to stop",
+    "send": "Send",
+    "stop": "Stop",
+    "new": "New conversation",
+    "newTitle": "New conversation",
+    "history": "History",
+    "jump": "Jump to latest",
+    "copy": "Copy answer",
+    "copied": "Copied",
+    "regenerate": "Write the answer again",
+    "edit": "Edit question",
+    "editing": "Editing a question. It and the answer after it will be replaced.",
+    "editCancel": "Cancel editing",
+    "retry": "Send again",
+    "stopped": "Stopped",
+    "thinking": "Thinking",
+    "thought": "Thinking process",
+    "writing": "Writing the answer",
+    "answering": "Joyo AI is answering",
+    "answered": "Joyo AI finished answering",
+    "you": "You",
+    "flagged": "Your message touches on something best discussed with a doctor or a dietitian, so Joyo AI replied with a fixed message.",
+    "toolsOff": "This time Joyo AI answered without reading extra data.",
+    "dismiss": "Dismiss message"
+  },
+  "steps": {
+    "group_one": "{{count}} step reading data",
+    "group_other": "{{count}} steps reading data",
+    "call": "Call",
+    "failed": "Failed",
+    "open": "Show steps",
+    "close": "Hide steps"
+  },
+  "history": {
+    "title": "History",
+    "description": "Stored in this browser only. It does not follow you to other devices.",
+    "empty": "No conversations yet.",
+    "messages_one": "{{count}} message",
+    "messages_other": "{{count}} messages",
+    "delete": "Delete conversation",
+    "cancel": "Cancel",
+    "deleteAll": "Delete all conversations",
+    "deleteAllTitle": "Delete all conversations?",
+    "deleteAllBody": "Every Joyo AI conversation in this browser is deleted. This cannot be undone.",
+    "deleteAllConfirm": "Delete all"
+  },
+  "gate": {
+    "pro": {
+      "title": "Joyo AI on the web is for Pro",
+      "body": "Joyo AI on JoyoRogo answers through our server and needs JoyoRogo Pro.",
+      "cta": "See JoyoRogo Pro"
+    },
+    "own": {
+      "title": "Your own key, free in the app",
+      "body": "In the JoyoRogo phone app, Joyo AI can use your own API key without Pro. The web only uses JoyoRogo's engine.",
+      "android": "Join the Android testers",
+      "iphone": "Try it on iPhone",
+      "webApp": "iPhone without TestFlight? Add the web app to your Home Screen"
+    },
+    "minor": {
+      "title": "Joyo AI is not available for you yet",
+      "body": "Joyo AI is only for ages 18 and over."
+    },
+    "unavailable": {
+      "title": "Joyo AI is not available yet",
+      "body": "The server does not support Joyo AI yet. Try again later."
+    },
+    "off": {
+      "title": "Joyo AI is unavailable right now",
+      "body": "The service is switched off for a while. Try again later."
+    }
+  },
+  "consent": {
+    "title": "Before you start",
+    "lead": "When you ask a question, JoyoRogo sends this data to the AI provider so the answer can use your data:",
+    "data": {
+      "body": "Your age, sex, height, and goal",
+      "food": "Your food log: the name, weight, and nutrition of each food",
+      "water": "Your water log",
+      "weight": "Your weight history and your targets",
+      "fasting": "Your fasting status, if you fast",
+      "chat": "The messages you type in this conversation"
+    },
+    "whereTitle": "Where it goes",
+    "where": "Through the JoyoRogo server to Cloudflare Workers AI, only to answer your question. Messages and answers are not stored on our server and are not used to train models.",
+    "notSentTitle": "Never sent",
+    "notSent": "Your name, email, photos, location, menstrual cycle data, pregnancy or breastfeeding mode, Strava, and device IDs.",
+    "adults": "By agreeing, you confirm you are 18 or older. Answers can be wrong and are not medical advice.",
+    "privacy": "Read more on the Privacy page",
+    "agree": "Agree and start",
+    "later": "Not now"
+  },
+  "ask": {
+    "food": "I'm about to eat {{name}} ({{grams}} g). Does it fit what is left of today's targets?",
+    "foodNoGrams": "I'm about to eat {{name}}. Does it fit what is left of today's targets?",
+    "items": "I'm about to eat: {{list}}. Does it fit what is left of today's targets?"
+  }
+}
