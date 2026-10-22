@@ -4,6 +4,23 @@ Running notes on how accurate the photo scan is, what the data says, and what to
 
 Owner preference to keep in mind: an over-estimated kcal is acceptable, an under-estimate is the worse error, yet users do write "kalori kelewat tinggi". Over and under are always reported separately.
 
+## 2026-10-22: counted pieces (egg halves answered as one egg), confidence percent removed from the result
+
+Tester photo (web Safari, 30-day challenge): a plate of 7 boiled-egg halves (3.5 eggs) answered "telur rebus, setengah potong, 60 g, 78 kcal" = one egg, shown with "100% sure". The photo is not committed; the case is covered by a synthetic answer in `lib/piece-count.test.ts`.
+
+Changed: (1) `COUNT_RULE` in the scan prompt: separate pieces (egg, egg half, satay stick, nugget, dumpling, meatball, bread slice, fried banana) are counted first; the item carries `count` and `unit`, the portion text carries the count ("N belahan (N/2 butir)"), grams = count x unit weight. (2) `lib/piece-count.ts` holds the same unit weights (egg 50 g, half 25 g, sate 30 g, nugget 20 g, siomay/dimsum 25 g, pangsit 15 g, bakso 25 g, roti tawar 30 g, pisang goreng 60 g) and `reconcileCount` runs in `boundItem` (final parse and stream preview alike): grams more than 20% off count x unit weight are replaced by it and kcal and macros scale with them; names or units outside the table (ayam goreng "2 potong", martabak telur, nasi goreng telur, telur dadar) are untouched. (3) The per-item "yakin N%" / "N% sure" text is gone from the web and native result lists (`result.items.confidenceShort` deleted in id/en/ms); the cue that stays is "perkiraan AI" next to the grams. The model still returns `confidence` (feeds `aiConfidence` and feedback data); only its display went.
+
+Photo (production model, no thinking, same config as prod, 4 to 6 runs per variant):
+
+| prompt | runs |
+|---|---|
+| before | 1 egg, 50 / 60 / 60 / 75 g, 75 to 110 kcal (never counts) |
+| after | "4 belahan (2 butir)" 100 g 150 kcal in 4 of 6, "5 belahan (2,5 butir)" 125 g 188 kcal in 2 of 6 |
+
+The count is still low (true count 7, the model reads 3 to 6; halves that touch or overlap are missed) so the answer moves from 1 egg to 2 to 2.5 eggs, not to 3.5. Server-side grams now always agree with the count the model gives; they cannot fix the count. Wording notes from the probes: an example number in the prompt is copied (an example of "7 belahan" made the model answer 7-ish for any photo with eggs, "6 belahan (3 butir)" made it answer 6), so the examples are a satay count and "N belahan (N/2 butir)"; naming quail egg in the weights list made the model call chicken-egg halves quail eggs, so it is only in the server table; "when in doubt pick the higher count" did nothing measurable.
+
+Regression (harness, owner + feedback + external, baseline variant, 2 reps each, same model; before = HEAD, after = HEAD + this change; 40 labelled photos, none of them an egg count case): plate kcal error, owner median +3.4% / MAE 64 kcal before vs +4.9% / 70 after; external median +1.6% / 102 vs -1.6% / 78. 26 of 40 photos answered differently from one run to the next in both arms (prompts that differ in any way re-roll the model), none because of the count rule: no item in the set was reconciled by `reconcileCount`. One printed-label case (Americano ICE, truth 10 kcal) flipped to "es kopi susu 193 kcal" in one run when `COUNT_RULE` was placed after `PRINTED_TEXT_RULE`; with the count rule first, the printed-text rule last it answered Americano 5 kcal in 2 of 2.
+
 ## 2026-10-21: small packaged items and bone-in meat (clamp checked; edible fraction + package prompt rule shipped to code)
 
 Where the clamp is: `calibrateOne` in `lib/tkpi.ts` clamps **kcal** only, never grams. A matched dish's kcal band scales with the item's grams (`bandFor`), the unmatched fallback is 20 to max(400, 7 x grams) kcal, and nothing anywhere sets a gram minimum (grams missing = the dish's typical portion). So the 50-60 g egg white of the owner's photo came from the model itself (earlier log: 80, 60, 150, 50, 60, 60), not from a floor; the prompt had no rule about packages. "Putih telur" had no library row, so a bag named lontong/lemper was priced per gram of those.

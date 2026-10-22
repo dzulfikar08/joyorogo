@@ -22,7 +22,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { fmtPercent, getActiveLocale, i18n } from "@joyorogo/i18n";
+import { getActiveLocale, i18n } from "@joyorogo/i18n";
 
 import {
   MEAL_LABELS,
@@ -1354,11 +1354,7 @@ function AiFoodPage() {
                         item.portion,
                         // a cup's portion already says "350 ml"; the same number as grams is noise
                         item.grams != null && !item.cup ? `±${fmtGramsLabel(item.grams)}` : null,
-                        item.confidence != null
-                          ? t("result.items.confidenceShort", {
-                              percent: fmtPercent(Math.round(item.confidence * 100)),
-                            })
-                          : null,
+                        t("result.items.estimate"),
                       ]
                         .filter(Boolean)
                         .join(" · ")}

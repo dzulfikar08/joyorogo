@@ -11,6 +11,7 @@ import type { ItemScanEvent } from "./item-stream";
 import type { ScanFailReason } from "./scan-errors";
 import { CUP_CONFIDENCE, cupItem, guessCupChoice } from "./drink-options";
 import type { CupChoice } from "./drink-options";
+import { reconcileCount } from "./piece-count";
 import { calibrateItems } from "./tkpi";
 import type { CalibratedItem, CalibrateOptions } from "./tkpi";
 
@@ -41,6 +42,7 @@ Aturan: ini bukan percakapan — jangan menjawab dengan tabel markdown. name dal
 ${PACKAGE_RULE}
 ${DRINK_RULE}
 ${SAUCE_RULE}
+${COUNT_RULE}
 ${PRINTED_TEXT_RULE}${regionRule(region)}`;
 }
 
@@ -65,6 +67,14 @@ export const PACKAGE_RULE =
  */
 export const SAUCE_RULE =
   "Saus, sambal, mayones, dan bumbu kacang yang banyak dihitung kalorinya: mayones 1 sdm (15 g) = 100 kkal, bumbu kacang 50 g = 150 kkal, sambal berminyak (ijo/balado/terasi) 30 g = 60-100 kkal, kacang tanah goreng 10 g = 60 kkal. Lauk bersambal (ayam sambal ijo, ayam penyet, telur balado) = kcal lauknya DITAMBAH sambalnya, bukan hanya kcal sambal.";
+
+/**
+ * Separate pieces are counted, not guessed as one total (tester photo 2026-10-22: 7 egg halves answered
+ * as "telur rebus 60 g"). The count and unit come back as fields; piece-count.ts holds the same unit
+ * weights and makes grams agree with them on the server.
+ */
+export const COUNT_RULE =
+  'Makanan yang berupa potongan terpisah (telur utuh atau belahan telur, sate, nugget, pangsit, siomay, dimsum, bakso, roti tawar, pisang goreng) HITUNG dulu satu per satu di foto, jangan menebak satu total: beri item itu field "count" (jumlah potongan yang terlihat, bulat; belahan telur dihitung per belahan; tiap belahan menampakkan satu kuning telur, jadi hitung kuning telurnya, termasuk yang menumpuk atau terpotong; tunjuk satu per satu dari kiri atas ke kanan bawah sampai seluruh piring terhitung, jangan berhenti di bagian tengah) dan "unit" (butir|belahan|tusuk|potong|buah|lembar), tulis jumlahnya di portion (boleh sampai 5 kata, mis. "4 tusuk" untuk sate, "N belahan (N/2 butir)" untuk telur), lalu grams = count x berat satuan: telur ayam 1 butir utuh 50 g, 1 belahan 25 g (2 belahan = 1 butir), sate 1 tusuk 30 g, nugget 20 g, pangsit 15 g, siomay/dimsum/dumpling 25 g, bakso 25 g, roti tawar 1 lembar 30 g, pisang goreng 1 buah 60 g. kcal dan nutrisi untuk grams total itu. Jangan menjawab satu butir bila terlihat banyak potongan.';
 
 /**
  * Text printed in the photo outranks how the food looks (owner scans 2026-10-21:
@@ -119,6 +129,9 @@ export const visionItemSchema = z.object({
   kind: z.string().optional(),
   portion: z.string().optional(),
   grams: modelNumber.optional(),
+  // Separate pieces the model counted and what one is called (COUNT_RULE); grams are reconciled to them.
+  count: modelNumber.optional().catch(undefined),
+  unit: z.string().optional().catch(undefined),
   kcal: modelNumber,
   protein: modelNumber.optional(),
   carbs: modelNumber.optional(),
@@ -564,7 +577,8 @@ type BoundItem = Omit<ParsedItem, "box" | "kind" | "kcal" | "cup"> & {
 };
 type UsableItem = BoundItem & { kcal: number };
 
-function boundItem({ box, kind, cup, ...item }: ParsedItem): BoundItem {
+function boundItem({ box, kind, cup, ...parsed }: ParsedItem): BoundItem {
+  const item = reconcileCount({ ...parsed, grams: clamp(parsed.grams, 1, 5000), kcal: clamp(parsed.kcal, 0, 5000) });
   return {
     ...item,
     box: normalizeBox(box),
