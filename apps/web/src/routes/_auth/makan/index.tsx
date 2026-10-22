@@ -24,6 +24,7 @@ import { Chip } from "@/components/chip";
 import { DaySwitcher } from "@/components/day-switcher";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { FieldLabel, Page, PageHeader } from "@/components/kit/surface";
+import { JoyoHeaderButton } from "@/components/joyo/header-button";
 import { MacroLine } from "@/components/macro-line";
 import { MakanSummaryCard } from "@/components/macro-card";
 import { FoodPortionSheet } from "@/components/food-portion-sheet";
@@ -334,7 +335,12 @@ function MakanPage() {
     <Page className="md:max-w-3xl">
       <PageHeader
         title={t("common:nav.food")}
-        action={view === "daftar" ? <DaySwitcher date={date} onChange={showDate} /> : undefined}
+        action={
+          <div className="flex items-center gap-2">
+            {view === "daftar" && <DaySwitcher date={date} onChange={showDate} />}
+            <JoyoHeaderButton />
+          </div>
+        }
       />
 
       <div className="flex items-center gap-2">

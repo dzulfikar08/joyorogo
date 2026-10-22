@@ -2,7 +2,8 @@ import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarIcon, Link2, Link2Off } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { CalendarIcon, Link2, Link2Off, MessagesSquare } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -23,6 +24,7 @@ import { SheetActions } from "@/components/sheet-actions";
 import { StickerHero } from "@/components/sticker";
 import type { FoodItem } from "@/lib/api-types";
 import { fmtDateLong, fmtGramsLabel, fmtKcalLabel, parseNum } from "@/lib/format";
+import { askText } from "@/lib/joyo-chat";
 import { MACRO_META } from "@/lib/macro-icons";
 import { OptimisticCache, insertFoodRow, stripFoodRow, useOptimisticMutation } from "@/lib/optimistic";
 import type { FoodListData } from "@/lib/optimistic";
@@ -158,8 +160,9 @@ export function FoodPortionSheet({
   onShare: () => void;
   onDelete: () => void;
 }) {
-  const { t } = useTranslation(["makan", "common"]);
+  const { t } = useTranslation(["makan", "common", "joyoAiWeb"]);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const base = portionOf(row);
   const hasGrams = base.grams !== null;
   const [name, setName] = useState(row.name);
@@ -337,6 +340,16 @@ export function FoodPortionSheet({
     onClose();
   };
 
+  /** Opens Joyo AI with a question about this food typed in (not sent until the person sends it). */
+  const askJoyo = () => {
+    const ask = askText([{ name: name.trim() || row.name, grams: hasGrams ? values.grams : null }], (key, options) =>
+      t(`joyoAiWeb:${key}`, options),
+    );
+    if (ask === undefined) return;
+    onClose();
+    void navigate({ to: "/joyo", search: { ask } });
+  };
+
   return (
     <>
       <Sheet open onOpenChange={(open) => !open && onClose()} title={t("portionSheet.title")}>
@@ -481,6 +494,11 @@ export function FoodPortionSheet({
           </div>
 
           <FoodSafetyNotes names={[name]} date={row.date} className="bg-transparent p-0" />
+
+          <Button type="button" variant="outline" size="sm" onClick={askJoyo}>
+            <MessagesSquare aria-hidden />
+            {t("joyoAiWeb:entry.label")}
+          </Button>
 
           <div>
             <FieldLabel htmlFor="food-date">{t("portionSheet.loggedOn")}</FieldLabel>

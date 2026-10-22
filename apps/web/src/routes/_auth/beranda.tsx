@@ -31,6 +31,7 @@ import { Ring } from "@/components/kit/ring";
 import { Card, Page, SectionTitle } from "@/components/kit/surface";
 import { MetaLine } from "@/components/meta-line";
 import { Avatar } from "@/components/avatar";
+import { JoyoHeaderButton } from "@/components/joyo/header-button";
 import { DailyTipCard } from "@/components/tips/daily-tip-card";
 import { FastingScheduleCard } from "@/components/fasting/schedule-card";
 import MovementCard from "@/components/movement-card";
@@ -551,6 +552,7 @@ function Dashboard({
           </h1>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <JoyoHeaderButton />
           {!maternal && (
             <ShareStoryButton
               label=""

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Bell, CalendarCheck, Plug, Scale, Sparkles, Tag, Users, Watch } from "lucide-react";
+import { Bell, CalendarCheck, MessagesSquare, Plug, Scale, Sparkles, Tag, Users, Watch } from "lucide-react";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useTranslation } from "react-i18next";
 
@@ -43,7 +43,7 @@ function UnreadValue({ count }: { count: number }) {
 }
 
 function LainnyaPage() {
-  const { t } = useTranslation(["common", "koneksi"]);
+  const { t } = useTranslation(["common", "koneksi", "joyoAiWeb"]);
   const session = useSession();
   const unread = useQuery(orpc.group.unreadCount.queryOptions());
   const profile = useQuery(profileOptions());
@@ -120,6 +120,16 @@ function LainnyaPage() {
           title={t("nav.title.inbox")}
           subtitle={t("more.inbox.subtitle")}
           value={count > 0 ? <UnreadValue count={count} /> : undefined}
+        />
+        <ListLinkRow
+          to="/joyo"
+          icon={
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-primary/10">
+              <MessagesSquare className="size-5 text-primary" aria-hidden />
+            </span>
+          }
+          title={t("joyoAiWeb:title")}
+          subtitle={t("joyoAiWeb:nav.subtitle")}
         />
         <ListLinkRow
           to="/koneksi"

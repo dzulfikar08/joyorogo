@@ -231,6 +231,23 @@ const PRIVACY_MS: LegalDoc = {
       ],
     },
     {
+      id: "joyo-ai-rogo",
+      title: "Joyo AI dalam JoyoRogo (Pro)",
+      blocks: [
+        "Joyo AI menjawab soalan tentang makanan dalam web dan aplikasi telefon JoyoRogo: tentang catatan makanan anda sendiri, atau membandingkan makanan sebelum anda makan. Ia untuk akaun Pro dan pengguna berumur 18 tahun ke atas. Joyo AI bukan doktor atau pakar pemakanan, dan jawapannya boleh tersilap dan bukan nasihat perubatan.",
+        { list: [
+          "Tiada apa-apa dihantar sebelum anda bersetuju dengan notis sekali sahaja di awal. Notis itu menyenaraikan data yang dihantar.",
+          "Dihantar apabila anda bertanya: mesej yang anda taip dan sehingga 12 mesej terakhir dalam perbualan itu; umur, jantina, tinggi dan matlamat anda; sasaran harian anda (kcal, protein, karbohidrat, lemak, serat, serta berat dan tarikh sasaran); catatan hari ini (jumlah makan, baki sasaran, nama, berat dan kcal setiap makanan, air minuman, dan status puasa); tujuh hari terakhir (kcal, protein, serat dan air); dan berat badan terkini beserta perubahannya. Jika AI memintanya, catatan makanan dan berat sehingga 90 hari ke belakang turut dibacakan, hanya dibaca dan tidak pernah diubah.",
+          "Ia dihantar melalui pelayan JoyoRogo kepada penyedia AI kami, iaitu Cloudflare Workers AI, hanya untuk menjawab soalan anda, dan tidak digunakan untuk melatih model.",
+          "Tidak pernah dihantar: nama, e-mel, foto, lokasi atau GPS, data kitaran haid, mod hamil atau menyusu, data Strava dan ID peranti. Jika anda sendiri menulis dalam mesej bahawa anda hamil atau menyusu, Joyo AI menjawab dengan lebih berhati-hati, tetapi itu tidak pernah dibaca daripada akaun anda.",
+          "Mesej dan jawapan tidak disimpan di pelayan kami. Yang dicatat hanyalah bilangan soalan sehari (untuk had harian) dan penggunaan token.",
+          "Perbualan disimpan pada peranti anda sahaja: dalam pelayar untuk web, dalam telefon untuk aplikasi. Perbualan tidak disegerakkan ke akaun anda atau peranti lain. Di web, Padam semua perbualan dalam sejarah Joyo AI memadamkannya, begitu juga memadam data laman dalam pelayar, yang sekali gus menarik balik persetujuan anda.",
+          "Mesej yang menyebut kecederaan, sakit, gejala, ubat atau gangguan pemakanan dijawab dengan saranan berjumpa doktor atau pakar pemakanan, tanpa petua diet. Joyo AI tidak tersedia untuk pengguna di bawah 18 tahun.",
+        ] },
+        "Dalam aplikasi telefon, Joyo AI juga boleh menggunakan kunci API anda sendiri tanpa Pro. Laluan itu berasingan: telefon anda menghantar terus kepada penyedia pilihan anda (OpenRouter, OpenAI, Anthropic atau Google Gemini), tidak melalui pelayan JoyoRogo, dan kunci itu kekal dalam storan selamat telefon anda. Selepas data sampai kepada penyedia itu, peraturan privasi penyedia itu pula yang terpakai. Web tidak menyokong kunci sendiri.",
+      ],
+    },
+    {
       id: "coach-joyofit",
       title: "Coach JoyoFit (Pro)",
       blocks: [
@@ -633,6 +650,23 @@ const PRIVACY_EN: LegalDoc = {
       title: "Old strength training history",
       blocks: [
         "Strength training is now logged in JoyoFit. Old history in JoyoRogo can still be viewed but not changed. History you brought to JoyoFit is stored in JoyoFit (on your phone, and in JoyoFit's cloud for Pro). Deleting data in JoyoRogo does not delete that copy.",
+      ],
+    },
+    {
+      id: "joyo-ai-rogo",
+      title: "Joyo AI in JoyoRogo (Pro)",
+      blocks: [
+        "Joyo AI answers questions about food in the JoyoRogo web and phone app: about your own food log, or comparing foods before you eat. It is for Pro accounts and for people aged 18 and over. Joyo AI is not a doctor or a dietitian, and its answers can be wrong and are not medical advice.",
+        { list: [
+          "Nothing is sent until you agree to a one-time notice at the start. The notice lists the data that is sent.",
+          "Sent when you ask a question: the message you type and up to the last 12 messages of that conversation; your age, sex, height and goal; your daily targets (kcal, protein, carbohydrate, fat, fibre, and your target weight and date); today's log (total eaten, what is left of your targets, the name, weight and kcal of each food, water, and fasting status); the last seven days (kcal, protein, fibre and water); and your latest weight with its change. If the AI asks for it, your food and weight log up to 90 days back is also read out, read only and never changed.",
+          "It goes through the JoyoRogo server to our AI provider, Cloudflare Workers AI, only to answer your question, and is not used to train models.",
+          "Never sent: your name, email, photos, location or GPS, menstrual cycle data, pregnancy or breastfeeding mode, Strava data, and device IDs. If you write in a message that you are pregnant or breastfeeding, Joyo AI answers more carefully, but that is never read from your account.",
+          "Messages and answers are not stored on our server. Only the number of questions per day (for the daily limit) and token use are recorded.",
+          "Conversations are kept on your own device only: in the browser for the web, on the phone for the app. They are not synced to your account or other devices. On the web, Delete all conversations in the Joyo AI history removes them, and so does clearing the site data in the browser, which also withdraws your consent.",
+          "Messages that mention injury, pain, symptoms, medication or an eating disorder are answered with advice to see a doctor or a dietitian, with no diet tips. Joyo AI is not available to users under 18.",
+        ] },
+        "In the phone app, Joyo AI can also use your own API key without Pro. That route is separate: your phone sends straight to the provider you choose (OpenRouter, OpenAI, Anthropic or Google Gemini), not through the JoyoRogo server, and the key stays in your phone's secure storage. Once the data reaches that provider, the provider's own privacy rules apply. The web does not support your own key.",
       ],
     },
     {

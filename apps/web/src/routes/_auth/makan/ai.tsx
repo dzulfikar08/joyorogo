@@ -1,6 +1,7 @@
 import { kcalUnit } from "@joyorogo/i18n";
 import {
   Camera,
+  MessagesSquare,
   Check,
   ChevronDown,
   Drumstick,
@@ -88,6 +89,7 @@ import { KindCycleChip, SnackAdviceCard, useSnackAdvice } from "@/components/mak
 import { isPaywallError } from "@/lib/billing";
 import { fmtGramsLabel, fmtInt, parseNum } from "@/lib/format";
 import { usePlaceLocation } from "@/lib/location";
+import { askText } from "@/lib/joyo-chat";
 import { ReferenceHint } from "@/components/scan/reference-hint";
 import { client, orpc } from "@/utils/orpc";
 
@@ -339,7 +341,7 @@ function CutoutImage({
 }
 
 function AiFoodPage() {
-  const { t } = useTranslation(["scan", "makan", "common"]);
+  const { t } = useTranslation(["scan", "makan", "common", "joyoAiWeb"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   // The day the scan belongs to, forwarded from the makan page's DaySwitcher.
@@ -352,6 +354,11 @@ function AiFoodPage() {
   // What the model has found so far while phase is "analyzing" (analyzeFoodStream).
   const [liveRows, setLiveRows] = useState<LiveRow[]>([]);
   const [items, setItems] = useState<AiFoodItem[]>([]);
+  // "Mau makan ini? Tanya dulu": the foods of the result as a question for Joyo AI (opened in a new tab; the unsaved scan stays here).
+  const askJoyoText = askText(
+    items.map((item) => ({ name: item.name, grams: item.grams })),
+    (key, options) => t(`joyoAiWeb:${key}`, options),
+  );
   const [kcals, setKcals] = useState<Record<number, string>>({});
   // The exact pixels the AI saw: boxes map onto this, and it is what gets saved.
   const [image, setImage] = useState<SentImage | null>(null);
@@ -1625,6 +1632,14 @@ function AiFoodPage() {
               {askFeedback && !feedbackAnswered && <p>{t("result.info.feedback")}</p>}
             </Disclosure>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link to="/joyo" search={{ ask: askJoyoText }} target="_blank" rel="noopener" />}
+          >
+            <MessagesSquare aria-hidden />
+            {t("joyoAiWeb:entry.label")}
+          </Button>
         </div>
 
         {/* Mobile: the primary pill floats above the tab bar; desktop: inline. */}

@@ -25,6 +25,7 @@ export const APP_SEGMENTS: readonly string[] = [
   "grup",
   "inbox",
   "jam",
+  "joyo",
   "koneksi",
   "lainnya",
   "latihan",

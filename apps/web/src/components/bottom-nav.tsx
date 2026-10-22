@@ -1,7 +1,7 @@
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Camera, Ellipsis, House, Newspaper, Utensils } from "lucide-react";
+import { Camera, Ellipsis, House, MessagesSquare, Newspaper, Utensils } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { orpc } from "@/utils/orpc";
@@ -115,6 +115,7 @@ const DESKTOP_LINKS = [
 /** Desktop top bar (md+). Mobile uses page headers + the tab bar instead. */
 export function DesktopBar() {
   const { t } = useTranslation();
+  const { t: tJoyo } = useTranslation("joyoAiWeb");
   const unread = useQuery(orpc.group.unreadCount.queryOptions());
   const socialUnread = useQuery(orpc.social.notificationsUnreadCount.queryOptions());
   const count = unread.data?.count ?? 0;
@@ -160,6 +161,15 @@ export function DesktopBar() {
             })}
           </ul>
         </nav>
+        <Link
+          to="/joyo"
+          aria-label={tJoyo("title")}
+          title={tJoyo("title")}
+          className="inline-flex size-11 items-center justify-center gap-2 rounded-full text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none data-[status=active]:bg-card data-[status=active]:text-foreground lg:w-auto lg:px-4"
+        >
+          <MessagesSquare className="size-[1.125rem]" aria-hidden />
+          <span className="hidden lg:inline">{tJoyo("title")}</span>
+        </Link>
         <Link
           to="/makan/ai"
           className="pressable inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"

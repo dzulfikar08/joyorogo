@@ -256,6 +256,34 @@ function PrivasiPage() {
             </p>
           </section>
 
+          <section className="rounded-3xl bg-card p-5" id="joyo-ai-rogo">
+            <h2 className="text-base font-bold tracking-tight">Joyo AI di JoyoRogo (Pro)</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Joyo AI menjawab pertanyaan soal makanan di web dan aplikasi JoyoRogo: tentang catatan
+              makanmu sendiri, atau membandingkan makanan sebelum kamu makan. Fitur ini untuk akun Pro
+              dan pengguna berusia 18 tahun ke atas. Joyo AI bukan dokter atau ahli gizi, dan
+              jawabannya bisa keliru dan bukan saran medis.
+            </p>
+            <CheckList
+              items={[
+                "Tidak ada yang dikirim sebelum kamu menyetujui pemberitahuan di awal, sekali saja. Pemberitahuan itu menyebut data apa saja yang dikirim.",
+                "Yang dikirim saat kamu bertanya: pesan yang kamu ketik dan sampai 12 pesan terakhir di percakapan itu; usia, jenis kelamin, tinggi, dan tujuanmu; target hariannya (kkal, protein, karbohidrat, lemak, serat, serta berat dan tanggal target); catatan hari ini (total makan, sisa target, nama, berat, dan kkal tiap makanan, air minum, dan status puasa); tujuh hari terakhir (kkal, protein, serat, dan air); dan berat badan terakhir beserta perubahannya. Kalau AI memintanya, catatan makan dan berat sampai 90 hari ke belakang dibacakan juga, hanya dibaca dan tidak pernah diubah.",
+                "Dikirim lewat server JoyoRogo ke penyedia AI kami, yaitu Cloudflare Workers AI, hanya untuk menjawab pertanyaanmu, dan tidak dipakai untuk melatih model.",
+                "Tidak pernah dikirim: nama, email, foto, lokasi atau GPS, data siklus haid, mode hamil atau menyusui, data Strava, dan ID perangkat. Kalau kamu sendiri menulis di pesan bahwa kamu hamil atau menyusui, Joyo AI menjawab lebih hati-hati, tetapi itu tidak pernah dibaca dari akunmu.",
+                "Pesan dan jawaban tidak disimpan di server kami. Yang dicatat hanya jumlah pertanyaan per hari (untuk batas harian) dan pemakaian token.",
+                "Percakapan disimpan di perangkatmu saja: di browser untuk web, di ponsel untuk aplikasi. Percakapan tidak ikut sinkron ke akunmu atau perangkat lain. Di web, Hapus semua percakapan di Riwayat Joyo AI menghapusnya, begitu juga menghapus data situs di browser, yang sekaligus mencabut persetujuanmu.",
+                "Pesan yang menyebut cedera, nyeri, gejala, obat, atau gangguan makan dijawab dengan anjuran menemui dokter atau ahli gizi, tanpa saran diet. Joyo AI tidak tersedia untuk pengguna di bawah 18 tahun.",
+              ]}
+            />
+            <p className="mt-3 text-sm leading-relaxed">
+              Di aplikasi ponsel, Joyo AI juga bisa memakai kunci API milikmu sendiri tanpa Pro. Jalur
+              itu terpisah: ponselmu mengirim langsung ke penyedia yang kamu pilih (OpenRouter,
+              OpenAI, Anthropic, atau Google Gemini), tanpa lewat server JoyoRogo, dan kuncinya hanya
+              ada di penyimpanan aman ponselmu. Setelah data sampai di penyedia itu, aturan privasi
+              penyedia itu yang berlaku. Web tidak mendukung kunci sendiri.
+            </p>
+          </section>
+
           <section className="rounded-3xl bg-card p-5" id="coach-joyofit">
             <h2 className="text-base font-bold tracking-tight">Coach JoyoFit (Pro)</h2>
             <p className="mt-3 text-sm leading-relaxed">
