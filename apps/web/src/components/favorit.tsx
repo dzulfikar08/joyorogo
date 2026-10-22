@@ -1,13 +1,14 @@
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
-import { foodSavedKey, plateSavedKey } from "@joyorogo/api/lib/saved-foods";
+import { foodSavedKey, moveId, plateSavedKey } from "@joyorogo/api/lib/saved-foods";
+import { kcalUnit } from "@joyorogo/i18n";
 import type { TFunction } from "@joyorogo/i18n";
 import { removeById } from "@joyorogo/api/lib/optimistic";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Pencil, Star, Trash2 } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, EyeOff, Pencil, Plus, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -15,9 +16,9 @@ import { toast } from "sonner";
 import { Chip } from "@/components/chip";
 import { ListGroup, ListRow } from "@/components/kit/surface";
 import { CutoutTile, FoodThumb } from "@/components/sticker";
-import type { FoodItem, SavedFood, SavedFoodRelog } from "@/lib/api-types";
+import type { FavoriteOffer, FoodItem, FoodRecentItem, SavedFood, SavedFoodRelog } from "@/lib/api-types";
 import { fmtRupiah } from "@/lib/app-config";
-import { fmtKcalLabel } from "@/lib/format";
+import { fmtKcalLabel, parseNum } from "@/lib/format";
 import { insertFoodRow, OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
@@ -77,15 +78,80 @@ export function useFavorites() {
     invalidate: () => [orpc.savedFood.key()],
   });
 
-  const rename = useOptimisticMutation<{ id: string; name: string }, unknown>({
-    mutationFn: (input) => client.savedFood.rename(input),
-    patch: ({ id, name }, cache) =>
+  const offerKey = () => orpc.savedFood.offer.queryOptions().queryKey;
+  const recentKey = () => orpc.food.recent.queryOptions().queryKey;
+  type RecentData = { items: FoodRecentItem[]; hiddenCount: number };
+  const offerQuery = useQuery(orpc.savedFood.offer.queryOptions());
+  const recentQuery = useQuery(orpc.food.recent.queryOptions());
+
+  // Catat cepat > Atur: the user's own order of the favorites, shown at once and confirmed by the server.
+  const arrange = useOptimisticMutation<{ ids: string[] }, unknown>({
+    mutationFn: ({ ids }) => client.savedFood.reorder({ ids }),
+    patch: ({ ids }, cache) => {
+      const rank = new Map(ids.map((id, index) => [id, index]));
       cache.value<SavedList>(listKey(), (old) =>
         old
-          ? { ...old, items: old.items.map((row) => (row.id === id ? { ...row, name } : row)) }
+          ? {
+              ...old,
+              items: [...old.items].sort((a, b) => (rank.get(a.id) ?? ids.length) - (rank.get(b.id) ?? ids.length)),
+            }
           : old,
-      ),
+      );
+    },
     invalidate: () => [orpc.savedFood.key()],
+  });
+
+  const create = useOptimisticMutation<{ name: string; kcal: number }, SavedFood>({
+    mutationFn: (input) => client.savedFood.create(input),
+    invalidate: () => [orpc.savedFood.key(), orpc.food.recent.key()],
+    success: (_input, row) => ({ message: t("favorites.toast.created", { name: row.name }) }),
+  });
+
+  const update = useOptimisticMutation<{ id: string; name?: string; kcal?: number }, SavedFood>({
+    mutationFn: (input) => client.savedFood.update(input),
+    invalidate: () => [orpc.savedFood.key()],
+    success: () => ({ message: t("favorites.toast.updated") }),
+  });
+
+  // A recent food (or the offered habit) becomes a favorite; the chip leaves the recent list.
+  const promote = useOptimisticMutation<{ id: string; name: string }, SavedFood>({
+    mutationFn: ({ id }) => client.savedFood.save({ foodId: id }),
+    patch: ({ name }, cache) =>
+      cache.value<RecentData>(recentKey(), (old) =>
+        old ? { ...old, items: old.items.filter((row) => row.name !== name) } : old,
+      ),
+    invalidate: () => [orpc.savedFood.key(), orpc.food.recent.key(), orpc.savedFood.offer.key()],
+    success: (_input, row) => ({ message: t("favorites.toast.saved", { name: row.name }) }),
+  });
+
+  const saveOffered = useOptimisticMutation<FavoriteOffer, SavedFood>({
+    mutationFn: (offer) =>
+      client.savedFood.save(offer.kind === "plate" ? { plateId: offer.targetId } : { foodId: offer.targetId }),
+    patch: (_offer, cache) => cache.value<{ offer: FavoriteOffer | null }>(offerKey(), () => ({ offer: null })),
+    invalidate: () => [orpc.savedFood.key(), orpc.food.recent.key(), orpc.savedFood.offer.key()],
+    success: (_offer, row) => ({ message: t("favorites.toast.saved", { name: row.name }) }),
+  });
+
+  const dismissOffered = useOptimisticMutation<FavoriteOffer, unknown>({
+    mutationFn: (offer) => client.savedFood.dismissOffer({ key: offer.key }),
+    patch: (_offer, cache) => cache.value<{ offer: FavoriteOffer | null }>(offerKey(), () => ({ offer: null })),
+    invalidate: () => [orpc.savedFood.offer.key()],
+  });
+
+  const hide = useOptimisticMutation<{ name: string }, unknown>({
+    mutationFn: ({ name }) => client.food.hideRecent({ name }),
+    patch: ({ name }, cache) =>
+      cache.value<RecentData>(recentKey(), (old) =>
+        old ? { items: old.items.filter((row) => row.name !== name), hiddenCount: old.hiddenCount + 1 } : old,
+      ),
+    invalidate: () => [orpc.food.recent.key()],
+    success: ({ name }) => ({ message: t("favorites.toast.hidden", { name }) }),
+  });
+
+  const restore = useOptimisticMutation<void, unknown>({
+    mutationFn: () => client.food.restoreRecent(),
+    invalidate: () => [orpc.food.recent.key()],
+    success: () => ({ message: t("favorites.toast.restored") }),
   });
 
   const relogMutation = useOptimisticMutation<RelogInput, SavedFoodRelog>({
@@ -173,9 +239,13 @@ export function useFavorites() {
       })),
     }) as SavedFood;
 
+  const offer = offerQuery.data?.offer ?? null;
   return {
     items,
     isPending: query.isPending,
+    recent: recentQuery.data?.items ?? [],
+    hiddenCount: recentQuery.data?.hiddenCount ?? 0,
+    offer,
     isFoodSaved: (row: FoodItem) => byKey.has(foodSavedKey(row.name, row.kcal)),
     isPlateSaved: (plate: FavoritPlate, rows: ReadonlyArray<FoodItem>) =>
       byKey.has(plateSavedKey(plate.name, plate.place, rows)),
@@ -196,8 +266,17 @@ export function useFavorites() {
     },
     relog: (saved: SavedFood, date: string, meal: Meal) => relogMutation.mutate({ saved, date, meal }),
     relogPending: relogMutation.isPending,
-    rename: (id: string, name: string) => rename.mutate({ id, name }),
     remove: removeMutation,
+    move: (id: string, step: -1 | 1) => arrange.mutate({ ids: moveId(items.map((row) => row.id), id, step) }),
+    create: (input: { name: string; kcal: number }, onDone: () => void) => create.mutate(input, { onSuccess: onDone }),
+    createPending: create.isPending,
+    update: (id: string, patch: { name?: string; kcal?: number }, onDone: () => void) =>
+      update.mutate({ id, ...patch }, { onSuccess: onDone }),
+    saveRecent: (food: FoodRecentItem) => promote.mutate({ id: food.id, name: food.name }),
+    hideRecent: (name: string) => hide.mutate({ name }),
+    restoreRecent: () => restore.mutate(),
+    saveOffer: () => offer && saveOffered.mutate(offer),
+    dismissOffer: () => offer && dismissOffered.mutate(offer),
   };
 }
 
@@ -205,6 +284,12 @@ export function useFavorites() {
 export interface Favorites {
   items: SavedFood[];
   isPending: boolean;
+  /** Recently logged foods for the chips (hidden ones and one-food favorites left out), newest first. */
+  recent: FoodRecentItem[];
+  /** How many of the newest names the user hid from the recent chips. */
+  hiddenCount: number;
+  /** The food or combo logged 3+ times in 14 days that is worth saving; null = nothing to offer. */
+  offer: FavoriteOffer | null;
   isFoodSaved: (row: FoodItem) => boolean;
   isPlateSaved: (plate: FavoritPlate, rows: ReadonlyArray<FoodItem>) => boolean;
   toggleFood: (row: FoodItem) => void;
@@ -212,9 +297,20 @@ export interface Favorites {
   /** Logs a favorite to `date` + `meal` in one tap. */
   relog: (saved: SavedFood, date: string, meal: Meal) => void;
   relogPending: boolean;
-  rename: (id: string, name: string) => void;
   /** Delayed delete with an undo toast. */
   remove: (saved: SavedFood) => void;
+  /** One place up (-1) or down (+1) in the user's own order. */
+  move: (id: string, step: -1 | 1) => void;
+  /** A favorite typed in by hand; `onDone` runs once it is saved. */
+  create: (input: { name: string; kcal: number }, onDone: () => void) => void;
+  createPending: boolean;
+  /** A new name and/or total kcal; `onDone` runs once it is saved. */
+  update: (id: string, patch: { name?: string; kcal?: number }, onDone: () => void) => void;
+  saveRecent: (food: FoodRecentItem) => void;
+  hideRecent: (name: string) => void;
+  restoreRecent: () => void;
+  saveOffer: () => void;
+  dismissOffer: () => void;
 }
 
 function describe(saved: SavedFood, t: TFunction<"makan">): string {
@@ -231,11 +327,14 @@ export function FavoritChips({
   date,
   meal,
   onManage,
+  showManage = true,
 }: {
   favorites: Favorites;
   date: string;
   meal: Meal;
   onManage: () => void;
+  /** The "Atur" chip at the end; Catat cepat has its own button in the card header. */
+  showManage?: boolean;
 }) {
   const { t } = useTranslation("makan");
   if (favorites.items.length === 0) return null;
@@ -262,14 +361,43 @@ export function FavoritChips({
           </span>
         </Chip>
       ))}
-      <Chip onClick={onManage} className="bg-transparent text-muted-foreground">
-        {t("favorites.manage")}
-      </Chip>
+      {showManage && (
+        <Chip onClick={onManage} className="bg-transparent text-muted-foreground">
+          {t("favorites.manage")}
+        </Chip>
+      )}
     </div>
   );
 }
 
-/** Rename and delete (with undo) the saved list. */
+/**
+ * "Simpan sebagai favorit": the food or combo the user has logged 3 times in 14 days, offered once. Simpan stars it,
+ * Nanti dismisses it for good; neither shows it again.
+ */
+export function FavoritOffer({ favorites }: { favorites: Favorites }) {
+  const { t } = useTranslation("makan");
+  const offer = favorites.offer;
+  if (!offer) return null;
+  return (
+    <div role="group" aria-label={t("favorites.offer.title")} className="mt-4 rounded-2xl bg-makan-soft p-4">
+      <p className="text-sm font-bold text-makan-ink">{t("favorites.offer.title")}</p>
+      <p className="mt-1 text-sm text-pretty text-makan-ink">
+        {t("favorites.offer.body", { name: offer.name, count: offer.count, kcal: fmtKcalLabel(offer.kcal) })}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" onClick={favorites.saveOffer}>
+          <Star className="fill-current" aria-hidden />
+          {t("favorites.offer.save")}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={favorites.dismissOffer}>
+          {t("favorites.offer.later")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** Catat cepat > Atur: reorder, edit, remove and add favorites; hide or promote the recent chips. */
 export function FavoritManageSheet({
   favorites,
   onClose,
@@ -280,17 +408,57 @@ export function FavoritManageSheet({
   const { t } = useTranslation("makan");
   const [editing, setEditing] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
+  const [draftKcal, setDraftKcal] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [addName, setAddName] = useState("");
+  const [addKcal, setAddKcal] = useState("");
 
-  const commit = (saved: SavedFood) => {
-    const name = draftName.trim();
-    setEditing(null);
+  /** The trimmed name and a whole, positive kcal, or a toast saying which one is wrong. */
+  const checked = (nameText: string, kcalText: string): { name: string; kcal: number } | null => {
+    const name = nameText.trim();
+    const kcal = parseNum(kcalText);
     if (name.length === 0) {
       toast.error(t("favorites.toast.nameEmpty"));
-      return;
+      return null;
     }
-    if (name !== saved.name) favorites.rename(saved.id, name);
+    if (kcal === null || !(kcal >= 1)) {
+      toast.error(t("favorites.toast.kcalInvalid"));
+      return null;
+    }
+    return { name, kcal: Math.round(kcal) };
   };
 
+  const startEdit = (saved: SavedFood) => {
+    setDraftName(saved.name);
+    setDraftKcal(String(Math.round(saved.kcal)));
+    setEditing(saved.id);
+  };
+
+  const commit = (saved: SavedFood) => {
+    const next = checked(draftName, draftKcal);
+    if (!next) return;
+    const patch = {
+      ...(next.name !== saved.name ? { name: next.name } : {}),
+      ...(next.kcal !== Math.round(saved.kcal) ? { kcal: next.kcal } : {}),
+    };
+    if (Object.keys(patch).length === 0) {
+      setEditing(null);
+      return;
+    }
+    favorites.update(saved.id, patch, () => setEditing(null));
+  };
+
+  const submitAdd = () => {
+    const next = checked(addName, addKcal);
+    if (!next) return;
+    favorites.create(next, () => {
+      setAddName("");
+      setAddKcal("");
+      setAdding(false);
+    });
+  };
+
+  const last = favorites.items.length - 1;
   return (
     <Sheet
       open
@@ -300,92 +468,230 @@ export function FavoritManageSheet({
       title={t("favorites.sheet.title")}
       description={t("favorites.sheet.description")}
     >
-      {favorites.items.length === 0 ? (
-        <p className="rounded-2xl bg-muted px-4 py-5 text-center text-sm text-muted-foreground">
-          {t("favorites.sheet.empty")}
-        </p>
-      ) : (
-        <ListGroup className="bg-muted/50">
-          {favorites.items.map((saved) => {
-            const first = saved.items[0];
-            const isEditing = editing === saved.id;
-            return (
-              <ListRow
-                key={saved.id}
-                wrapTitle
-                icon={
-                  <FoodThumb
-                    scanId={first?.scanId}
-                    photoId={first?.photoId}
-                    name={saved.name}
-                    className="size-14"
-                    iconClassName="size-5"
+      <div className="space-y-6">
+        <section aria-label={t("favorites.sheet.favoritesTitle")}>
+          <h3 className="mb-2 px-1 text-sm font-bold">{t("favorites.sheet.favoritesTitle")}</h3>
+          {favorites.items.length === 0 ? (
+            <p className="rounded-2xl bg-muted px-4 py-5 text-center text-sm text-muted-foreground">
+              {t("favorites.sheet.empty")}
+            </p>
+          ) : (
+            <ListGroup className="bg-muted/50">
+              {favorites.items.map((saved, index) => {
+                const first = saved.items[0];
+                const isEditing = editing === saved.id;
+                return (
+                  <ListRow
+                    key={saved.id}
+                    wrapTitle
+                    icon={
+                      <FoodThumb
+                        scanId={first?.scanId}
+                        photoId={first?.photoId}
+                        name={saved.name}
+                        className="size-14"
+                        iconClassName="size-5"
+                      />
+                    }
+                    title={
+                      isEditing ? (
+                        <Input
+                          autoFocus
+                          value={draftName}
+                          maxLength={200}
+                          aria-label={t("favorites.sheet.newName", { name: saved.name })}
+                          onChange={(event) => setDraftName(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") commit(saved);
+                            if (event.key === "Escape") setEditing(null);
+                          }}
+                          onClick={(event) => event.stopPropagation()}
+                        />
+                      ) : (
+                        saved.name
+                      )
+                    }
+                    subtitle={
+                      isEditing ? (
+                        <span className="flex items-center gap-1.5">
+                          <Input
+                            type="number"
+                            min="1"
+                            inputMode="numeric"
+                            value={draftKcal}
+                            aria-label={t("favorites.sheet.kcalAria", { name: saved.name })}
+                            onChange={(event) => setDraftKcal(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") commit(saved);
+                              if (event.key === "Escape") setEditing(null);
+                            }}
+                            onClick={(event) => event.stopPropagation()}
+                            className="h-9 w-24 text-right tabular-nums"
+                          />
+                          <span>{kcalUnit()}</span>
+                        </span>
+                      ) : (
+                        <span className="flex flex-col">
+                          <span className="tabular-nums">{describe(saved, t)}</span>
+                          {saved.priceIdr != null && (
+                            <span className="tabular-nums">{fmtRupiah(saved.priceIdr)}</span>
+                          )}
+                        </span>
+                      )
+                    }
+                    trailing={
+                      <>
+                        {!isEditing && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={t("favorites.sheet.moveUp", { name: saved.name })}
+                              disabled={index === 0}
+                              onClick={() => favorites.move(saved.id, -1)}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <ChevronUp />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={t("favorites.sheet.moveDown", { name: saved.name })}
+                              disabled={index === last}
+                              onClick={() => favorites.move(saved.id, 1)}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <ChevronDown />
+                            </Button>
+                          </>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={
+                            isEditing
+                              ? t("favorites.sheet.saveName", { name: saved.name })
+                              : t("favorites.sheet.rename", { name: saved.name })
+                          }
+                          onClick={() => (isEditing ? commit(saved) : startEdit(saved))}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          {isEditing ? <Check /> : <Pencil />}
+                        </Button>
+                        {!isEditing && (
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={t("favorites.sheet.remove", { name: saved.name })}
+                            onClick={() => favorites.remove(saved)}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 />
+                          </Button>
+                        )}
+                      </>
+                    }
                   />
-                }
-                title={
-                  isEditing ? (
-                    <Input
-                      autoFocus
-                      value={draftName}
-                      maxLength={200}
-                      aria-label={t("favorites.sheet.newName", { name: saved.name })}
-                      onChange={(event) => setDraftName(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") commit(saved);
-                        if (event.key === "Escape") setEditing(null);
-                      }}
-                      onClick={(event) => event.stopPropagation()}
-                    />
-                  ) : (
-                    saved.name
-                  )
-                }
-                subtitle={
-                  <span className="flex flex-col">
-                    <span className="tabular-nums">{describe(saved, t)}</span>
-                    {saved.priceIdr != null && (
-                      <span className="tabular-nums">{fmtRupiah(saved.priceIdr)}</span>
-                    )}
-                  </span>
-                }
-                trailing={
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={
-                        isEditing
-                          ? t("favorites.sheet.saveName", { name: saved.name })
-                          : t("favorites.sheet.rename", { name: saved.name })
-                      }
-                      onClick={() => {
-                        if (isEditing) {
-                          commit(saved);
-                        } else {
-                          setDraftName(saved.name);
-                          setEditing(saved.id);
-                        }
-                      }}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      {isEditing ? <Check /> : <Pencil />}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={t("favorites.sheet.remove", { name: saved.name })}
-                      onClick={() => favorites.remove(saved)}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 />
-                    </Button>
-                  </>
-                }
-              />
-            );
-          })}
-        </ListGroup>
-      )}
+                );
+              })}
+            </ListGroup>
+          )}
+          {adding ? (
+            <form
+              className="mt-3 flex flex-wrap items-end gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                submitAdd();
+              }}
+            >
+              <label className="min-w-40 flex-1 text-xs font-semibold text-muted-foreground">
+                {t("favorites.sheet.addName")}
+                <Input
+                  autoFocus
+                  value={addName}
+                  maxLength={200}
+                  placeholder={t("favorites.sheet.addNamePlaceholder")}
+                  onChange={(event) => setAddName(event.target.value)}
+                  className="mt-1"
+                />
+              </label>
+              <label className="w-28 text-xs font-semibold text-muted-foreground">
+                {t("favorites.sheet.addKcal")}
+                <Input
+                  type="number"
+                  min="1"
+                  inputMode="numeric"
+                  value={addKcal}
+                  onChange={(event) => setAddKcal(event.target.value)}
+                  className="mt-1 text-right tabular-nums"
+                />
+              </label>
+              <Button type="submit" disabled={favorites.createPending}>
+                {t("favorites.sheet.addSave")}
+              </Button>
+            </form>
+          ) : (
+            <Button variant="secondary" size="sm" className="mt-3" onClick={() => setAdding(true)}>
+              <Plus aria-hidden />
+              {t("favorites.sheet.add")}
+            </Button>
+          )}
+        </section>
+
+        {(favorites.recent.length > 0 || favorites.hiddenCount > 0) && (
+          <section aria-label={t("favorites.sheet.recentTitle")}>
+            <h3 className="px-1 text-sm font-bold">{t("favorites.sheet.recentTitle")}</h3>
+            <p className="mt-0.5 mb-2 px-1 text-xs text-muted-foreground">{t("favorites.sheet.recentHint")}</p>
+            {favorites.recent.length > 0 && (
+              <ListGroup className="bg-muted/50">
+                {favorites.recent.map((food) => (
+                  <ListRow
+                    key={food.name}
+                    wrapTitle
+                    icon={
+                      <FoodThumb
+                        scanId={food.scanId}
+                        name={food.name}
+                        className="size-14"
+                        iconClassName="size-5"
+                      />
+                    }
+                    title={food.name}
+                    subtitle={<span className="tabular-nums">{fmtKcalLabel(food.kcal)}</span>}
+                    trailing={
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t("favorites.sheet.recentSave", { name: food.name })}
+                          onClick={() => favorites.saveRecent(food)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <Star />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t("favorites.sheet.recentHide", { name: food.name })}
+                          onClick={() => favorites.hideRecent(food.name)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <EyeOff />
+                        </Button>
+                      </>
+                    }
+                  />
+                ))}
+              </ListGroup>
+            )}
+            {favorites.hiddenCount > 0 && (
+              <Button variant="ghost" size="sm" className="mt-2" onClick={favorites.restoreRecent}>
+                {t("favorites.sheet.showHidden", { count: favorites.hiddenCount })}
+              </Button>
+            )}
+          </section>
+        )}
+      </div>
     </Sheet>
   );
 }

@@ -1,6 +1,7 @@
 // Named domain contracts for API rows that ship inferred-only (packages/api is
 // frozen for the web team). Derived once at the AppRouterClient boundary so
 // consumers import stable names instead of implementation helpers.
+import type { UsualDensityNote } from "@joyorogo/api/lib/usual-density";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
 type FoodListOutput = Awaited<ReturnType<AppRouterClient["food"]["listByDate"]>>;
@@ -34,7 +35,8 @@ export type AiFoodItem = AiAnalyzeOutput["items"][number];
 type AiDescribeOutput = Awaited<ReturnType<AppRouterClient["ai"]["describeFood"]>>;
 
 /** One item from a typed/spoken story, already placed on a meal slot and date. */
-export type StoryFoodItem = AiDescribeOutput["items"][number];
+/** `usualDensity` is set when the kcal is the user's own per gram from an earlier log of the same food (lib/usual-density). */
+export type StoryFoodItem = AiDescribeOutput["items"][number] & { usualDensity?: UsualDensityNote };
 
 /** What describeFood (and food.copyMeal) answer: items to review, plus how a reference was resolved. */
 export type StoryResult = AiDescribeOutput;
@@ -145,6 +147,11 @@ type SavedFoodListOutput = Awaited<ReturnType<AppRouterClient["savedFood"]["list
 
 /** One Favorit (saved food or plate) with its parsed components. */
 export type SavedFood = SavedFoodListOutput["items"][number];
+
+type SavedFoodOfferOutput = Awaited<ReturnType<AppRouterClient["savedFood"]["offer"]>>;
+
+/** savedFood.offer: the food or combo logged 3+ times in 14 days that is worth saving as a favorite. */
+export type FavoriteOffer = NonNullable<SavedFoodOfferOutput["offer"]>;
 
 type SavedFoodRelogOutput = Awaited<ReturnType<AppRouterClient["savedFood"]["relog"]>>;
 

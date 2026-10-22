@@ -1,12 +1,12 @@
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { Link } from "@tanstack/react-router";
-import { Camera, Mic, ScanBarcode } from "lucide-react";
+import { Camera, Mic, Pencil, ScanBarcode } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Chip } from "@/components/chip";
-import { FavoritChips } from "@/components/favorit";
+import { FavoritChips, FavoritOffer } from "@/components/favorit";
 import type { Favorites } from "@/components/favorit";
 import { Card } from "@/components/kit/surface";
 import { CutoutTile } from "@/components/sticker";
@@ -73,7 +73,18 @@ export function QuickAddCard({
   const mealLabel = MEAL_LABELS[meal];
   return (
     <Card aria-label={t("diary.quick.label")} className="p-4">
-      <h2 className="px-1 text-base font-bold tracking-tight">{t("diary.quick.label")}</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="px-1 text-base font-bold tracking-tight">{t("diary.quick.label")}</h2>
+        <button
+          type="button"
+          onClick={onManage}
+          aria-label={t("favorites.quick.manage")}
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+        >
+          <Pencil className="size-3.5" aria-hidden />
+          {t("favorites.manage")}
+        </button>
+      </div>
       <div className="mt-3 grid grid-cols-3 gap-2">
         <Link to="/makan/ai" search={isToday ? {} : { date }} className={ACTION}>
           <Action icon={<Camera className="size-5" />}>{t("diary.quick.photo")}</Action>
@@ -90,6 +101,12 @@ export function QuickAddCard({
         </button>
       </div>
 
+      <FavoritOffer favorites={favorites} />
+
+      {favorites.items.length === 0 && !favorites.offer && (
+        <p className="mt-4 px-1 text-xs text-muted-foreground">{t("favorites.quick.empty")}</p>
+      )}
+
       {favorites.items.length > 0 && (
         <div className="mt-4">
           <p className="px-1 text-xs text-muted-foreground">
@@ -98,7 +115,7 @@ export function QuickAddCard({
               : t("diary.favorites.inlineHintOnDate", { meal: mealLabel, date: fmtDateLong(date) })}
           </p>
           <div className="mt-2">
-            <FavoritChips favorites={favorites} date={date} meal={meal} onManage={onManage} />
+            <FavoritChips favorites={favorites} date={date} meal={meal} onManage={onManage} showManage={false} />
           </div>
         </div>
       )}

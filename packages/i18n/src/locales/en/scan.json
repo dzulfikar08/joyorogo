@@ -185,6 +185,7 @@
       "priorAi": "AI: {{grams}}",
       "priorUsual": "Your usual: {{grams}}",
       "priorTypical": "Typical: {{grams}}",
+      "usual": "As usual, from your log · AI said {{kcal}}",
       "scaleGroup": "Pick the weight for {{name}}",
       "scaleRead": "Read from the scale: {{value}}",
       "scaleReadShared_one": "Read from the scale: {{value}}, split over {{count}} item",

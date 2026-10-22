@@ -369,19 +369,48 @@
     "toast": {
       "saved": "{{name}} masuk Favorit",
       "relogged": "{{name}} dicatat ke {{meal}}",
-      "nameEmpty": "Nama tidak boleh kosong"
+      "nameEmpty": "Nama tidak boleh kosong",
+      "created": "{{name}} ditambahkan ke Favorit",
+      "updated": "Perubahan disimpan",
+      "hidden": "{{name}} disembunyikan dari Terakhir dicatat",
+      "restored": "Terakhir dicatat tampil lagi",
+      "kcalInvalid": "Isi kalori berupa angka lebih dari 0"
     },
     "deletedLabel": "{{name}} dari Favorit",
     "itemCount_other": "{{count}} item",
-    "manage": "Kelola",
+    "manage": "Atur",
+    "offer": {
+      "title": "Sering kamu catat",
+      "body_other": "{{name}} sudah {{count}} kali dalam 14 hari ({{kcal}}). Simpan biar sekali tap?",
+      "save": "Simpan sebagai favorit",
+      "later": "Nanti"
+    },
+    "quick": {
+      "manage": "Atur Catat cepat",
+      "empty": "Belum ada favorit. Simpan makanan yang sering kamu catat biar cukup sekali tap."
+    },
     "sheet": {
-      "title": "Kelola Favorit",
-      "description": "Ganti nama atau hapus. Hapus bisa dibatalkan beberapa detik.",
-      "empty": "Belum ada favorit. Tekan bintang di makanan atau piring untuk menyimpannya.",
+      "title": "Atur Catat cepat",
+      "description": "Urutkan, ubah, hapus, atau tambah pilihanmu. Hapus bisa dibatalkan beberapa detik.",
+      "favoritesTitle": "Favorit",
+      "empty": "Belum ada favorit. Tambahkan di bawah, atau jadikan favorit dari Terakhir dicatat.",
       "newName": "Nama baru untuk {{name}}",
-      "saveName": "Simpan nama {{name}}",
-      "rename": "Ganti nama {{name}}",
-      "remove": "Hapus {{name}} dari Favorit"
+      "saveName": "Simpan perubahan {{name}}",
+      "rename": "Ubah {{name}}",
+      "kcalAria": "Kalori {{name}}",
+      "remove": "Hapus {{name}} dari Favorit",
+      "moveUp": "Naikkan {{name}}",
+      "moveDown": "Turunkan {{name}}",
+      "add": "Tambah pilihan",
+      "addName": "Nama makanan",
+      "addNamePlaceholder": "Putih telur rebus",
+      "addKcal": "Kalori (kkal)",
+      "addSave": "Simpan pilihan",
+      "recentTitle": "Terakhir dicatat",
+      "recentHint": "Muncul otomatis dari catatanmu. Sembunyikan yang tidak perlu, atau jadikan favorit.",
+      "recentSave": "Jadikan favorit {{name}}",
+      "recentHide": "Sembunyikan {{name}}",
+      "showHidden_other": "Tampilkan lagi {{count}} yang disembunyikan"
     }
   },
   "portionSheet": {
@@ -458,6 +487,7 @@
     "youSaid": "Kamu bilang",
     "editStory": "Ubah cerita",
     "portionDefault": "1 porsi",
+    "usual": "seperti biasanya · AI hitung {{kcal}}",
     "kcalAria": "Kalori {{name}}",
     "plateName": "Nama piring",
     "priceLabel": "Harga (Rp)",

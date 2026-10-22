@@ -134,6 +134,11 @@ export default function Makan() {
   const recentQuery = useQuery(orpc.food.recent.queryOptions());
   const favorites = useFavorites();
   const [manageOpen, setManageOpen] = useState(false);
+  // A new log can complete a habit: ask the server again whether something is worth offering as a favorite.
+  const loggedRows = listQuery.data?.items.length ?? 0;
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: orpc.savedFood.offer.key() });
+  }, [loggedRows, queryClient]);
   // Plate prices for the diary's plate grouping (plate.byDate) and inline edit.
   const plateDayQuery = useQuery({
     ...orpc.plate.byDate.queryOptions({ input: { date } }),

@@ -33,7 +33,7 @@ import {
 } from "@joyorogo/db/schema/social";
 import { mealPlan, mealPlanSwap, mealPrefs, mealShoppingCheck } from "@joyorogo/db/schema/meal";
 import { dishware } from "@joyorogo/db/schema/dishware";
-import { savedFood } from "@joyorogo/db/schema/saved-foods";
+import { foodQuickMark, savedFood } from "@joyorogo/db/schema/saved-foods";
 import { barcodeContribution } from "@joyorogo/db/schema/barcode";
 import { teamChallengeMember } from "@joyorogo/db/schema/challenge";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
@@ -137,6 +137,7 @@ export function deleteAllUserData(db: Database, userId: string) {
       .where(or(eq(socialBlock.blockerId, userId), eq(socialBlock.blockedId, userId))),
     db.delete(plate).where(eq(plate.userId, userId)),
     db.delete(savedFood).where(eq(savedFood.userId, userId)),
+    db.delete(foodQuickMark).where(eq(foodQuickMark.userId, userId)),
     db.delete(dishware).where(eq(dishware.userId, userId)),
     // Rencana makan: saved plans, swaps, shopping ticks and food preferences.
     db.delete(mealPlan).where(eq(mealPlan.userId, userId)),

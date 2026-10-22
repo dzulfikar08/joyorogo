@@ -29,8 +29,9 @@ const today = jakartaToday();
 let row = 0;
 async function log(userId: string, name: string, grams: number, source: string, itemsJson: string | null, daysAgo = 1) {
   await client.execute({
-    sql: `INSERT INTO food_log (id, user_id, date, meal, name, kcal, grams, source, items_json) VALUES (?, ?, ?, 'makan_siang', ?, 130, ?, ?, ?)`,
-    args: [`r${row++}`, userId, shiftDate(today, -daysAgo), name, grams, source, itemsJson],
+    // 1.3 kcal per gram, the model's own density for rice in ANSWER below, so "Seperti biasanya" has nothing to change.
+    sql: `INSERT INTO food_log (id, user_id, date, meal, name, kcal, grams, source, items_json) VALUES (?, ?, ?, 'makan_siang', ?, ?, ?, ?, ?)`,
+    args: [`r${row++}`, userId, shiftDate(today, -daysAgo), name, Math.round(grams * 1.3), grams, source, itemsJson],
   });
 }
 // Typed rice weights around 100 g: five for "on", four for "few", two (95 g) for "two"; "none" has none.

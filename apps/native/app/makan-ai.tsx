@@ -49,6 +49,7 @@ import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { macrosForTypedKcal, scalePortion } from "@joyorogo/api/lib/portion";
 import { modelNumbers, swapPortionPrior, withoutPortionPrior } from "@joyorogo/api/lib/portion-chip";
 import type { PortionPriorChip } from "@joyorogo/api/lib/portion-chip";
+import type { UsualDensityNote } from "@joyorogo/api/lib/usual-density";
 import { swapScaleRead, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
 import type { ScaleReadChip } from "@joyorogo/api/lib/scale-chip";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
@@ -91,7 +92,7 @@ import type { CorrectInput, CorrectOutcome } from "@/components/scan/correct-box
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { MealStory } from "@/components/story/types";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { errorMessage, fmtGramsLabel, kcalUnit, parseNum } from "@/utils/format";
+import { errorMessage, fmtGramsLabel, fmtKcalLabel, kcalUnit, parseNum } from "@/utils/format";
 import { client, isPaywallError, orpc, queryClient } from "@/utils/orpc";
 import { LiveRows } from "@/components/scan/live-rows";
 import { analyzeStreaming } from "@joyorogo/api/lib/scan-live";
@@ -117,6 +118,8 @@ type AnalyzedItem = {
   portionPrior?: PortionPriorChip;
   /** Set when the weight was read off a kitchen-scale display in the photo: the photo estimate is one tap away. */
   scaleRead?: ScaleReadChip;
+  /** Set when the kcal is the user's own per gram from an earlier log of the same food: what the model said is in the note. */
+  usualDensity?: UsualDensityNote;
 };
 
 /** Everything per-row that a correction rewrites; "Urungkan" restores one of these. */
@@ -1129,6 +1132,7 @@ export default function MakanAi() {
       return {
         ...item,
         portionPrior: undefined,
+        usualDensity: undefined,
         scaleRead: undefined,
         kcal: half.kcal,
         grams: half.grams ?? undefined,
@@ -1670,6 +1674,11 @@ export default function MakanAi() {
                       ) : null}
                       {item.portionPrior ? (
                         <PortionPriorChips name={item.name} item={item} onSwap={() => swapPrior(index)} />
+                      ) : null}
+                      {item.usualDensity && draft.kcal === String(item.kcal) ? (
+                        <Text style={styles.itemMetaText}>
+                          {t("result.items.usual", { kcal: fmtKcalLabel(item.usualDensity.modelKcal) })}
+                        </Text>
                       ) : null}
                       {index === 0 && memoryChips.length > 0 ? (
                         <MemoryChips

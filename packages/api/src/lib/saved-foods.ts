@@ -61,3 +61,14 @@ export function carriesMoreNutrition(next: readonly SavedItem[], stored: readonl
   const total = (items: readonly SavedItem[]) => items.reduce((sum, item) => sum + known(item), 0);
   return next.every((item, i) => known(item) >= known(stored[i]!)) && total(next) > total(stored);
 }
+
+/** `ids` with `id` moved one place up (-1) or down (+1); unchanged when it is absent or already at that end. */
+export function moveId(ids: readonly string[], id: string, step: -1 | 1): string[] {
+  const from = ids.indexOf(id);
+  const to = from + step;
+  if (from === -1 || to < 0 || to >= ids.length) return [...ids];
+  const next = [...ids];
+  next.splice(from, 1);
+  next.splice(to, 0, id);
+  return next;
+}

@@ -573,11 +573,14 @@ export function Cerita({
                         {item.name}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        {item.portion || item.grams != null ? (
+                        {item.portion || item.grams != null || item.usualDensity ? (
                           <MetaLine
                             items={[
                               item.portion,
                               item.grams != null ? `± ${fmtGramsLabel(item.grams)}` : null,
+                              item.usualDensity && kcals[index] === String(item.kcal)
+                                ? t("story.usual", { kcal: fmtKcalLabel(item.usualDensity.modelKcal) })
+                                : null,
                             ]}
                           />
                         ) : (

@@ -87,7 +87,7 @@ import { MacroLine } from "@/components/macro-line";
 import type { AiFoodItem } from "@/lib/api-types";
 import { KindCycleChip, SnackAdviceCard, useSnackAdvice } from "@/components/makan/snack-advice";
 import { isPaywallError } from "@/lib/billing";
-import { fmtGramsLabel, fmtInt, parseNum } from "@/lib/format";
+import { fmtGramsLabel, fmtInt, fmtKcalLabel, parseNum } from "@/lib/format";
 import { usePlaceLocation } from "@/lib/location";
 import { askText } from "@/lib/joyo-chat";
 import { ReferenceHint } from "@/components/scan/reference-hint";
@@ -501,6 +501,7 @@ function AiFoodPage() {
       return {
         ...item,
         portionPrior: undefined,
+        usualDensity: undefined,
         scaleRead: undefined,
         kcal: half.kcal,
         grams: half.grams ?? undefined,
@@ -1381,6 +1382,11 @@ function AiFoodPage() {
                         .filter(Boolean)
                         .join(" · ")}
                     </span>
+                    {item.usualDensity && (kcals[index] ?? String(item.kcal)) === String(item.kcal) && (
+                      <span className="block text-[0.8125rem] leading-snug text-muted-foreground">
+                        {t("result.items.usual", { kcal: fmtKcalLabel(item.usualDensity.modelKcal) })}
+                      </span>
+                    )}
                   </span>
                   <span className="flex shrink-0 items-center gap-1.5">
                     <Input

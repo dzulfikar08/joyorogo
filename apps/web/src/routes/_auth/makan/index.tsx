@@ -16,7 +16,7 @@ import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Camera, ChevronRight, Plus, ScanBarcode } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Cerita } from "@/components/cerita";
@@ -140,6 +140,11 @@ function MakanPage() {
   const [editItem, setEditItem] = useState<FoodItem | null>(null);
   const favorites = useFavorites();
   const [manageOpen, setManageOpen] = useState(false);
+  // A new log can complete a habit: ask the server again whether something is worth offering as a favorite.
+  const loggedRows = list.data?.items.length ?? 0;
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: orpc.savedFood.offer.key() });
+  }, [loggedRows, queryClient]);
   const setCeritaOpen = (open: boolean) =>
     navigate({ search: (prev) => ({ ...prev, cerita: open || undefined }), replace: true });
   // Day moves keep the chosen view and kind chip; opening a day from the

@@ -180,6 +180,7 @@
       "priorAi": "AI: {{grams}}",
       "priorUsual": "Biasanya anda: {{grams}}",
       "priorTypical": "Lazimnya: {{grams}}",
+      "usual": "Seperti biasa, daripada catatan anda · AI kira {{kcal}}",
       "scaleGroup": "Pilih angka berat {{name}}",
       "scaleRead": "Dibaca daripada penimbang: {{value}}",
       "scaleReadShared_other": "Dibaca daripada penimbang: {{value}}, dibahagi kepada {{count}} item",

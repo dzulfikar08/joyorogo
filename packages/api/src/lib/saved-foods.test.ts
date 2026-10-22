@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { carriesMoreNutrition } from "./saved-foods";
+import { carriesMoreNutrition, moveId } from "./saved-foods";
 import type { SavedItem } from "./saved-foods";
 
 const item = (over: Partial<SavedItem> = {}): SavedItem => ({
@@ -28,5 +28,17 @@ describe("carriesMoreNutrition", () => {
     expect(carriesMoreNutrition([item({ protein: 9, fat: 1 }), item()], [item({ carbs: 3 }), item({ fat: 1 })])).toBe(false);
     expect(carriesMoreNutrition([item({ protein: 9 }), item()], [item()])).toBe(false);
     expect(carriesMoreNutrition([], [])).toBe(false);
+  });
+});
+
+describe("moveId", () => {
+  test("one place up or down; the ends and unknown ids stay as they are", () => {
+    const ids = ["a", "b", "c"];
+    expect(moveId(ids, "b", -1)).toEqual(["b", "a", "c"]);
+    expect(moveId(ids, "b", 1)).toEqual(["a", "c", "b"]);
+    expect(moveId(ids, "a", -1)).toEqual(ids);
+    expect(moveId(ids, "c", 1)).toEqual(ids);
+    expect(moveId(ids, "x", 1)).toEqual(ids);
+    expect(ids).toEqual(["a", "b", "c"]);
   });
 });

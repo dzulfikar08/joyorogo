@@ -1,19 +1,22 @@
 import { ORPCError } from "@orpc/server";
-import { and, asc, desc, eq, like, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, like, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Database } from "@joyorogo/db";
 import { foodLog } from "@joyorogo/db/schema/fitness";
 import { plate } from "@joyorogo/db/schema/plans";
-import { savedFood } from "@joyorogo/db/schema/saved-foods";
+import { foodQuickMark, savedFood } from "@joyorogo/db/schema/saved-foods";
 
 import { protectedProcedure } from "../index";
-import { jakartaToday } from "../lib/engine";
+import { jakartaToday, shiftDate } from "../lib/engine";
 import { userZone } from "../lib/user-zone";
 import { serverT } from "../lib/messages";
 import { dateSchema, mealSchema } from "../lib/schemas";
 import { assertEatenAt, eatenAtSchema } from "../lib/eaten-at";
 import { insertFoodRows } from "../lib/food-rows";
+import { habitKey, findOffer, OFFER_WINDOW_DAYS } from "../lib/favorite-offer";
+import { estimateMacros } from "../lib/macro-estimate";
+import { MAX_GRAMS, MAX_KCAL, macrosForTypedKcal } from "../lib/portion";
 import { carriesMoreNutrition, foodSavedKey, parseSavedItems, plateSavedKey } from "../lib/saved-foods";
 import type { SavedItem } from "../lib/saved-foods";
 import { photoKey, stickerKey } from "../lib/sticker";
@@ -106,17 +109,251 @@ const toItem = (row: typeof foodLog.$inferSelect): SavedItem => ({
   photoId: row.photoId,
 });
 
+/** Favorites the quick-add list and the manage sheet hold; `list` reads the same number. */
+export const MAX_FAVORITES = 100;
+
+const macroField = z.number().min(0).max(500).optional();
+
 export const savedFoodRouter = {
-  // Newest-used first; a never-used favorite sorts by when it was saved.
+  // The user's own order first (reorder); the rest, and favorites never reordered, newest-used first.
   list: protectedProcedure.handler(async ({ context }) => {
     const rows = await context.db
       .select()
       .from(savedFood)
       .where(eq(savedFood.userId, context.session.user.id))
-      .orderBy(desc(sql`coalesce(${savedFood.lastUsedAt}, ${savedFood.createdAt})`))
-      .limit(100);
+      .orderBy(
+        asc(sql`${savedFood.sortOrder} is null`),
+        asc(savedFood.sortOrder),
+        desc(sql`coalesce(${savedFood.lastUsedAt}, ${savedFood.createdAt})`),
+      )
+      .limit(MAX_FAVORITES);
     return { items: rows.map(present) };
   }),
+
+  // Catat cepat > Atur: the favorites in the order the user arranged them. Ids not theirs are ignored.
+  reorder: protectedProcedure
+    .input(z.object({ ids: z.array(z.string()).min(1).max(MAX_FAVORITES) }))
+    .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      await Promise.all(
+        input.ids.map((id, index) =>
+          context.db
+            .update(savedFood)
+            .set({ sortOrder: index })
+            .where(and(eq(savedFood.id, id), eq(savedFood.userId, userId))),
+        ),
+      );
+      return { ok: true };
+    }),
+
+  // A favorite typed in by hand (Catat cepat > Atur > Tambah): name and kcal, macros when the user knows them,
+  // else resolved from the name like any typed log (TKPI row, then the story parse; absent stays unknown).
+  create: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().trim().min(1).max(200),
+        kcal: z.number().min(1).max(MAX_KCAL),
+        grams: z.number().min(1).max(MAX_GRAMS).optional(),
+        protein: macroField,
+        carbs: macroField,
+        fat: macroField,
+        fiber: macroField,
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      const t = serverT(context.locale, "errors");
+      const key = foodSavedKey(input.name, input.kcal);
+      const [existing] = await context.db
+        .select()
+        .from(savedFood)
+        .where(and(eq(savedFood.userId, userId), eq(savedFood.key, key)))
+        .limit(1);
+      if (existing) return present(existing);
+      const [{ n } = { n: 0 }] = await context.db
+        .select({ n: sql<number>`count(*)` })
+        .from(savedFood)
+        .where(eq(savedFood.userId, userId));
+      if (n >= MAX_FAVORITES) {
+        throw new ORPCError("UNPROCESSABLE_CONTENT", { message: t("misc.savedFood.full", { count: MAX_FAVORITES }) });
+      }
+      const typedMacros = input.protein !== undefined || input.carbs !== undefined || input.fat !== undefined;
+      const zone = await userZone(context);
+      const macros = typedMacros
+        ? null
+        : await estimateMacros(
+            {
+              db: context.db,
+              ai: context.env.AI,
+              model: context.env.AI_VISION_MODEL || undefined,
+              userId,
+              locale: context.locale,
+              region: context.region,
+              zone,
+            },
+            input.name,
+            input.kcal,
+          );
+      const item: SavedItem = {
+        name: input.name,
+        grams: input.grams ?? null,
+        kcal: input.kcal,
+        protein: input.protein ?? macros?.protein ?? null,
+        carbs: input.carbs ?? macros?.carbs ?? null,
+        fat: input.fat ?? macros?.fat ?? null,
+        fiber: input.fiber ?? macros?.fiber ?? null,
+        scanId: null,
+        photoId: null,
+      };
+      await context.db
+        .insert(savedFood)
+        .values({
+          id: crypto.randomUUID(),
+          userId,
+          name: input.name,
+          place: null,
+          priceIdr: null,
+          kcal: input.kcal,
+          itemsJson: JSON.stringify([item]),
+          key,
+          // New choices go to the end of the user's own order.
+          sortOrder: n,
+        })
+        .onConflictDoNothing();
+      const [saved] = await context.db
+        .select()
+        .from(savedFood)
+        .where(and(eq(savedFood.userId, userId), eq(savedFood.key, key)))
+        .limit(1);
+      if (!saved) throw new ORPCError("INTERNAL_SERVER_ERROR", { message: t("misc.savedFood.saveFailed") });
+      return present(saved);
+    }),
+
+  // Catat cepat > Atur > edit: a new name and/or a new total kcal. A new kcal scales every component and its macros by
+  // the same ratio (weights stay), the way a typed kcal does elsewhere (lib/portion macrosForTypedKcal).
+  update: protectedProcedure
+    .input(
+      z
+        .object({
+          id: z.string(),
+          name: z.string().trim().min(1).max(200).optional(),
+          kcal: z.number().min(1).max(MAX_KCAL).optional(),
+        })
+        .refine((v) => v.name !== undefined || v.kcal !== undefined, "Isi nama atau kalori"),
+    )
+    .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      const t = serverT(context.locale, "errors");
+      const [row] = await context.db
+        .select()
+        .from(savedFood)
+        .where(and(eq(savedFood.id, input.id), eq(savedFood.userId, userId)))
+        .limit(1);
+      if (!row) throw new ORPCError("NOT_FOUND", { message: t("misc.savedFood.notFound") });
+      const items = parseSavedItems(row.itemsJson);
+      const total = items.reduce((sum, item) => sum + item.kcal, 0);
+      let nextItems = items;
+      let nextKcal = row.kcal;
+      let key = row.key;
+      if (input.kcal !== undefined && total > 0 && Math.round(input.kcal) !== Math.round(total)) {
+        const ratio = input.kcal / total;
+        nextItems = items.map((item) => {
+          const kcal = Math.round(item.kcal * ratio);
+          const macros = macrosForTypedKcal(
+            {
+              kcal: item.kcal,
+              protein: item.protein ?? undefined,
+              carbs: item.carbs ?? undefined,
+              fat: item.fat ?? undefined,
+              fiber: item.fiber ?? undefined,
+            },
+            item.kcal * ratio,
+          );
+          return {
+            ...item,
+            kcal,
+            protein: macros.protein ?? null,
+            carbs: macros.carbs ?? null,
+            fat: macros.fat ?? null,
+            fiber: macros.fiber ?? null,
+          };
+        });
+        nextKcal = input.kcal;
+        key =
+          nextItems.length === 1
+            ? foodSavedKey(nextItems[0]!.name, nextKcal)
+            : plateSavedKey(row.name, row.place, nextItems);
+        const [clash] = await context.db
+          .select({ id: savedFood.id })
+          .from(savedFood)
+          .where(and(eq(savedFood.userId, userId), eq(savedFood.key, key), ne(savedFood.id, row.id)))
+          .limit(1);
+        if (clash) throw new ORPCError("CONFLICT", { message: t("misc.savedFood.duplicate") });
+      }
+      const [updated] = await context.db
+        .update(savedFood)
+        .set({
+          ...(input.name !== undefined ? { name: input.name } : {}),
+          itemsJson: JSON.stringify(nextItems),
+          kcal: nextKcal,
+          key,
+        })
+        .where(and(eq(savedFood.id, row.id), eq(savedFood.userId, userId)))
+        .returning();
+      return present(updated ?? row);
+    }),
+
+  // The one habit worth saving now: the food or combo logged 3+ times in the last 14 days that is not a favorite and
+  // was not offered before. Null = nothing to offer. `save` with `target` stars it; `dismissOffer` is "Nanti".
+  offer: protectedProcedure.handler(async ({ context }) => {
+    const userId = context.session.user.id;
+    const zone = await userZone(context);
+    const since = shiftDate(jakartaToday(undefined, zone), -OFFER_WINDOW_DAYS);
+    const [rows, saved, marks] = await Promise.all([
+      context.db
+        .select({
+          id: foodLog.id,
+          name: foodLog.name,
+          kcal: foodLog.kcal,
+          plateId: foodLog.plateId,
+          createdAt: foodLog.createdAt,
+        })
+        .from(foodLog)
+        .where(and(eq(foodLog.userId, userId), gte(foodLog.date, since), ne(foodLog.source, "huawei")))
+        .limit(600),
+      context.db.select({ itemsJson: savedFood.itemsJson }).from(savedFood).where(eq(savedFood.userId, userId)),
+      context.db
+        .select({ key: foodQuickMark.key })
+        .from(foodQuickMark)
+        .where(and(eq(foodQuickMark.userId, userId), eq(foodQuickMark.kind, "favorite_offered"))),
+    ]);
+    const offer = findOffer(
+      rows.map((row) => ({ ...row, createdAt: row.createdAt.getTime() })),
+      new Set(saved.map((row) => habitKey(parseSavedItems(row.itemsJson).map((item) => item.name)))),
+      new Set(marks.map((mark) => mark.key)),
+    );
+    if (!offer) return { offer: null };
+    if (offer.kind === "plate") {
+      const [owner] = await context.db
+        .select({ name: plate.name })
+        .from(plate)
+        .where(and(eq(plate.id, offer.targetId), eq(plate.userId, userId)))
+        .limit(1);
+      if (owner?.name) return { offer: { ...offer, name: owner.name } };
+    }
+    return { offer };
+  }),
+
+  // "Nanti" on the offer: this habit is not offered again.
+  dismissOffer: protectedProcedure
+    .input(z.object({ key: z.string().min(1).max(600) }))
+    .handler(async ({ context, input }) => {
+      await context.db
+        .insert(foodQuickMark)
+        .values({ userId: context.session.user.id, kind: "favorite_offered", key: input.key })
+        .onConflictDoNothing();
+      return { ok: true };
+    }),
 
   // Star on a diary row (foodId) or a whole plate (plateId). Idempotent: the
   // same content saved twice returns the existing favorite.

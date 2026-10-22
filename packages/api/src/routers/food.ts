@@ -6,11 +6,14 @@ import type { Database } from "@joyorogo/db";
 
 import { foodLog, profile } from "@joyorogo/db/schema/fitness";
 import { plate } from "@joyorogo/db/schema/plans";
+import { foodQuickMark, savedFood } from "@joyorogo/db/schema/saved-foods";
 
 import { protectedProcedure } from "../index";
 import { assertEatenAt, eatenAtDay, eatenAtProblem, eatenAtSchema } from "../lib/eaten-at";
 import { MEALS, jakartaToday } from "../lib/engine";
 import { insertFoodRows } from "../lib/food-rows";
+import { habitKey } from "../lib/favorite-offer";
+import { parseSavedItems } from "../lib/saved-foods";
 import { barcodeFromItemsJson, productImageUrl, storeProductSticker } from "../lib/barcode-image";
 import { copyLoggedMeal, recentMealGroups } from "../lib/meal-copy";
 import { storyTarget } from "../lib/meal-reference";
@@ -38,6 +41,9 @@ import { datasetEnabled, recordFinal } from "../lib/dataset";
 import { recordKeptSaved } from "../lib/feedback-keep";
 import { compactItems, recordSessionSaved } from "../lib/scan-outcome";
 import { normalizeBox } from "../lib/vision";
+
+/** Names read before hidden and favorited ones are filtered out of the 10 recent chips. */
+const RECENT_SCAN_ROWS = 40;
 
 const scanItemSchema = z.object({
   name: z.string().min(1).max(200),
@@ -652,26 +658,73 @@ export const foodRouter = {
   // the max(date) row, so kcal, grams and the macros are each name's latest
   // values, all from the same row. They ride along so a one-tap chip logs the
   // same P/K/L as the row it repeats instead of a kcal-only entry.
+  // Catat cepat > Atur: foods the user hid never come back until "Tampilkan lagi" (restoreRecent), and a food that is
+  // already a one-food favorite is not repeated as a recent chip. `hiddenCount` is how many of the newest names are hidden.
   recent: protectedProcedure.handler(async ({ context }) => {
-    const items = await context.db
-      .select({
-        name: foodLog.name,
-        kcal: foodLog.kcal,
-        grams: foodLog.grams,
-        protein: foodLog.protein,
-        carbs: foodLog.carbs,
-        fat: foodLog.fat,
-        fiber: foodLog.fiber,
-        meal: foodLog.meal,
-        scanId: foodLog.scanId,
-        lastDate: sql<string>`max(${foodLog.date})`,
-      })
-      .from(foodLog)
-      .where(eq(foodLog.userId, context.session.user.id))
-      .groupBy(foodLog.name)
-      .orderBy(desc(sql`max(${foodLog.date})`))
-      .limit(10);
-    return { items };
+    const userId = context.session.user.id;
+    const [rows, marks, favorites] = await Promise.all([
+      context.db
+        .select({
+          id: foodLog.id,
+          name: foodLog.name,
+          kcal: foodLog.kcal,
+          grams: foodLog.grams,
+          protein: foodLog.protein,
+          carbs: foodLog.carbs,
+          fat: foodLog.fat,
+          fiber: foodLog.fiber,
+          meal: foodLog.meal,
+          scanId: foodLog.scanId,
+          lastDate: sql<string>`max(${foodLog.date})`,
+        })
+        .from(foodLog)
+        .where(eq(foodLog.userId, userId))
+        .groupBy(foodLog.name)
+        .orderBy(desc(sql`max(${foodLog.date})`))
+        .limit(RECENT_SCAN_ROWS),
+      context.db
+        .select({ key: foodQuickMark.key })
+        .from(foodQuickMark)
+        .where(and(eq(foodQuickMark.userId, userId), eq(foodQuickMark.kind, "recent_hidden"))),
+      context.db.select({ itemsJson: savedFood.itemsJson }).from(savedFood).where(eq(savedFood.userId, userId)),
+    ]);
+    const hidden = new Set(marks.map((mark) => mark.key));
+    const favorited = new Set(
+      favorites.flatMap((row) => {
+        const items = parseSavedItems(row.itemsJson);
+        return items.length === 1 ? [habitKey([items[0]!.name])] : [];
+      }),
+    );
+    const shown = rows.filter((row) => {
+      const key = habitKey([row.name]);
+      return !hidden.has(key) && !favorited.has(key);
+    });
+    return {
+      items: shown.slice(0, 10),
+      hiddenCount: rows.filter((row) => hidden.has(habitKey([row.name]))).length,
+    };
+  }),
+
+  // "Sembunyikan" on a recent chip: the name stays out of the chips until restoreRecent. The diary rows are untouched.
+  hideRecent: protectedProcedure
+    .input(z.object({ name: z.string().trim().min(1).max(200) }))
+    .handler(async ({ context, input }) => {
+      const key = habitKey([input.name]);
+      if (key !== "") {
+        await context.db
+          .insert(foodQuickMark)
+          .values({ userId: context.session.user.id, kind: "recent_hidden", key })
+          .onConflictDoNothing();
+      }
+      return { ok: true };
+    }),
+
+  // "Tampilkan lagi": every hidden recent chip comes back.
+  restoreRecent: protectedProcedure.handler(async ({ context }) => {
+    await context.db
+      .delete(foodQuickMark)
+      .where(and(eq(foodQuickMark.userId, context.session.user.id), eq(foodQuickMark.kind, "recent_hidden")));
+    return { ok: true };
   }),
 
   // "Ulangi makanan" chips: meals logged in the last week, newest first, minus

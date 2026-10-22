@@ -7,24 +7,30 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
-import { foodSavedKey, plateSavedKey } from "@joyorogo/api/lib/saved-foods";
+import { foodSavedKey, moveId, plateSavedKey } from "@joyorogo/api/lib/saved-foods";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 import type { TFunction } from "@joyorogo/i18n";
 
-import { Chip, Input, ListGroup, ListRow, Sheet, Text } from "@/components/ui";
+import { Button, Chip, Input, ListGroup, ListRow, Sheet, Text } from "@/components/ui";
 import { FoodSticker, StickerMini } from "@/components/sticker";
 import { MacroLine } from "@/components/macro-line";
 import { useToast } from "@/components/toast";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
-import { fmtIdr, fmtInt, fmtKcalLabel } from "@/utils/format";
+import { fmtIdr, fmtInt, fmtKcalLabel, kcalUnit, parseNum } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 
 type SavedListOutput = Awaited<ReturnType<AppRouterClient["savedFood"]["list"]>>;
 type RelogOutput = Awaited<ReturnType<AppRouterClient["savedFood"]["relog"]>>;
 type DayList = Awaited<ReturnType<AppRouterClient["food"]["listByDate"]>>;
+type OfferOutput = Awaited<ReturnType<AppRouterClient["savedFood"]["offer"]>>;
+type RecentOutput = Awaited<ReturnType<AppRouterClient["food"]["recent"]>>;
 
 /** One Favorit (saved food or plate) with its parsed components. */
 export type SavedFood = SavedListOutput["items"][number];
+/** The food or combo logged 3+ times in 14 days that is worth saving as a favorite. */
+export type FavoriteOffer = NonNullable<OfferOutput["offer"]>;
+/** One recent chip of food.recent. */
+export type RecentFoodRow = RecentOutput["items"][number];
 /** One diary row, as food.listByDate returns it. */
 export type DiaryRow = DayList["items"][number];
 /** A diary plate header's identity, for starring a whole plate. */
@@ -40,6 +46,12 @@ const dayKey = (date: string) => orpc.food.listByDate.queryOptions({ input: { da
 /** Favorit state and actions returned by useFavorites. */
 export interface Favorites {
   items: SavedFood[];
+  /** Recently logged foods for the chips (hidden ones and one-food favorites left out), newest first. */
+  recent: RecentFoodRow[];
+  /** How many of the newest names the user hid from the recent chips. */
+  hiddenCount: number;
+  /** The food or combo logged 3+ times in 14 days that is worth saving; null = nothing to offer. */
+  offer: FavoriteOffer | null;
   isFoodSaved: (row: DiaryRow) => boolean;
   isPlateSaved: (plate: FavoritPlate, rows: ReadonlyArray<DiaryRow>) => boolean;
   toggleFood: (row: DiaryRow) => void;
@@ -47,9 +59,20 @@ export interface Favorites {
   /** Logs a favorite to `date` + `meal` in one tap. */
   relog: (saved: SavedFood, date: string, meal: Meal) => void;
   relogPending: boolean;
-  rename: (id: string, name: string) => void;
   /** Delayed delete with an undo toast. */
   remove: (saved: SavedFood) => void;
+  /** One place up (-1) or down (+1) in the user's own order. */
+  move: (id: string, step: -1 | 1) => void;
+  /** A favorite typed in by hand; `onDone` runs once it is saved. */
+  create: (input: { name: string; kcal: number }, onDone: () => void) => void;
+  createPending: boolean;
+  /** A new name and/or total kcal; `onDone` runs once it is saved. */
+  update: (id: string, patch: { name?: string; kcal?: number }, onDone: () => void) => void;
+  saveRecent: (food: RecentFoodRow) => void;
+  hideRecent: (name: string) => void;
+  restoreRecent: () => void;
+  saveOffer: () => void;
+  dismissOffer: () => void;
 }
 
 /**
@@ -95,15 +118,79 @@ export function useFavorites(): Favorites {
     invalidate: () => [orpc.savedFood.key()],
   });
 
-  const renameMutation = useOptimisticMutation<{ id: string; name: string }, unknown>({
-    mutationFn: (input) => client.savedFood.rename(input),
-    patch: ({ id, name }, cache) =>
+  const offerKey = () => orpc.savedFood.offer.queryOptions().queryKey;
+  const recentKey = () => orpc.food.recent.queryOptions().queryKey;
+  const offerQuery = useQuery(orpc.savedFood.offer.queryOptions());
+  const recentQuery = useQuery(orpc.food.recent.queryOptions());
+
+  // Catat cepat > Atur: the user's own order of the favorites, shown at once and confirmed by the server.
+  const arrange = useOptimisticMutation<{ ids: string[] }, unknown>({
+    mutationFn: ({ ids }) => client.savedFood.reorder({ ids }),
+    patch: ({ ids }, cache) => {
+      const rank = new Map(ids.map((id, index) => [id, index]));
       cache.value<SavedList>(listKey(), (old) =>
         old
-          ? { ...old, items: old.items.map((row) => (row.id === id ? { ...row, name } : row)) }
+          ? {
+              ...old,
+              items: [...old.items].sort((a, b) => (rank.get(a.id) ?? ids.length) - (rank.get(b.id) ?? ids.length)),
+            }
           : old,
-      ),
+      );
+    },
     invalidate: () => [orpc.savedFood.key()],
+  });
+
+  const create = useOptimisticMutation<{ name: string; kcal: number }, SavedFood>({
+    mutationFn: (input) => client.savedFood.create(input),
+    invalidate: () => [orpc.savedFood.key(), orpc.food.key()],
+    success: (_input, row) => ({ message: t("favorites.toast.created", { name: row.name }) }),
+  });
+
+  const update = useOptimisticMutation<{ id: string; name?: string; kcal?: number }, SavedFood>({
+    mutationFn: (input) => client.savedFood.update(input),
+    invalidate: () => [orpc.savedFood.key()],
+    success: () => ({ message: t("favorites.toast.updated") }),
+  });
+
+  // A recent food becomes a favorite; the chip leaves the recent list.
+  const promote = useOptimisticMutation<{ id: string; name: string }, SavedFood>({
+    mutationFn: ({ id }) => client.savedFood.save({ foodId: id }),
+    patch: ({ name }, cache) =>
+      cache.value<RecentOutput>(recentKey(), (old) =>
+        old ? { ...old, items: old.items.filter((row) => row.name !== name) } : old,
+      ),
+    invalidate: () => [orpc.savedFood.key(), orpc.food.key(), orpc.savedFood.offer.key()],
+    success: (_input, row) => ({ message: t("favorites.toast.saved", { name: row.name }) }),
+  });
+
+  const saveOffered = useOptimisticMutation<FavoriteOffer, SavedFood>({
+    mutationFn: (offer) =>
+      client.savedFood.save(offer.kind === "plate" ? { plateId: offer.targetId } : { foodId: offer.targetId }),
+    patch: (_offer, cache) => cache.value<OfferOutput>(offerKey(), () => ({ offer: null })),
+    invalidate: () => [orpc.savedFood.key(), orpc.food.key(), orpc.savedFood.offer.key()],
+    success: (_offer, row) => ({ message: t("favorites.toast.saved", { name: row.name }) }),
+  });
+
+  const dismissOffered = useOptimisticMutation<FavoriteOffer, unknown>({
+    mutationFn: (offer) => client.savedFood.dismissOffer({ key: offer.key }),
+    patch: (_offer, cache) => cache.value<OfferOutput>(offerKey(), () => ({ offer: null })),
+    invalidate: () => [orpc.savedFood.offer.key()],
+  });
+
+  const hide = useOptimisticMutation<{ name: string }, unknown>({
+    mutationFn: ({ name }) => client.food.hideRecent({ name }),
+    patch: ({ name }, cache) =>
+      cache.value<RecentOutput>(recentKey(), (old) =>
+        old ? { items: old.items.filter((row) => row.name !== name), hiddenCount: old.hiddenCount + 1 } : old,
+      ),
+    invalidate: () => [orpc.food.key()],
+    success: ({ name }) => ({ message: t("favorites.toast.hidden", { name }) }),
+  });
+
+  const restore = useOptimisticMutation<void, unknown>({
+    mutationFn: () => client.food.restoreRecent(),
+    invalidate: () => [orpc.food.key()],
+    success: () => ({ message: t("favorites.toast.restored") }),
   });
 
   const relogMutation = useOptimisticMutation<RelogInput, RelogOutput>({
@@ -190,6 +277,7 @@ export function useFavorites(): Favorites {
     key,
     useCount: 0,
     lastUsedAt: null,
+    sortOrder: null,
     createdAt: new Date(),
     items: rows.map((row) => ({
       name: row.name,
@@ -204,8 +292,12 @@ export function useFavorites(): Favorites {
     })),
   });
 
+  const offer = offerQuery.data?.offer ?? null;
   return {
     items,
+    recent: recentQuery.data?.items ?? [],
+    hiddenCount: recentQuery.data?.hiddenCount ?? 0,
+    offer,
     isFoodSaved: (row) => byKey.has(foodSavedKey(row.name, row.kcal)),
     isPlateSaved: (plate, rows) => byKey.has(plateSavedKey(plate.name, plate.place, rows)),
     toggleFood: (row) => {
@@ -225,8 +317,16 @@ export function useFavorites(): Favorites {
     },
     relog: (saved, date, meal) => relogMutation.mutate({ saved, date, meal }),
     relogPending: relogMutation.isPending,
-    rename: (id, name) => renameMutation.mutate({ id, name }),
     remove: removeMutation,
+    move: (id, step) => arrange.mutate({ ids: moveId(items.map((row) => row.id), id, step) }),
+    create: (input, onDone) => create.mutate(input, { onSuccess: onDone }),
+    createPending: create.isPending,
+    update: (id, patch, onDone) => update.mutate({ id, ...patch }, { onSuccess: onDone }),
+    saveRecent: (food) => promote.mutate({ id: food.id, name: food.name }),
+    hideRecent: (name) => hide.mutate({ name }),
+    restoreRecent: () => restore.mutate(),
+    saveOffer: () => offer && saveOffered.mutate(offer),
+    dismissOffer: () => offer && dismissOffered.mutate(offer),
   };
 }
 
@@ -236,11 +336,14 @@ export function FavoritChips({
   date,
   meal,
   onManage,
+  showManage = true,
 }: {
   favorites: Favorites;
   date: string;
   meal: Meal;
   onManage: () => void;
+  /** The "Atur" chip at the end; Catat cepat has its own button in the card header. */
+  showManage?: boolean;
 }) {
   const { t } = useTranslation("makan");
   if (favorites.items.length === 0) return null;
@@ -259,8 +362,34 @@ export function FavoritChips({
           onPress={() => favorites.relog(saved, date, meal)}
         />
       ))}
-      <Chip label={t("favorites.manage")} onPress={onManage} />
+      {showManage ? <Chip label={t("favorites.manage")} onPress={onManage} /> : null}
     </ScrollView>
+  );
+}
+
+/**
+ * "Simpan sebagai favorit": the food or combo the user has logged 3 times in 14 days, offered once. Simpan stars it,
+ * Nanti dismisses it for good; neither shows it again.
+ */
+export function FavoritOffer({ favorites }: { favorites: Favorites }) {
+  const { t } = useTranslation("makan");
+  const offer = favorites.offer;
+  if (!offer) return null;
+  return (
+    <View
+      accessibilityRole="summary"
+      accessibilityLabel={t("favorites.offer.title")}
+      style={styles.offer}
+    >
+      <Text style={styles.offerTitle}>{t("favorites.offer.title")}</Text>
+      <Text style={styles.offerBody}>
+        {t("favorites.offer.body", { name: offer.name, count: offer.count, kcal: fmtKcalLabel(offer.kcal) })}
+      </Text>
+      <View style={styles.offerActions}>
+        <Button size="sm" icon="star" label={t("favorites.offer.save")} onPress={favorites.saveOffer} />
+        <Button size="sm" variant="ghost" label={t("favorites.offer.later")} onPress={favorites.dismissOffer} />
+      </View>
+    </View>
   );
 }
 
@@ -273,7 +402,7 @@ function describe(saved: SavedFood, t: TFunction<"makan">): string {
   return parts.join(" · ");
 }
 
-/** Rename and delete (with undo) the saved list. */
+/** Catat cepat > Atur: reorder, edit, remove and add favorites; hide or promote the recent chips. */
 export function FavoritManageSheet({
   visible,
   favorites,
@@ -288,26 +417,66 @@ export function FavoritManageSheet({
   const toast = useToast();
   const [editing, setEditing] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
+  const [draftKcal, setDraftKcal] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [addName, setAddName] = useState("");
+  const [addKcal, setAddKcal] = useState("");
 
-  const commit = (saved: SavedFood) => {
-    const name = draftName.trim();
-    setEditing(null);
+  /** The trimmed name and a whole, positive kcal, or a toast saying which one is wrong. */
+  const checked = (nameText: string, kcalText: string): { name: string; kcal: number } | null => {
+    const name = nameText.trim();
+    const kcal = parseNum(kcalText);
     if (name.length === 0) {
       toast.error(t("favorites.toast.nameEmpty"));
-      return;
+      return null;
     }
-    if (name !== saved.name) favorites.rename(saved.id, name);
+    if (kcal === null || !(kcal >= 1)) {
+      toast.error(t("favorites.toast.kcalInvalid"));
+      return null;
+    }
+    return { name, kcal: Math.round(kcal) };
   };
 
+  const startEdit = (saved: SavedFood) => {
+    setDraftName(saved.name);
+    setDraftKcal(String(Math.round(saved.kcal)));
+    setEditing(saved.id);
+  };
+
+  const commit = (saved: SavedFood) => {
+    const next = checked(draftName, draftKcal);
+    if (!next) return;
+    const patch = {
+      ...(next.name !== saved.name ? { name: next.name } : {}),
+      ...(next.kcal !== Math.round(saved.kcal) ? { kcal: next.kcal } : {}),
+    };
+    if (Object.keys(patch).length === 0) {
+      setEditing(null);
+      return;
+    }
+    favorites.update(saved.id, patch, () => setEditing(null));
+  };
+
+  const submitAdd = () => {
+    const next = checked(addName, addKcal);
+    if (!next) return;
+    favorites.create(next, () => {
+      setAddName("");
+      setAddKcal("");
+      setAdding(false);
+    });
+  };
+
+  const last = favorites.items.length - 1;
   return (
     <Sheet visible={visible} onClose={onClose} title={t("favorites.sheet.title")}>
+      <Text style={styles.description}>{t("favorites.sheet.description")}</Text>
+      <Text style={styles.sectionTitle}>{t("favorites.sheet.favoritesTitle")}</Text>
       {favorites.items.length === 0 ? (
-        <Text style={styles.empty}>
-          {t("favorites.sheet.empty")}
-        </Text>
+        <Text style={styles.empty}>{t("favorites.sheet.empty")}</Text>
       ) : (
         <ListGroup>
-          {favorites.items.map((saved) => {
+          {favorites.items.map((saved, index) => {
             if (editing === saved.id) {
               return (
                 <View key={saved.id} style={styles.editRow}>
@@ -320,6 +489,16 @@ export function FavoritManageSheet({
                     onSubmitEditing={() => commit(saved)}
                     style={styles.editInput}
                   />
+                  <Input
+                    value={draftKcal}
+                    onChangeText={setDraftKcal}
+                    keyboardType="number-pad"
+                    maxLength={5}
+                    accessibilityLabel={t("favorites.sheet.kcalAria", { name: saved.name })}
+                    onSubmitEditing={() => commit(saved)}
+                    style={styles.kcalInput}
+                  />
+                  <Text style={styles.subtitleText}>{kcalUnit()}</Text>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={t("favorites.sheet.saveName", { name: saved.name })}
@@ -352,11 +531,26 @@ export function FavoritManageSheet({
                   <View style={styles.actions}>
                     <Pressable
                       accessibilityRole="button"
+                      accessibilityLabel={t("favorites.sheet.moveUp", { name: saved.name })}
+                      disabled={index === 0}
+                      onPress={() => favorites.move(saved.id, -1)}
+                      style={({ pressed }) => [styles.starButton, index === 0 && styles.disabled, pressed && styles.pressed]}
+                    >
+                      <Ionicons name="chevron-up" size={18} color={theme.colors.mutedForeground} />
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t("favorites.sheet.moveDown", { name: saved.name })}
+                      disabled={index === last}
+                      onPress={() => favorites.move(saved.id, 1)}
+                      style={({ pressed }) => [styles.starButton, index === last && styles.disabled, pressed && styles.pressed]}
+                    >
+                      <Ionicons name="chevron-down" size={18} color={theme.colors.mutedForeground} />
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
                       accessibilityLabel={t("favorites.sheet.rename", { name: saved.name })}
-                      onPress={() => {
-                        setDraftName(saved.name);
-                        setEditing(saved.id);
-                      }}
+                      onPress={() => startEdit(saved)}
                       style={({ pressed }) => [styles.starButton, pressed && styles.pressed]}
                     >
                       <Ionicons name="pencil" size={18} color={theme.colors.mutedForeground} />
@@ -376,6 +570,90 @@ export function FavoritManageSheet({
           })}
         </ListGroup>
       )}
+      {adding ? (
+        <View style={styles.addForm}>
+          <Input
+            value={addName}
+            onChangeText={setAddName}
+            maxLength={200}
+            autoFocus
+            placeholder={t("favorites.sheet.addNamePlaceholder")}
+            accessibilityLabel={t("favorites.sheet.addName")}
+            style={styles.editInput}
+          />
+          <Input
+            value={addKcal}
+            onChangeText={setAddKcal}
+            keyboardType="number-pad"
+            maxLength={5}
+            placeholder={kcalUnit()}
+            accessibilityLabel={t("favorites.sheet.addKcal")}
+            onSubmitEditing={submitAdd}
+            style={styles.kcalInput}
+          />
+          <Button size="sm" label={t("favorites.sheet.addSave")} onPress={submitAdd} loading={favorites.createPending} />
+        </View>
+      ) : (
+        <View style={styles.addRow}>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon="add"
+            label={t("favorites.sheet.add")}
+            onPress={() => setAdding(true)}
+          />
+        </View>
+      )}
+
+      {favorites.recent.length > 0 || favorites.hiddenCount > 0 ? (
+        <>
+          <Text style={styles.sectionTitle}>{t("favorites.sheet.recentTitle")}</Text>
+          <Text style={styles.description}>{t("favorites.sheet.recentHint")}</Text>
+          {favorites.recent.length > 0 ? (
+            <ListGroup>
+              {favorites.recent.map((food) => (
+                <ListRow
+                  key={food.name}
+                  title={food.name}
+                  subtitle={<Text style={styles.subtitleText}>{fmtKcalLabel(food.kcal)}</Text>}
+                  wrapTitle
+                  thumb={<FoodSticker scanId={food.scanId} name={food.name} size={52} />}
+                  right={
+                    <View style={styles.actions}>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t("favorites.sheet.recentSave", { name: food.name })}
+                        onPress={() => favorites.saveRecent(food)}
+                        style={({ pressed }) => [styles.starButton, pressed && styles.pressed]}
+                      >
+                        <Ionicons name="star-outline" size={20} color={theme.colors.mutedForeground} />
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t("favorites.sheet.recentHide", { name: food.name })}
+                        onPress={() => favorites.hideRecent(food.name)}
+                        style={({ pressed }) => [styles.starButton, pressed && styles.pressed]}
+                      >
+                        <Ionicons name="eye-off-outline" size={20} color={theme.colors.mutedForeground} />
+                      </Pressable>
+                    </View>
+                  }
+                />
+              ))}
+            </ListGroup>
+          ) : null}
+          {favorites.hiddenCount > 0 ? (
+            <View style={styles.addRow}>
+              <Button
+                variant="ghost"
+                size="sm"
+                label={t("favorites.sheet.showHidden", { count: favorites.hiddenCount })}
+                onPress={favorites.restoreRecent}
+              />
+            </View>
+          ) : null}
+        </>
+      ) : null}
     </Sheet>
   );
 }
@@ -388,6 +666,7 @@ const styles = StyleSheet.create((theme) => ({
     justifyContent: "center",
   },
   pressed: { opacity: 0.7 },
+  disabled: { opacity: 0.3 },
   chips: {
     gap: theme.spacing.sm,
     paddingRight: theme.spacing.lg,
@@ -398,6 +677,18 @@ const styles = StyleSheet.create((theme) => ({
     textAlign: "center",
     paddingVertical: theme.spacing.lg,
   },
+  description: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+    marginBottom: theme.spacing.sm,
+  },
+  sectionTitle: {
+    fontSize: theme.fontSize.md,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.xs,
+  },
   editRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -406,6 +697,17 @@ const styles = StyleSheet.create((theme) => ({
     paddingVertical: theme.spacing.sm,
   },
   editInput: { flex: 1 },
+  kcalInput: { width: 76, textAlign: "right" },
+  addForm: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+  },
+  addRow: {
+    flexDirection: "row",
+    marginTop: theme.spacing.md,
+  },
   actions: {
     flexDirection: "row",
     alignItems: "center",
@@ -419,5 +721,26 @@ const styles = StyleSheet.create((theme) => ({
   subtitleText: {
     fontSize: theme.fontSize.xs,
     color: theme.colors.mutedForeground,
+  },
+  offer: {
+    backgroundColor: theme.colors.makanSoft,
+    borderRadius: 20,
+    padding: theme.spacing.md,
+    gap: theme.spacing.xs,
+  },
+  offerTitle: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.makanText,
+  },
+  offerBody: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.makanText,
+  },
+  offerActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
   },
 }));

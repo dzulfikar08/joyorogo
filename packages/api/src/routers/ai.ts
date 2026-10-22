@@ -56,6 +56,9 @@ import { chipsFor, correctionMemoryEnabled, loadCorrectionMemory } from "../lib/
 import type { CorrectionMemory } from "../lib/correction-memory";
 import { loadPortionPriors } from "../lib/portion-prior-store";
 import type { PortionPriorChip } from "../lib/portion-chip";
+import { loadUsualDensities } from "../lib/usual-density-store";
+import { withUsualDensity } from "../lib/usual-density";
+import type { UsualDensityNote, UsualMap } from "../lib/usual-density";
 import { applyScaleReading, readScaleDisplay, scaleLedger, scaleReadoutEnabled } from "../lib/scale-reading";
 import type { ScaleReadChip } from "../lib/scale-chip";
 import type { ScanStreamEvent } from "../lib/scan-live";
@@ -253,9 +256,16 @@ function memoryResult(memory: CorrectionMemory | null, topName: string | undefin
 
 /** What analyzeFood answers, and what the closing `done` event of analyzeFoodStream carries. */
 export type AnalyzeFoodResult = {
-  /** `portionPrior` is present on rice the model weighed heavier than typical and on foods with a weighed history (lib/portion-prior.ts). */
+  /**
+   * `portionPrior` is present on rice the model weighed heavier than typical and on foods with a weighed history (lib/portion-prior.ts).
+   * `usualDensity` marks an item whose kcal per gram is the user's own from an earlier log of the same food (lib/usual-density.ts).
+   */
   items: Array<
-    VisionAnalysis["items"][number] & { portionPrior?: PortionPriorChip; scaleRead?: ScaleReadChip }
+    VisionAnalysis["items"][number] & {
+      portionPrior?: PortionPriorChip;
+      scaleRead?: ScaleReadChip;
+      usualDensity?: UsualDensityNote;
+    }
   >;
   /**
    * "Ingat koreksimu", allowlisted users only: foods this user taught the scan by correcting it, offered as
@@ -348,6 +358,15 @@ async function runAnalyzeFood(
     (error: unknown) => {
       console.error("[ai] portion prior failed", error);
       return null;
+    },
+  );
+
+  // "Seperti biasanya": the user's own kcal per gram per food, read beside the model call. A failed read is no
+  // history, never a failed scan.
+  const usualDensities: Promise<UsualMap> = loadUsualDensities(context.db, userId, zone).catch(
+    (error: unknown) => {
+      console.error("[ai] usual density failed", error);
+      return new Map() as UsualMap;
     },
   );
 
@@ -450,6 +469,10 @@ async function runAnalyzeFood(
   const scaleCall = await scalePending;
   const scale = scaleCall ? applyScaleReading(analysis.items, scaleCall.reading) : null;
   const items: AnalyzeFoodResult["items"] = scale?.items ?? analysis.items;
+  // "Seperti biasanya": what the user sees (and what the session ledger keeps as the answer they looked at) carries
+  // their own kcal per gram for a food they logged before; the owner dataset below keeps the model's own numbers.
+  const usualMap = await usualDensities;
+  const shown: AnalyzeFoodResult["items"] = items.map((item) => (item.scaleRead ? item : withUsualDensity(item, usualMap)));
   const sticker = await cutout;
   const storeSticker = async (): Promise<string | null> => {
     if (!stickers || !sticker) return null;
@@ -492,7 +515,7 @@ async function runAnalyzeFood(
     serverTiming,
     ...(input.clientTiming ? { clientTiming: input.clientTiming } : {}),
     // Implicit outcome labels (lib/scan-outcome.ts) build on these two.
-    ...(storedPhotoId ? { photoId: storedPhotoId, aiItems: compactItems(items) } : {}),
+    ...(storedPhotoId ? { photoId: storedPhotoId, aiItems: compactItems(shown) } : {}),
     ...(scaleCall ? { scale: scaleLedger(scaleCall, scale?.outcome ?? null) } : {}),
   };
   const ledger = context.db
@@ -616,7 +639,15 @@ async function runAnalyzeFood(
   // typical portion alone.
   const usual = (await priors) ?? new Map<string, PortionPrior>();
   return {
-    items: items.map((item) => (item.scaleRead ? item : withPortionPrior(item, usual))),
+    items: shown.map((item) => {
+      if (item.scaleRead) return item;
+      const out = withPortionPrior(item, usual);
+      // The row starts at the usual weight: the model's kcal in the note follows the same weight.
+      if (out.usualDensity && item.grams && out.grams && out.grams !== item.grams) {
+        return { ...out, usualDensity: { ...out.usualDensity, modelKcal: Math.round((out.usualDensity.modelKcal * out.grams) / item.grams) } };
+      }
+      return out;
+    }),
     tooMany: analysis.tooMany,
     scanId,
     plateScanId,
@@ -675,6 +706,10 @@ export const aiRouter = {
       const scaleOn = scaleReadoutEnabled(context.env, userId);
       const requestStartedAt = Date.now();
       const userNote = loadUserNote(context.db, userId, zone);
+      const usualDensities: Promise<UsualMap> = loadUsualDensities(context.db, userId, zone).catch((error: unknown) => {
+        console.error("[ai] usual density failed", error);
+        return new Map() as UsualMap;
+      });
       const reference = loadScanReference(context.db, context.env, userId);
       const memory: Promise<CorrectionMemory | null> = correctionMemoryEnabled(context.env, userId)
         ? loadCorrectionMemory(context.db, userId, zone).catch((error: unknown) => {
@@ -743,7 +778,10 @@ export const aiRouter = {
       // Kitchen-scale readout (lib/scale-reading.ts): allowlist only.
       const scaleCall = await scalePending;
       const scale = scaleCall ? applyScaleReading(analysis.items, scaleCall.reading) : null;
-      const shownItems: AnalyzeFoodResult["items"] = scale?.items ?? analysis.items;
+      const answered: AnalyzeFoodResult["items"] = scale?.items ?? analysis.items;
+      // "Seperti biasanya" as on the first pass; the owner dataset below keeps the model's own numbers.
+      const usualMap = await usualDensities;
+      const shownItems: AnalyzeFoodResult["items"] = answered.map((item) => (item.scaleRead ? item : withUsualDensity(item, usualMap)));
       // Both writes come after inference: a failed or abandoned attempt
       // never consumes the cap, and ledger rows marked "retry" stay outside
       // the daily quota count (scansUsedToday only counts "user").
@@ -811,7 +849,7 @@ export const aiRouter = {
           recordRetry(bucket, userId, input.photoId, {
             model: analysis.model,
             hint: input.hint,
-            items: shownItems,
+            items: answered,
           }),
         );
       }
@@ -1241,7 +1279,13 @@ export const aiRouter = {
               suggestion: null,
             }
           : null;
-      return { transcript, items: analysis.items, quotaReached, reference };
+      // "Seperti biasanya": a food the user logged before keeps its kcal per gram (rows copied from the log already do).
+      const usualMap = await loadUsualDensities(context.db, userId, zone).catch((error: unknown) => {
+        console.error("[ai] usual density failed", error);
+        return new Map() as UsualMap;
+      });
+      const items = analysis.items.map((item) => (item.copied ? item : withUsualDensity(item, usualMap)));
+      return { transcript, items, quotaReached, reference };
     }),
   // Miss log (JRG-32): the client posts what the AI estimated vs what the user
   // actually kept, per item, at save time. Fire-and-forget from the clients —

@@ -1,13 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 
-import { FavoritChips } from "@/components/favorit";
+import { FavoritChips, FavoritOffer } from "@/components/favorit";
 import type { Favorites } from "@/components/favorit";
 import { PressableScale } from "@/components/motion";
 import { StickerMini } from "@/components/sticker";
@@ -97,7 +97,19 @@ export function QuickAdd({
 
   return (
     <Card style={styles.card}>
-      <Text style={styles.title}>{t("diary.quick.label")}</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>{t("diary.quick.label")}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("favorites.quick.manage")}
+          onPress={onManage}
+          hitSlop={8}
+          style={({ pressed }) => [styles.manage, pressed && styles.pressed]}
+        >
+          <Ionicons name="pencil" size={14} color={theme.colors.mutedForeground} />
+          <Text style={styles.manageLabel}>{t("favorites.manage")}</Text>
+        </Pressable>
+      </View>
       <View style={styles.actions}>
         {actions.map((action) => (
           <PressableScale
@@ -113,8 +125,12 @@ export function QuickAdd({
           </PressableScale>
         ))}
       </View>
+      <FavoritOffer favorites={favorites} />
+      {favorites.items.length === 0 && !favorites.offer ? (
+        <Text style={styles.hint}>{t("favorites.quick.empty")}</Text>
+      ) : null}
       {favorites.items.length > 0 ? (
-        <FavoritChips favorites={favorites} date={date} meal={meal} onManage={onManage} />
+        <FavoritChips favorites={favorites} date={date} meal={meal} onManage={onManage} showManage={false} />
       ) : null}
       {recent.length > 0 ? (
         <View style={styles.recentBox}>
@@ -144,11 +160,30 @@ const styles = StyleSheet.create((theme) => ({
   card: {
     gap: theme.spacing.md,
   },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
+  },
   title: {
     fontSize: theme.fontSize.md,
     fontWeight: "700",
     color: theme.colors.foreground,
   },
+  manage: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    minHeight: 32,
+    paddingHorizontal: theme.spacing.sm,
+  },
+  manageLabel: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
+  pressed: { opacity: 0.7 },
   actions: {
     flexDirection: "row",
     gap: theme.spacing.sm,

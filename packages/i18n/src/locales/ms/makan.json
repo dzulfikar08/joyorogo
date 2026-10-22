@@ -369,19 +369,48 @@
     "toast": {
       "saved": "{{name}} masuk Kegemaran",
       "relogged": "{{name}} dicatat ke {{meal}}",
-      "nameEmpty": "Nama tidak boleh kosong"
+      "nameEmpty": "Nama tidak boleh kosong",
+      "created": "{{name}} ditambah ke Kegemaran",
+      "updated": "Perubahan disimpan",
+      "hidden": "{{name}} disembunyikan daripada Terakhir dicatat",
+      "restored": "Terakhir dicatat dipaparkan semula",
+      "kcalInvalid": "Isi kalori sebagai nombor lebih daripada 0"
     },
     "deletedLabel": "{{name}} daripada Kegemaran",
     "itemCount_other": "{{count}} item",
     "manage": "Urus",
+    "offer": {
+      "title": "Anda kerap catat ini",
+      "body_other": "{{name}}, {{count}} kali dalam 14 hari ({{kcal}}). Simpan supaya cukup sekali ketik?",
+      "save": "Simpan sebagai kegemaran",
+      "later": "Nanti"
+    },
+    "quick": {
+      "manage": "Urus Catat pantas",
+      "empty": "Belum ada kegemaran. Simpan makanan yang kerap anda catat supaya cukup sekali ketik."
+    },
     "sheet": {
-      "title": "Urus Kegemaran",
-      "description": "Tukar nama atau padam. Padam boleh dibatalkan dalam beberapa saat.",
-      "empty": "Belum ada kegemaran. Tekan bintang pada makanan atau pinggan untuk menyimpannya.",
+      "title": "Urus Catat pantas",
+      "description": "Susun, ubah, padam atau tambah pilihan anda. Padam boleh dibatalkan dalam beberapa saat.",
+      "favoritesTitle": "Kegemaran",
+      "empty": "Belum ada kegemaran. Tambah di bawah, atau jadikan kegemaran daripada Terakhir dicatat.",
       "newName": "Nama baharu untuk {{name}}",
-      "saveName": "Simpan nama {{name}}",
-      "rename": "Tukar nama {{name}}",
-      "remove": "Buang {{name}} daripada Kegemaran"
+      "saveName": "Simpan perubahan {{name}}",
+      "rename": "Ubah {{name}}",
+      "kcalAria": "Kalori {{name}}",
+      "remove": "Buang {{name}} daripada Kegemaran",
+      "moveUp": "Naikkan {{name}}",
+      "moveDown": "Turunkan {{name}}",
+      "add": "Tambah pilihan",
+      "addName": "Nama makanan",
+      "addNamePlaceholder": "Putih telur rebus",
+      "addKcal": "Kalori (kcal)",
+      "addSave": "Simpan pilihan",
+      "recentTitle": "Terakhir dicatat",
+      "recentHint": "Muncul secara automatik daripada catatan anda. Sembunyikan yang tidak perlu, atau jadikan kegemaran.",
+      "recentSave": "Jadikan kegemaran {{name}}",
+      "recentHide": "Sembunyikan {{name}}",
+      "showHidden_other": "Papar semula {{count}} yang disembunyikan"
     }
   },
   "portionSheet": {
@@ -458,6 +487,7 @@
     "youSaid": "Anda kata",
     "editStory": "Ubah cerita",
     "portionDefault": "1 hidangan",
+    "usual": "seperti biasa · AI kira {{kcal}}",
     "kcalAria": "Kalori {{name}}",
     "plateName": "Nama pinggan",
     "priceLabel": "Harga (RM)",

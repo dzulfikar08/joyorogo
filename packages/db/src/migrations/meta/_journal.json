@@ -435,6 +435,13 @@
       "when": 1792669120654,
       "tag": "0061_food_log_plate_scan",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "6",
+      "when": 1792680958391,
+      "tag": "0062_saved_food_quick_choices",
+      "breakpoints": true
     }
   ]
 }
