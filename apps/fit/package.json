@@ -10,7 +10,7 @@
     "serve": "vite preview",
     "check-types": "tsrs -b ../../packages/api && vite build && tsrs --noEmit",
     "test": "bun test src",
-    "deploy": "bun run build && wrangler deploy"
+    "deploy": "VITE_SERVER_URL=${VITE_SERVER_URL:-https://api.joyorogo.com} bun run build && wrangler deploy"
   },
   "dependencies": {
     "@garmin/fitsdk": "^21.218.0",
