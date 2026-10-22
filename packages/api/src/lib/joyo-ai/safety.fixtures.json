@@ -1,0 +1,60 @@
+{
+  "note": "Messages the keyword pass of Joyo AI must classify the same way on every engine. Derived from JoyoFit's list and JoyoRogo's coach-chat patterns, with food-app phrasing in id/en/ms.",
+  "injury": [
+    "Lutut saya cedera setelah lari",
+    "ada sakit tajam di punggung",
+    "nyeri otot parah",
+    "pergelangan kaki terkilir",
+    "my knee hurts when I squat",
+    "I think I sprained my ankle",
+    "sharp pain in my shoulder",
+    "ongoing pain in hip",
+    "bahu saya terseliuh"
+  ],
+  "medical": [
+    "nyeri dada setelah makan",
+    "tadi hampir pingsan karena lapar",
+    "sesak napas pas makan pedas",
+    "boleh minum obat apa sebelum makan?",
+    "berapa dosis vitamin D?",
+    "chest pain after eating",
+    "I fainted after skipping lunch",
+    "what dosage of ibuprofen",
+    "I feel dizzy and short of breath",
+    "saya hampir pengsan lepas puasa",
+    "boleh makan ubat ini dengan nasi?"
+  ],
+  "eatingDisorder": [
+    "aku takut makan dan mau muntahin makanan",
+    "I think I have anorexia",
+    "I binge and then purge",
+    "saya takut gemuk jadi tidak mau makan"
+  ],
+  "minorDiet": ["mau diet ekstrem 500 kkal", "I want a crash diet", "diet 500 kkal sehari", "saya nak diet melampau"],
+  "extremeDietAdult": ["mau diet ekstrem", "diet 500 kkal sehari", "I want to eat 600 kcal a day", "diet 700 kcal sehari"],
+  "condition": [
+    "saya alergi kacang, boleh makan ini?",
+    "I have diabetes, can I eat mango?",
+    "saya diabetes, nasi merah boleh?",
+    "gula darah saya tinggi, buah apa yang aman?",
+    "saya ada kencing manis, boleh makan durian?",
+    "asam urat saya kambuh, boleh makan tempe?",
+    "I have a peanut allergy, is this okay?",
+    "kolesterol tinggi, apa yang harus dihindari?",
+    "ada masalah ginjal, boleh makan pisang?"
+  ],
+  "normal": [
+    "Mana yang seratnya paling tinggi: pepaya, melon, atau semangka?",
+    "Lebih baik nasi merah atau nasi putih buat target saya?",
+    "Sisa kkal hari ini cukup untuk apa?",
+    "resep ayam goreng yang rendah kalori",
+    "roti sobek coklat berapa kkal?",
+    "How much protein should I eat?",
+    "Which has more fiber, brown rice or white rice?",
+    "Kenapa berat saya naik minggu ini?",
+    "Yang mana paling tinggi serat: betik, tembikai atau pisang?",
+    "Berapa kcal sepinggan nasi lemak?"
+  ],
+  "maternal": ["aku lagi hamil 5 bulan", "saya menyusui", "I'm pregnant", "while breastfeeding", "saya hamil boleh makan ini?", "saya mengandung dua bulan"],
+  "notMaternal": ["makan apa untuk sarapan", "papaya or melon"]
+}

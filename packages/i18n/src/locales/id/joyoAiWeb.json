@@ -1,0 +1,115 @@
+{
+  "title": "Joyo AI",
+  "nav": {
+    "subtitle": "Tanya soal makanan dan datamu"
+  },
+  "entry": {
+    "label": "Tanya Joyo AI"
+  },
+  "status": {
+    "loading": "Memuat Joyo AI",
+    "today": "{{used}} dari {{cap}} pertanyaan hari ini",
+    "retry": "Coba lagi"
+  },
+  "chat": {
+    "emptyTitle": "Tanya Joyo AI",
+    "emptyBody": "Tanya soal catatan makanmu, atau bandingkan makanan sebelum kamu makan. Angkanya diambil dari data JoyoRogo.",
+    "storedHere": "Percakapan hanya tersimpan di browser ini.",
+    "placeholder": "Tanya soal makanan atau datamu",
+    "composerLabel": "Pesan untuk Joyo AI",
+    "shortcuts": "Enter untuk kirim, Shift+Enter untuk baris baru, Esc untuk berhenti",
+    "send": "Kirim",
+    "stop": "Berhenti",
+    "new": "Percakapan baru",
+    "newTitle": "Percakapan baru",
+    "history": "Riwayat",
+    "jump": "Ke terbaru",
+    "copy": "Salin jawaban",
+    "copied": "Tersalin",
+    "regenerate": "Tulis ulang jawaban",
+    "edit": "Ubah pertanyaan",
+    "editing": "Mengubah pertanyaan. Pertanyaan dan jawaban sesudahnya diganti.",
+    "editCancel": "Batal mengubah",
+    "retry": "Kirim lagi",
+    "stopped": "Dihentikan",
+    "thinking": "Berpikir",
+    "thought": "Proses berpikir",
+    "writing": "Menulis jawaban",
+    "answering": "Joyo AI sedang menjawab",
+    "answered": "Joyo AI selesai menjawab",
+    "you": "Kamu",
+    "flagged": "Pesanmu menyangkut hal yang sebaiknya dibahas dengan dokter atau ahli gizi, jadi Joyo AI menjawab dengan pesan tetap.",
+    "toolsOff": "Kali ini Joyo AI menjawab tanpa membaca data tambahan.",
+    "dismiss": "Tutup pesan"
+  },
+  "steps": {
+    "group_other": "{{count}} langkah membaca data",
+    "call": "Panggilan",
+    "failed": "Gagal",
+    "open": "Tampilkan langkah",
+    "close": "Sembunyikan langkah"
+  },
+  "history": {
+    "title": "Riwayat",
+    "description": "Tersimpan di browser ini saja dan tidak ikut ke perangkat lain.",
+    "empty": "Belum ada percakapan.",
+    "messages_other": "{{count}} pesan",
+    "delete": "Hapus percakapan",
+    "cancel": "Batal",
+    "deleteAll": "Hapus semua percakapan",
+    "deleteAllTitle": "Hapus semua percakapan?",
+    "deleteAllBody": "Semua percakapan Joyo AI di browser ini dihapus. Ini tidak bisa dibatalkan.",
+    "deleteAllConfirm": "Hapus semua"
+  },
+  "gate": {
+    "pro": {
+      "title": "Joyo AI di web untuk Pro",
+      "body": "Joyo AI di JoyoRogo menjawab lewat server kami dan butuh JoyoRogo Pro.",
+      "cta": "Lihat JoyoRogo Pro"
+    },
+    "own": {
+      "title": "Kunci sendiri, gratis di aplikasi",
+      "body": "Di aplikasi JoyoRogo untuk HP, Joyo AI bisa memakai kunci API milikmu sendiri tanpa Pro. Web hanya memakai mesin JoyoRogo.",
+      "android": "Gabung tester Android",
+      "iphone": "Coba di iPhone",
+      "webApp": "iPhone tanpa TestFlight? Pasang web app ke Layar Utama"
+    },
+    "minor": {
+      "title": "Joyo AI belum tersedia untukmu",
+      "body": "Joyo AI hanya untuk usia 18 tahun ke atas."
+    },
+    "unavailable": {
+      "title": "Joyo AI belum tersedia",
+      "body": "Server belum mendukung Joyo AI. Coba lagi nanti."
+    },
+    "off": {
+      "title": "Joyo AI sedang tidak tersedia",
+      "body": "Layanan sedang dimatikan sementara. Coba lagi nanti."
+    }
+  },
+  "consent": {
+    "title": "Sebelum mulai",
+    "lead": "Saat kamu bertanya, JoyoRogo mengirim data ini ke penyedia AI supaya jawabannya memakai datamu:",
+    "data": {
+      "body": "Usia, jenis kelamin, tinggi, dan tujuanmu",
+      "food": "Catatan makanmu: nama, berat, dan gizi tiap makanan",
+      "water": "Catatan air minum",
+      "weight": "Riwayat berat badan dan targetmu",
+      "fasting": "Status puasa, kalau kamu berpuasa",
+      "chat": "Pesan yang kamu ketik di percakapan ini"
+    },
+    "whereTitle": "Ke mana dikirim",
+    "where": "Lewat server JoyoRogo ke Cloudflare Workers AI, hanya untuk menjawab pertanyaanmu. Pesan dan jawabannya tidak disimpan di server kami, dan tidak dipakai untuk melatih model.",
+    "notSentTitle": "Tidak pernah dikirim",
+    "notSent": "Nama, email, foto, lokasi, data siklus haid, mode hamil atau menyusui, Strava, dan ID perangkat.",
+    "adults": "Dengan menyetujui, kamu menyatakan berusia 18 tahun ke atas. Jawabannya bisa keliru dan bukan saran medis.",
+    "privacy": "Baca selengkapnya di halaman Privasi",
+    "agree": "Setuju dan mulai",
+    "later": "Nanti saja"
+  },
+  "ask": {
+    "food": "Aku mau makan {{name}} ({{grams}} g). Cocok dengan sisa target hari ini?",
+    "foodNoGrams": "Aku mau makan {{name}}. Cocok dengan sisa target hari ini?",
+    "items": "Aku mau makan: {{list}}. Cocok dengan sisa target hari ini?"
+  }
+}

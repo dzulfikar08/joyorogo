@@ -1,0 +1,86 @@
+{
+  "disclaimerLine": "This is not medical or dietitian advice.",
+  "refuseLeak": "That is outside what I can help with. Ask about food, nutrition, weight, water, or fasting.",
+  "safe": {
+    "injury": "If you have a sharp or lasting injury or pain, stop and do not push through exercise. See a doctor or physiotherapist before you continue. I cannot plan meals or training around an injury, so wait for their guidance first.",
+    "medical": "Symptoms such as chest pain, shortness of breath, severe dizziness, fainting, or unusual blood sugar need a doctor, not a guess from an app. See a doctor or a dietitian. If it is severe or sudden, go to the emergency room or call emergency services. For medication and doses, ask a doctor or pharmacist.",
+    "eatingDisorder": "Thank you for telling me. I will not give advice on restricting food or cutting kcal. Eating patterns like this are best talked through with a doctor, a psychologist, or an adult you trust. You are not alone, and help is available.",
+    "minorDiet": "Under 18, I do not give diet advice, kcal counts for losing weight, or tips on eating less. A growing body needs enough food. If you are worried about your weight, talk to a parent, a doctor, or a dietitian."
+  },
+  "errors": {
+    "badKey": "The provider rejected the key. Check that it was copied in full with no spaces, or create a new key in the provider account.",
+    "forbidden": "The provider denied access. This account or key may not use that model yet (permission, region, or inactive account). Check the provider account.",
+    "quota": "Quota or balance has run out. Top up or raise the spending limit in the provider account, then try again.",
+    "rateLimit": "Requests are limited for now. Wait a moment, then send again.",
+    "modelNotFound": "This model was not found. It may have been retired or your account may not have access. Pick another model.",
+    "noTools": "This model does not support reading extra data. Pick another model.",
+    "badRequest": "This request could not be processed. Try a shorter question, or pick another model.",
+    "server": "The server is having problems. Try again in a little while.",
+    "network": "Not connected. Check your internet connection and try again.",
+    "timeout": "The answer took too long. Try again, or pick a faster model.",
+    "empty": "The model did not send a usable answer. Send again, or rephrase the question.",
+    "truncated": "The model kept thinking and ran out of room before writing an answer. Send again, or pick a faster model or one without a thinking mode.",
+    "aborted": "Cancelled."
+  },
+  "blocked": {
+    "minor": "Joyo AI is not available under 18.",
+    "noProvider": "No provider is set up, so nothing was sent. Set up your own key first.",
+    "badUrl": "The server address cannot be used, so nothing was sent. Fix the address in the key settings.",
+    "noKey": "The key is not on this phone, so nothing was sent. Enter the key again.",
+    "noConsent": "Permission to share data is missing, so nothing was sent. Agree to it first.",
+    "ceiling": "Today's call limit has been reached, so nothing was sent. Raise the limit in Joyo AI settings, or try again tomorrow.",
+    "notPro": "Joyo AI on JoyoRogo needs JoyoRogo Pro. In the phone app you can use your own key for free.",
+    "cap": "Today's Joyo AI question limit has been reached. Try again tomorrow.",
+    "off": "Joyo AI is unavailable right now. Try again later.",
+    "notSignedIn": "Sign in to JoyoRogo to use Joyo AI."
+  },
+  "steps": {
+    "get_day": {
+      "running": "Reading food log for {{date}}...",
+      "done": "Read food log for {{date}}",
+      "none": "No food log for {{date}}"
+    },
+    "get_range": {
+      "running": "Reading log from {{from}} to {{to}}...",
+      "done": "Read log from {{from}} to {{to}}",
+      "none": "No log from {{from}} to {{to}}"
+    },
+    "get_weight_trend": {
+      "running": "Reading {{days}}-day weight trend...",
+      "done": "Read {{days}}-day weight trend",
+      "none": "No weight data for {{days}} days"
+    },
+    "get_targets": {
+      "running": "Reading your targets...",
+      "done": "Read your targets",
+      "none": "Targets are not set"
+    },
+    "search_foods": {
+      "running": "Looking up {{foods}}...",
+      "done": "Looked up {{foods}}",
+      "none": "{{foods}} not found"
+    },
+    "compare_foods": {
+      "running": "Comparing {{foods}}...",
+      "done": "Compared {{foods}}",
+      "none": "No data to compare {{foods}}"
+    },
+    "fits_today": {
+      "running": "Checking {{foods}} against what is left today...",
+      "done": "Checked {{foods}} against what is left today",
+      "none": "No data to check {{foods}}"
+    }
+  },
+  "suggestions": {
+    "fiber": "Which has the most fiber: papaya, melon, or watermelon?",
+    "remaining": "What can my remaining kcal today cover?",
+    "weight": "Why did my weight go up this week?"
+  },
+  "provider": {
+    "openrouter": "OpenRouter",
+    "openai": "OpenAI",
+    "anthropic": "Anthropic",
+    "gemini": "Gemini",
+    "custom": "Other"
+  }
+}

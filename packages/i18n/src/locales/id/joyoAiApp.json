@@ -1,0 +1,308 @@
+{
+  "more": {
+    "title": "Joyo AI",
+    "subtitle": "Tanya soal makanan dan datamu"
+  },
+  "ask": {
+    "header": "Tanya Joyo AI",
+    "foodAction": "Tanya Joyo AI",
+    "scanAction": "Mau makan ini? Tanya dulu",
+    "food": "Apakah {{name}} ({{grams}} g) cocok dengan sisa kkal dan protein hari ini?",
+    "foodNoGrams": "Apakah {{name}} cocok dengan sisa kkal dan protein hari ini?",
+    "scan": "Aku mau makan ini: {{items}}. Apakah cocok dengan sisa kkal dan protein hari ini?"
+  },
+  "chip": {
+    "own": "{{model}}, kunci sendiri",
+    "hosted": "JoyoRogo",
+    "hostedUsed": "JoyoRogo, {{used}}/{{cap}} hari ini",
+    "open": "Buka pengaturan Joyo AI. Sekarang: {{engine}}"
+  },
+  "chat": {
+    "newTitle": "Percakapan baru",
+    "placeholder": "Tanya soal makanan atau datamu",
+    "send": "Kirim",
+    "stop": "Berhenti",
+    "stopped": "Dihentikan",
+    "copy": "Salin",
+    "copied": "Disalin",
+    "regenerate": "Buat ulang jawaban",
+    "edit": "Ubah pertanyaan",
+    "retry": "Coba lagi",
+    "editing": "Mengubah pertanyaan. Saat dikirim, jawaban setelahnya diganti.",
+    "editCancel": "Batal mengubah",
+    "jump": "Ke terbaru",
+    "tokens": "{{tokens}} token",
+    "hosted": "JoyoRogo",
+    "thinking": "Berpikir",
+    "thought": "Proses berpikir",
+    "writing": "Menulis...",
+    "reasoningLive": "Berpikir...",
+    "history": "Riwayat",
+    "new": "Percakapan baru",
+    "usageToday": "Hari ini: {{tokens}} token, {{calls}} dari {{ceiling}} panggilan",
+    "toolsOff": "Model ini tidak bisa membaca data tambahan, jadi jawabannya hanya dari ringkasan data dan tabel makanan kami. Pilih model lain untuk jawaban yang lebih dalam.",
+    "emptyTitle": "Tanya soal makananmu",
+    "emptyHosted": "Joyo AI membaca catatan makan, target, air, dan berat badanmu, lalu menjawab dengan angka dari data makanan kami. Kalau datanya tidak ada, ia bilang tidak tahu.",
+    "emptyOwn": "Joyo AI membaca catatan makan, target, air, dan berat badanmu, lalu menjawab dengan angka dari data makanan kami. Jawaban ditulis oleh {{model}} lewat {{provider}}, dengan kunci milikmu.",
+    "privacyTitle": "Data dan privasi",
+    "privacyHosted": "Pertanyaanmu dan data yang dibaca dikirim ke server JoyoRogo, lalu diteruskan ke model AI. Percakapan hanya tersimpan di ponsel ini.",
+    "privacyOwn": "Pertanyaanmu, ringkasan datamu, dan data yang dibaca AI dikirim langsung dari ponsel ke {{provider}} ({{host}}), tidak lewat server JoyoRogo. Kunci hanya ada di ponsel ini. Percakapan hanya tersimpan di ponsel ini.",
+    "renameTitle": "Nama percakapan",
+    "renameHint": "Ketuk untuk melihat judul lengkap dan mengganti namanya",
+    "renameSave": "Simpan",
+    "renameBody": "Kosongkan untuk memakai pertanyaan pertama sebagai nama."
+  },
+  "steps": {
+    "group": "Membaca data ({{count}})",
+    "call": "Panggilan yang dijalankan",
+    "failed": "Gagal dibaca",
+    "notConnected": "Data belum tersedia"
+  },
+  "chats": {
+    "title": "Riwayat",
+    "new": "Percakapan baru",
+    "count_other": "{{count}} pesan",
+    "current": "Dibuka",
+    "cancel": "Batal",
+    "deleteOne": "Hapus percakapan: {{title}}",
+    "deleteTitle": "Hapus percakapan ini?",
+    "deleteMessage": "\"{{title}}\" dihapus dari ponsel ini dan tidak bisa dikembalikan.",
+    "deleteConfirm": "Hapus",
+    "deleted": "Percakapan dihapus",
+    "deleteFailed": "Belum bisa dihapus. Coba lagi.",
+    "deleteAll": "Hapus semua",
+    "deleteAllTitle": "Hapus semua percakapan?",
+    "deleteAllMessage_other": "{{count}} percakapan dihapus dari ponsel ini dan tidak bisa dikembalikan.",
+    "deleteAllConfirm": "Hapus semua",
+    "allDeleted": "Semua percakapan dihapus",
+    "emptyTitle": "Belum ada percakapan",
+    "emptyBody": "Percakapan dengan Joyo AI tersimpan di ponsel ini dan muncul di sini. Tanyakan sesuatu untuk memulai."
+  },
+  "err": {
+    "unknown": "Terjadi kesalahan yang tidak dikenal. Coba lagi sebentar lagi.",
+    "blockedOther": "Permintaan tidak dikirim. Cek pengaturan Joyo AI.",
+    "techTitle": "Lihat detail teknis",
+    "techKind": "Jenis: {{kind}}",
+    "techStatus": "Status HTTP: {{status}}",
+    "techLine": "Rincian: {{text}}",
+    "techProvider": "Pesan dari penyedia: {{text}}",
+    "action": {
+      "setup": "Cek kunci",
+      "model": "Pilih model",
+      "settings": "Buka pengaturan",
+      "keyPage": "Buka akun penyedia"
+    }
+  },
+  "hosted": {
+    "unavailableBody": "Joyo AI JoyoRogo belum tersedia di server ini. Coba lagi nanti, atau pakai kunci sendiri."
+  },
+  "gate": {
+    "minor": {
+      "title": "Belum tersedia di bawah 18 tahun",
+      "body": "Joyo AI hanya untuk usia 18 tahun ke atas, baik lewat JoyoRogo maupun dengan kunci sendiri."
+    },
+    "paywall": {
+      "title": "Joyo AI JoyoRogo untuk Pro",
+      "body": "Mesin JoyoRogo menjawab dengan membaca catatan makanmu dan butuh JoyoRogo Pro. Dengan kunci AI milikmu sendiri, Joyo AI gratis di aplikasi ini.",
+      "cta": "Lihat JoyoRogo Pro"
+    },
+    "unavailable": {
+      "title": "Mesin JoyoRogo belum tersedia",
+      "body": "Server belum mendukung Joyo AI, atau fitur ini sedang dimatikan. Coba lagi nanti, atau pakai kunci sendiri."
+    },
+    "ownCta": "Atur kunci sendiri",
+    "useOwn": "Pakai kunci sendiri",
+    "ownFree": "Kunci sendiri gratis untuk semua. Kamu hanya membayar pemakaian ke penyedia AI-mu.",
+    "useHosted": "Pakai mesin JoyoRogo",
+    "hostedConsent": {
+      "title": "Izin untuk Joyo AI JoyoRogo",
+      "action": "Setuju dan mulai"
+    },
+    "noProvider": {
+      "title": "Kunci sendiri belum diatur",
+      "body": "Joyo AI dengan kunci sendiri butuh satu kunci dari penyedia AI pilihanmu. Fiturnya gratis; biaya pemakaian ada di akun penyedia.",
+      "action": "Atur kunci sendiri"
+    },
+    "noKey": {
+      "title": "Kunci tidak ada di ponsel ini",
+      "body": "Kunci untuk penyedia ini tidak ditemukan. Mungkin sudah dihapus. Masukkan kunci lagi. Tidak ada data yang dikirim sebelum itu.",
+      "action": "Masukkan kunci"
+    },
+    "noConsent": {
+      "title": "Perlu izin berbagi data",
+      "body": "Kamu belum menyetujui pengiriman data ke penyedia, atau teks izinnya berubah sejak terakhir kamu setuju. Tidak ada data yang dikirim sebelum kamu setuju.",
+      "action": "Tinjau dan setujui"
+    },
+    "badUrl": {
+      "title": "Alamat server tidak bisa dipakai",
+      "body": "Alamat server kustom kosong, salah, atau memakai http di luar jaringan rumah. Perbaiki alamatnya.",
+      "action": "Perbaiki alamat"
+    }
+  },
+  "consent": {
+    "to": "Tujuan: {{recipient}}.",
+    "ownRecipient": "{{provider}} ({{host}}), langsung dari ponselmu tanpa lewat server JoyoRogo",
+    "hostedRecipient": "server JoyoRogo, yang meneruskannya ke model AI (Cloudflare Workers AI)",
+    "lead": "Setiap kamu bertanya, yang dikirim:",
+    "noHost": "alamat belum diisi",
+    "data": {
+      "body": "Profil dan target: usia, jenis kelamin, tinggi, tujuan, target kkal, protein, karbo, lemak, serat, dan target berat.",
+      "food": "Catatan makan: nama makanan, gram, kkal, protein, karbo, lemak, dan serat untuk hari ini dan 7 hari terakhir. Rentang lebih panjang (sampai 90 hari) hanya dibaca kalau AI memintanya.",
+      "water": "Air minum: gelas per hari dan targetnya.",
+      "weight": "Berat badan: berat terakhir dan perubahannya selama 14 hari. Tren yang lebih panjang hanya dibaca kalau AI memintanya.",
+      "fasting": "Puasa: pola dan jendela makan, kalau kamu memakai puasa berkala.",
+      "chat": "Percakapan: pertanyaan dan jawaban di chat ini, dan data yang dibaca AI saat menjawab."
+    },
+    "notSentTitle": "Tidak pernah dikirim",
+    "notSent": "Data siklus haid, mode hamil atau menyusui, nama, email, foto, lokasi GPS, ID perangkat, dan data Strava.",
+    "terms": "Setelah sampai di {{provider}}, data diperlakukan menurut syarat dan kebijakan privasi mereka sendiri. Baca dulu syaratnya di situs {{provider}}.",
+    "hostedKept": "Server JoyoRogo tidak menyimpan pertanyaan maupun jawaban. Yang dicatat hanya jumlah pertanyaan per hari untuk batas harian.",
+    "sample": "Lihat contoh data",
+    "gemini": "Kunci gratis Google dipakai untuk memperbaiki produk Google. Pakai kunci berbayar atau OpenRouter.",
+    "adult": "Aku berusia 18 tahun atau lebih",
+    "agree": "Aku setuju data di atas dikirim ke {{provider}}",
+    "agreeHosted": "Aku setuju data di atas dikirim ke server JoyoRogo dan model AI-nya",
+    "withdraw": "Izin ini bisa dicabut kapan saja lewat Hapus kunci di pengaturan Joyo AI.",
+    "withdrawHosted": "Izin ini bisa dicabut kapan saja di pengaturan Joyo AI."
+  },
+  "setup": {
+    "title": "Atur kunci sendiri",
+    "back": "Kembali",
+    "intro": "Pakai akun AI milikmu sendiri, gratis di aplikasi ini. Kunci disimpan hanya di ponsel ini, di penyimpanan aman, dan tidak ikut sinkron.",
+    "step1": "1. Penyedia",
+    "step2": "2. Kunci dan model",
+    "step3": "3. Izin",
+    "hint": {
+      "openrouter": "OpenRouter: paling aman untuk mulai. Kamu mengisi saldo prabayar, jadi pemakaian dibatasi oleh saldo itu. Jangan nyalakan isi ulang otomatis kalau kamu mau batas yang pasti.",
+      "openai": "Kunci dari platform OpenAI. Ditagih sesuai pemakaian; atur batas bulanan di akunmu.",
+      "anthropic": "Kunci dari konsol Anthropic. Ditagih sesuai pemakaian; atur batas bulanan di akunmu.",
+      "gemini": "Kunci dari Google AI Studio. Baca peringatan di langkah 3 sebelum memakai kunci gratis.",
+      "custom": "Server apa saja yang memakai format OpenAI: LiteLLM, Ollama di jaringan rumah, atau gateway kantor."
+    },
+    "url": {
+      "label": "Alamat server",
+      "hint": "Alamat dasar API, biasanya berakhir dengan /v1.",
+      "placeholder": "https://alamat-server-kamu/v1",
+      "invalid": "Alamat harus diawali http:// atau https://.",
+      "insecure": "Alamat http hanya boleh untuk jaringan rumah (localhost, 192.168.x.x, 10.x.x.x, atau .local). Pakai https supaya kunci dan datamu tidak lewat internet tanpa enkripsi."
+    },
+    "key": {
+      "label": "Kunci API",
+      "saved": "Kunci tersimpan: {{masked}}",
+      "replace": "Ganti kunci",
+      "paste": "Tempel",
+      "pasteEmpty": "Clipboard kosong. Salin kuncinya dulu dari halaman penyedia.",
+      "keepSaved": "Pakai kunci yang tersimpan",
+      "open": "Buka halaman kunci {{provider}}",
+      "tip": "Buat kunci khusus untuk JoyoRogo dan beri batas pemakaian bulanan di akun penyedia.",
+      "revokeTitle": "Cara mencabut kunci",
+      "revoke": "Cabut atau hapus kunci kapan saja di halaman kunci akun penyedia. Menghapus kunci di JoyoRogo hanya menghapusnya dari ponsel ini; kunci yang sama tetap berlaku di penyedia sampai kamu mencabutnya di sana."
+    },
+    "test": {
+      "run": "Tes koneksi",
+      "ok_other": "Berhasil, {{count}} panggilan",
+      "hint": "Tes hanya mengirim satu pesan pendek, tanpa datamu."
+    },
+    "save": "Simpan",
+    "testSave": "Tes dan simpan",
+    "savedLabel": "Tersimpan",
+    "needs": "Isi kunci dan model, lalu nyalakan dua persetujuan di langkah 3.",
+    "saved": "Kunci tersimpan. Joyo AI memakai kunci sendiri sekarang.",
+    "saveFailed": "Kunci tidak bisa disimpan di ponsel ini. Coba lagi."
+  },
+  "settings": {
+    "title": "Joyo AI"
+  },
+  "engine": {
+    "title": "Mesin",
+    "hostedName": "JoyoRogo (Pro)",
+    "ownName": "Kunci sendiri",
+    "hostedReady": "Dijawab oleh server JoyoRogo, dengan batas pesan harian",
+    "hostedUsed": "{{used}} dari {{cap}} pesan hari ini",
+    "hostedLocked": "Perlu JoyoRogo Pro",
+    "hostedUnavailable": "Belum tersedia di server ini",
+    "hostedChecking": "Memeriksa akunmu...",
+    "ownNone": "Belum diatur. Gratis untuk semua.",
+    "ownLine": "{{provider}}, {{model}}",
+    "ownBlocked": "{{provider}}. Perlu dicek: {{reason}}.",
+    "block": {
+      "noProvider": "belum diatur",
+      "badUrl": "alamat server tidak bisa dipakai",
+      "noKey": "kunci tidak ada di ponsel ini",
+      "noConsent": "izin berbagi data belum ada",
+      "minor": "tidak tersedia di bawah 18 tahun"
+    },
+    "pickModel": "Pilih model",
+    "free": "Kunci sendiri gratis untuk semua. Kamu hanya membayar pemakaian ke penyedia AI-mu."
+  },
+  "limits": {
+    "title": "Batas dan kecepatan",
+    "ceiling": "Batas panggilan per hari",
+    "ceilingHint": "Dijaga di ponsel ini. Satu jawaban bisa memakai beberapa panggilan, karena AI membaca data lewat panggilan terpisah.",
+    "fast": "Jawaban cepat",
+    "fastHint": "Meminta model tidak berpikir panjang. Lebih cepat dan hemat token, kadang kurang dalam. Hanya berpengaruh bila server penyedia mendukungnya.",
+    "fastFields": "Bidang tambahan untuk jawaban cepat (opsional)",
+    "fastFieldsHint": "Objek JSON yang dikirim ke servermu menggantikan bawaan. Kosongkan untuk memakai bawaan.",
+    "fastFieldsBad": "Bukan objek JSON yang sah, jadi bawaan yang dipakai."
+  },
+  "data": {
+    "title": "Data di ponsel ini",
+    "sent": "Lihat data yang dikirim",
+    "sentHint": "Seperti yang dikirim dengan pertanyaan berikutnya",
+    "chatsHint": "Percakapan tersimpan di ponsel ini",
+    "usage": "Hari ini: {{tokens}} token dalam {{calls}} panggilan",
+    "usageHint": "Hanya dihitung di ponsel ini, untuk kunci sendiri",
+    "deleteChats": "Hapus semua percakapan",
+    "deleteChatsTitle": "Hapus semua percakapan?",
+    "deleteChatsMessage": "Semua percakapan dengan Joyo AI dihapus dari ponsel ini. Kunci dan pengaturanmu tetap ada.",
+    "deleteChatsConfirm": "Hapus",
+    "chatsDeleted": "Percakapan dihapus",
+    "deleteKey": "Hapus kunci {{provider}}",
+    "deleteKeyTitle": "Hapus kunci {{provider}}?",
+    "deleteKeyMessage": "Kunci dihapus dari ponsel ini dan izin berbagi data ke {{provider}} dicabut. Kunci itu sendiri masih berlaku di akun {{provider}}: cabut atau hapus di halaman kunci akunmu supaya tidak bisa dipakai lagi. Kalau ini penyedia yang sedang dipakai, Joyo AI kembali ke mesin JoyoRogo.",
+    "deleteKeyConfirm": "Hapus kunci",
+    "keyDeleted": "Kunci dihapus dari ponsel ini",
+    "withdraw": "Cabut izin mesin JoyoRogo",
+    "withdrawTitle": "Cabut izin?",
+    "withdrawMessage": "Joyo AI JoyoRogo tidak akan menjawab sampai kamu menyetujui lagi. Percakapan di ponsel ini tidak berubah.",
+    "withdrawConfirm": "Cabut izin",
+    "withdrawn": "Izin dicabut",
+    "deleteAll": "Hapus semua data Joyo AI",
+    "deleteAllTitle": "Hapus semua data Joyo AI?",
+    "deleteAllMessage": "Semua kunci, izin, pengaturan, percakapan, dan hitungan pemakaian Joyo AI dihapus dari ponsel ini, dan Joyo AI kembali ke mesin JoyoRogo. Kunci masih berlaku di akun penyedia sampai kamu mencabutnya di sana.",
+    "deleteAllConfirm": "Hapus semua",
+    "allDeleted": "Semua data Joyo AI dihapus dari ponsel ini",
+    "deleteFailed": "Belum bisa dihapus. Coba lagi.",
+    "screenTitle": "Data yang dikirim",
+    "intro": "Ini data yang dikirim bersama setiap pertanyaan, dibuat ulang dari datamu setiap kali. Halaman ini hanya menampilkan, tidak mengirim apa pun.",
+    "failed": "Contoh data tidak bisa dibuat sekarang. Coba muat ulang.",
+    "reload": "Muat ulang",
+    "jsonTitle": "Dikirim dengan pertanyaan berikutnya",
+    "size": "{{chars}} karakter, sekitar {{tokens}} token.",
+    "toolsTitle": "Yang bisa dibaca AI saat menjawab",
+    "toolsIntro": "AI memutuskan sendiri kapan membaca ini. Semuanya hanya-baca; tidak ada yang bisa mengubah catatanmu. Hasilnya dikirim bersama jawabannya.",
+    "tools": {
+      "get_day": "Catatan makan satu hari: makanan, gram, kkal, protein, karbo, lemak, serat, target, air, puasa",
+      "get_range": "Ringkasan harian sampai 90 hari: kkal, protein, karbo, lemak, serat, air",
+      "get_weight_trend": "Tren berat badan 7 sampai 365 hari, dihitung oleh aplikasi",
+      "get_targets": "Target kkal, makro, serat, dan berat badanmu",
+      "search_foods": "Data gizi satu makanan dari tabel makanan kami, per 100 g dan per porsi",
+      "compare_foods": "Membandingkan beberapa makanan (serat, protein, kkal, karbo, lemak) dari tabel kami",
+      "fits_today": "Apakah satu makanan muat di sisa kkal, protein, dan serat hari ini"
+    }
+  },
+  "model": {
+    "title": "Model",
+    "selected": "Dipakai: {{model}}",
+    "noToolsChosen": "Model ini tanpa pemanggilan alat: jawabannya hanya dari ringkasan data.",
+    "search": "Cari model",
+    "noTools": "tanpa pemanggilan alat",
+    "none": "Tidak ada model yang cocok.",
+    "noToolsHint": "Model tanpa pemanggilan alat menjawab hanya dari ringkasan data dan tabel makanan, tanpa membaca data tambahan.",
+    "direct": "Id model",
+    "afterTest": "Daftar model dari penyedia muncul setelah tes koneksi.",
+    "loadFailed": "Daftar model tidak bisa dimuat. Kamu tetap bisa mengetik id modelnya.",
+    "saved": "Model diganti ke {{model}}",
+    "done": "Selesai"
+  }
+}

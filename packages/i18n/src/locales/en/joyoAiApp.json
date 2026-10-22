@@ -1,0 +1,311 @@
+{
+  "more": {
+    "title": "Joyo AI",
+    "subtitle": "Ask about your food and your data"
+  },
+  "ask": {
+    "header": "Ask Joyo AI",
+    "foodAction": "Ask Joyo AI",
+    "scanAction": "About to eat this? Ask first",
+    "food": "Does {{name}} ({{grams}} g) fit what is left of today's kcal and protein?",
+    "foodNoGrams": "Does {{name}} fit what is left of today's kcal and protein?",
+    "scan": "I am about to eat: {{items}}. Does it fit what is left of today's kcal and protein?"
+  },
+  "chip": {
+    "own": "{{model}}, own key",
+    "hosted": "JoyoRogo",
+    "hostedUsed": "JoyoRogo, {{used}}/{{cap}} today",
+    "open": "Open Joyo AI settings. Now: {{engine}}"
+  },
+  "chat": {
+    "newTitle": "New chat",
+    "placeholder": "Ask about your food or your data",
+    "send": "Send",
+    "stop": "Stop",
+    "stopped": "Stopped",
+    "copy": "Copy",
+    "copied": "Copied",
+    "regenerate": "Write the answer again",
+    "edit": "Edit question",
+    "retry": "Try again",
+    "editing": "Editing the question. When sent, the answers after it are replaced.",
+    "editCancel": "Cancel editing",
+    "jump": "Jump to latest",
+    "tokens": "{{tokens}} tokens",
+    "hosted": "JoyoRogo",
+    "thinking": "Thinking",
+    "thought": "How it thought",
+    "writing": "Writing...",
+    "reasoningLive": "Thinking...",
+    "history": "History",
+    "new": "New chat",
+    "usageToday": "Today: {{tokens}} tokens, {{calls}} of {{ceiling}} calls",
+    "toolsOff": "This model cannot read extra data, so the answer comes from the data summary and our food table only. Pick another model for a deeper answer.",
+    "emptyTitle": "Ask about your food",
+    "emptyHosted": "Joyo AI reads your food log, targets, water and weight, then answers with numbers from our food data. When we have no data, it says so.",
+    "emptyOwn": "Joyo AI reads your food log, targets, water and weight, then answers with numbers from our food data. The answer is written by {{model}} through {{provider}}, with your own key.",
+    "privacyTitle": "Data and privacy",
+    "privacyHosted": "Your question and the data it reads go to the JoyoRogo server, which passes them to the AI model. Conversations are only stored on this phone.",
+    "privacyOwn": "Your question, your data summary and the data the AI reads go straight from this phone to {{provider}} ({{host}}), not through the JoyoRogo server. The key stays on this phone. Conversations are only stored on this phone.",
+    "renameTitle": "Chat name",
+    "renameHint": "Tap to see the full title and rename it",
+    "renameSave": "Save",
+    "renameBody": "Leave empty to use the first question as the name."
+  },
+  "steps": {
+    "group": "Read data ({{count}})",
+    "call": "The call that ran",
+    "failed": "Could not be read",
+    "notConnected": "Data not available"
+  },
+  "chats": {
+    "title": "History",
+    "new": "New chat",
+    "count_other": "{{count}} messages",
+    "count_one": "{{count}} message",
+    "current": "Open",
+    "cancel": "Cancel",
+    "deleteOne": "Delete chat: {{title}}",
+    "deleteTitle": "Delete this chat?",
+    "deleteMessage": "\"{{title}}\" is deleted from this phone and cannot be brought back.",
+    "deleteConfirm": "Delete",
+    "deleted": "Chat deleted",
+    "deleteFailed": "Could not delete it. Try again.",
+    "deleteAll": "Delete all",
+    "deleteAllTitle": "Delete all chats?",
+    "deleteAllMessage_other": "{{count}} chats are deleted from this phone and cannot be brought back.",
+    "deleteAllMessage_one": "{{count}} chat is deleted from this phone and cannot be brought back.",
+    "deleteAllConfirm": "Delete all",
+    "allDeleted": "All chats deleted",
+    "emptyTitle": "No chats yet",
+    "emptyBody": "Your chats with Joyo AI are kept on this phone and show up here. Ask something to start."
+  },
+  "err": {
+    "unknown": "Something went wrong that we do not recognise. Try again in a moment.",
+    "blockedOther": "The request was not sent. Check the Joyo AI settings.",
+    "techTitle": "See technical details",
+    "techKind": "Kind: {{kind}}",
+    "techStatus": "HTTP status: {{status}}",
+    "techLine": "Detail: {{text}}",
+    "techProvider": "Message from the provider: {{text}}",
+    "action": {
+      "setup": "Check the key",
+      "model": "Pick a model",
+      "settings": "Open settings",
+      "keyPage": "Open the provider account"
+    }
+  },
+  "hosted": {
+    "unavailableBody": "Joyo AI on JoyoRogo is not available on this server yet. Try again later, or use your own key."
+  },
+  "gate": {
+    "minor": {
+      "title": "Not available under 18",
+      "body": "Joyo AI is for ages 18 and up, through JoyoRogo as well as with your own key."
+    },
+    "paywall": {
+      "title": "Joyo AI on JoyoRogo is for Pro",
+      "body": "The JoyoRogo engine answers by reading your food log and needs JoyoRogo Pro. With your own AI key, Joyo AI is free in this app.",
+      "cta": "See JoyoRogo Pro"
+    },
+    "unavailable": {
+      "title": "The JoyoRogo engine is not available yet",
+      "body": "The server does not support Joyo AI yet, or the feature is switched off. Try again later, or use your own key."
+    },
+    "ownCta": "Set up your own key",
+    "useOwn": "Use your own key",
+    "ownFree": "Your own key is free for everyone. You only pay your AI provider for what you use.",
+    "useHosted": "Use the JoyoRogo engine",
+    "hostedConsent": {
+      "title": "Permission for Joyo AI on JoyoRogo",
+      "action": "Agree and start"
+    },
+    "noProvider": {
+      "title": "Your own key is not set up",
+      "body": "Joyo AI with your own key needs one key from the AI provider you choose. The feature is free; usage is billed by the provider.",
+      "action": "Set up your own key"
+    },
+    "noKey": {
+      "title": "The key is not on this phone",
+      "body": "The key for this provider was not found. It may have been deleted. Enter the key again. Nothing is sent before that.",
+      "action": "Enter the key"
+    },
+    "noConsent": {
+      "title": "Permission to share data needed",
+      "body": "You have not agreed to sending data to the provider, or the wording changed since you last agreed. Nothing is sent until you agree.",
+      "action": "Review and agree"
+    },
+    "badUrl": {
+      "title": "The server address cannot be used",
+      "body": "The custom server address is empty, wrong, or uses http outside your home network. Fix the address.",
+      "action": "Fix the address"
+    }
+  },
+  "consent": {
+    "to": "Goes to: {{recipient}}.",
+    "ownRecipient": "{{provider}} ({{host}}), straight from your phone without passing the JoyoRogo server",
+    "hostedRecipient": "the JoyoRogo server, which passes it to the AI model (Cloudflare Workers AI)",
+    "lead": "Each time you ask, this is sent:",
+    "noHost": "no address yet",
+    "data": {
+      "body": "Profile and targets: age, sex, height, goal, kcal, protein, carbs, fat and fiber targets, and target weight.",
+      "food": "Food log: food names, grams, kcal, protein, carbs, fat and fiber for today and the last 7 days. Longer ranges (up to 90 days) are only read when the AI asks for them.",
+      "water": "Water: glasses per day and the goal.",
+      "weight": "Weight: the latest weight and its change over 14 days. A longer trend is only read when the AI asks for it.",
+      "fasting": "Fasting: the pattern and eating window, if you fast.",
+      "chat": "The chat: the questions and answers in this conversation, and the data the AI reads while answering."
+    },
+    "notSentTitle": "Never sent",
+    "notSent": "Menstrual cycle data, pregnancy or breastfeeding mode, name, email, photos, GPS location, device IDs and Strava data.",
+    "terms": "Once it reaches {{provider}}, the data is handled under their own terms and privacy policy. Read their terms on the {{provider}} site first.",
+    "hostedKept": "The JoyoRogo server does not store questions or answers. It only counts questions per day for the daily limit.",
+    "sample": "See a sample of the data",
+    "gemini": "Google's free key is used to improve Google products. Use a paid key or OpenRouter.",
+    "adult": "I am 18 or older",
+    "agree": "I agree to the data above being sent to {{provider}}",
+    "agreeHosted": "I agree to the data above being sent to the JoyoRogo server and its AI model",
+    "withdraw": "You can withdraw this at any time with Delete key in the Joyo AI settings.",
+    "withdrawHosted": "You can withdraw this at any time in the Joyo AI settings."
+  },
+  "setup": {
+    "title": "Set up your own key",
+    "back": "Back",
+    "intro": "Use your own AI account, free in this app. The key is kept only on this phone, in secure storage, and is never synced.",
+    "step1": "1. Provider",
+    "step2": "2. Key and model",
+    "step3": "3. Permission",
+    "hint": {
+      "openrouter": "OpenRouter: the safest way to start. You top up a prepaid balance, so usage is capped by it. Do not turn on auto top-up if you want a firm limit.",
+      "openai": "A key from the OpenAI platform. Billed by usage; set a monthly limit in your account.",
+      "anthropic": "A key from the Anthropic console. Billed by usage; set a monthly limit in your account.",
+      "gemini": "A key from Google AI Studio. Read the warning in step 3 before using a free key.",
+      "custom": "Any server that speaks the OpenAI format: LiteLLM, Ollama on your home network, or a company gateway."
+    },
+    "url": {
+      "label": "Server address",
+      "hint": "The API base address, usually ending in /v1.",
+      "placeholder": "https://your-server-address/v1",
+      "invalid": "The address must start with http:// or https://.",
+      "insecure": "An http address is only allowed on your home network (localhost, 192.168.x.x, 10.x.x.x or .local). Use https so your key and data do not cross the internet unencrypted."
+    },
+    "key": {
+      "label": "API key",
+      "saved": "Key saved: {{masked}}",
+      "replace": "Replace key",
+      "paste": "Paste",
+      "pasteEmpty": "The clipboard is empty. Copy the key from the provider's page first.",
+      "keepSaved": "Use the saved key",
+      "open": "Open the {{provider}} key page",
+      "tip": "Create a key just for JoyoRogo and set a monthly spending limit in the provider account.",
+      "revokeTitle": "How to revoke the key",
+      "revoke": "Revoke or delete the key at any time on the key page of the provider account. Deleting the key in JoyoRogo only removes it from this phone; the same key stays valid at the provider until you revoke it there."
+    },
+    "test": {
+      "run": "Test the connection",
+      "ok_other": "It works, {{count}} calls",
+      "ok_one": "It works, {{count}} call",
+      "hint": "The test only sends one short message, with none of your data."
+    },
+    "save": "Save",
+    "testSave": "Test and save",
+    "savedLabel": "Saved",
+    "needs": "Fill in the key and model, then switch on both agreements in step 3.",
+    "saved": "Key saved. Joyo AI now uses your own key.",
+    "saveFailed": "The key could not be saved on this phone. Try again."
+  },
+  "settings": {
+    "title": "Joyo AI"
+  },
+  "engine": {
+    "title": "Engine",
+    "hostedName": "JoyoRogo (Pro)",
+    "ownName": "Own key",
+    "hostedReady": "Answered by the JoyoRogo server, with a daily message limit",
+    "hostedUsed": "{{used}} of {{cap}} messages today",
+    "hostedLocked": "Needs JoyoRogo Pro",
+    "hostedUnavailable": "Not available on this server yet",
+    "hostedChecking": "Checking your account...",
+    "ownNone": "Not set up. Free for everyone.",
+    "ownLine": "{{provider}}, {{model}}",
+    "ownBlocked": "{{provider}}. Needs a look: {{reason}}.",
+    "block": {
+      "noProvider": "not set up",
+      "badUrl": "the server address cannot be used",
+      "noKey": "the key is not on this phone",
+      "noConsent": "permission to share data is missing",
+      "minor": "not available under 18"
+    },
+    "pickModel": "Pick a model",
+    "free": "Your own key is free for everyone. You only pay your AI provider for what you use."
+  },
+  "limits": {
+    "title": "Limits and speed",
+    "ceiling": "Calls per day",
+    "ceilingHint": "Kept on this phone. One answer can use several calls, because the AI reads data through separate calls.",
+    "fast": "Fast answers",
+    "fastHint": "Asks the model not to think at length. Faster and cheaper, sometimes less thorough. Only has an effect when the provider's server supports it.",
+    "fastFields": "Extra fields for fast answers (optional)",
+    "fastFieldsHint": "A JSON object sent to your server in place of the built-in ones. Leave empty for the defaults.",
+    "fastFieldsBad": "Not a valid JSON object, so the defaults are used."
+  },
+  "data": {
+    "title": "Data on this phone",
+    "sent": "See the data that is sent",
+    "sentHint": "As it would go with the next question",
+    "chatsHint": "Chats are kept on this phone",
+    "usage": "Today: {{tokens}} tokens in {{calls}} calls",
+    "usageHint": "Counted on this phone only, for your own key",
+    "deleteChats": "Delete all chats",
+    "deleteChatsTitle": "Delete all chats?",
+    "deleteChatsMessage": "All your chats with Joyo AI are deleted from this phone. Your key and settings stay.",
+    "deleteChatsConfirm": "Delete",
+    "chatsDeleted": "Chats deleted",
+    "deleteKey": "Delete the {{provider}} key",
+    "deleteKeyTitle": "Delete the {{provider}} key?",
+    "deleteKeyMessage": "The key is deleted from this phone and the permission to share data with {{provider}} is withdrawn. The key itself is still valid in your {{provider}} account: revoke or delete it on your account's key page so it cannot be used any more. If this is the provider in use, Joyo AI goes back to the JoyoRogo engine.",
+    "deleteKeyConfirm": "Delete key",
+    "keyDeleted": "Key deleted from this phone",
+    "withdraw": "Withdraw permission for the JoyoRogo engine",
+    "withdrawTitle": "Withdraw permission?",
+    "withdrawMessage": "Joyo AI on JoyoRogo will not answer until you agree again. Chats on this phone stay as they are.",
+    "withdrawConfirm": "Withdraw",
+    "withdrawn": "Permission withdrawn",
+    "deleteAll": "Delete all Joyo AI data",
+    "deleteAllTitle": "Delete all Joyo AI data?",
+    "deleteAllMessage": "Every key, permission, setting, chat and usage count of Joyo AI is deleted from this phone, and Joyo AI goes back to the JoyoRogo engine. The keys stay valid at the provider until you revoke them there.",
+    "deleteAllConfirm": "Delete all",
+    "allDeleted": "All Joyo AI data deleted from this phone",
+    "deleteFailed": "Could not delete it. Try again.",
+    "screenTitle": "Data that is sent",
+    "intro": "This is the data that goes with every question, built again from your data each time. This page only shows it and sends nothing.",
+    "failed": "The sample cannot be built right now. Try reloading.",
+    "reload": "Reload",
+    "jsonTitle": "Sent with the next question",
+    "size": "{{chars}} characters, about {{tokens}} tokens.",
+    "toolsTitle": "What the AI can read while answering",
+    "toolsIntro": "The AI decides when to read these. All of it is read-only; nothing can change your records. The results are sent along with the answer.",
+    "tools": {
+      "get_day": "One day of the food log: foods, grams, kcal, protein, carbs, fat, fiber, targets, water, fasting",
+      "get_range": "Daily totals up to 90 days: kcal, protein, carbs, fat, fiber, water",
+      "get_weight_trend": "Weight trend over 7 to 365 days, computed by the app",
+      "get_targets": "Your kcal, macro, fiber and weight targets",
+      "search_foods": "Nutrition facts of one food from our food table, per 100 g and per portion",
+      "compare_foods": "Comparing several foods (fiber, protein, kcal, carbs, fat) from our table",
+      "fits_today": "Whether a food fits what is left of today's kcal, protein and fiber"
+    }
+  },
+  "model": {
+    "title": "Model",
+    "selected": "In use: {{model}}",
+    "noToolsChosen": "This model has no tool calling: its answers come from the data summary only.",
+    "search": "Search models",
+    "noTools": "no tool calling",
+    "none": "No model matches.",
+    "noToolsHint": "A model without tool calling answers from the data summary and the food table only, without reading more data.",
+    "direct": "Model id",
+    "afterTest": "The provider's model list shows after the connection test.",
+    "loadFailed": "The model list could not be loaded. You can still type the model id.",
+    "saved": "Model changed to {{model}}",
+    "done": "Done"
+  }
+}
