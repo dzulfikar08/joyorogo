@@ -16,8 +16,9 @@ const PACE_ZONE_COLORS = ["#6EC1DB", "#4FC987", "#E8C13A", "#EE9A3A", "#E5484D"]
 
 function Bar({ percent, color }: { percent: number; color: string }) {
   return (
-    <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted" aria-hidden>
+    <div data-dotbar className="h-2.5 w-full overflow-hidden rounded-full bg-muted" aria-hidden>
       <div
+        data-dotbar-fill
         className="h-full rounded-full"
         style={{ width: `${Math.max(percent, percent > 0 ? 2 : 0)}%`, background: color }}
       />

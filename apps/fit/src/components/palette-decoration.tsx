@@ -8,13 +8,23 @@ import { usePalette } from "@/lib/palette";
 const DARK_STRENGTH = 0.8;
 
 /**
- * The Sogan palette's batik kawung in the top-right corner of the page, behind the content. Static (it never animates) and
- * decorative: hidden from assistive technology and from the pointer. Other palettes draw nothing.
+ * The Sogan palette's batik kawung, or the Titik palette's dot grid, in the top-right corner of the page, behind the content.
+ * Static (they never animate) and decorative: hidden from assistive technology and from the pointer. Other palettes draw
+ * nothing.
  */
 export function PaletteDecoration() {
   const { id } = usePalette();
   const { resolvedTheme } = useTheme();
   const paths = useMemo(() => (id === "sogan" ? kawungPaths() : []), [id]);
+  if (id === "titik") {
+    // The dot-matrix of a display: grey dots 13 px apart, fading out toward the content (the app's `dots` motif).
+    return (
+      <div
+        aria-hidden
+        className="titik-dots pointer-events-none absolute top-0 right-0 z-0 h-44 w-[min(100%,20rem)]"
+      />
+    );
+  }
   if (id !== "sogan") return null;
   const strength = resolvedTheme === "dark" ? DARK_STRENGTH : 1;
   return (

@@ -1,12 +1,13 @@
 import { cn } from "@joyorogo/ui/lib/utils";
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, CSSProperties, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 /** Borderless white surface on the paper canvas, with a hairline ring so it still reads in dark mode. */
 export function Card({ className, ...props }: ComponentProps<"section">) {
   return (
     <section
+      data-surface="card"
       className={cn("min-w-0 rounded-2xl bg-card p-4 ring-1 ring-foreground/5 sm:p-5", className)}
       {...props}
     />
@@ -140,6 +141,12 @@ export function Delta({
   );
 }
 
+/** The width of a figure in digit widths (the value, plus the unit at about half size): Titik fits Doto's wide digits to the tile with it. */
+function figureUnits(value: ReactNode, unit: string | undefined): number {
+  const digits = typeof value === "string" || typeof value === "number" ? String(value).length : 6;
+  return Math.max(1, digits + (unit ? unit.length * 0.5 + 0.4 : 0));
+}
+
 /** One headline number with its label, an optional change and an optional spark line underneath. */
 export function Stat({
   label,
@@ -161,20 +168,27 @@ export function Stat({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 flex-col rounded-2xl bg-card p-3.5 ring-1 ring-foreground/5 sm:p-4">
+    <div
+      data-surface="tile"
+      className="flex min-w-0 flex-col rounded-2xl bg-card p-3.5 ring-1 ring-foreground/5 sm:p-4"
+    >
       <div className="flex items-center justify-between gap-2">
         <p className="min-w-0 text-xs font-semibold text-muted-foreground">{label}</p>
         {icon}
       </div>
-      <p
-        className={cn(
-          "mt-1.5 flex flex-wrap items-baseline gap-x-1 text-[1.625rem] leading-none font-extrabold tracking-tight tabular-nums",
-          tone,
-        )}
-      >
-        {value}
-        {unit && <span className="text-sm font-semibold text-muted-foreground">{unit}</span>}
-      </p>
+      <div data-figure-box>
+        <p
+          data-figure
+          style={{ "--figure-units": figureUnits(value, unit) } as CSSProperties}
+          className={cn(
+            "mt-1.5 flex flex-wrap items-baseline gap-x-1 text-[1.625rem] leading-none font-extrabold tracking-tight tabular-nums",
+            tone,
+          )}
+        >
+          {value}
+          {unit && <span className="text-sm font-semibold text-muted-foreground">{unit}</span>}
+        </p>
+      </div>
       <div className="mt-2 flex min-h-5 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
         {delta}
         {hint}

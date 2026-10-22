@@ -298,6 +298,7 @@ function WorkoutsPage() {
                   <Link
                     to="/latihan/$start"
                     params={{ start: String(w.start) }}
+                    data-surface="card"
                     className="block rounded-2xl bg-card p-3.5 ring-1 ring-foreground/5 transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 active:bg-muted"
                   >
                     <span className="flex items-center gap-3">

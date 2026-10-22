@@ -23,6 +23,7 @@
     "system": "Ikut perangkat",
     "palette": "Warna",
     "paletteDefault": "Standar",
+    "paletteTitik": "Titik",
     "pinnedLight": "Warna ini selalu terang.",
     "pinnedDark": "Warna ini selalu gelap.",
     "signOut": "Keluar"

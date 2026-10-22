@@ -29,7 +29,7 @@ export function ProWall({
   ];
   return (
     <div className="flex min-h-svh flex-col items-center justify-center px-6 py-10">
-      <div className="w-full max-w-md rounded-3xl bg-card p-6 ring-1 ring-foreground/5 sm:p-8">
+      <div data-surface="card" className="w-full max-w-md rounded-3xl bg-card p-6 ring-1 ring-foreground/5 sm:p-8">
         <div className="flex items-center gap-2.5">
           <BrandMark />
           <span className="text-lg font-extrabold tracking-tight">JoyoFit Web</span>

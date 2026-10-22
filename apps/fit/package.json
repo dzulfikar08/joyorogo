@@ -13,8 +13,10 @@
     "deploy": "VITE_SERVER_URL=${VITE_SERVER_URL:-https://api.joyorogo.com} bun run build && wrangler deploy"
   },
   "dependencies": {
-    "@garmin/fitsdk": "^21.218.0",
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
+    "@fontsource-variable/space-grotesk": "^5.3.0",
+    "@fontsource/doto": "^5.3.0",
+    "@garmin/fitsdk": "^21.218.0",
     "@joyorogo/api": "workspace:*",
     "@joyorogo/i18n": "workspace:*",
     "@joyorogo/ui": "workspace:*",

@@ -22,7 +22,7 @@ Filters and the range live in the URL (`?range=90&sport=["run"]&sort=distance&di
 
 ### Studio (watch faces)
 
-The sidebar (and the settings sheet below `lg`) has a "Studio" entry, a plain `<a href="/studio/">` to the JoyoFit Studio app mounted on this same origin by a Worker route. It is outside the Pro gate, like Ride. URL: `src/lib/ride.ts`.
+The account popover (see below) has a "Studio" entry, a plain `<a href="/studio/">` to the JoyoFit Studio app mounted on this same origin by a Worker route. It is outside the Pro gate, like Ride. URL: `src/lib/ride.ts`.
 
 ### Studio projects (cloud)
 
@@ -39,9 +39,11 @@ JoyoFit Studio (`/studio/`, repo `watch-fit` `web/`) can keep its `.project.json
 
 ### Color palette and "Baru di aplikasi"
 
-Settings (sidebar, or the settings sheet below `lg`) has a **Warna** choice next to Terang/Gelap/Ikut perangkat: JoyoFit's teal (default) or the app's Sogan, Sakura, Lavender, Peach, Rose Gold, Strawberry Milk and Matcha Latte. The colors are the app's own (`src/theme/themes.ts` in the watch-fit repo), written on the shared tokens in `src/palettes.css`; fonts and radii stay the web's. Sogan, Sakura and Lavender follow light/dark; Peach, Strawberry Milk and Matcha Latte are always light and Rose Gold always dark, as in the app, so choosing one sets Terang or Gelap and the row says so (leaving it puts the earlier choice back). Sogan also draws the batik kawung in the top-right of the page (`lib/kawung.ts`, a port of the app's geometry, static, hidden from assistive technology). The choice is kept in this browser (`joyofit-web:palette`), not in the account: the app's own theme choice is a JoyoFit-cloud preference that the web cannot read, so the two do not follow each other. `lib/palette.ts`, `components/palette-decoration.tsx`; `index.html` sets `data-palette` before first paint.
+The account popover has a **Warna** choice next to Terang/Gelap/Ikut perangkat: JoyoFit's teal (default) or the app's Sogan, Sakura, Lavender, Peach, Rose Gold, Strawberry Milk, Matcha Latte and Titik (en: Dot). The colors are the app's own (`src/theme/themes.ts` in the watch-fit repo), written on the shared tokens in `src/palettes.css`; fonts and radii stay the web's. Sogan, Sakura, Lavender and Titik follow light/dark; Peach, Strawberry Milk and Matcha Latte are always light and Rose Gold always dark, as in the app, so choosing one sets Terang or Gelap and the row says so (leaving it puts the earlier choice back). Sogan also draws the batik kawung in the top-right of the page (`lib/kawung.ts`, a port of the app's geometry, static, hidden from assistive technology). The choice is kept in this browser (`joyofit-web:palette`), not in the account: the app's own theme choice is a JoyoFit-cloud preference that the web cannot read, so the two do not follow each other. `lib/palette.ts`, `components/palette-decoration.tsx`; `index.html` sets `data-palette` before first paint. Titik (`data-palette="titik"`) is the app's monochrome theme: off-white/black with greys and one red, outlined cards and tiles (`data-surface`, a hairline in place of the faint ring), Doto (`@fontsource/doto`, weight 900, as the app loads it) for h1 and the `Stat` figures with Space Grotesk text, a dot grid behind the page header (`.titik-dots`), and the zone bars drawn as rows of dots (`data-dotbar`). Doto is 0.6 em a glyph, so `Stat` sets `--figure-units` and the figure shrinks to its tile (not below 18 px). The web has no progress rings, so only the bars are dotted; the HR and pace zone colors stay as drawn.
 
-The sidebar (settings sheet below `lg`) also links to `https://fit.joyorogo.com/#baru`, the product site's "Baru di aplikasi" section (`WHATS_NEW_URL` in `lib/ride.ts`), in a new tab.
+The account popover also links to `https://fit.joyorogo.com/#baru`, the product site's "Baru di aplikasi" section (`WHATS_NEW_URL` in `lib/ride.ts`), in a new tab.
+
+The sidebar holds primary navigation only. At its bottom is a compact account row (avatar, name and email truncated) that opens the account popover (`components/account-menu.tsx`, Radix popover in modal mode: focus stays inside, Esc closes and returns focus): theme, Warna, language, Ride, Studio, Baru and sign-out. Below `lg` the same popover opens from the avatar in the top bar. There is no separate settings page: the popover is the settings.
 
 ### Unggah: workout files
 

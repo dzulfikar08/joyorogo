@@ -480,3 +480,191 @@
   --stage-light: #BDB6E8;
   --stage-awake: #DDA23A;
 }
+
+/*
+ * Titik (Dot): the app's monochrome theme. Off-white and near-black with greys, one red for what is live (the primary and
+ * the heart), thin outlines instead of filled cards, Doto dot-matrix figures and titles over Space Grotesk text, a dot-grid
+ * behind the page header and dotted progress bars. Follows light/dark. Colors are the app's own (`titikLight`, `titikDark`);
+ * the strain and sleep data colors are its greys, so charts read in tone, not hue. Zone colors stay as drawn.
+ */
+
+:root[data-palette="titik"] {
+  --background: #F2F2F0;
+  --foreground: #0A0A0A;
+  --card: #F8F8F6;
+  --card-foreground: #0A0A0A;
+  --popover: #F8F8F6;
+  --popover-foreground: #0A0A0A;
+  --primary: #D71921;
+  --primary-foreground: #FFFFFF;
+  --secondary: #E4E4E1;
+  --secondary-foreground: #0A0A0A;
+  --muted: #E4E4E1;
+  --muted-foreground: #55555A;
+  --accent: #E4E4E1;
+  --accent-foreground: #0A0A0A;
+  --destructive: #BF1119;
+  --border: rgba(10,10,10,0.3);
+  --input: rgba(10,10,10,0.3);
+  --ring: #0A0A0A;
+  --bakar: #5A5A5A;
+  --bakar-soft: #E4E4E1;
+  --bakar-ink: #4A4A4A;
+  --tidur: #4A4A4A;
+  --tidur-soft: #E4E4E1;
+  --tidur-ink: #4A4A4A;
+  --chart-1: #0A0A0A;
+  --chart-2: #7A7A7A;
+  --chart-3: #4A4A4A;
+  --chart-4: #A8A8A8;
+  --chart-5: #55555A;
+  --sidebar: #F2F2F0;
+  --sidebar-foreground: #0A0A0A;
+  --sidebar-primary: #D71921;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E4E4E1;
+  --sidebar-accent-foreground: #0A0A0A;
+  --sidebar-border: rgba(10,10,10,0.3);
+  --sidebar-ring: #0A0A0A;
+  --heart: #D71921;
+  --recovery: #2A2A2A;
+  --warning: #4A4A4A;
+  --stage-deep: #1A1A1A;
+  --stage-rem: #6A6A6A;
+  --stage-light: #A8A8A8;
+  --stage-awake: #D71921;
+}
+
+:root[data-palette="titik"].dark {
+  --background: #000000;
+  --foreground: #F5F5F5;
+  --card: #0B0B0B;
+  --card-foreground: #F5F5F5;
+  --popover: #0B0B0B;
+  --popover-foreground: #F5F5F5;
+  --primary: #E02A31;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1C1C1C;
+  --secondary-foreground: #F5F5F5;
+  --muted: #1C1C1C;
+  --muted-foreground: #9A9A9A;
+  --accent: #1C1C1C;
+  --accent-foreground: #F5F5F5;
+  --destructive: #FF5A60;
+  --border: rgba(245,245,245,0.28);
+  --input: rgba(245,245,245,0.28);
+  --ring: #F5F5F5;
+  --bakar: #9A9A9A;
+  --bakar-soft: #1C1C1C;
+  --bakar-ink: #BDBDBD;
+  --tidur: #B8B8B8;
+  --tidur-soft: #1C1C1C;
+  --tidur-ink: #B8B8B8;
+  --chart-1: #F5F5F5;
+  --chart-2: #8C8C8C;
+  --chart-3: #B8B8B8;
+  --chart-4: #555555;
+  --chart-5: #9A9A9A;
+  --sidebar: #000000;
+  --sidebar-foreground: #F5F5F5;
+  --sidebar-primary: #E02A31;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1C1C1C;
+  --sidebar-accent-foreground: #F5F5F5;
+  --sidebar-border: rgba(245,245,245,0.28);
+  --sidebar-ring: #F5F5F5;
+  --heart: #FF4D55;
+  --recovery: #D8D8D8;
+  --warning: #BDBDBD;
+  --stage-deep: #8A8A8A;
+  --stage-rem: #D0D0D0;
+  --stage-light: #555555;
+  --stage-awake: #FF4D55;
+}
+
+/* Text: Space Grotesk at the app's medium; headings and figures: Doto (one weight, 900, as the app loads it). */
+:root[data-palette="titik"] {
+  --font-sans: "Space Grotesk Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-dot: "Doto", ui-monospace, monospace;
+}
+
+:root[data-palette="titik"] body {
+  font-family: var(--font-sans);
+  font-weight: 500;
+}
+
+:root[data-palette="titik"] h1,
+:root[data-palette="titik"] [data-figure] {
+  font-family: var(--font-dot);
+  font-weight: 900;
+  font-synthesis: none;
+}
+
+/*
+ * A figure is Doto, which is 0.6 em a glyph: the tile is a size container and the figure shrinks (never below 18 px) so the
+ * value and its unit fit on one line. `--figure-units` is the figure's width in digits, set by `Stat`.
+ */
+:root[data-palette="titik"] [data-figure-box] {
+  container-type: inline-size;
+}
+
+:root[data-palette="titik"] [data-figure] {
+  font-size: clamp(1.125rem, calc(100cqw / (var(--figure-units, 6) * 0.62)), 1.625rem);
+}
+
+/* Outlined surfaces: the canvas tone with a thin hairline in place of the faint ring (focus rings keep their own color). */
+:root[data-palette="titik"] [data-surface]:not(:focus-visible) {
+  --tw-ring-color: var(--border);
+}
+
+:root[data-palette="titik"] [data-surface="card"] {
+  border-radius: 1.5rem;
+}
+
+:root[data-palette="titik"] [data-surface="tile"] {
+  border-radius: 1rem;
+}
+
+/* The dot grid behind the page header, fading out toward the content. */
+:root[data-palette="titik"] .titik-dots {
+  background-image: radial-gradient(circle at center, var(--muted-foreground) 1.25px, transparent 1.75px);
+  background-size: 13px 13px;
+  background-position: top right;
+  opacity: 0.5;
+  -webkit-mask-image: radial-gradient(ellipse at top right, #000 0%, transparent 72%);
+  mask-image: radial-gradient(ellipse at top right, #000 0%, transparent 72%);
+}
+
+/* Progress bars as a row of dots: the track in grey dots, the fill the same dots in the data color. */
+:root[data-palette="titik"] [data-dotbar] {
+  border-radius: 0;
+  background-color: transparent;
+  background-image: radial-gradient(
+    circle at center,
+    color-mix(in oklab, var(--muted-foreground) 45%, transparent) 2.5px,
+    transparent 3px
+  );
+  background-size: 8px 10px;
+  background-repeat: repeat-x;
+}
+
+:root[data-palette="titik"] [data-dotbar-fill] {
+  border-radius: 0;
+  -webkit-mask-image: radial-gradient(circle at center, #000 2.5px, transparent 3px);
+  mask-image: radial-gradient(circle at center, #000 2.5px, transparent 3px);
+  -webkit-mask-size: 8px 10px;
+  mask-size: 8px 10px;
+  -webkit-mask-repeat: repeat-x;
+  mask-repeat: repeat-x;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-palette="titik"] *,
+  :root[data-palette="titik"] *::before,
+  :root[data-palette="titik"] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

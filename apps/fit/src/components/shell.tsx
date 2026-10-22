@@ -1,44 +1,17 @@
-import { LOCALES, LOCALE_NAMES, isLocale } from "@joyorogo/i18n";
-import type { Locale } from "@joyorogo/i18n";
-import { Button } from "@joyorogo/ui/components/button";
-import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
-import { useTheme } from "@joyorogo/ui/hooks/use-theme";
-import type { Theme } from "@joyorogo/ui/hooks/use-theme";
 import { cn } from "@joyorogo/ui/lib/utils";
-import { useMutation } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
-import {
-  Activity,
-  Bike,
-  BedDouble,
-  LayoutDashboard,
-  LogOut,
-  Monitor,
-  Moon,
-  Palette,
-  Settings,
-  Sun,
-  Newspaper,
-  Plug,
-  Upload,
-} from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Activity, BedDouble, LayoutDashboard, Plug, Upload } from "lucide-react";
 import { useState } from "react";
 import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
 
-import { setLocale } from "@/lib/i18n";
-import { type Session, signOut } from "@/lib/auth-client";
-import { orpc } from "@/lib/orpc";
+import type { Session } from "@/lib/auth-client";
 
-import { RIDE_URL, STUDIO_URL, WHATS_NEW_URL } from "@/lib/ride";
-
-import { PALETTES, usePalette } from "@/lib/palette";
-
+import { AccountMenu } from "./account-menu";
 import { BrandMark } from "./brand-mark";
 import { PaletteDecoration } from "./palette-decoration";
 import { PageLoader } from "./states";
-import { Segmented } from "./kit";
 
 type NavItem = {
   to: "/" | "/latihan" | "/tidur" | "/unggah" | "/koneksi";
@@ -100,180 +73,6 @@ function BottomLink({ item }: { item: NavItem }) {
   );
 }
 
-/**
- * External: a full-page site of its own, opened in this tab (a plain link, not the router's). They sit outside the Pro
- * gate. The tab bar is full, so small screens reach them from the settings sheet.
- */
-function ExternalLink({
-  href,
-  Icon,
-  title,
-  description,
-  newTab = false,
-}: {
-  href: string;
-  Icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
-  title: string;
-  description: string;
-  /** A site of its own, not part of this app: it opens beside it. */
-  newTab?: boolean;
-}) {
-  return (
-    <a
-      href={href}
-      {...(newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-      className="group flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40"
-    >
-      <Icon className="size-[1.125rem] shrink-0" aria-hidden />
-      <span className="min-w-0">
-        <span className="block text-sm font-semibold">{title}</span>
-        <span className="block text-xs leading-snug">{description}</span>
-      </span>
-    </a>
-  );
-}
-
-/** Ride game, watch-face Studio and the product site's "what is new". */
-function ExternalLinks() {
-  const { t } = useTranslation("fitWeb");
-  return (
-    <>
-      <ExternalLink
-        href={RIDE_URL}
-        Icon={Bike}
-        title={t("ride.title")}
-        description={t("ride.description")}
-      />
-      <ExternalLink
-        href={STUDIO_URL}
-        Icon={Palette}
-        title={t("studio.title")}
-        description={t("studio.description")}
-      />
-      <ExternalLink
-        href={WHATS_NEW_URL}
-        Icon={Newspaper}
-        title={t("whatsNew.title")}
-        description={t("whatsNew.description")}
-        newTab
-      />
-    </>
-  );
-}
-
-/** Language, theme and sign-out: inline in the sidebar, inside a sheet on small screens. */
-function SettingsPanel({ session }: { session: Session }) {
-  const { t, i18n } = useTranslation("fitWeb");
-  const { theme, setTheme } = useTheme();
-  const palette = usePalette();
-  const navigate = useNavigate();
-  const saveLocale = useMutation(orpc.profile.setLocale.mutationOptions());
-  const current: Locale = isLocale(i18n.language) ? i18n.language : "id";
-
-  const pickLocale = (locale: Locale) => {
-    void setLocale(locale);
-    // The account keeps the choice for the other JoyoRogo apps. A failure (no profile yet) never blocks the switch.
-    saveLocale.mutate({ locale });
-  };
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="min-w-0">
-        <p className="break-words text-sm font-bold">{session.user.name}</p>
-        <p className="text-xs break-all text-muted-foreground">{session.user.email}</p>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <p className="text-xs font-semibold text-muted-foreground">{t("menu.language")}</p>
-        <Segmented
-          label={t("menu.language")}
-          value={current}
-          onChange={pickLocale}
-          options={LOCALES.map((locale) => ({
-            value: locale,
-            label: locale.toUpperCase(),
-            name: LOCALE_NAMES[locale],
-          }))}
-        />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <p className="text-xs font-semibold text-muted-foreground">{t("menu.theme")}</p>
-        {palette.info.pin ? (
-          <p className="text-xs text-muted-foreground">
-            {t(palette.info.pin === "light" ? "menu.pinnedLight" : "menu.pinnedDark")}
-          </p>
-        ) : (
-          <Segmented<Theme>
-            label={t("menu.theme")}
-            value={theme}
-            onChange={setTheme}
-            options={[
-              {
-                value: "light",
-                label: <Sun className="size-4" aria-hidden />,
-                name: t("menu.light"),
-              },
-              {
-                value: "dark",
-                label: <Moon className="size-4" aria-hidden />,
-                name: t("menu.dark"),
-              },
-              {
-                value: "system",
-                label: <Monitor className="size-4" aria-hidden />,
-                name: t("menu.system"),
-              },
-            ]}
-          />
-        )}
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <p className="text-xs font-semibold text-muted-foreground">
-          {t("menu.palette")}: {palette.info.name ?? t("menu.paletteDefault")}
-        </p>
-        <div role="radiogroup" aria-label={t("menu.palette")} className="flex flex-wrap gap-1.5">
-          {PALETTES.map((option) => {
-            const name = option.name ?? t("menu.paletteDefault");
-            const selected = option.id === palette.id;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                aria-label={name}
-                title={name}
-                onClick={() => palette.choose(option.id)}
-                style={{
-                  background: `linear-gradient(135deg, ${option.canvas} 50%, ${option.primary} 50%)`,
-                }}
-                className={cn(
-                  "size-9 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40",
-                  selected
-                    ? "ring-2 ring-foreground ring-offset-2 ring-offset-card"
-                    : "ring-1 ring-foreground/20",
-                )}
-              />
-            );
-          })}
-        </div>
-      </div>
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full justify-start"
-        onClick={async () => {
-          await signOut();
-          await navigate({ to: "/login" });
-        }}
-      >
-        <LogOut aria-hidden />
-        {t("menu.signOut")}
-      </Button>
-    </div>
-  );
-}
-
-/** App chrome: sidebar from `lg`, top bar and tab bar below it. */
 /** The frame while the session and Pro check are in flight: the brand and nav slots hold their place, so the page does not jump. */
 export function ShellSkeleton() {
   return (
@@ -300,9 +99,11 @@ export function ShellSkeleton() {
   );
 }
 
+/** App chrome: sidebar from `lg` (primary navigation and the account row), top bar with the account avatar and tab bar below it. */
 export function Shell({ session, children }: { session: Session; children: React.ReactNode }) {
   const { t } = useTranslation("fitWeb");
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [sideMenuOpen, setSideMenuOpen] = useState(false);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   return (
     <div className="min-h-svh lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
       <aside className="sticky top-0 hidden h-svh flex-col gap-6 overflow-y-auto border-r border-border bg-sidebar px-3 py-5 lg:flex">
@@ -313,10 +114,14 @@ export function Shell({ session, children }: { session: Session; children: React
           {NAV.map((item) => (
             <SideLink key={item.to} item={item} />
           ))}
-          <ExternalLinks />
         </nav>
-        <div className="mt-auto rounded-2xl bg-card p-3 ring-1 ring-foreground/5">
-          <SettingsPanel session={session} />
+        <div className="mt-auto">
+          <AccountMenu
+            session={session}
+            variant="row"
+            open={sideMenuOpen}
+            onOpenChange={setSideMenuOpen}
+          />
         </div>
       </aside>
 
@@ -324,21 +129,13 @@ export function Shell({ session, children }: { session: Session; children: React
         <PaletteDecoration />
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/90 px-4 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden">
           <Brand />
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t("menu.open")}
-            onClick={() => setSettingsOpen(true)}
-          >
-            <Settings aria-hidden />
-          </Button>
+          <AccountMenu
+            session={session}
+            variant="avatar"
+            open={headerMenuOpen}
+            onOpenChange={setHeaderMenuOpen}
+          />
         </header>
-        <Sheet open={settingsOpen} onOpenChange={setSettingsOpen} title={t("menu.title")}>
-          <div className="flex flex-col gap-4">
-            <ExternalLinks />
-            <SettingsPanel session={session} />
-          </div>
-        </Sheet>
 
         <main
           className={cn(

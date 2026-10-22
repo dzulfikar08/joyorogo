@@ -18,11 +18,12 @@ export type PaletteId =
   | "peach"
   | "rosegold"
   | "strawberry"
-  | "matcha";
+  | "matcha"
+  | "titik";
 
 export interface PaletteInfo {
   id: PaletteId;
-  /** Proper names of the app's themes; `default` is named by the screen (it is translated). */
+  /** Proper names of the app's themes; `default` and `titik` (Titik / Dot) are named by the screen (they are translated). */
   name: string | null;
   /** The scheme the palette is drawn in always, or null when it follows the Terang/Gelap choice. */
   pin: "light" | "dark" | null;
@@ -40,6 +41,7 @@ export const PALETTES: readonly PaletteInfo[] = [
   { id: "rosegold", name: "Rose Gold", pin: "dark", canvas: "#1A1213", primary: "#E8A598" },
   { id: "strawberry", name: "Strawberry Milk", pin: "light", canvas: "#FFEFEF", primary: "#C8283F" },
   { id: "matcha", name: "Matcha Latte", pin: "light", canvas: "#F1F4E4", primary: "#4F7A2A" },
+  { id: "titik", name: null, pin: null, canvas: "#F2F2F0", primary: "#D71921" },
 ];
 
 const PALETTE_KEY = "joyofit-web:palette";

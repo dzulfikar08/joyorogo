@@ -23,6 +23,7 @@
     "system": "Match device",
     "palette": "Color",
     "paletteDefault": "Default",
+    "paletteTitik": "Dot",
     "pinnedLight": "This color is always light.",
     "pinnedDark": "This color is always dark.",
     "signOut": "Sign out"
