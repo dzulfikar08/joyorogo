@@ -1,4 +1,5 @@
 import { authClient } from "@/lib/auth-client";
+import { singleFlight } from "@/src/lib/single-flight";
 import { client } from "@/utils/orpc";
 
 import type { WidgetSnapshot } from "./snapshot";
@@ -33,10 +34,13 @@ function withTimeout<T>(promise: Promise<T>): Promise<T> {
  *
  * Returns the fresh snapshot, or null when nothing changed (offline,
  * timeout) so the caller keeps the last drawn state.
+ *
+ * The launcher starts one headless run per widget on the same tick and WorkManager runs them side by side in this
+ * JS instance, so concurrent calls share one fetch instead of making three API calls each.
  */
-export async function refreshSnapshotFromApi(
-  current: WidgetSnapshot,
-): Promise<WidgetSnapshot | null> {
+export const refreshSnapshotFromApi = singleFlight(fetchSnapshot);
+
+async function fetchSnapshot(current: WidgetSnapshot): Promise<WidgetSnapshot | null> {
   const cookie = await authClient.getCookie();
   if (!cookie) {
     return current.signedIn ? writeSnapshot({ signedIn: false }) : current;
