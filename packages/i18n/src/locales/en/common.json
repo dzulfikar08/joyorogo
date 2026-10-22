@@ -121,6 +121,10 @@
       "subtitleUnlimited": "Pro: unlimited AI scans",
       "subtitleCapped_one": "Pro: {{count}} AI scan per day",
       "subtitleCapped_other": "Pro: {{count}} AI scans per day"
+    },
+    "sources": {
+      "title": "Data sources",
+      "subtitle": "Where data comes from and when it last arrived"
     }
   },
   "range": {

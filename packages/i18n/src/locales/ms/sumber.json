@@ -1,0 +1,50 @@
+{
+  "title": "Sumber data",
+  "intro": "Dari mana aktiviti, berat dan catatan anda masuk, dan bila kali terakhir.",
+  "sections": {
+    "connected": "Disambungkan",
+    "available": "Belum disambungkan",
+    "apps": "Aplikasi AI"
+  },
+  "usedToday": "Digunakan hari ini",
+  "usedTodayNote": "Tanda \"Digunakan hari ini\" menunjukkan sumber jumlah aktiviti sepanjang hari yang dikira hari ini.",
+  "lastIn": "terakhir masuk {{when}}",
+  "lastSync": "terakhir disegerak {{when}}",
+  "counts": {
+    "workouts_other": "{{count}} senaman dalam 7 hari",
+    "entries_other": "{{count}} catatan dalam 7 hari",
+    "weighIns_other": "{{count}} timbangan dalam 7 hari"
+  },
+  "retry": "Cuba lagi",
+  "rows": {
+    "joyofit": {
+      "title": "JoyoFit",
+      "via": "melalui aplikasi JoyoFit",
+      "empty": "Belum ada data daripada JoyoFit. Buka JoyoFit untuk memadankan jam."
+    },
+    "health": {
+      "titleAndroid": "Health Connect",
+      "titleIos": "Apple Health",
+      "viaAndroid": "melalui Health Connect",
+      "viaIos": "melalui Apple Health",
+      "noRecord": "belum ada penyegerakan dicatat di telefon ini",
+      "empty": "Benarkan bacaan langkah, tidur dan senaman supaya masuk sendiri."
+    },
+    "strava": {
+      "title": "Strava",
+      "via": "melalui Strava",
+      "none": "tiada senaman dalam 30 hari lepas",
+      "empty": "Sambungkan supaya larian dan berbasikal masuk sendiri."
+    },
+    "scale": {
+      "title": "Penimbang pintar",
+      "via": "melalui JoyoFit",
+      "empty": "Berat dan komposisi badan daripada penimbang pintar masuk melalui JoyoFit. Belum ada yang masuk."
+    },
+    "manual": {
+      "title": "Catatan manual",
+      "sub": "Makanan, berat, air dan senaman yang anda catat sendiri",
+      "none": "tiada catatan manual dalam 30 hari lepas"
+    }
+  }
+}

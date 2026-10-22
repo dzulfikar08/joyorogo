@@ -16,7 +16,7 @@ import { useSessionGate } from "@/lib/use-session-gate";
 import { useUnreadCount } from "@/src/lib/group";
 
 /**
- * Lainnya tab: the overflow destination — Profil, Grup, Kotak Masuk, and the
+ * Lainnya tab: the overflow destination — Profil, Berat, Rekap, Sumber data, Grup, Kotak Masuk, and the
  * Founder paywall when the account is still free.
  */
 export default function Lainnya() {
@@ -69,6 +69,14 @@ export default function Lainnya() {
           subtitle={t("more.recap.subtitle")}
           chevron
           onPress={() => router.push("/rekap")}
+        />
+        <ListRow
+          icon="swap-horizontal"
+          iconTint="tidur"
+          title={t("more.sources.title")}
+          subtitle={t("more.sources.subtitle")}
+          chevron
+          onPress={() => router.push("/sumber")}
         />
         <ListRow
           icon="people"

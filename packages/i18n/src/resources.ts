@@ -40,6 +40,7 @@ import idFitWebSleep from "./locales/id/fitWebSleep.json";
 import idFitWebUpload from "./locales/id/fitWebUpload.json";
 import idFitWebConnect from "./locales/id/fitWebConnect.json";
 import idMealPlan from "./locales/id/mealPlan.json";
+import idSumber from "./locales/id/sumber.json";
 
 import enAuth from "./locales/en/auth.json";
 import enBerat from "./locales/en/berat.json";
@@ -83,6 +84,7 @@ import enFitWebSleep from "./locales/en/fitWebSleep.json";
 import enFitWebUpload from "./locales/en/fitWebUpload.json";
 import enFitWebConnect from "./locales/en/fitWebConnect.json";
 import enMealPlan from "./locales/en/mealPlan.json";
+import enSumber from "./locales/en/sumber.json";
 
 import msAuth from "./locales/ms/auth.json";
 import msBerat from "./locales/ms/berat.json";
@@ -126,6 +128,7 @@ import msFitWebSleep from "./locales/ms/fitWebSleep.json";
 import msFitWebUpload from "./locales/ms/fitWebUpload.json";
 import msFitWebConnect from "./locales/ms/fitWebConnect.json";
 import msMealPlan from "./locales/ms/mealPlan.json";
+import msSumber from "./locales/ms/sumber.json";
 
 import type { Locale } from "./locale";
 
@@ -173,6 +176,7 @@ const id = {
   fitWebUpload: idFitWebUpload,
   fitWebConnect: idFitWebConnect,
   mealPlan: idMealPlan,
+  sumber: idSumber,
 };
 
 /**
@@ -222,6 +226,7 @@ const en: typeof id = {
   fitWebUpload: enFitWebUpload,
   fitWebConnect: enFitWebConnect,
   mealPlan: enMealPlan,
+  sumber: enSumber,
 };
 
 const ms: typeof id = {
@@ -267,6 +272,7 @@ const ms: typeof id = {
   fitWebUpload: msFitWebUpload,
   fitWebConnect: msFitWebConnect,
   mealPlan: msMealPlan,
+  sumber: msSumber,
 };
 
 export const resources = { id, en, ms } satisfies Record<Locale, typeof id>;

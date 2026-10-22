@@ -117,6 +117,10 @@
       "title": "Jadi Pro",
       "subtitleUnlimited": "Pro: scan AI tanpa batas",
       "subtitleCapped_other": "Pro: {{count}} scan AI per hari"
+    },
+    "sources": {
+      "title": "Sumber data",
+      "subtitle": "Dari mana data masuk dan kapan terakhir"
     }
   },
   "range": {

@@ -7,6 +7,7 @@ import { Platform } from "react-native";
 import { getAppleHealthModule } from "@/modules/apple-health";
 import type * as AppleHealth from "@/src/lib/apple-health";
 import type * as HealthConnect from "@/src/lib/health-connect";
+import { recordHealthSync } from "@/src/lib/health-last-sync-store";
 
 export type HealthSyncResult = {
   workoutsImported: number;
@@ -24,11 +25,38 @@ export function isHealthSyncSupported(): boolean {
 export async function syncHealthData(latestWeightKg: number | null): Promise<HealthSyncResult> {
   if (Platform.OS === "ios") {
     const { syncAppleHealth } = require("@/src/lib/apple-health") as typeof AppleHealth;
-    return syncAppleHealth(latestWeightKg);
+    const result = await syncAppleHealth(latestWeightKg);
+    await recordHealthSync(result);
+    return result;
   }
   if (Platform.OS === "android") {
     const { syncHealthConnect } = require("@/src/lib/health-connect") as typeof HealthConnect;
-    return syncHealthConnect(latestWeightKg);
+    const result = await syncHealthConnect(latestWeightKg);
+    await recordHealthSync(result);
+    return result;
   }
   return { workoutsImported: 0, workoutsSkipped: 0, activityDays: 0, sleepNights: 0 };
+}
+
+/**
+ * Whether the app may already read the health store, without asking anything: Health Connect's five read permissions
+ * on Android, and on iOS that the HealthKit prompt was answered plus a first import finished (HealthKit never says
+ * whether the answer was yes). The same gate the silent auto-sync on Beranda uses.
+ */
+export async function isHealthConnected(): Promise<boolean> {
+  try {
+    if (Platform.OS === "ios") {
+      const apple = getAppleHealthModule();
+      if (!apple || (await apple.getRequestStatus()) !== 2) return false;
+      const { hasCompletedFirstSync } = require("@/src/lib/apple-health") as typeof AppleHealth;
+      return await hasCompletedFirstSync();
+    }
+    if (Platform.OS === "android") {
+      const { hasReadPermissions } = require("@/src/lib/health-connect") as typeof HealthConnect;
+      return await hasReadPermissions();
+    }
+  } catch {
+    // Health Connect missing or not initialised: not connected as far as the app can tell.
+  }
+  return false;
 }

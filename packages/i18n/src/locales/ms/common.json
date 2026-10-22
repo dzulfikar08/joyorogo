@@ -117,6 +117,10 @@
       "title": "Jadi Pro",
       "subtitleUnlimited": "Pro: imbasan AI tanpa had",
       "subtitleCapped_other": "Pro: {{count}} imbasan AI sehari"
+    },
+    "sources": {
+      "title": "Sumber data",
+      "subtitle": "Dari mana data masuk dan bila kali terakhir"
     }
   },
   "range": {
