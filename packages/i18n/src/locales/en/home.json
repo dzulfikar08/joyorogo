@@ -329,5 +329,12 @@
   "notice": {
     "expand": "Open note",
     "collapse": "Close note"
+  },
+  "calChip": {
+    "days_one": "Calibrating, {{count}} day left at the earliest",
+    "days_other": "Calibrating, {{count}} days left at the earliest",
+    "weigh": "Calibration starts with your first weigh-in",
+    "waiting": "Calibration starts {{date}}",
+    "hint": "Open the progress of the eat-target calibration"
   }
 }

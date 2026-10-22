@@ -320,5 +320,11 @@
   "notice": {
     "expand": "Buka catatan",
     "collapse": "Tutup catatan"
+  },
+  "calChip": {
+    "days_other": "Penentukuran, paling cepat {{count}} hari lagi",
+    "weigh": "Penentukuran bermula dengan timbangan pertama anda",
+    "waiting": "Penentukuran bermula {{date}}",
+    "hint": "Buka kemajuan penentukuran sasaran makan"
   }
 }

@@ -25,6 +25,7 @@ import { gainEatTone, gainRemaining } from "@joyorogo/api/lib/gain";
 import { DEFAULT_ADD_BACK_SETTINGS } from "@joyorogo/api/lib/exercise-credit";
 import { clockHourIn, fmtNumber, instantIn } from "@joyorogo/i18n";
 
+import { CalibrationChip } from "@/components/calibration-chip";
 import { CalibrationNotice } from "@/components/calibration-notice";
 import { ManualTdeeSuggestionCard } from "@/components/manual-tdee";
 import { EnergyNotice } from "@/components/energy-notice";
@@ -1007,6 +1008,9 @@ export default function Dashboard() {
 
       {/* Free account that just hit a streak milestone: one Pro card, once per milestone */}
       {maternal ? null : <StreakNudge userId={sessionData?.user.id ?? null} streakDays={data.streakDays} />}
+
+      {/* While the automatic calibration is still collecting: its one-line chip */}
+      <CalibrationChip enabled={isToday && !maternal} />
 
       {/* The cards, in the order this person arranged them (daily report first by default) */}
       {visibleHomeCards(cardPrefs).map((id) => (
