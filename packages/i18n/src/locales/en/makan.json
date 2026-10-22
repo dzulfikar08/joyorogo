@@ -501,6 +501,7 @@
     "editStory": "Edit story",
     "portionDefault": "1 serving",
     "usual": "as usual · AI said {{kcal}}",
+    "usualPortion": "your usual portion · AI said {{grams}}",
     "kcalAria": "Calories for {{name}}",
     "plateName": "Plate name",
     "priceLabel": "Price (Rp)",

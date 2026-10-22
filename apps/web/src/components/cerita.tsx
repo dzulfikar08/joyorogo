@@ -581,6 +581,9 @@ export function Cerita({
                               item.usualDensity && kcals[index] === String(item.kcal)
                                 ? t("story.usual", { kcal: fmtKcalLabel(item.usualDensity.modelKcal) })
                                 : null,
+                              item.portionPrior && kcals[index] === String(item.kcal)
+                                ? t("story.usualPortion", { grams: fmtGramsLabel(item.portionPrior.other.grams) })
+                                : null,
                             ]}
                           />
                         ) : (

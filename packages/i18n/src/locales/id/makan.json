@@ -488,6 +488,7 @@
     "editStory": "Ubah cerita",
     "portionDefault": "1 porsi",
     "usual": "seperti biasanya · AI hitung {{kcal}}",
+    "usualPortion": "porsi kebiasaanmu · AI hitung {{grams}}",
     "kcalAria": "Kalori {{name}}",
     "plateName": "Nama piring",
     "priceLabel": "Harga (Rp)",

@@ -1,6 +1,7 @@
 // Named domain contracts for API rows that ship inferred-only (packages/api is
 // frozen for the web team). Derived once at the AppRouterClient boundary so
 // consumers import stable names instead of implementation helpers.
+import type { PortionPriorChip } from "@joyorogo/api/lib/portion-chip";
 import type { UsualDensityNote } from "@joyorogo/api/lib/usual-density";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
@@ -35,8 +36,8 @@ export type AiFoodItem = AiAnalyzeOutput["items"][number];
 type AiDescribeOutput = Awaited<ReturnType<AppRouterClient["ai"]["describeFood"]>>;
 
 /** One item from a typed/spoken story, already placed on a meal slot and date. */
-/** `usualDensity` is set when the kcal is the user's own per gram from an earlier log of the same food (lib/usual-density). */
-export type StoryFoodItem = AiDescribeOutput["items"][number] & { usualDensity?: UsualDensityNote };
+/** `usualDensity` is set when the kcal is the user's own per gram from an earlier log of the same food (lib/usual-density); `portionPrior` when the weight started at the user's usual portion of it (lib/portion-prior). */
+export type StoryFoodItem = AiDescribeOutput["items"][number] & { usualDensity?: UsualDensityNote; portionPrior?: PortionPriorChip };
 
 /** What describeFood (and food.copyMeal) answer: items to review, plus how a reference was resolved. */
 export type StoryResult = AiDescribeOutput;

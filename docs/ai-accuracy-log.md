@@ -4,6 +4,16 @@ Running notes on how accurate the photo scan is, what the data says, and what to
 
 Owner preference to keep in mind: an over-estimated kcal is acceptable, an under-estimate is the worse error, yet users do write "kalori kelewat tinggi". Over and under are always reported separately.
 
+## 2026-10-22 (night): the usual portion that never applied (owner's putih telur, 50 g every scan, saved 100 g every time)
+
+**Symptom.** Boiled egg white scans came out at 50 g (25 kcal); the owner corrected to 100 g (52 kcal) on every save and the next scan said 50 g again, although "Porsi kebiasaanmu" has been on for everyone since df1eddc.
+
+**Production data** (D1 read-only, his `food_log` rows named putih telur and his `scan_correction` rows; no other user). Model answer then saved grams, oldest first: 100/100 (unedited), 50/100, 60/100, 100/100 (unedited), "2 plastik kecil" 100/200, then 50/100 three times; `scan_correction` agrees (ai_grams 50, saved 52 kcal). Three earlier rows on 10-20 were scans the model named another dish (es mambo susu, lontong), renamed to putih telur: not known to be edited, never counted.
+
+**Why the learned 100 g was not used.** Not name normalisation (`canonicalFood` joins "Putih Telur" with "putih telur rebus"), not the source (all `ai` rows with an `items_json` list that differs), not the model leaving grams out. The history that existed before each of the last three scans was 200, 100, 100 (and then 100, 200, 100, 100 and 100, 100, 200, 100, 100): the 200 g he saved for two pieces made the coefficient of variation 32-35% against the 25% limit, so the food had no usual portion at all. Before that one save, two agreeing saves (100, 100) only put a chip on the row, and the model's own 100 g matched it, so nothing showed. Separately the retry ("Hitung ulang") and Cerita paths never applied the portion prior; the photo scan and its stream's `done` event did.
+
+**Change.** (1) Saved weights are per piece (200 g for the AI's "2 plastik kecil" = 100 g a piece); the usual grams are multiplied by the pieces on the next photo ("3 buah" starts at 300 g). (2) A usual portion is the cluster of the newest 12 weights within 15% of one value, when it has 2 or more and is more than half of them: one odd save no longer hides the habit, and 2 agreeing saves start the row at the usual grams (a looser spread keeps the old 3-to-start, 2-to-offer rule). (3) Cooking-state words and brackets no longer split a food's history. (4) The retry and Cerita (rows that start at the usual grams) apply it too. Replayed on his 8 real scans: before the 2nd save nothing changes, from the 5th the row starts at the weight he saved (the "2 plastik kecil" one at 200 g), and the three 50 g scans start at 100 g, 52 kcal, with "AI: 50 g" one tap away. Detail in `docs/portion-prior.md`.
+
 ## 2026-10-22 (later): Jumlah stepper, Dengan tulang switch, retry hint, bias check (scan prompt unchanged)
 
 Feedback behind it: a tester's 3 boiled eggs read as 1, bone-in chicken weights ("dada ayam goreng 140 g bertulang, total 560 g"), retries that "return the same", and users writing the AI skews high.

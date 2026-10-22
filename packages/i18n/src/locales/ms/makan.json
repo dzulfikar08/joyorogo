@@ -488,6 +488,7 @@
     "editStory": "Ubah cerita",
     "portionDefault": "1 hidangan",
     "usual": "seperti biasa · AI kira {{kcal}}",
+    "usualPortion": "hidangan lazim anda · AI kira {{grams}}",
     "kcalAria": "Kalori {{name}}",
     "plateName": "Nama pinggan",
     "priceLabel": "Harga (RM)",
