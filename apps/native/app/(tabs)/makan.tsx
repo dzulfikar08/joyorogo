@@ -21,6 +21,7 @@ import type { Meal } from "@joyorogo/api/lib/engine";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/format";
 
+import { AskJoyoHeaderButton } from "@/components/joyo/ask-button";
 import { MacroLine } from "@/components/macro-line";
 import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { BelanjaSection } from "@/components/plate/belanja";
@@ -729,7 +730,7 @@ export default function Makan() {
 
   return (
     <Screen>
-      <PageHeader title={t("common:nav.food")} />
+      <PageHeader title={t("common:nav.food")} right={<AskJoyoHeaderButton />} />
 
       <View style={styles.switcherRow}>
         <MakanViewSwitcher value={view} onChange={chooseView} />

@@ -26,6 +26,7 @@ import { DEFAULT_ADD_BACK_SETTINGS } from "@joyorogo/api/lib/exercise-credit";
 import { clockHourIn, fmtNumber, instantIn } from "@joyorogo/i18n";
 
 import { CalibrationChip } from "@/components/calibration-chip";
+import { AskJoyoHeaderButton } from "@/components/joyo/ask-button";
 import { CalibrationNotice } from "@/components/calibration-notice";
 import { SetupChecklist, useSetupChecklist } from "@/components/setup-checklist";
 import { ManualTdeeSuggestionCard } from "@/components/manual-tdee";
@@ -1005,6 +1006,7 @@ export default function Dashboard() {
             story={progressStory}
           />
         )}
+        <AskJoyoHeaderButton />
         <Link href="/profil" asChild>
           <Pressable
             accessibilityRole="button"

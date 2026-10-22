@@ -2,6 +2,7 @@ import "@/unistyles";
 import { Redirect, router } from "expo-router";
 import { useTranslation } from "react-i18next";
 
+import { useOpenJoyo } from "@/components/joyo/ask-button";
 import { MoreProCard } from "@/components/pro/more-pro-card";
 import {
   Avatar,
@@ -26,6 +27,8 @@ export default function Lainnya() {
   const unread = useUnreadCount();
   const unreadCount = unread.data?.count ?? 0;
   const displayName = session?.user.name ?? t("more.fallbackNameNative");
+  const openJoyo = useOpenJoyo();
+  const { t: tJoyo } = useTranslation("joyoAiApp");
 
   if (gate === "loading") {
     return (
@@ -69,6 +72,14 @@ export default function Lainnya() {
           subtitle={t("more.recap.subtitle")}
           chevron
           onPress={() => router.push("/rekap")}
+        />
+        <ListRow
+          icon="chatbubble-ellipses"
+          iconTint="makan"
+          title={tJoyo("more.title")}
+          subtitle={tJoyo("more.subtitle")}
+          chevron
+          onPress={openJoyo}
         />
         <ListRow
           icon="swap-horizontal"

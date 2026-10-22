@@ -28,6 +28,8 @@ import { useTranslation } from "react-i18next";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import ConfettiCannon from "react-native-confetti-cannon";
+import { AskJoyoAction, useAskT } from "@/components/joyo/ask-button";
+import { scanQuestion } from "@/src/lib/joyo-ai/ask";
 import { PlateNote, type ScanReferences } from "@/components/dishware/plate-note";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
@@ -475,6 +477,7 @@ function AnalyzingOverlay({
 export default function MakanAi() {
   const { theme } = useUnistyles();
   const { t } = useTranslation(["scan", "makan", "common"]);
+  const askT = useAskT();
   // Naikin BB: no "too much" jokes or sweet/fried warnings, the plan asks for more food.
   const { gain } = useGain();
   const gate = useSessionGate();
@@ -1833,6 +1836,13 @@ export default function MakanAi() {
           ) : null}
 
           {flowErrorMessage ? <Text style={styles.errorText}>{flowErrorMessage}</Text> : null}
+          <AskJoyoAction
+            kind="scan"
+            question={scanQuestion(
+              askT,
+              includedItems.map((item) => ({ name: item.name, grams: item.cup ? null : item.grams })),
+            )}
+          />
           <View style={styles.actionRow}>
             <Button
               variant="secondary"
