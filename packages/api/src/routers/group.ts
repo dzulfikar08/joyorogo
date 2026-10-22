@@ -46,6 +46,7 @@ import { userZone } from "../lib/user-zone";
 import { CALIBRATION_HISTORY_DAYS } from "../lib/calibration";
 import { calibrationPrefsOfUsersQuery, readCalibrationPrefs } from "../lib/calibration-store";
 import { buildPlan, planQueries } from "../lib/plan";
+import { IMPORT_SOURCE } from "../lib/history-import";
 import { dateSchema } from "../lib/schemas";
 import {
   base64ToBytes,
@@ -486,7 +487,7 @@ export const groupRouter = {
         db
           .selectDistinct({ userId: foodLog.userId, date: foodLog.date })
           .from(foodLog)
-          .where(and(inArray(foodLog.userId, ids), gte(foodLog.date, streakStart))),
+          .where(and(inArray(foodLog.userId, ids), gte(foodLog.date, streakStart), ne(foodLog.source, IMPORT_SOURCE))),
         db
           .select({ userId: session.userId, at: max(session.updatedAt) })
           .from(session)

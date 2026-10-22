@@ -19,7 +19,8 @@ import { dayBounds } from "./tiers";
 import { libraryMacros } from "./tkpi";
 import { defaultSchedule } from "./vision";
 
-export type EstimatedMacros = { protein: number; carbs: number; fat: number; via: "library" | "ai" };
+/** Fiber is a bonus: present only when the table row or every parsed item carries it. */
+export type EstimatedMacros = { protein: number; carbs: number; fat: number; fiber?: number; via: "library" | "ai" };
 
 /** Text parses per user per local day that food.add may spend on macros. Own ledger: never the scan quota. */
 export const MACRO_AI_PER_DAY = 40;
@@ -48,7 +49,7 @@ export function macrosFromName(name: string, kcal: number, region?: Region): Est
 
 /** Sum of a parse's items, scaled to the typed kcal; null when any item lacks a macro or the energies disagree wildly. */
 export function macrosFromParsed(
-  items: ReadonlyArray<Pick<StoryItem, "kcal" | "protein" | "carbs" | "fat">>,
+  items: ReadonlyArray<Pick<StoryItem, "kcal" | "protein" | "carbs" | "fat" | "fiber">>,
   kcal: number,
 ): Omit<EstimatedMacros, "via"> | null {
   if (items.length === 0 || !(kcal > 0)) return null;
@@ -56,18 +57,22 @@ export function macrosFromParsed(
   let protein = 0;
   let carbs = 0;
   let fat = 0;
+  let fiber = 0;
+  let allFiber = true;
   for (const item of items) {
     if (item.protein === undefined || item.carbs === undefined || item.fat === undefined) return null;
     parsedKcal += item.kcal;
     protein += item.protein;
     carbs += item.carbs;
     fat += item.fat;
+    if (item.fiber === undefined) allFiber = false;
+    else fiber += item.fiber;
   }
   if (!(parsedKcal > 0)) return null;
   const ratio = kcal / parsedKcal;
   if (ratio < 1 / MAX_KCAL_DRIFT || ratio > MAX_KCAL_DRIFT) return null;
   const scale = (grams: number) => Math.round(Math.min(500, grams * ratio) * 10) / 10;
-  return { protein: scale(protein), carbs: scale(carbs), fat: scale(fat) };
+  return { protein: scale(protein), carbs: scale(carbs), fat: scale(fat), ...(allFiber ? { fiber: scale(fiber) } : {}) };
 }
 
 async function macroAiUsedToday(db: Database, userId: string, zone: DayZone): Promise<number> {

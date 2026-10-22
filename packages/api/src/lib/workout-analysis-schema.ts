@@ -87,13 +87,23 @@ const lap = z.strictObject({
   gainM: nullable(gain),
 });
 
-const hrZones = z.strictObject({
-  maxHr: num(20, 250),
-  source: z.enum(["age", "setting"]),
-  bounds: z.array(num(0, 300)).length(6),
-  sec: z.array(sec).length(5),
-  belowSec: sec,
-});
+// JoyoFit sends `method` and, for the heart-rate reserve method, six zones (a warm-up zone under Z1). The feed draws five,
+// so the warm-up zone folds into the time under Z1 and the stored shape stays the five-zone one every reader expects.
+const hrZones = z
+  .strictObject({
+    method: z.enum(["max", "hrr", "lthr"]).optional(),
+    maxHr: num(20, 250),
+    source: z.enum(["age", "setting"]),
+    bounds: z.array(num(0, 300)).min(6).max(7),
+    sec: z.array(sec).min(5).max(6),
+    belowSec: sec,
+  })
+  .refine((zones) => zones.bounds.length === zones.sec.length + 1, { message: "bounds must have one more entry than sec" })
+  .transform(({ maxHr, source, bounds, sec: secs, belowSec }) =>
+    secs.length === 6
+      ? { maxHr, source, bounds: bounds.slice(1), sec: secs.slice(1), belowSec: belowSec + secs[0]! }
+      : { maxHr, source, bounds, sec: secs, belowSec },
+  );
 
 const paceZones = z.strictObject({
   thresholdSecKm: pace,

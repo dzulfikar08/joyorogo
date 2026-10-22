@@ -8,6 +8,7 @@ import type { ChallengeGoal } from "@joyorogo/db/schema/challenge";
 import { dailyActivity, exerciseLog, foodLog } from "@joyorogo/db/schema/fitness";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 
+import { IMPORT_SOURCE } from "./history-import";
 import { fitnessFacts, foodFacts, stepsFacts, workoutFacts } from "./challenge";
 import type { DayFacts } from "./challenge";
 
@@ -70,7 +71,8 @@ export async function loadFacts(
         aiMeals: sql<number>`coalesce(sum(case when ${foodLog.source} = 'ai' then 1 else 0 end), 0)`,
       })
       .from(foodLog)
-      .where(and(inArray(foodLog.userId, userIds), gte(foodLog.date, from), lte(foodLog.date, to)))
+      // Imported history (source "huawei") is not a logged day: a backdated import cannot make a challenge day.
+      .where(and(inArray(foodLog.userId, userIds), gte(foodLog.date, from), lte(foodLog.date, to), ne(foodLog.source, IMPORT_SOURCE)))
       .groupBy(foodLog.userId, foodLog.date);
     for (const row of rows) put(out, row.userId, row.date, foodFacts(goal, row));
     return out;

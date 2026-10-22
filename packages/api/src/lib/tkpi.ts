@@ -4,8 +4,11 @@
 // is a plausible band per dish, not lab precision.
 import type { Region } from "@joyorogo/i18n";
 
+import { boneInFraction } from "./bone-in";
 import { foodKind } from "./food-kind";
+import { indonesianName } from "./scan-names";
 import { MYFCD_DISHES } from "./myfcd-dishes";
+import type { Pieces } from "./piece-chip";
 import { lookupTkpi2019, portionFromTkpi2019 } from "./tkpi2019";
 
 export type TdpiDish = {
@@ -23,10 +26,13 @@ export type TdpiDish = {
   edibleFraction?: number;
 };
 
+/** Fruits the juice rows are keyed by; "jus alpukat" (milk and chocolate syrup) stays outside this list. */
+const JUICE_FRUITS = ["mangga", "jeruk", "jambu", "apel", "melon", "semangka", "sirsak", "nanas", "wortel", "tomat", "strawberry", "pepaya", "buah naga", "belimbing", "anggur"];
+
 export const TKPI_DISHES: TdpiDish[] = [
   {
     name: "nasi putih",
-    aliases: ["nasi", "steamed rice"],
+    aliases: ["nasi", "steamed rice", "white rice", "cooked rice", "plain rice", "boiled rice"],
     typicalPortionG: 150,
     kcalPer100g: 130,
     fiberPer100g: 0.3,
@@ -382,7 +388,7 @@ export const TKPI_DISHES: TdpiDish[] = [
   },
   {
     name: "es teh",
-    aliases: ["esteh", "teh manis", "es teh manis", "teh botol"],
+    aliases: ["esteh", "teh manis", "es teh manis", "teh botol", "iced sweet tea", "sweet iced tea", "iced tea"],
     typicalPortionG: 250,
     kcalPer100g: 30,
     fiberPer100g: 0,
@@ -400,9 +406,25 @@ export const TKPI_DISHES: TdpiDish[] = [
   },
   {
     name: "kopi hitam",
-    aliases: ["kopi tubruk", "kopi tanpa gula", "kopi pahit", "black coffee", "es kopi hitam"],
-    typicalPortionG: 200,
-    kcalPer100g: 1,
+    // Americano/espresso drinks are black coffee: without these keys "es kopi americano" fell to "es kopi" (60 kcal).
+    aliases: [
+      "kopi tubruk",
+      "kopi tanpa gula",
+      "kopi pahit",
+      "black coffee",
+      "es kopi hitam",
+      "es kopi tanpa gula",
+      "americano",
+      "es americano",
+      "kopi americano",
+      "es kopi americano",
+      "iced americano",
+      "long black",
+      "espresso",
+      "kopi espresso",
+    ],
+    typicalPortionG: 240,
+    kcalPer100g: 2,
     fiberPer100g: 0,
     plausibleKcalRange: [0, 10],
   },
@@ -444,13 +466,41 @@ export const TKPI_DISHES: TdpiDish[] = [
     fiberPer100g: 0,
     plausibleKcalRange: [100, 200],
   },
+  // Iced milk coffee as sold in cafes and kopi-kopian (gula aren, creamer or susu): ~70 kcal/100 ml, ~175 kcal
+  // for the usual 250 ml cup. Its own row so a repeat scan always reads the same number.
+  {
+    name: "es kopi susu",
+    aliases: ["es kopi", "es kopi susu gula aren", "es kopi gula aren", "kopi susu gula aren", "iced milk coffee", "iced coffee with milk"],
+    typicalPortionG: 250,
+    kcalPer100g: 70,
+    fiberPer100g: 0,
+    plausibleKcalRange: [110, 260],
+  },
   {
     name: "kopi susu",
-    aliases: ["es kopi", "es kopi susu", "kopi susu gula aren"],
+    aliases: ["kopi susu panas", "kopi susu hangat"],
     typicalPortionG: 200,
     kcalPer100g: 55,
     fiberPer100g: 0,
     plausibleKcalRange: [60, 160],
+  },
+  // Juices: the glass can't show the sugar. Fruit juice as sold (blender + gula pasir/sirup/susu kental) vs the
+  // fruit alone; the scan prompt names it "dengan gula" or "tanpa gula" and the same name always gets the same row.
+  {
+    name: "jus buah dengan gula",
+    aliases: JUICE_FRUITS.flatMap((f) => [`jus ${f}`, `es jus ${f}`, `jus ${f} dengan gula`, `jus ${f} pakai gula`, `${f} juice`]),
+    typicalPortionG: 250,
+    kcalPer100g: 55,
+    fiberPer100g: 0.3,
+    plausibleKcalRange: [80, 230],
+  },
+  {
+    name: "jus buah tanpa gula",
+    aliases: JUICE_FRUITS.flatMap((f) => [`jus ${f} tanpa gula`, `jus ${f} no sugar`, `jus ${f} tawar`, `${f} juice no sugar`, `unsweetened ${f} juice`]),
+    typicalPortionG: 250,
+    kcalPer100g: 35,
+    fiberPer100g: 0.3,
+    plausibleKcalRange: [40, 150],
   },
   {
     name: "es jeruk",
@@ -599,7 +649,7 @@ export function libraryMacros(
   name: string,
   kcal: number,
   region?: Region,
-): { protein: number; carbs: number; fat: number } | undefined {
+): { protein: number; carbs: number; fat: number; fiber?: number } | undefined {
   if (!(kcal > 0)) return undefined;
   const index = indexFor(region);
   if (isCombination(name, index) || isCondimentedDish(name) || isCompoundOfIngredient(name, index)) return undefined;
@@ -616,7 +666,14 @@ export function libraryMacros(
       carbs: round1(Math.min(500, c * ratio)),
       fat: round1(Math.min(500, f * ratio)),
     });
-    return { protein: scaled.protein, carbs: scaled.carbs, fat: scaled.fat };
+    // Fibre scales with the same ratio; Atwater never touches it, and a row without a fibre value just has none.
+    const fiber = row.fiberPer100g === null ? undefined : round1(Math.min(500, row.fiberPer100g * ratio));
+    return {
+      protein: scaled.protein,
+      carbs: scaled.carbs,
+      fat: scaled.fat,
+      ...(fiber !== undefined ? { fiber } : {}),
+    };
   }
   return undefined;
 }
@@ -663,10 +720,14 @@ const BONE_IN_KCAL_SLACK = 1.35;
 /** The meat is already off the bone (fillet, shredded, "tanpa tulang"). */
 const BONELESS = /\b(fillet|filet|suwir|tanpa tulang|boneless|tulang lunak|presto)\b/;
 
-/** Edible share of a library dish's weight as seen; 1 for boneless dishes and for a name that says it is boneless. */
+/**
+ * Edible share of a library dish's weight as seen; 1 for boneless dishes and for a name that says it is boneless.
+ * A bone-in dish named by its part (paha, sayap, dada) takes that part's share over the dish's own (lib/bone-in.ts).
+ */
 export function edibleFractionOf(dish: TdpiDish, name: string): number {
   const fraction = dish.edibleFraction ?? 1;
-  return fraction < 1 && !BONELESS.test(normalize(name)) ? fraction : 1;
+  if (fraction >= 1 || BONELESS.test(normalize(name))) return 1;
+  return boneInFraction(name) ?? fraction;
 }
 
 /**
@@ -709,6 +770,12 @@ export type CalibratedItem = {
   matched?: boolean;
   /** Eaten part of `grams` for a bone-in dish (ayam goreng, ikan utuh); absent = all of it is eaten. */
   edibleGrams?: number;
+  /** Bone-in only: the weight with the bone as seen (`grams` while `withBone`), so a client can switch `grams` between it and `edibleGrams`. */
+  grossGrams?: number;
+  /** Bone-in only: `grams` is the weight with the bone (true) or the edible part (false). The scan answers true. */
+  withBone?: boolean;
+  /** Separate pieces (eggs, satay, dumplings): how many, for the row's "Jumlah" stepper (lib/piece-count.ts). */
+  pieces?: Pieces;
 };
 
 // Fallback band for dishes outside the library — catches truncation garbage
@@ -730,6 +797,8 @@ export type CalibratableItem = {
   fat?: number;
   fiber?: number;
   confidence?: number;
+  /** Counted pieces ride through calibration untouched. */
+  pieces?: Pieces;
   /** The caller knows this is a drink (model kind); otherwise the name decides. Zero-calorie drinks stay near 0. */
   drink?: boolean;
   /**
@@ -795,7 +864,37 @@ function capDensity(item: CalibratedItem): CalibratedItem {
   return item.kcal > cap ? { ...item, kcal: cap } : item;
 }
 
-function calibrateOne({ drink, asSeen, ...item }: CalibratableItem, options: CalibrateOptions): CalibratedItem {
+/**
+ * Foods whose energy is fixed by what they are (plain rice, black coffee, tea, water, the standard iced
+ * milk coffee and juices): when the name is exactly the dish, the library's kcal per 100 g times the grams
+ * replaces the model's number, which swung 5 to 60 kcal on the same americano and 182 to 231 on the same rice.
+ */
+const FIXED_KCAL_DISHES = new Set([
+  "nasi putih",
+  "kopi hitam",
+  "teh tawar",
+  "air putih",
+  "minuman zero",
+  "es teh",
+  "es kopi susu",
+  "jus buah dengan gula",
+  "jus buah tanpa gula",
+]);
+
+/** Words that change nothing about the energy of a fixed food ("Americano Es", "kopi hitam panas"). */
+const SERVING_WORDS = new Set(["es", "ice", "iced", "dingin", "panas", "hangat", "hot", "cold", "gelas", "cup", "segar", "fresh"]);
+
+function fixedKcal(dish: TdpiDish, name: string, grams: number, index: DishIndex): number | undefined {
+  if (!FIXED_KCAL_DISHES.has(dish.name)) return undefined;
+  const hit = matchEntry(name, index);
+  if (hit?.dish !== dish) return undefined;
+  const keyWords = new Set(hit.key.split(" "));
+  if (!normalize(name).split(" ").every((word) => keyWords.has(word) || SERVING_WORDS.has(word))) return undefined;
+  return Math.round((dish.kcalPer100g * grams) / 100);
+}
+
+function calibrateOne({ drink, asSeen, ...entered }: CalibratableItem, options: CalibrateOptions): CalibratedItem {
+  const item = { ...entered, name: indonesianName(entered.name) };
   const index = indexFor(options.region);
   const combination = isCombination(item.name, index);
   const generic =
@@ -821,6 +920,8 @@ function calibrateOne({ drink, asSeen, ...item }: CalibratableItem, options: Cal
     }
     const densityCap =
       item.grams && item.grams > 0 ? Math.max(400, item.grams * 7) : GENERIC_KCAL_RANGE[1];
+    // Ribs, a whole fish or a wing the library has no row for: the model's kcal stand, the edible part is only stated.
+    const fraction = asSeen && item.grams && item.grams > 0 ? boneInFraction(item.name) : undefined;
     return atwaterAdjust({
       ...item,
       kcal: clamp(
@@ -829,6 +930,7 @@ function calibrateOne({ drink, asSeen, ...item }: CalibratableItem, options: Cal
         Math.min(GENERIC_KCAL_RANGE[1], densityCap),
       ),
       matched: false,
+      ...(fraction !== undefined ? boneFields(item.grams!, fraction) : {}),
     });
   }
   const edible = asSeen ? edibleFractionOf(dish, item.name) : 1;
@@ -841,7 +943,11 @@ function calibrateOne({ drink, asSeen, ...item }: CalibratableItem, options: Cal
       : Math.round(((dish.fiberPer100g * edibleGrams) / 100) * 10) / 10;
   // TKPI kcal range first (for the edible grams), then the Atwater guard (macro split can still be
   // inflated even when total kcal landed in the plausible band).
-  const banded = clamp(item.kcal, ...bandFor(dish, edibleGrams, options.bandSlack));
+  const fixed = options.bandSlack === undefined ? fixedKcal(dish, item.name, edibleGrams, index) : undefined;
+  const banded = fixed ?? clamp(item.kcal, ...bandFor(dish, edibleGrams, options.bandSlack));
+  // The macros the model gave describe the kcal it gave: keep their share under the fixed kcal.
+  const macroScale = fixed !== undefined && item.kcal > 0 ? fixed / item.kcal : 1;
+  const scaleMacro = (v: number | undefined) => (v === undefined ? undefined : round1(v * macroScale));
   // A bone-in item: the model prices the plate's weight, the eater only gets the meat. No more than the
   // library's per-100 g of the edible part, with a third of slack for skin, oil and breading.
   const kcal =
@@ -850,10 +956,18 @@ function calibrateOne({ drink, asSeen, ...item }: CalibratableItem, options: Cal
       : banded;
   return atwaterAdjust({
     ...item,
+    protein: scaleMacro(item.protein),
+    carbs: scaleMacro(item.carbs),
+    fat: scaleMacro(item.fat),
     grams,
     fiber,
     kcal,
     matched: true,
-    ...(edible < 1 ? { edibleGrams: Math.round(edibleGrams) } : {}),
+    ...(edible < 1 ? boneFields(grams, edible) : {}),
   });
+}
+
+/** What a bone-in item carries beside its grams as seen: the edible part, the gross weight, the bone switched on. */
+function boneFields(grams: number, edible: number): Pick<CalibratedItem, "edibleGrams" | "grossGrams" | "withBone"> {
+  return { edibleGrams: Math.round(grams * edible), grossGrams: grams, withBone: true };
 }

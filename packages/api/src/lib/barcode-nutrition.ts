@@ -53,6 +53,7 @@ export type LabelWarning =
   | "no_energy"
   | "columns_disagree"
   | "energy_mismatch"
+  | "energy_adjusted"
   | "implausible";
 
 /** Why a draft or submission is refused; clients localize barcode:label.reject.*. */

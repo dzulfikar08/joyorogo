@@ -85,7 +85,8 @@
       "confirming": "Menyimpan...",
       "confirmed": "Terima kasih kerana menyemak. Angka ini kini disahkan oleh {{count}} pengguna.",
       "outvoted": "Terima kasih. Angka ini sudah disahkan oleh pengguna lain, jadi semakan anda tidak mengubahnya."
-    }
+    },
+    "kcalFromMacros": "Tenaga pada label produk ini tidak sepadan dengan protein, karbohidrat dan lemaknya, jadi kcal dikira daripada ketiganya (anggaran)."
   },
   "macro": {
     "protein": "protein",
@@ -200,7 +201,8 @@
       "no_energy": "Jumlah tenaga tidak dapat dibaca. Isi daripada label.",
       "columns_disagree": "Lajur \"setiap hidangan\" dan \"setiap 100\" tidak sepadan. Semak semula yang mana anda salin.",
       "energy_mismatch": "Tenaga tidak sepadan dengan protein, karbohidrat dan lemaknya. Semak semula angkanya.",
-      "implausible": "Angkanya tidak munasabah. Semak semula angkanya, termasuk \"setiap hidangan\" atau \"setiap 100\"."
+      "implausible": "Angkanya tidak munasabah. Semak semula angkanya, termasuk \"setiap hidangan\" atau \"setiap 100\".",
+      "energy_adjusted": "Tenaga pada label tidak sepadan dengan makronutriennya, jadi kami kira semula daripada protein, karbohidrat dan lemak (anggaran). Semak dengan pembungkus anda."
     },
     "thanks": {
       "title": "Terima kasih!",
@@ -209,5 +211,11 @@
       "outvoted": "Terima kasih. Angka anda berbeza daripada yang sudah disahkan pengguna lain, jadi belum digunakan. Jika semakin ramai yang sama, angkanya akan diganti.",
       "continue": "Catat makanan"
     }
+  },
+  "repeat": {
+    "title": "Sudah dicatat {{ago}} minit lalu",
+    "body": "Anda sudah mencatat {{name}} {{ago}} minit lalu. Tambah lagi?",
+    "confirm": "Tambah lagi",
+    "cancel": "Jangan"
   }
 }

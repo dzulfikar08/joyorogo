@@ -1,5 +1,5 @@
 import { call } from "@orpc/server";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeEach, describe, expect, setSystemTime, test } from "bun:test";
 
 import type { Context } from "../context";
 import { flushOutbox } from "../lib/notify";
@@ -10,6 +10,9 @@ import { pushRouter } from "./push";
 import { socialRouter } from "./social";
 
 // Registration and settings procedures, and the events of the social / group routers that reach the push pipeline.
+// The pipeline holds pushes during quiet hours (21:30-06:30 WIB), so the clock is pinned to a weekday midday.
+setSystemTime(new Date("2026-10-21T05:00:00Z"));
+afterAll(() => setSystemTime());
 
 const { client, db } = await pushTestDb();
 await client.executeMultiple(`

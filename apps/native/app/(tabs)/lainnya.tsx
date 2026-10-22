@@ -46,7 +46,7 @@ export default function Lainnya() {
   // The Pro card (free accounts that can buy) sits first: /founder bounces a Pro account back home and
   // when billing is off (self-hosted copies, Play build without the service account), so the card checks both.
   return (
-    <Screen>
+    <Screen decorated>
       <PageHeader title={t("more.title")} caption={t("more.subtitleNative")} />
       <MoreProCard />
       <ListGroup>

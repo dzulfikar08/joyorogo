@@ -92,6 +92,8 @@ export type BarcodeLookup =
       contributors: number;
       /** Grams of sugar per 100 g/ml when known; shown, not logged (the diary has no sugar column). */
       sugar100: number | null;
+      /** The source's energy contradicted its own macros (e.g. 0 kcal with fat); kcal is recomputed from them (4/4/9). */
+      kcalFromMacros: boolean;
       /** label_photo rows: this user's own submission is among the agreeing ones; set per caller by the router. */
       mine?: boolean;
       /** Baseline for portionFromGrams: 100 g/ml of the product. */
@@ -207,6 +209,24 @@ export function isImplausible(values: {
 }
 
 /**
+ * A label energy far below what its own macros add up to (0 kcal beside 2.5 g
+ * fat, a missing digit) cannot be true. Returns the Atwater energy (4/4/9 kcal
+ * per g, unknown macros count as 0 so it is a lower bound) when the printed
+ * value is under half of it and the gap is at least 10 kcal; null otherwise.
+ * Labels may round or differ slightly (fibre, polyols): those stay as printed.
+ */
+export function atwaterOverride(values: {
+  kcal: number;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+}): number | null {
+  const implied = 4 * (values.protein ?? 0) + 4 * (values.carbs ?? 0) + 9 * (values.fat ?? 0);
+  if (implied - values.kcal < 10 || values.kcal >= implied * 0.5) return null;
+  return Math.round(implied);
+}
+
+/**
  * Decides what the app may do with a parsed product. Incomplete = no calories,
  * or implausible numbers (see isImplausible).
  */
@@ -223,7 +243,12 @@ export function classifyProduct(
     imageUrl: product.imageUrl,
     unit: product.unit,
   };
-  const { kcal100, protein100, carbs100, fat100, fiber100 } = product;
+  const { protein100, carbs100, fat100, fiber100 } = product;
+  const atwater =
+    product.kcal100 === null
+      ? null
+      : atwaterOverride({ kcal: product.kcal100, protein: protein100, carbs: carbs100, fat: fat100 });
+  const kcal100 = atwater ?? product.kcal100;
   if (kcal100 === null) {
     return {
       status: "incomplete",
@@ -267,6 +292,7 @@ export function classifyProduct(
     source: origin.source,
     contributors: origin.contributors,
     sugar100: product.sugar100,
+    kcalFromMacros: atwater !== null,
     per100: base,
     perServing: product.servingSize ? portionFromGrams(base, product.servingSize) : null,
     servingSize: product.servingSize,

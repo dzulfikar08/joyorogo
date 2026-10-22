@@ -377,20 +377,51 @@
     "toast": {
       "saved": "{{name}} added to Favorites",
       "relogged": "{{name}} logged to {{meal}}",
-      "nameEmpty": "Name can't be empty"
+      "nameEmpty": "Name can't be empty",
+      "created": "{{name}} added to Favorites",
+      "updated": "Changes saved",
+      "hidden": "{{name}} hidden from Recently logged",
+      "restored": "Recently logged is back",
+      "kcalInvalid": "Enter calories as a number above 0"
     },
     "deletedLabel": "{{name}} from Favorites",
     "itemCount_other": "{{count}} items",
     "itemCount_one": "{{count}} item",
-    "manage": "Manage",
+    "manage": "Edit",
+    "offer": {
+      "title": "You log this often",
+      "body_other": "{{name}}, {{count}} times in 14 days ({{kcal}}). Save it for one-tap logging?",
+      "body_one": "{{name}}, {{count}} time in 14 days ({{kcal}}). Save it for one-tap logging?",
+      "save": "Save as favorite",
+      "later": "Not now"
+    },
+    "quick": {
+      "manage": "Edit Quick add",
+      "empty": "No favorites yet. Save the foods you log often so one tap is enough."
+    },
     "sheet": {
-      "title": "Manage Favorites",
-      "description": "Rename or delete. You can undo a delete for a few seconds.",
-      "empty": "No favorites yet. Tap the star on a food or plate to save it.",
+      "title": "Edit Quick add",
+      "description": "Reorder, edit, remove or add your choices. You can undo a delete for a few seconds.",
+      "favoritesTitle": "Favorites",
+      "empty": "No favorites yet. Add one below, or save one from Recently logged.",
       "newName": "New name for {{name}}",
-      "saveName": "Save name for {{name}}",
-      "rename": "Rename {{name}}",
-      "remove": "Remove {{name}} from Favorites"
+      "saveName": "Save changes to {{name}}",
+      "rename": "Edit {{name}}",
+      "kcalAria": "Calories for {{name}}",
+      "remove": "Remove {{name}} from Favorites",
+      "moveUp": "Move {{name}} up",
+      "moveDown": "Move {{name}} down",
+      "add": "Add a choice",
+      "addName": "Food name",
+      "addNamePlaceholder": "Boiled egg whites",
+      "addKcal": "Calories (kcal)",
+      "addSave": "Save choice",
+      "recentTitle": "Recently logged",
+      "recentHint": "Filled in from your log. Hide what you don't need, or save one as a favorite.",
+      "recentSave": "Save {{name}} as a favorite",
+      "recentHide": "Hide {{name}}",
+      "showHidden_other": "Show {{count}} hidden again",
+      "showHidden_one": "Show {{count}} hidden again"
     }
   },
   "portionSheet": {
@@ -469,6 +500,8 @@
     "youSaid": "You said",
     "editStory": "Edit story",
     "portionDefault": "1 serving",
+    "usual": "as usual · AI said {{kcal}}",
+    "usualPortion": "your usual portion · AI said {{grams}}",
     "kcalAria": "Calories for {{name}}",
     "plateName": "Plate name",
     "priceLabel": "Price (Rp)",
@@ -785,5 +818,18 @@
     "clear": "Clear meal time",
     "sheetTitle": "Meal time",
     "hint": "Optional. Used to spot patterns between late dinners and your sleep."
+  },
+  "daySummary": {
+    "proteinPerKg": "Protein {{perKg}} g/kg · guide {{min}}-{{max}} g/kg"
+  },
+  "safety": {
+    "fastLoss": {
+      "title": "Ease off a little",
+      "weight": "Your weight is dropping fairly fast this week (about {{pct}}% per week). Try easing off a little and get enough protein.",
+      "intake": "For the last few days you have eaten well below what your body needs at rest. Try easing off a little and get enough protein.",
+      "both": "Your weight is dropping fairly fast this week (about {{pct}}% per week) and the last few days you have eaten well below what your body needs at rest. Try easing off a little and get enough protein.",
+      "hint": "If you are unsure, ask a doctor or dietitian.",
+      "dismiss": "Close"
+    }
   }
 }

@@ -180,10 +180,29 @@
       "priorAi": "AI: {{grams}}",
       "priorUsual": "Biasanya kamu: {{grams}}",
       "priorTypical": "Biasanya: {{grams}}",
+      "usual": "Seperti biasanya, dari catatanmu · AI hitung {{kcal}}",
       "scaleGroup": "Pilih angka berat {{name}}",
       "scaleRead": "Terbaca dari timbangan: {{value}}",
       "scaleReadShared_other": "Terbaca dari timbangan: {{value}}, dibagi ke {{count}} item",
-      "scaleAi": "Perkiraan foto: {{grams}}"
+      "scaleAi": "Perkiraan foto: {{grams}}",
+      "count": "Jumlah",
+      "countGroup": "Jumlah {{name}}",
+      "countLess": "Kurangi jumlah {{name}}",
+      "countMore": "Tambah jumlah {{name}}",
+      "boneGroup": "Berat {{name}} dengan atau tanpa tulang",
+      "boneWith": "Dengan tulang",
+      "boneWithout": "Tanpa tulang",
+      "boneOn": "±{{gross}} dengan tulang, ±{{edible}} bisa dimakan",
+      "boneOff": "±{{edible}} tanpa tulang",
+      "unit": {
+        "butir_other": "butir",
+        "buah_other": "buah",
+        "tusuk_other": "tusuk",
+        "potong_other": "potong",
+        "lembar_other": "lembar",
+        "keping_other": "keping",
+        "belahan_other": "belahan"
+      }
     },
     "memory": {
       "title": "Maksudnya ini?",
@@ -231,15 +250,16 @@
     },
     "noteAria": "Catatan tambahan (opsional)",
     "notePlaceholder": "Catatan singkat (opsional)",
-    "send": "Kirim"
+    "send": "Kirim",
+    "reasonNudge": "Apa yang kurang pas? Pilih satu atau lebih."
   },
   "retry": {
     "title": "Angka kurang pas?",
     "left_other": "Gratis, sisa {{count}}x",
     "exhausted": "Batas hitung ulang habis",
     "exhaustedHint": "Foto ini sudah dihitung ulang dua kali. Foto ulang ya.",
-    "hintLabel": "Koreksi singkat (opsional)",
-    "hintPlaceholder": "mis. nasinya nasi merah, porsi setengah",
+    "hintLabel": "Kasih tahu AI yang benar (opsional)",
+    "hintPlaceholder": "mis. ini bakwan, telurnya 3",
     "action": "Hitung ulang",
     "running": "Menghitung ulang...",
     "keepPrevious": "Hasil sebelumnya masih ditampilkan.",

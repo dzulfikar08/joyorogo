@@ -180,10 +180,29 @@
       "priorAi": "AI: {{grams}}",
       "priorUsual": "Biasanya anda: {{grams}}",
       "priorTypical": "Lazimnya: {{grams}}",
+      "usual": "Seperti biasa, daripada catatan anda · AI kira {{kcal}}",
       "scaleGroup": "Pilih angka berat {{name}}",
       "scaleRead": "Dibaca daripada penimbang: {{value}}",
       "scaleReadShared_other": "Dibaca daripada penimbang: {{value}}, dibahagi kepada {{count}} item",
-      "scaleAi": "Anggaran foto: {{grams}}"
+      "scaleAi": "Anggaran foto: {{grams}}",
+      "count": "Bilangan",
+      "countGroup": "Bilangan {{name}}",
+      "countLess": "Kurangkan {{name}}",
+      "countMore": "Tambah {{name}}",
+      "boneGroup": "Berat {{name}} dengan atau tanpa tulang",
+      "boneWith": "Dengan tulang",
+      "boneWithout": "Tanpa tulang",
+      "boneOn": "±{{gross}} dengan tulang, ±{{edible}} boleh dimakan",
+      "boneOff": "±{{edible}} tanpa tulang",
+      "unit": {
+        "butir_other": "biji",
+        "buah_other": "biji",
+        "tusuk_other": "cucuk",
+        "potong_other": "potong",
+        "lembar_other": "helai",
+        "keping_other": "keping",
+        "belahan_other": "belah"
+      }
     },
     "memory": {
       "title": "Maksud anda ini?",
@@ -231,15 +250,16 @@
     },
     "noteAria": "Catatan tambahan (pilihan)",
     "notePlaceholder": "Catatan ringkas (pilihan)",
-    "send": "Hantar"
+    "send": "Hantar",
+    "reasonNudge": "Apa yang kurang tepat? Pilih satu atau lebih."
   },
   "retry": {
     "title": "Angka kurang sesuai?",
     "left_other": "Percuma, baki {{count}}x",
     "exhausted": "Had kira semula habis",
     "exhaustedHint": "Foto ini sudah dikira semula dua kali. Sila foto semula.",
-    "hintLabel": "Pembetulan ringkas (pilihan)",
-    "hintPlaceholder": "cth. nasi perang, separuh hidangan",
+    "hintLabel": "Beritahu AI yang betul (pilihan)",
+    "hintPlaceholder": "cth. ini bakwan, telurnya 3",
     "action": "Kira semula",
     "running": "Mengira semula...",
     "keepPrevious": "Hasil sebelumnya masih dipaparkan.",

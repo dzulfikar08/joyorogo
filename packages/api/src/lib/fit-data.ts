@@ -302,7 +302,8 @@ export interface TotalsView {
   /** How recorded exercise is added to each day's budget (the person's settings; Strava rows never count here). */
   exerciseAddBack: AddBackSettings;
   days: DayTotalsView[];
-  average: { eatenKcal: number; proteinG: number; loggedDays: number } | null;
+  /** proteinG averages only the days with a known protein (null when none): a kcal-only day is unknown, not 0 g. */
+  average: { eatenKcal: number; proteinG: number | null; loggedDays: number } | null;
 }
 
 /** Eaten and burned totals per day against the current targets; one row for every day of the window. */
@@ -366,13 +367,17 @@ export async function getDailyTotals(
   const days: DayTotalsView[] = [];
   let eatenSum = 0;
   let proteinSum = 0;
+  let proteinDays = 0;
   let loggedDays = 0;
   for (let date = from; date <= to; date = shiftDate(date, 1)) {
     const row = foodByDay.get(date);
     if (row) {
       loggedDays += 1;
       eatenSum += row.kcal;
-      proteinSum += row.protein ?? 0;
+      if (row.protein !== null) {
+        proteinSum += row.protein;
+        proteinDays += 1;
+      }
     }
     const credit = exerciseCredit({
       settings,
@@ -412,7 +417,7 @@ export async function getDailyTotals(
         : null,
     exerciseAddBack: settings,
     days,
-    average: loggedDays > 0 ? { eatenKcal: round(eatenSum / loggedDays), proteinG: round(proteinSum / loggedDays), loggedDays } : null,
+    average: loggedDays > 0 ? { eatenKcal: round(eatenSum / loggedDays), proteinG: proteinDays > 0 ? round(proteinSum / proteinDays) : null, loggedDays } : null,
   };
 }
 

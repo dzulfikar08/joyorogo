@@ -186,3 +186,27 @@ describe("barcode.contribute and confirm", () => {
     });
   });
 });
+
+describe("barcode.recentLog", () => {
+  const items = (code: string) => JSON.stringify({ barcode: code, brand: null, source: "off" });
+  const insert = (id: string, user: string, source: string, code: string, ageMin: number) =>
+    client.execute({
+      sql: `INSERT INTO food_log (id, user_id, date, meal, name, kcal, source, items_json, created_at) VALUES (?, ?, '2026-10-22', 'snack', 'Fibe', 60, ?, ?, ?)`,
+      args: [id, user, source, items(code), Date.now() - ageMin * 60_000],
+    });
+
+  test("reports this user's barcode log of the same code inside 15 minutes, nothing older or from others", async () => {
+    await insert("rl1", "u1", "barcode", GOOD_CODE, 11);
+    await insert("rl2", "u1", "barcode", "4006381333931", 2);
+    await insert("rl3", "u2", "barcode", "5449000000996", 1);
+    await insert("rl4", "u1", "barcode", "0089686010947", 40);
+    await insert("rl5", "u1", "manual", "7622210449283", 1);
+    const at = async (userId: string, code: string) => (await call(barcodeRouter.recentLog, { code }, { context: ctx(userId).context })).loggedAt;
+    const hit = await at("u1", GOOD_CODE);
+    expect(hit).not.toBeNull();
+    expect(Date.now() - hit!).toBeGreaterThan(10 * 60_000);
+    expect(await at("u2", GOOD_CODE)).toBeNull();
+    expect(await at("u1", "0089686010947")).toBeNull();
+    expect(await at("u1", "7622210449283")).toBeNull();
+  });
+});

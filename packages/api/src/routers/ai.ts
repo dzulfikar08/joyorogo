@@ -50,12 +50,16 @@ import type { ItemBox, VisionAnalysis, VisionEvent } from "../lib/vision";
 import { loadScanReference } from "../lib/dishware-store";
 import type { CardScanNote, DishwareScanNote, ScanReference } from "../lib/dishware-store";
 import { EventChannel } from "../lib/event-channel";
+import { applyHintCounts } from "../lib/piece-count";
 import { withPortionPrior } from "../lib/portion-prior";
 import type { PortionPrior } from "../lib/portion-prior";
 import { chipsFor, correctionMemoryEnabled, loadCorrectionMemory } from "../lib/correction-memory";
 import type { CorrectionMemory } from "../lib/correction-memory";
 import { loadPortionPriors } from "../lib/portion-prior-store";
 import type { PortionPriorChip } from "../lib/portion-chip";
+import { loadUsualDensities } from "../lib/usual-density-store";
+import { withUsualDensity } from "../lib/usual-density";
+import type { UsualDensityNote, UsualMap } from "../lib/usual-density";
 import { applyScaleReading, readScaleDisplay, scaleLedger, scaleReadoutEnabled } from "../lib/scale-reading";
 import type { ScaleReadChip } from "../lib/scale-chip";
 import type { ScanStreamEvent } from "../lib/scan-live";
@@ -251,11 +255,48 @@ function memoryResult(memory: CorrectionMemory | null, topName: string | undefin
   return chips.length > 0 ? { memoryChips: chips } : {};
 }
 
+/**
+ * "Porsi kebiasaanmu": the user's usual portions, read beside the model call (scan, retry and Cerita).
+ * A failed read is no history, never a failed scan.
+ */
+function loadUsualPortions(
+  context: AuthedContext,
+  userId: string,
+  zone: Parameters<typeof loadPortionPriors>[2],
+): Promise<Map<string, PortionPrior>> {
+  return loadPortionPriors(context.db, userId, zone).catch((error: unknown) => {
+    console.error("[ai] portion prior failed", error);
+    return new Map<string, PortionPrior>();
+  });
+}
+
+/**
+ * An item the way the user sees it: their usual (or typical) portion on top of "Seperti biasanya". The row can
+ * start at the usual weight: the model's kcal in the density note follows the same weight.
+ */
+function withUsualPortion<T extends Parameters<typeof withPortionPrior>[0] & { usualDensity?: UsualDensityNote }>(
+  item: T,
+  usual: Map<string, PortionPrior>,
+) {
+  const out = withPortionPrior(item, usual);
+  if (out.usualDensity && item.grams && out.grams && out.grams !== item.grams) {
+    return { ...out, usualDensity: { ...out.usualDensity, modelKcal: Math.round((out.usualDensity.modelKcal * out.grams) / item.grams) } };
+  }
+  return out;
+}
+
 /** What analyzeFood answers, and what the closing `done` event of analyzeFoodStream carries. */
 export type AnalyzeFoodResult = {
-  /** `portionPrior` is present on rice the model weighed heavier than typical and on foods with a weighed history (lib/portion-prior.ts). */
+  /**
+   * `portionPrior` is present on rice the model weighed heavier than typical and on foods with a weighed history (lib/portion-prior.ts).
+   * `usualDensity` marks an item whose kcal per gram is the user's own from an earlier log of the same food (lib/usual-density.ts).
+   */
   items: Array<
-    VisionAnalysis["items"][number] & { portionPrior?: PortionPriorChip; scaleRead?: ScaleReadChip }
+    VisionAnalysis["items"][number] & {
+      portionPrior?: PortionPriorChip;
+      scaleRead?: ScaleReadChip;
+      usualDensity?: UsualDensityNote;
+    }
   >;
   /**
    * "Ingat koreksimu", allowlisted users only: foods this user taught the scan by correcting it, offered as
@@ -342,12 +383,15 @@ async function runAnalyzeFood(
       ),
   ]);
 
-  // "Porsi kebiasaanmu": the user's usual portions, read beside the model call. A
-  // failed read is no history, never a failed scan.
-  const priors: Promise<Map<string, PortionPrior> | null> = loadPortionPriors(context.db, userId, zone).catch(
+  // "Porsi kebiasaanmu": the user's usual portions, read beside the model call.
+  const priors = loadUsualPortions(context, userId, zone);
+
+  // "Seperti biasanya": the user's own kcal per gram per food, read beside the model call. A failed read is no
+  // history, never a failed scan.
+  const usualDensities: Promise<UsualMap> = loadUsualDensities(context.db, userId, zone).catch(
     (error: unknown) => {
-      console.error("[ai] portion prior failed", error);
-      return null;
+      console.error("[ai] usual density failed", error);
+      return new Map() as UsualMap;
     },
   );
 
@@ -450,6 +494,10 @@ async function runAnalyzeFood(
   const scaleCall = await scalePending;
   const scale = scaleCall ? applyScaleReading(analysis.items, scaleCall.reading) : null;
   const items: AnalyzeFoodResult["items"] = scale?.items ?? analysis.items;
+  // "Seperti biasanya": what the user sees (and what the session ledger keeps as the answer they looked at) carries
+  // their own kcal per gram for a food they logged before; the owner dataset below keeps the model's own numbers.
+  const usualMap = await usualDensities;
+  const shown: AnalyzeFoodResult["items"] = items.map((item) => (item.scaleRead ? item : withUsualDensity(item, usualMap)));
   const sticker = await cutout;
   const storeSticker = async (): Promise<string | null> => {
     if (!stickers || !sticker) return null;
@@ -492,7 +540,7 @@ async function runAnalyzeFood(
     serverTiming,
     ...(input.clientTiming ? { clientTiming: input.clientTiming } : {}),
     // Implicit outcome labels (lib/scan-outcome.ts) build on these two.
-    ...(storedPhotoId ? { photoId: storedPhotoId, aiItems: compactItems(items) } : {}),
+    ...(storedPhotoId ? { photoId: storedPhotoId, aiItems: compactItems(shown) } : {}),
     ...(scaleCall ? { scale: scaleLedger(scaleCall, scale?.outcome ?? null) } : {}),
   };
   const ledger = context.db
@@ -614,9 +662,9 @@ async function runAnalyzeFood(
   // The ledger and the owner dataset above keep the model's own answer; only what
   // the user sees carries the usual / typical portion. A failed history read is the
   // typical portion alone.
-  const usual = (await priors) ?? new Map<string, PortionPrior>();
+  const usual = await priors;
   return {
-    items: items.map((item) => (item.scaleRead ? item : withPortionPrior(item, usual))),
+    items: shown.map((item) => (item.scaleRead ? item : withUsualPortion(item, usual))),
     tooMany: analysis.tooMany,
     scanId,
     plateScanId,
@@ -675,6 +723,11 @@ export const aiRouter = {
       const scaleOn = scaleReadoutEnabled(context.env, userId);
       const requestStartedAt = Date.now();
       const userNote = loadUserNote(context.db, userId, zone);
+      const usualDensities: Promise<UsualMap> = loadUsualDensities(context.db, userId, zone).catch((error: unknown) => {
+        console.error("[ai] usual density failed", error);
+        return new Map() as UsualMap;
+      });
+      const usualPortionsPending = loadUsualPortions(context, userId, zone);
       const reference = loadScanReference(context.db, context.env, userId);
       const memory: Promise<CorrectionMemory | null> = correctionMemoryEnabled(context.env, userId)
         ? loadCorrectionMemory(context.db, userId, zone).catch((error: unknown) => {
@@ -743,7 +796,11 @@ export const aiRouter = {
       // Kitchen-scale readout (lib/scale-reading.ts): allowlist only.
       const scaleCall = await scalePending;
       const scale = scaleCall ? applyScaleReading(analysis.items, scaleCall.reading) : null;
-      const shownItems: AnalyzeFoodResult["items"] = scale?.items ?? analysis.items;
+      // A count the user wrote in the hint ("telurnya 3") is put on its row whatever the model made of it.
+      const answered: AnalyzeFoodResult["items"] = applyHintCounts(scale?.items ?? analysis.items, input.hint);
+      // "Seperti biasanya" as on the first pass; the owner dataset below keeps the model's own numbers.
+      const usualMap = await usualDensities;
+      const shownItems: AnalyzeFoodResult["items"] = answered.map((item) => (item.scaleRead ? item : withUsualDensity(item, usualMap)));
       // Both writes come after inference: a failed or abandoned attempt
       // never consumes the cap, and ledger rows marked "retry" stay outside
       // the daily quota count (scansUsedToday only counts "user").
@@ -811,7 +868,7 @@ export const aiRouter = {
           recordRetry(bucket, userId, input.photoId, {
             model: analysis.model,
             hint: input.hint,
-            items: shownItems,
+            items: answered,
           }),
         );
       }
@@ -822,8 +879,9 @@ export const aiRouter = {
           ),
         );
       }
+      const usualPortions = await usualPortionsPending;
       return {
-        items: shownItems,
+        items: shownItems.map((item) => (item.scaleRead ? item : withUsualPortion(item, usualPortions))),
         tooMany: analysis.tooMany,
         retriesLeft: MAX_SCAN_RETRIES - (used + 1),
         model: analysis.model,
@@ -1241,7 +1299,23 @@ export const aiRouter = {
               suggestion: null,
             }
           : null;
-      return { transcript, items: analysis.items, quotaReached, reference };
+      // "Seperti biasanya" and "Porsi kebiasaanmu": a food the user logged or weighed before keeps its kcal per gram and
+      // starts at their usual grams (rows copied from the log already do). Cerita rows have no weight chip, so only a
+      // usual weight that replaces the model's is applied; the chip stays on the item for the note.
+      const [usualMap, usualPortions] = await Promise.all([
+        loadUsualDensities(context.db, userId, zone).catch((error: unknown) => {
+          console.error("[ai] usual density failed", error);
+          return new Map() as UsualMap;
+        }),
+        loadUsualPortions(context, userId, zone),
+      ]);
+      const items = analysis.items.map((item) => {
+        if (item.copied) return item;
+        const dense = withUsualDensity(item, usualMap);
+        const out = withUsualPortion(dense, usualPortions);
+        return out.portionPrior?.active === "prior" ? out : dense;
+      });
+      return { transcript, items, quotaReached, reference };
     }),
   // Miss log (JRG-32): the client posts what the AI estimated vs what the user
   // actually kept, per item, at save time. Fire-and-forget from the clients —

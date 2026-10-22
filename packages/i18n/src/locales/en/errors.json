@@ -75,7 +75,9 @@
       "plateEmpty": "This plate is empty",
       "saveFailed": "Couldn't save the favorite",
       "notFound": "Favorite not found",
-      "empty": "This favorite is empty"
+      "empty": "This favorite is empty",
+      "full": "Favorites are full (up to {{count}}). Remove one first.",
+      "duplicate": "A favorite with the same name and calories already exists."
     }
   },
   "push": {

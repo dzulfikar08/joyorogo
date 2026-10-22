@@ -30,6 +30,8 @@ import { client, isPaywallError, orpc, queryClient } from "@/utils/orpc";
 import { useToast } from "@/components/toast";
 import { useOptimisticMutation } from "@/lib/optimistic";
 import { undoLabel } from "@joyorogo/api/lib/optimistic";
+import type { UsualDensityNote } from "@joyorogo/api/lib/usual-density";
+import type { PortionPriorChip } from "@joyorogo/api/lib/portion-chip";
 
 /** One parsed story item as describeFood answers it: pinned to slot and day. */
 type StoryItem = {
@@ -47,6 +49,10 @@ type StoryItem = {
   date: string;
   /** Copied from an earlier log row: stored nutrition, never an AI estimate. */
   copied?: boolean;
+  /** Set when the kcal is the user's own per gram from an earlier log of the same food. */
+  usualDensity?: UsualDensityNote;
+  /** Set when the weight started at the user's usual portion of that food: the model's grams are in the note. */
+  portionPrior?: PortionPriorChip;
 };
 
 /** What describeFood (and food.copyMeal) answer. */
@@ -554,11 +560,17 @@ export function Cerita({
                     key={`${item.name}-${index}`}
                     title={item.name}
                     subtitle={
-                      item.portion || item.grams != null ? (
+                      item.portion || item.grams != null || item.usualDensity ? (
                         <MetaLine
                           items={[
                             item.portion,
                             item.grams != null ? `± ${fmtGramsLabel(item.grams)}` : null,
+                            item.usualDensity && kcals[index] === String(item.kcal)
+                              ? t("story.usual", { kcal: fmtKcalLabel(item.usualDensity.modelKcal) })
+                              : null,
+                            item.portionPrior && kcals[index] === String(item.kcal)
+                              ? t("story.usualPortion", { grams: fmtGramsLabel(item.portionPrior.other.grams) })
+                              : null,
                           ]}
                         />
                       ) : (

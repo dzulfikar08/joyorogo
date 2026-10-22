@@ -148,6 +148,10 @@ describe("mealPlan: Sudah makan", () => {
     if (!day || !item) return; // late evening: nothing left to eat today
     const res = await call(mealPlanRouter.eat, { date: today, slot: item.slot }, as("pro"));
     expect(res.logId).toBe(`meal-plan:pro:${today}:${item.slot}`);
+    // The stored row rides along so the phone can mirror it to Health Connect, macros and fibre included.
+    expect(res.row).toMatchObject({ id: res.logId, kcal: item.nutrition.kcal, grams: item.grams });
+    expect(res.row.protein).toBeCloseTo(item.nutrition.proteinG, 5);
+    expect(res.row.fiber).toBeCloseTo(item.nutrition.fiberG, 5);
     const rows = (await sql(`SELECT * FROM food_log WHERE id = ?`, [res.logId])).rows;
     expect(rows).toHaveLength(1);
     const row = rows[0] as unknown as Record<string, number | string | null>;
@@ -175,6 +179,7 @@ describe("mealPlan: Sudah makan", () => {
 
     const undone = await call(mealPlanRouter.undoEat, { date: today, slot: item.slot }, as("pro"));
     expect(undone.days[0]?.items.find((i) => i.slot === item.slot)?.eaten).toBe(false);
+    expect(undone.removedLogId).toBe(res.logId);
     expect((await sql(`SELECT count(*) AS n FROM food_log WHERE id = ?`, [res.logId])).rows[0]?.n).toBe(0);
   });
 

@@ -1,0 +1,82 @@
+{
+  "_note": "The owner's diary rows named putih telur, from production on 2026-10-22 (name, saved grams, source, the AI list kept in items_json, created_at in ms), oldest first. The 10-20 rows were scans the model named another dish and the owner renamed; from 10-21 each row is one scan of a boiled egg white that the model answered at 50 to 100 g and he saved at 100 g (200 g for two pieces).",
+  "rows": [
+    {
+      "name": "putih telur",
+      "grams": 100,
+      "source": "ai",
+      "itemsJson": "[{\"name\":\"es mambo susu\",\"portion\":\"1 plastik kecil\",\"grams\":100,\"kcal\":120,\"protein\":2,\"carbs\":18,\"fat\":5,\"fiber\":0,\"confidence\":0.9,\"matched\":false,\"box\":[229,329,809,773],\"kind\":\"camilan\"}]",
+      "at": 1792466887512
+    },
+    {
+      "name": "putih telur",
+      "grams": 100,
+      "source": "ai",
+      "itemsJson": "[{\"name\":\"es mambo susu\",\"portion\":\"1 bungkus plastik\",\"grams\":150,\"kcal\":180,\"protein\":3,\"carbs\":25,\"fat\":8,\"fiber\":0,\"confidence\":0.9,\"matched\":false,\"box\":[114,300,763,731],\"kind\":\"camilan\"}]",
+      "at": 1792485687220
+    },
+    {
+      "name": "putih telur",
+      "grams": 100,
+      "source": "ai",
+      "itemsJson": "[{\"name\":\"lontong\",\"portion\":\"1 buah\",\"grams\":150,\"kcal\":200,\"protein\":4,\"carbs\":45,\"fat\":1,\"fiber\":2,\"confidence\":0.9,\"matched\":false,\"box\":[314,128,653,488],\"kind\":\"makanan\"}]",
+      "at": 1792486702210
+    },
+    {
+      "name": "putih telur",
+      "grams": 100,
+      "source": "ai",
+      "itemsJson": "[{\"name\":\"putih telur\",\"portion\":\"1 buah\",\"grams\":100,\"kcal\":50,\"protein\":10,\"carbs\":1,\"fat\":0,\"fiber\":0,\"confidence\":0.9,\"matched\":false,\"box\":[319,131,655,488],\"kind\":\"makanan\"}]",
+      "at": 1792543660483
+    },
+    {
+      "name": "putih telur",
+      "grams": 100,
+      "source": "ai",
+      "itemsJson": "[{\"name\":\"putih telur\",\"portion\":\"1 buah\",\"grams\":50,\"kcal\":25,\"protein\":5,\"carbs\":1,\"fat\":0,\"fiber\":0,\"confidence\":0.9,\"matched\":false,\"box\":[218,261,776,683],\"kind\":\"makanan\"}]",
+      "at": 1792547281744
+    },
+    {
+      "name": "putih telur",
+      "grams": 100,
+      "source": "ai",
+      "itemsJson": "[{\"name\":\"putih telur\",\"portion\":\"1 buah\",\"grams\":60,\"kcal\":30,\"protein\":6,\"carbs\":1,\"fat\":0,\"fiber\":0,\"confidence\":1,\"matched\":false,\"box\":[818,638,987,943],\"kind\":\"makanan\"}]",
+      "at": 1792560441037
+    },
+    {
+      "name": "putih telur",
+      "grams": 100,
+      "source": "ai",
+      "itemsJson": "[{\"name\":\"putih telur\",\"portion\":\"1 bungkus kecil\",\"grams\":100,\"kcal\":50,\"protein\":11,\"carbs\":1,\"fat\":0,\"fiber\":0,\"confidence\":0.9,\"matched\":false,\"box\":[231,428,651,757],\"kind\":\"makanan\"}]",
+      "at": 1792570846667
+    },
+    {
+      "name": "Putih Telur",
+      "grams": 200,
+      "source": "ai",
+      "itemsJson": "[{\"name\":\"putih telur\",\"portion\":\"2 plastik kecil\",\"grams\":100,\"kcal\":50,\"protein\":10,\"carbs\":1,\"fat\":0,\"fiber\":0,\"confidence\":1,\"matched\":true,\"box\":[287,186,741,524],\"kind\":\"makanan\"}]",
+      "at": 1792634205736
+    },
+    {
+      "name": "Putih Telur",
+      "grams": 100,
+      "source": "ai",
+      "itemsJson": "[{\"name\":\"putih telur\",\"portion\":\"1 buah\",\"grams\":50,\"kcal\":25,\"protein\":5,\"carbs\":0,\"fat\":0,\"fiber\":0,\"confidence\":0.9,\"matched\":true,\"box\":[317,128,655,487],\"kind\":\"makanan\"}]",
+      "at": 1792651263485
+    },
+    {
+      "name": "Putih Telur",
+      "grams": 100,
+      "source": "ai",
+      "itemsJson": "[{\"name\":\"putih telur\",\"portion\":\"1 buah\",\"grams\":50,\"kcal\":25,\"protein\":5,\"carbs\":1,\"fat\":0,\"fiber\":0,\"confidence\":0.9,\"matched\":true,\"box\":[322,639,665,947],\"kind\":\"makanan\"}]",
+      "at": 1792660746626
+    },
+    {
+      "name": "Putih Telur",
+      "grams": 100,
+      "source": "ai",
+      "itemsJson": "[{\"name\":\"putih telur\",\"portion\":\"1 buah\",\"grams\":50,\"kcal\":25,\"protein\":5,\"carbs\":1,\"fat\":0,\"fiber\":0,\"confidence\":0.9,\"matched\":true,\"box\":[119,103,672,546],\"kind\":\"camilan\"}]",
+      "at": 1792665227232
+    }
+  ]
+}

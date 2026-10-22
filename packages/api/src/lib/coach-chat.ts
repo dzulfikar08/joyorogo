@@ -282,7 +282,7 @@ export function contextSections(snapshot: CoachSnapshot, ctx: CoachServerContext
         ? `Plan: ${ctx.doc.plan.goal} ${ctx.doc.plan.level}, ${ctx.doc.plan.daysPerWeek} days/week, ${ctx.doc.plan.weeks} weeks from ${ctx.doc.plan.startDay}`
         : "Plan: none active",
     `Food today: ${ctx.food.todayKcal} kcal, ${ctx.food.todayProtein} g protein` +
-      (ctx.food.avgKcal7 !== null ? `; last 7 days average ${ctx.food.avgKcal7} kcal, ${ctx.food.avgProtein7} g protein (${ctx.food.loggedDays7} logged days)` : "; no food logged in the last 7 days"),
+      (ctx.food.avgKcal7 !== null ? `; last 7 days average ${ctx.food.avgKcal7} kcal${ctx.food.avgProtein7 !== null ? `, ${ctx.food.avgProtein7} g protein` : ""} (${ctx.food.loggedDays7} logged days)` : "; no food logged in the last 7 days"),
   ];
   const workouts =
     snapshot.workouts.length > 0

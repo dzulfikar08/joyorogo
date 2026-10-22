@@ -34,6 +34,9 @@ export const payment = sqliteTable(
     // ("frankfurter:<rate date>" = ECB reference rate, "static:<date>" = the in-code fallback table).
     fxRateIdr: real("fx_rate_idr"),
     fxSource: text("fx_source"),
+    // 1 = a test purchase that was not really charged (Play license tester, Apple Sandbox, Polar sandbox), 0 = real, null = unknown (old rows).
+    // Excluded from revenue totals.
+    isTest: integer("is_test"),
     // Founder period end this payment produced (set on the paid flip).
     founderUntil: integer("founder_until", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
@@ -106,6 +109,8 @@ export const googlePurchase = sqliteTable(
     // Last subscriptionsv2 state we saw (pending, active, canceled, grace, hold, paused, expired).
     state: text("state").notNull(),
     latestOrderId: text("latest_order_id"),
+    // 1 when Play reported a testPurchase (license tester, not charged), 0 real, null = unknown (rows before this column).
+    isTest: integer("is_test"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),

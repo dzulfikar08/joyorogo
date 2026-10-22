@@ -63,9 +63,11 @@ import type { QueryKey } from "@tanstack/react-query";
 import { FavoritChips, FavoritManageSheet, useFavorites } from "@/components/favorit";
 import type { SummaryDelta } from "@joyorogo/api/lib/optimistic";
 import { foodKind, matchesKind } from "@joyorogo/api/lib/food-kind";
+import { proteinPerKg } from "@joyorogo/api/lib/safety";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
 import type { MakanView } from "@joyorogo/api/lib/diary-view";
 import { DaySummary } from "@/components/makan/day-summary";
+import { FastLossNote } from "@/components/makan/fast-loss-note";
 import { KalenderView } from "@/components/makan/kalender-view";
 import { KindFilter } from "@/components/makan/kind-filter";
 import { QuickAdd, recentAddFields } from "@/components/makan/quick-add";
@@ -132,6 +134,11 @@ export default function Makan() {
   const recentQuery = useQuery(orpc.food.recent.queryOptions());
   const favorites = useFavorites();
   const [manageOpen, setManageOpen] = useState(false);
+  // A new log can complete a habit: ask the server again whether something is worth offering as a favorite.
+  const loggedRows = listQuery.data?.items.length ?? 0;
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: orpc.savedFood.offer.key() });
+  }, [loggedRows, queryClient]);
   // Plate prices for the diary's plate grouping (plate.byDate) and inline edit.
   const plateDayQuery = useQuery({
     ...orpc.plate.byDate.queryOptions({ input: { date } }),
@@ -487,6 +494,14 @@ export default function Makan() {
   // Naikin BB: under-eating is the problem, so never an "over" tone, and the day reads "still to eat".
   const gainPlan = !maternal && targets?.gain != null;
   const eatenKcal = summaryQuery.data?.eatenKcal ?? totals.kcal;
+  // Protein per kg against the guide: only from rows that carry a protein figure (unknown is not zero) and a weigh-in.
+  const proteinGuide = proteinPerKg({
+    proteinG: totals.protein,
+    proteinKnown: items.some((item) => item.protein != null),
+    weightKg: summaryQuery.data?.latestWeightKg ?? null,
+    gaining: gainPlan,
+    maternal,
+  });
   // Carb/fat/fiber floors from the engine; same reference as the web card.
   const macroBudgets = targets ? macroTargets(targets.eatKcal, 70) : null;
 
@@ -743,7 +758,7 @@ export default function Makan() {
   };
 
   return (
-    <Screen>
+    <Screen decorated>
       <PageHeader title={t("common:nav.food")} right={<AskJoyoHeaderButton />} />
 
       <View style={styles.switcherRow}>
@@ -761,6 +776,7 @@ export default function Makan() {
             maternal={maternal}
             gainPlan={gainPlan}
             totals={totals}
+            proteinGuide={proteinGuide}
             budgets={{
               proteinG: summaryQuery.data?.protein?.targetG ?? null,
               carbsG: macroBudgets?.carbsG ?? null,
@@ -768,6 +784,10 @@ export default function Makan() {
               fiberG: macroBudgets?.fiberG ?? null,
             }}
           />
+
+          {isToday && summaryQuery.data ? (
+            <FastLossNote note={summaryQuery.data.fastLoss} today={summaryQuery.data.date} />
+          ) : null}
 
           <QuickAdd
             date={date}

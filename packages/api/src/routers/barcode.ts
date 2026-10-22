@@ -1,9 +1,9 @@
 import { ORPCError } from "@orpc/server";
-import { and, between, eq, sql } from "drizzle-orm";
+import { and, between, desc, eq, gte, like, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { barcodeProduct } from "@joyorogo/db/schema/barcode";
-import { aiUsage } from "@joyorogo/db/schema/fitness";
+import { aiUsage, foodLog } from "@joyorogo/db/schema/fitness";
 import type { Locale } from "@joyorogo/i18n";
 
 import { protectedProcedure } from "../index";
@@ -26,6 +26,9 @@ import { pendingStickerKey } from "../lib/sticker";
 import { dayBounds } from "../lib/tiers";
 import { userZone } from "../lib/user-zone";
 import { DEFAULT_VISION_MODEL } from "../lib/vision";
+
+/** A barcode logged again inside this window asks "Tambah lagi?" first. */
+export const REPEAT_BARCODE_WINDOW_MS = 15 * 60 * 1000;
 
 /** Label photo reads per user per local day, failures included (each one costs a model call). */
 export const MAX_LABEL_READS_PER_DAY = 12;
@@ -129,6 +132,28 @@ export const barcodeRouter = {
           message: serverT(context.locale, "barcode")("errors.sourcesUnavailable"),
         });
       }
+    }),
+
+  // When this user last logged this barcode within the repeat window (unix ms), or null. Clients ask
+  // "Tambah lagi?" before adding a second row.
+  recentLog: protectedProcedure
+    .input(z.object({ code: codeSchema }))
+    .handler(async ({ context, input }): Promise<{ loggedAt: number | null }> => {
+      const code = normalizedCode(input.code, context.locale);
+      const [row] = await context.db
+        .select({ createdAt: foodLog.createdAt })
+        .from(foodLog)
+        .where(
+          and(
+            eq(foodLog.userId, context.session.user.id),
+            eq(foodLog.source, "barcode"),
+            gte(foodLog.createdAt, new Date(Date.now() - REPEAT_BARCODE_WINDOW_MS)),
+            like(foodLog.itemsJson, `%"barcode":"${code}"%`),
+          ),
+        )
+        .orderBy(desc(foodLog.createdAt))
+        .limit(1);
+      return { loggedAt: row ? row.createdAt.getTime() : null };
     }),
 
   // Reads a photo of the nutrition panel (and optionally the front of the pack)

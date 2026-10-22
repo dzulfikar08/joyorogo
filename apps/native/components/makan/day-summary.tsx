@@ -5,9 +5,11 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { eatTone } from "@joyorogo/api/lib/engine";
 import { gainEatTone, gainRemaining } from "@joyorogo/api/lib/gain";
 
+import type { ProteinPerKg } from "@joyorogo/api/lib/safety";
+
 import { gainRemainingLabel } from "@/components/gain/gain-today";
 import { Card, CountNum, MacroBar, Text } from "@/components/ui";
-import { fmtInt } from "@/utils/format";
+import { fmtDecimal, fmtInt } from "@/utils/format";
 
 type MacroTotals = { protein: number; carbs: number; fat: number; fiber: number };
 type MacroBudgets = {
@@ -29,6 +31,7 @@ export function DaySummary({
   maternal,
   gainPlan,
   totals,
+  proteinGuide,
   budgets,
 }: {
   eatenKcal: number;
@@ -37,6 +40,8 @@ export function DaySummary({
   maternal: boolean;
   gainPlan: boolean;
   totals: MacroTotals;
+  /** Eaten protein per kg of the latest weigh-in against the guide range; null when it cannot be said honestly. */
+  proteinGuide: ProteinPerKg | null;
   budgets: MacroBudgets;
 }) {
   const { t } = useTranslation("makan");
@@ -91,6 +96,15 @@ export function DaySummary({
           budget={budgets.proteinG}
           neutral={gainPlan}
         />
+        {proteinGuide ? (
+          <Text style={styles.proteinGuide}>
+            {t("daySummary.proteinPerKg", {
+              perKg: fmtDecimal(proteinGuide.gPerKg, 1),
+              min: fmtDecimal(proteinGuide.guide.min, 1),
+              max: fmtDecimal(proteinGuide.guide.max, 1),
+            })}
+          </Text>
+        ) : null}
         <MacroBar
           macro="carbs"
           label={t("diary.macro.carbs")}
@@ -166,5 +180,11 @@ const styles = StyleSheet.create((theme) => ({
   },
   macros: {
     gap: theme.spacing.sm,
+  },
+  proteinGuide: {
+    fontSize: theme.fontSize.xs,
+    lineHeight: 17,
+    color: theme.colors.mutedForeground,
+    fontVariant: ["tabular-nums"],
   },
 }));

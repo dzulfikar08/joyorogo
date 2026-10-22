@@ -40,7 +40,8 @@ export function itemAtGrams<T extends GramsItem>(item: T, grams: number): T | nu
     },
   ]);
   if (!calibrated) return null;
-  const { portion: _portion, edibleGrams: _edible, ...rest } = item;
+  // A weight set from outside ends the scan's bone-in estimate: the new grams are taken as eaten.
+  const { portion: _portion, edibleGrams: _edible, grossGrams: _gross, withBone: _bone, pieces: _pieces, ...rest } = item;
   return {
     ...rest,
     grams,

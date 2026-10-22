@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lt, lte, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { user } from "@joyorogo/db/schema/auth";
@@ -31,6 +31,7 @@ import { energyNotice, showEnergyNotice } from "../lib/energy-notice";
 import { budgetKcal, exerciseCredit } from "../lib/exercise-credit";
 import { addBackPrefQuery, dayReadings, loadDayCredit, readAddBackPrefs } from "../lib/exercise-credit-store";
 import { READINESS_LABELS, hasFitnessData } from "../lib/fitness-hint";
+import { IMPORT_SOURCE } from "../lib/history-import";
 import { dateSchema } from "../lib/schemas";
 import { loadIdeaValues } from "./plate";
 import { gainMealIdeas, mealIdeas } from "../lib/ideas";
@@ -45,6 +46,7 @@ import {
   premiumUnlocked,
 } from "../lib/readiness-food";
 import type { GuidanceTargets, HistoryFood } from "../lib/readiness-food";
+import { fastLossNote } from "../lib/safety";
 import { paywallConfig } from "../lib/tiers";
 import { userZone } from "../lib/user-zone";
 
@@ -165,14 +167,20 @@ export const dayRouter = {
           .where(and(eq(exerciseLog.userId, userId), gte(exerciseLog.date, weekStart))),
         // One row per logged day with its kcal: the normal streak reads the dates, a gain plan the totals.
         context.db
-          .select({ date: foodLog.date, kcal: sql<number>`sum(${foodLog.kcal})` })
+          .select({
+            date: foodLog.date,
+            kcal: sql<number>`sum(${foodLog.kcal})`,
+            // Distinct meal slots that day: the fast-loss note only counts days that look fully logged.
+            meals: sql<number>`count(distinct ${foodLog.meal})`,
+          })
           .from(foodLog)
-          .where(and(eq(foodLog.userId, userId), gte(foodLog.date, streakStart)))
+          // Imported history (source "huawei") never counts toward a streak.
+          .where(and(eq(foodLog.userId, userId), gte(foodLog.date, streakStart), ne(foodLog.source, IMPORT_SOURCE)))
           .groupBy(foodLog.date),
         context.db
           .selectDistinct({ date: weightLog.date })
           .from(weightLog)
-          .where(and(eq(weightLog.userId, userId), gte(weightLog.date, streakStart))),
+          .where(and(eq(weightLog.userId, userId), gte(weightLog.date, streakStart), ne(weightLog.source, IMPORT_SOURCE))),
         context.db
           .select({
             steps: dailyActivity.steps,
@@ -224,6 +232,7 @@ export const dayRouter = {
           weekMeals: 0,
           milestones: [],
           trend: null,
+          fastLoss: null,
           protein: null,
           maternal: null,
           ideas: [],
@@ -299,6 +308,19 @@ export const dayRouter = {
         ...(date === today ? {} : { dayFraction: 1 }),
       });
       const weekTrendStart = shiftDate(date, -7);
+      // The calm "slow down a bit" note: today only, never for Hamil / Menyusui or a gain plan (lib/safety), from
+      // data this query already loaded (60 days of weigh-ins, the per-day intake of the streak window).
+      const fastLoss =
+        date === today
+          ? fastLossNote({
+              today,
+              weighIns: plan.weighIns,
+              days: foodDates,
+              bmrKcal: planTargets.bmr,
+              maternal,
+              gaining,
+            })
+          : null;
 
       return {
         hasProfile: true,
@@ -359,6 +381,7 @@ export const dayRouter = {
           ? []
           : buildMilestones(planStreakDays, gaining ? 0 : weightLostKg, weightGainedKg),
         trend: plan.trend,
+        fastLoss,
         protein: {
           eatenG: Math.round(eatenProteinG),
           targetG: proteinGoalG(plan, prof.heightCm, workoutRows.length > 0),

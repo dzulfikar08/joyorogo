@@ -21,7 +21,7 @@ for (const file of readdirSync(migrationsDir)
   await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
 }
 await client.executeMultiple(`
-  INSERT INTO "user" (id, name, email) VALUES ('on', 'on', 'on@test.id'), ('few', 'few', 'few@test.id'), ('two', 'two', 'two@test.id'), ('none', 'none', 'none@test.id');
+  INSERT INTO "user" (id, name, email) VALUES ('on', 'on', 'on@test.id'), ('few', 'few', 'few@test.id'), ('pair', 'pair', 'pair@test.id'), ('two', 'two', 'two@test.id'), ('none', 'none', 'none@test.id');
 `);
 const db = drizzle(client) as unknown as Database;
 
@@ -29,14 +29,16 @@ const today = jakartaToday();
 let row = 0;
 async function log(userId: string, name: string, grams: number, source: string, itemsJson: string | null, daysAgo = 1) {
   await client.execute({
-    sql: `INSERT INTO food_log (id, user_id, date, meal, name, kcal, grams, source, items_json) VALUES (?, ?, ?, 'makan_siang', ?, 130, ?, ?, ?)`,
-    args: [`r${row++}`, userId, shiftDate(today, -daysAgo), name, grams, source, itemsJson],
+    // 1.3 kcal per gram, the model's own density for rice in ANSWER below, so "Seperti biasanya" has nothing to change.
+    sql: `INSERT INTO food_log (id, user_id, date, meal, name, kcal, grams, source, items_json) VALUES (?, ?, ?, 'makan_siang', ?, ?, ?, ?, ?)`,
+    args: [`r${row++}`, userId, shiftDate(today, -daysAgo), name, Math.round(grams * 1.3), grams, source, itemsJson],
   });
 }
-// Typed rice weights around 100 g: five for "on", four for "few", two (95 g) for "two"; "none" has none.
+// Typed rice weights around 100 g: five for "on", four for "few", two agreeing (95 g) for "pair", two close for "two"; "none" has none.
 for (const g of [95, 100, 100, 105, 100]) await log("on", "nasi putih", g, "manual", null);
 for (const g of [95, 100, 100, 105]) await log("few", "nasi putih", g, "manual", null);
-for (const g of [95, 95]) await log("two", "nasi putih", g, "manual", null);
+for (const g of [95, 95]) await log("pair", "nasi putih", g, "manual", null);
+for (const g of [90, 110]) await log("two", "nasi putih", g, "manual", null);
 
 const ANSWER = JSON.stringify({
   items: [
@@ -70,8 +72,8 @@ describe("ai.analyzeFood with Porsi kebiasaanmu, for every user", () => {
     expect(rice).toMatchObject({
       name: "nasi putih",
       grams: 130,
-      kcal: 170,
-      portionPrior: { active: "ai", n: 0, source: "typical", other: { grams: 100, kcal: 131 } },
+      kcal: 169,
+      portionPrior: { active: "ai", n: 0, source: "typical", other: { grams: 100, kcal: 130 } },
     });
     expect(ayam).toMatchObject({ name: "ayam goreng", grams: 80 });
     expect(ayam && "portionPrior" in ayam).toBe(false);
@@ -83,23 +85,28 @@ describe("ai.analyzeFood with Porsi kebiasaanmu, for every user", () => {
     expect(rice).toMatchObject({
       name: "nasi putih",
       grams: 100,
-      kcal: 131,
-      portionPrior: { active: "prior", n: 5, source: "you", other: { grams: 130, kcal: 170 } },
+      kcal: 130,
+      portionPrior: { active: "prior", n: 5, source: "you", other: { grams: 130, kcal: 169 } },
     });
     expect(ayam && "portionPrior" in ayam).toBe(false);
   });
 
-  test("four weights are enough to start at the usual grams (PRIOR_MIN_ENTRIES is 3)", async () => {
+  test("four weights start at the usual grams too", async () => {
     const result = await call(aiRouter.analyzeFood, INPUT, { context: ctx("few") });
     expect(result.items[0]).toMatchObject({ grams: 100, portionPrior: { active: "prior", n: 4, source: "you" } });
   });
 
-  test("two weights: the model's number stays, the user's own median is one tap away", async () => {
+  test("two weights that agree start at the usual grams", async () => {
+    const result = await call(aiRouter.analyzeFood, INPUT, { context: ctx("pair") });
+    expect(result.items[0]).toMatchObject({ grams: 95, portionPrior: { active: "prior", n: 2, source: "you", other: { grams: 130 } } });
+  });
+
+  test("two weights that only sit close: the model's number stays, the user's own median is one tap away", async () => {
     const result = await call(aiRouter.analyzeFood, INPUT, { context: ctx("two") });
     expect(result.items[0]).toMatchObject({
       grams: 130,
-      kcal: 170,
-      portionPrior: { active: "ai", n: 2, source: "you", other: { grams: 95 } },
+      kcal: 169,
+      portionPrior: { active: "ai", n: 2, source: "you", other: { grams: 100 } },
     });
   });
 });

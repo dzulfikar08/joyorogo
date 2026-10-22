@@ -82,20 +82,22 @@ export async function readFoodContext(db: Database, userId: string, today: strin
     .select({
       date: foodLog.date,
       kcal: sql<number>`coalesce(sum(${foodLog.kcal}), 0)`,
-      protein: sql<number>`coalesce(sum(${foodLog.protein}), 0)`,
+      // null when every row of the day lacks protein (unknown, not 0 g).
+      protein: sql<number | null>`sum(${foodLog.protein})`,
     })
     .from(foodLog)
     .where(and(eq(foodLog.userId, userId), gte(foodLog.date, shiftDate(today, -7)), lt(foodLog.date, shiftDate(today, 1))))
     .groupBy(foodLog.date);
   const todayRow = rows.find((r) => r.date === today);
   const past = rows.filter((r) => r.date !== today && r.kcal > 0);
-  const avg = (pick: (r: (typeof past)[number]) => number) =>
-    past.length === 0 ? null : Math.round(past.reduce((sum, r) => sum + pick(r), 0) / past.length);
+  const avg = (values: number[]) =>
+    values.length === 0 ? null : Math.round(values.reduce((sum, v) => sum + v, 0) / values.length);
   return {
     todayKcal: Math.round(todayRow?.kcal ?? 0),
     todayProtein: Math.round(todayRow?.protein ?? 0),
-    avgKcal7: avg((r) => r.kcal),
-    avgProtein7: avg((r) => r.protein),
+    avgKcal7: avg(past.map((r) => r.kcal)),
+    // Only days whose protein is known: a kcal-only day must not pull the average toward 0.
+    avgProtein7: avg(past.flatMap((r) => (r.protein === null ? [] : [r.protein]))),
     loggedDays7: past.length,
   };
 }

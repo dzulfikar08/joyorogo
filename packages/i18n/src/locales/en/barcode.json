@@ -85,7 +85,8 @@
       "confirming": "Saving...",
       "confirmed": "Thanks for checking. These numbers are now confirmed by {{count}} users.",
       "outvoted": "Thanks. These numbers are already confirmed by other users, so your check didn't change them."
-    }
+    },
+    "kcalFromMacros": "This product's label energy doesn't match its protein, carbs and fat, so the kcal is calculated from them (estimate)."
   },
   "macro": {
     "protein": "protein",
@@ -200,7 +201,8 @@
       "no_energy": "The total energy couldn't be read. Fill it in from the label.",
       "columns_disagree": "The \"per serving\" and \"per 100\" columns don't match. Check which one you copied.",
       "energy_mismatch": "The energy doesn't match the protein, carbohydrate and fat. Check the numbers.",
-      "implausible": "These numbers can't be right. Check them, including \"per serving\" versus \"per 100\"."
+      "implausible": "These numbers can't be right. Check them, including \"per serving\" versus \"per 100\".",
+      "energy_adjusted": "The label energy doesn't match its macros, so we recalculated it from protein, carbs and fat (estimate). Check it against your pack."
     },
     "thanks": {
       "title": "Thank you!",
@@ -209,5 +211,11 @@
       "outvoted": "Thanks. Your numbers differ from what other users confirmed, so they aren't used yet. If more people agree with you, they will replace the current ones.",
       "continue": "Log this food"
     }
+  },
+  "repeat": {
+    "title": "Logged {{ago}} min ago",
+    "body": "You logged {{name}} {{ago}} min ago. Add it again?",
+    "confirm": "Add again",
+    "cancel": "Don't add"
   }
 }

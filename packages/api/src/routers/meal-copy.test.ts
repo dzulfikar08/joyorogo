@@ -71,7 +71,8 @@ const add = async (
   extra: { grams?: number; protein?: number; carbs?: number; fat?: number } = {},
 ) => {
   setSystemTime((now += 1));
-  const out = await call(foodRouter.add, { date, meal, name, kcal, source: "copy", ...extra }, who);
+  // Seeded as logged rows with exactly the macros given: "ai" is never estimated by food.add (manual and copy rows without macros are).
+  const out = await call(foodRouter.add, { date, meal, name, kcal, source: "ai", ...extra }, who);
   await client.execute({
     sql: "UPDATE food_log SET created_at = ? WHERE rowid = (SELECT max(rowid) FROM food_log)",
     args: [now],

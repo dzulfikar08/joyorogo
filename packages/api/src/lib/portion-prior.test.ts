@@ -8,6 +8,8 @@ import {
   TYPICAL_MIN_RATIO,
   TYPICAL_PORTIONS,
   buildPriors,
+  countOf,
+  priorFood,
   priorOf,
   userSetSamples,
   withPortionPrior,
@@ -70,15 +72,34 @@ describe("userSetSamples: only grams the user set", () => {
 describe("consistency gate", () => {
   test("two entries are enough for the chip, fewer are no history", () => {
     expect(priorOf([100])).toBeNull();
-    expect(priorOf([100, 100])).toEqual({ grams: 100, n: PRIOR_SUGGEST_ENTRIES });
+    expect(priorOf([100, 100])).toEqual({ grams: 100, n: PRIOR_SUGGEST_ENTRIES, tight: true });
     expect(priorOf([100, 100], 5)).toBeNull();
-    expect(priorOf([100, 100, 100, 100, 100], 5)).toEqual({ grams: 100, n: 5 });
+    expect(priorOf([100, 100, 100, 100, 100], 5)).toEqual({ grams: 100, n: 5, tight: true });
   });
 
   test("median of tight entries; spread over 25% means no prior", () => {
-    expect(priorOf([90, 100, 100, 105, 110])).toEqual({ grams: 100, n: 5 });
+    expect(priorOf([90, 100, 100, 105, 110])).toEqual({ grams: 100, n: 5, tight: true });
     expect(priorOf([50, 100, 100, 150, 200])).toBeNull();
     expect(priorOf([80, 150])).toBeNull();
+  });
+
+  test("a spread inside 25% without a tight cluster is a loose prior", () => {
+    expect(priorOf([100, 130])).toEqual({ grams: 115, n: 2 });
+    expect(priorOf([80, 100, 120])).toEqual({ grams: 100, n: 3 });
+  });
+
+  test("one odd save among agreeing ones does not hide the habit", () => {
+    // The owner's egg whites: 100, 100, then a 200 he saved for two pieces.
+    expect(priorOf([200, 100, 100])).toEqual({ grams: 100, n: 2, tight: true });
+    expect(priorOf([100, 200, 100, 100, 100])).toEqual({ grams: 100, n: 4, tight: true });
+    // Half of them is not a habit.
+    expect(priorOf([200, 100, 100, 200])).toBeNull();
+  });
+
+  test("only the newest entries count", () => {
+    const newest = Array.from({ length: 12 }, () => 150);
+    const older = Array.from({ length: 13 }, () => 100);
+    expect(priorOf([...newest, ...older])).toEqual({ grams: 150, n: 12, tight: true });
   });
 
   test("per canonical food", () => {
@@ -91,8 +112,51 @@ describe("consistency gate", () => {
 
   test("the entries needed come from the caller (the harness tunes it)", () => {
     const samples = [100, 100, 100].map((grams) => ({ food: "nasi", grams }));
-    expect(buildPriors(samples).get("nasi")).toEqual({ grams: 100, n: 3 });
+    expect(buildPriors(samples).get("nasi")).toEqual({ grams: 100, n: 3, tight: true });
     expect(buildPriors(samples, 5).size).toBe(0);
+  });
+});
+
+describe("pieces and food names", () => {
+  test("countOf: the pieces field, else the number a portion text starts with, a weight is no count", () => {
+    expect(countOf({ pieces: { count: 3 }, portion: "1 buah" })).toBe(3);
+    expect(countOf({ portion: "2 plastik kecil" })).toBe(2);
+    expect(countOf({ portion: "1 buah" })).toBe(1);
+    expect(countOf({ portion: "200 g" })).toBe(1);
+    expect(countOf({ portion: "250 ml" })).toBe(1);
+    expect(countOf({ portion: "satu porsi sedang" })).toBe(1);
+    expect(countOf({})).toBe(1);
+  });
+
+  test("priorFood: cooking-state words and brackets do not make another food", () => {
+    expect(priorFood("Putih Telur")).toBe(priorFood("putih telur rebus"));
+    expect(priorFood("putih telur (rebus)")).toBe(priorFood("putih telur"));
+    expect(priorFood("nasi kukus")).toBe("nasi");
+    expect(priorFood("telur dadar")).not.toBe(priorFood("telur rebus"));
+    expect(priorFood("ayam goreng")).toBe("ayam goreng");
+  });
+
+  test("a saved weight is per piece: 200 g saved for the AI's '2 plastik kecil' is 100 g a piece", () => {
+    const row = (grams: number, portion: string, aiGrams: number): HistoryRow => ({
+      name: "Putih Telur",
+      grams,
+      source: "ai",
+      itemsJson: JSON.stringify([{ name: "putih telur", portion, grams: aiGrams, kcal: 25 }]),
+    });
+    const samples = userSetSamples([row(200, "2 plastik kecil", 100), row(100, "1 buah", 50)]);
+    expect(samples.map((s) => s.grams)).toEqual([100, 100]);
+    expect(new Set(samples.map((s) => s.food)).size).toBe(1);
+  });
+
+  test("the usual grams scale with the pieces on the photo", () => {
+    const usual = buildPriors([100, 100].map((grams) => ({ food: priorFood("putih telur"), grams })));
+    const white = { name: "putih telur", portion: "1 buah", grams: 50, kcal: 26, protein: 5, carbs: 1, fat: 0, kind: "makanan" as const };
+    expect(withPortionPrior(white, usual)).toMatchObject({ grams: 100, portionPrior: { active: "prior", other: { grams: 50 } } });
+    const three = withPortionPrior({ ...white, portion: "3 buah", grams: 150, kcal: 78 }, usual);
+    expect(three).toMatchObject({ grams: 300, portionPrior: { active: "prior", other: { grams: 150 } } });
+    // Three pieces at the usual 100 g each is what the model said: nothing to say.
+    const same = { ...white, portion: "3 buah", grams: 300, kcal: 156 };
+    expect(withPortionPrior(same, usual)).toBe(same);
   });
 });
 
@@ -104,7 +168,7 @@ describe("withPortionPrior: a solid history starts at the usual grams", () => {
   test("starts at the usual grams, kcal through calibration, the model's numbers behind the chip", () => {
     const out = withPortionPrior(rice, priors);
     expect(out.grams).toBe(100);
-    expect(out.kcal).toBe(131);
+    expect(out.kcal).toBe(130);
     expect(out.portion).toBeUndefined();
     expect(out.protein).toBeCloseTo(2.8, 1);
     expect(out.portionPrior).toEqual({
@@ -115,10 +179,11 @@ describe("withPortionPrior: a solid history starts at the usual grams", () => {
     });
   });
 
-  test("three entries are enough to start at the usual grams, two only offer it", () => {
+  test("agreeing weights start at the usual grams from two entries; two that only sit close offer it", () => {
     expect(withPortionPrior(rice, history(100, 100, 100))).toMatchObject({ grams: 100, portionPrior: { active: "prior", n: PRIOR_MIN_ENTRIES } });
-    const two = withPortionPrior(rice, history(100, 100));
-    expect(two).toMatchObject({ grams: 130, kcal: 170, portion: "1 centong", portionPrior: { active: "ai", n: 2, source: "you", other: { grams: 100, kcal: 131 } } });
+    expect(withPortionPrior(rice, history(100, 100))).toMatchObject({ grams: 100, kcal: 130, portionPrior: { active: "prior", n: 2, source: "you", other: { grams: 130, kcal: 170, portion: "1 centong" } } });
+    const loose = withPortionPrior(rice, history(100, 130));
+    expect(loose).toMatchObject({ grams: 130, kcal: 170, portion: "1 centong", portionPrior: { active: "ai", n: 2, source: "you", other: { grams: 115 } } });
     expect(withPortionPrior(rice, history(100, 100, 100), { minEntries: 5 })).toMatchObject({ grams: 130, portionPrior: { active: "ai", n: 3 } });
   });
 
@@ -158,7 +223,7 @@ describe("withPortionPrior: the typical rice portion for everyone else", () => {
       grams: 130,
       kcal: 170,
       portion: "1 centong",
-      portionPrior: { active: "ai", n: 0, source: "typical", other: { grams: TYPICAL_PORTIONS.nasi, kcal: 131 } },
+      portionPrior: { active: "ai", n: 0, source: "typical", other: { grams: TYPICAL_PORTIONS.nasi, kcal: 130 } },
     });
     expect(chipGrams(out)).toEqual({ ai: 130, usual: 100 });
   });

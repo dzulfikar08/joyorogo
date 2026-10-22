@@ -3,6 +3,7 @@ import { fmtKg, i18n } from "@joyorogo/i18n";
 // Number and date formatting is shared with web and the server: see
 // @joyorogo/i18n (docs/i18n.md). Re-exported here so screens keep one import.
 export {
+  fmtDecimal,
   fmtDateLong,
   fmtDateMedium,
   fmtDateShort,

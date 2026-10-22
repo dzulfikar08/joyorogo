@@ -374,6 +374,18 @@ describe("watch posts", () => {
     expect(workoutAnalysisSchema.safeParse(analysis).success).toBe(false);
   });
 
+  test("a heart-rate-reserve analysis (method, six zones) is accepted and stored as five zones", () => {
+    const analysis = analysisFor(workout) as unknown as Record<string, unknown>;
+    analysis.hrZones = { method: "hrr", maxHr: 190, source: "setting", bounds: [122, 136, 150, 163, 177, 184, 190], sec: [300, 120, 600, 900, 700, 230], belowSec: 50 };
+    const parsed = workoutAnalysisSchema.safeParse(analysis);
+    expect(parsed.success).toBe(true);
+    expect(parsed.data?.hrZones).toEqual({ maxHr: 190, source: "setting", bounds: [136, 150, 163, 177, 184, 190], sec: [120, 600, 900, 700, 230], belowSec: 350 });
+    analysis.hrZones = { method: "lthr", maxHr: 190, source: "age", bounds: [95, 114, 133, 152, 171, 190], sec: [120, 600, 900, 700, 230], belowSec: 0 };
+    expect(workoutAnalysisSchema.safeParse(analysis).success).toBe(true);
+    analysis.hrZones = { maxHr: 190, source: "age", bounds: [95, 114, 133, 152, 171, 190], sec: [120, 600, 900, 700, 230, 1], belowSec: 0 };
+    expect(workoutAnalysisSchema.safeParse(analysis).success).toBe(false);
+  });
+
   test("rejects out-of-range values, unknown keys and too many samples", async () => {
     const post = (analysis: unknown) =>
       call(socialRouter.createWatchPost, { workout, detail: { analysis } as never, visibility: "grup" }, as("author"));

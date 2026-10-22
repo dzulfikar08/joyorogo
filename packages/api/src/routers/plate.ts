@@ -121,7 +121,10 @@ export const plateRouter = {
     .handler(async ({ context, input }) => {
       const { id, lat, lng, ...fields } = input;
       const moveRows = {
-        ...(fields.date ? { date: fields.date } : {}),
+        // A "jam makan" belongs to the day it was set on: rows that change day lose it, rows already on that day keep it.
+        ...(fields.date
+          ? { date: fields.date, eatenAt: sql`case when ${foodLog.date} = ${fields.date} then ${foodLog.eatenAt} else null end` }
+          : {}),
         ...(fields.meal ? { meal: fields.meal } : {}),
       };
       if (Object.keys(moveRows).length > 0) {

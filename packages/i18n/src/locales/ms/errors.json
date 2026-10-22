@@ -74,7 +74,9 @@
       "plateEmpty": "Pinggan kosong",
       "saveFailed": "Gagal menyimpan kegemaran",
       "notFound": "Kegemaran tidak ditemui",
-      "empty": "Kegemaran ini kosong"
+      "empty": "Kegemaran ini kosong",
+      "full": "Kegemaran penuh (maksimum {{count}}). Padam satu dahulu.",
+      "duplicate": "Sudah ada kegemaran dengan nama dan kalori yang sama."
     }
   },
   "push": {

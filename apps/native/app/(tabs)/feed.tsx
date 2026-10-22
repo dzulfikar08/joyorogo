@@ -93,7 +93,7 @@ export default function Feed() {
   }
 
   return (
-    <Screen>
+    <Screen decorated>
       <FeedComposer
         visible={composerOpen}
         onClose={() => setComposerOpen(false)}

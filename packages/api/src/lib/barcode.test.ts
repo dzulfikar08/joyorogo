@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   OFF_USER_AGENT,
   SourceUnavailableError,
+  atwaterOverride,
   classifyProduct,
   fetchOffProduct,
   normalizeBarcode,
@@ -147,5 +148,43 @@ describe("fetchOffProduct", () => {
     await expect(fetchOffProduct("1", reply(503, {}))).rejects.toBeInstanceOf(SourceUnavailableError);
     const down = (() => Promise.reject(new Error("net"))) as unknown as typeof fetch;
     await expect(fetchOffProduct("1", down)).rejects.toBeInstanceOf(SourceUnavailableError);
+  });
+});
+
+describe("label energy contradicting its own macros", () => {
+  const product = (kcal100: number | null) => ({
+    name: "Chi Forest Lyche",
+    brand: null,
+    quantity: null,
+    servingSize: null,
+    unit: "g" as const,
+    kcal100,
+    protein100: 0,
+    carbs100: 0,
+    fat100: 2.5,
+    fiber100: null,
+    sugar100: null,
+    imageUrl: null,
+  });
+
+  test("0 kcal beside 2.5 g fat uses Atwater and is marked", () => {
+    const result = classifyProduct("1", product(0), OFF);
+    expect(result.status).toBe("found");
+    if (result.status === "found") {
+      expect(result.per100.kcal).toBe(23);
+      expect(result.kcalFromMacros).toBe(true);
+    }
+  });
+
+  test("a label within rounding stays as printed", () => {
+    const result = classifyProduct("1", product(20), OFF);
+    expect(result.status === "found" && result.kcalFromMacros).toBe(false);
+    expect(result.status === "found" && result.per100.kcal).toBe(20);
+  });
+
+  test("atwaterOverride ignores real zeros and small gaps", () => {
+    expect(atwaterOverride({ kcal: 0, protein: 0, carbs: 0, fat: 0 })).toBeNull();
+    expect(atwaterOverride({ kcal: 0, protein: 0.5, carbs: 1, fat: 0.2 })).toBeNull();
+    expect(atwaterOverride({ kcal: 5, protein: null, carbs: 12, fat: null })).toBe(48);
   });
 });

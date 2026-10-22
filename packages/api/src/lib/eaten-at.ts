@@ -45,6 +45,11 @@ export function eatenAtProblem(eatenAt: number, date: string, now: Date = new Da
   return "wrong_day";
 }
 
+/** The diary day (`YYYY-MM-DD`) an eaten-at falls on in the zone's calendar. */
+export function eatenAtDay(eatenAt: number, zone?: DayZone): string {
+  return zoneParts(eatenAt, zone).day;
+}
+
 /** Suggested eaten-at (unix ms) for a diary day: `now` for today, else the usual time of the meal in the zone. */
 export function defaultEatenAt(date: string, meal: Meal | string, now: Date = new Date(), zone?: DayZone): number {
   if (zoneParts(now.getTime(), zone).day === date) return now.getTime();

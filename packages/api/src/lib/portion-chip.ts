@@ -51,7 +51,8 @@ export const numbersOf = (item: PortionNumbers): PortionNumbers => ({
 export function swapPortionPrior<T extends Omit<Swappable, "grams"> & { grams?: number }>(item: T): T {
   const chip = item.portionPrior;
   if (!chip || item.grams === undefined) return item;
-  const { portion: _drop, ...rest } = item;
+  // A swapped weight no longer matches the "usual density" note's model kcal: the note goes with the swap.
+  const { portion: _drop, usualDensity: _note, ...rest } = item as T & { usualDensity?: unknown };
   return {
     ...rest,
     ...chip.other,
@@ -87,9 +88,9 @@ export function modelNumbers(item: {
     : { grams: item.grams, kcal: item.kcal };
 }
 
-/** The list as stored in a diary row's items_json: without the chip's second set of numbers. */
-export function withoutPortionPrior<T extends { portionPrior?: unknown }>(
+/** The list as stored in a diary row's items_json: without the chip's second set of numbers and the "seperti biasanya" note. */
+export function withoutPortionPrior<T extends { portionPrior?: unknown; usualDensity?: unknown }>(
   items: readonly T[],
-): Array<Omit<T, "portionPrior">> {
-  return items.map(({ portionPrior: _chip, ...rest }) => rest);
+): Array<Omit<T, "portionPrior" | "usualDensity">> {
+  return items.map(({ portionPrior: _chip, usualDensity: _note, ...rest }) => rest);
 }

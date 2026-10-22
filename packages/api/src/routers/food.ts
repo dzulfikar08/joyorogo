@@ -6,10 +6,15 @@ import type { Database } from "@joyorogo/db";
 
 import { foodLog, profile } from "@joyorogo/db/schema/fitness";
 import { plate } from "@joyorogo/db/schema/plans";
+import { foodQuickMark, savedFood } from "@joyorogo/db/schema/saved-foods";
 
 import { protectedProcedure } from "../index";
-import { assertEatenAt, eatenAtProblem, eatenAtSchema } from "../lib/eaten-at";
+import { assertEatenAt, eatenAtDay, eatenAtProblem, eatenAtSchema } from "../lib/eaten-at";
 import { MEALS, jakartaToday } from "../lib/engine";
+import { insertFoodRows } from "../lib/food-rows";
+import { habitKey } from "../lib/favorite-offer";
+import { parseSavedItems } from "../lib/saved-foods";
+import { barcodeFromItemsJson, productImageUrl, storeProductSticker } from "../lib/barcode-image";
 import { copyLoggedMeal, recentMealGroups } from "../lib/meal-copy";
 import { storyTarget } from "../lib/meal-reference";
 import { MAX_GRAMS, MAX_KCAL, resolvePortion } from "../lib/portion";
@@ -19,6 +24,7 @@ import type { RecalcValues } from "../lib/plate-recalc";
 import { toStoredCoords } from "../lib/places";
 import { userZone } from "../lib/user-zone";
 import { dateSchema, mealSchema, pastDateSchema } from "../lib/schemas";
+import { IMPORT_EARLIEST_DAY, IMPORT_SOURCE } from "../lib/history-import";
 import {
   SCAN_ID_RE,
   base64ToBytes,
@@ -26,14 +32,18 @@ import {
   photoKey,
   pendingStickerKey,
   stickerKey,
+  storePlateStickerFromPhoto,
   storeStickers,
 } from "../lib/sticker";
 import { purgeUnreferencedMedia } from "./saved-food";
-import type { StickerJob } from "../lib/sticker";
+import type { StickerJob, StickersBucket } from "../lib/sticker";
 import { datasetEnabled, recordFinal } from "../lib/dataset";
 import { recordKeptSaved } from "../lib/feedback-keep";
 import { compactItems, recordSessionSaved } from "../lib/scan-outcome";
 import { normalizeBox } from "../lib/vision";
+
+/** Names read before hidden and favorited ones are filtered out of the 10 recent chips. */
+const RECENT_SCAN_ROWS = 40;
 
 const scanItemSchema = z.object({
   name: z.string().min(1).max(200),
@@ -59,6 +69,22 @@ const plateInput = z.object({
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
 });
+
+/**
+ * Moves a cutout made during review from the expiring scan-src/ prefix to its
+ * final key. False when it is missing (still running, failed, expired) or
+ * belongs to someone else, so the caller cuts a fresh one.
+ */
+async function promotePending(bucket: StickersBucket, userId: string, id: string): Promise<boolean> {
+  try {
+    const pending = await bucket.get(pendingStickerKey(id));
+    if (!pending || pending.customMetadata?.userId !== userId) return false;
+    await bucket.put(stickerKey(id), await pending.arrayBuffer(), { httpMetadata: { contentType: "image/png" } });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Creates the plate row a save is anchored to. `name` falls back to the first
@@ -93,7 +119,90 @@ async function createPlate(
   return row?.id ?? null;
 }
 
+/** Most meals one `importHistory` call takes. */
+const IMPORT_MAX_MEALS = 100;
+
 export const foodRouter = {
+  /**
+   * Past meals from another app (JoyoFit's Huawei Health import), as diary rows with `source: "huawei"`. Idempotent: a row's
+   * id is built from the user and the import's own `key`, so the same record sent again is a no-op; a meal the person already
+   * has on that day and slot with the same kcal (to the kcal) is not added a second time. Only days before today are taken, and the
+   * rows are kept out of streaks and challenge days (`source = "huawei"` is filtered there), so a backdated import
+   * cannot make or break a streak. `eatenAt` is kept only when it falls on the diary day in the person's zone. Answers
+   * how many were added and how many skipped.
+   */
+  importHistory: protectedProcedure
+    .input(
+      z.object({
+        meals: z
+          .array(
+            z.object({
+              key: z.string().min(1).max(80).regex(/^[A-Za-z0-9:_.-]+$/),
+              date: dateSchema,
+              meal: mealSchema,
+              name: z.string().trim().min(1).max(200),
+              kcal: z.number().min(0).max(MAX_KCAL),
+              grams: z.number().min(1).max(MAX_GRAMS).optional(),
+              protein: z.number().min(0).max(500).optional(),
+              carbs: z.number().min(0).max(500).optional(),
+              fat: z.number().min(0).max(500).optional(),
+              fiber: z.number().min(0).max(500).optional(),
+              eatenAt: eatenAtSchema.optional(),
+            }),
+          )
+          .min(1)
+          .max(IMPORT_MAX_MEALS),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const userId = context.session.user.id;
+      const zone = await userZone(context);
+      const today = jakartaToday(undefined, zone);
+      let added = 0;
+      for (const m of input.meals) {
+        if (m.date >= today || m.date < IMPORT_EARLIEST_DAY) continue;
+        const twin = await context.db
+          .select({ id: foodLog.id })
+          .from(foodLog)
+          .where(
+            and(
+              eq(foodLog.userId, userId),
+              eq(foodLog.date, m.date),
+              eq(foodLog.meal, m.meal),
+              sql`abs(${foodLog.kcal} - ${m.kcal}) < 1`,
+              sql`${foodLog.source} != ${IMPORT_SOURCE}`,
+            ),
+          )
+          .limit(1);
+        if (twin.length > 0) continue;
+        const eatenAt =
+          m.eatenAt !== undefined && m.eatenAt <= Date.now() && eatenAtDay(m.eatenAt, zone) === m.date ? m.eatenAt : null;
+        const rows = await insertFoodRows(
+          context.db,
+          [
+            {
+              id: `${IMPORT_SOURCE}:${userId}:${m.key}`,
+              userId,
+              date: m.date,
+              meal: m.meal,
+              name: m.name,
+              kcal: m.kcal,
+              grams: m.grams ?? null,
+              protein: m.protein ?? null,
+              carbs: m.carbs ?? null,
+              fat: m.fat ?? null,
+              fiber: m.fiber ?? null,
+              source: IMPORT_SOURCE,
+              eatenAt,
+            },
+          ],
+          { ignoreConflicts: true },
+        );
+        added += rows.length;
+      }
+      return { added, skipped: input.meals.length - added };
+    }),
+
   // Saves a reviewed photo scan in one call: the original photo is stored
   // privately once, every kept item becomes its own row, and each boxed item
   // gets its own sticker cut out in the background (the response never waits).
@@ -109,6 +218,9 @@ export const foodRouter = {
         // Scan session id (ai.analyzeFood's photoId): lets the owner's dataset
         // record the final saved items next to the AI answer. Ignored for everyone else.
         scanPhotoId: z.string().regex(SCAN_ID_RE).optional(),
+        // Cutout of the whole plate (ai.analyzeFood's plateScanId): kept next to the component cutouts and
+        // stored on every row of the scan. Cut here from the photo when it is not ready (or not ours).
+        plateScanId: z.string().regex(SCAN_ID_RE).optional(),
         plate: plateInput.optional(),
         eatenAt: eatenAtSchema.optional(),
       }),
@@ -147,20 +259,15 @@ export const foodRouter = {
       // missing (still running, failed, expired, not ours) falls through to
       // the background job below.
       const promoted = await Promise.all(
-        input.items.map(async (item): Promise<string | null> => {
-          if (!bucket || !item.scanId) return null;
-          try {
-            const pending = await bucket.get(pendingStickerKey(item.scanId));
-            if (!pending || pending.customMetadata?.userId !== userId) return null;
-            await bucket.put(stickerKey(item.scanId), await pending.arrayBuffer(), {
-              httpMetadata: { contentType: "image/png" },
-            });
-            return item.scanId;
-          } catch {
-            return null;
-          }
-        }),
+        input.items.map(async (item): Promise<string | null> =>
+          bucket && item.scanId && (await promotePending(bucket, userId, item.scanId)) ? item.scanId : null,
+        ),
       );
+      // The plate sticker follows the same rule, and only for builds that ask for one (they send the id from
+      // the scan). A fresh cut always gets a new id, never the client's, so a client cannot aim the background
+      // job at a sticker that is not its own.
+      const plateKept = Boolean(bucket && input.plateScanId && (await promotePending(bucket, userId, input.plateScanId)));
+      const plateScanId = !input.plateScanId ? null : plateKept ? input.plateScanId : bucket && images ? newScanId() : null;
       const jobs: Array<StickerJob | null> = input.items.map((_, index) => {
         if (!bucket || !images || promoted[index]) return null;
         const box = boxes[index];
@@ -175,33 +282,35 @@ export const foodRouter = {
         fallbackName: input.items[0]?.name ?? "Piring",
         plate: input.plate,
       });
-      const rows = await context.db
-        .insert(foodLog)
-        .values(
-          input.items.map((item, index) => ({
-            id: crypto.randomUUID(),
-            userId,
-            date,
-            meal: input.meal,
-            name: item.name,
-            kcal: item.kcal,
-            grams: item.grams,
-            protein: item.protein,
-            carbs: item.carbs,
-            fat: item.fat,
-            fiber: item.fiber,
-            source: "ai",
-            eatenAt: input.eatenAt,
-            itemsJson: input.itemsJson,
-            scanId: promoted[index] ?? jobs[index]?.scanId,
-            photoId,
-            plateId,
-          })),
-        )
-        .returning();
+      const rows = await insertFoodRows(
+        context.db,
+        input.items.map((item, index) => ({
+          id: crypto.randomUUID(),
+          userId,
+          date,
+          meal: input.meal,
+          name: item.name,
+          kcal: item.kcal,
+          grams: item.grams ?? null,
+          protein: item.protein ?? null,
+          carbs: item.carbs ?? null,
+          fat: item.fat ?? null,
+          fiber: item.fiber ?? null,
+          source: "ai",
+          eatenAt: input.eatenAt,
+          itemsJson: input.itemsJson,
+          scanId: promoted[index] ?? jobs[index]?.scanId,
+          photoId,
+          plateId,
+          plateScanId,
+        })),
+      );
       const queued = jobs.filter((job): job is StickerJob => job !== null);
       if (bucket && queued.length > 0) {
         context.waitUntil(storeStickers(images, bucket, bytes, queued));
+      }
+      if (bucket && images && plateScanId && !plateKept) {
+        context.waitUntil(storePlateStickerFromPhoto(images, bucket, bytes, plateScanId));
       }
       // Implicit accuracy label of this scan session: saved as the AI answered,
       // or with edits (lib/scan-outcome.ts). A scan the user opted in to keep
@@ -255,7 +364,7 @@ export const foodRouter = {
         fiber: z.number().min(0).max(500).optional(),
         source: z.enum(["manual", "ai", "barcode", "copy"]).default("manual"),
         itemsJson: z.string().max(10_000).optional(),
-        // capability id of the dish sticker generated at scan time
+        // capability id of the dish sticker generated at scan time (barcode meals: the kept pack photo's cutout)
         scanId: z.string().regex(SCAN_ID_RE).optional(),
         plate: plateInput.optional(),
         // attach to a plate created by an earlier item of the same Cerita group
@@ -278,9 +387,11 @@ export const foodRouter = {
       }
       const date = input.date ?? jakartaToday(undefined, zone);
       // A typed name + kcal with no macros at all would count as 0 g in every total: resolve P/K/L from the
-      // name (food table, then the story text parse). Photo, barcode and copied rows keep what they carry.
+      // name (food table, then the story text parse). That covers a typed entry and a repeat ("copy": the recent-food
+      // chips, a story copy) of a row that never had macros. A row that carries any macro keeps what it carries;
+      // photo and barcode rows are never guessed.
       const macros =
-        input.source === "manual" &&
+        (input.source === "manual" || input.source === "copy") &&
         input.protein === undefined &&
         input.carbs === undefined &&
         input.fat === undefined &&
@@ -307,27 +418,44 @@ export const foodRouter = {
           fallbackName: input.name,
           plate: input.plate,
         }));
-      const [row] = await context.db
-        .insert(foodLog)
-        .values({
+      // A barcode meal with no photo of its own shows the product's front photo as its sticker (lib/barcode-image.ts).
+      // A cutout the client sends (the pack photo the person chose to keep, barcode.readLabel's stickerScanId) always
+      // wins. For a barcode meal that id must still be a pending cutout of this user (it expires with the scan-src/
+      // prefix); one that is gone is dropped, so the row falls back to the product photo instead of a sticker that 404s.
+      const bucket = context.env.STICKERS;
+      const images = context.env.IMAGES;
+      const keptScanId =
+        input.source === "barcode" && bucket
+          ? input.scanId && (await promotePending(bucket, context.session.user.id, input.scanId))
+            ? input.scanId
+            : undefined
+          : input.scanId;
+      const productCode = input.source === "barcode" && !keptScanId && bucket && images ? barcodeFromItemsJson(input.itemsJson) : null;
+      const productImage = productCode ? await productImageUrl(context.db, productCode) : null;
+      const productScanId = productCode && productImage ? newScanId() : undefined;
+      const [row] = await insertFoodRows(context.db, [
+        {
           id: crypto.randomUUID(),
           userId: context.session.user.id,
           date,
           meal: input.meal,
           name: input.name,
           kcal: input.kcal,
-          grams: input.grams,
-          protein: macros?.protein ?? input.protein,
-          carbs: macros?.carbs ?? input.carbs,
-          fat: macros?.fat ?? input.fat,
-          fiber: input.fiber,
+          grams: input.grams ?? null,
+          protein: macros?.protein ?? input.protein ?? null,
+          carbs: macros?.carbs ?? input.carbs ?? null,
+          fat: macros?.fat ?? input.fat ?? null,
+          fiber: input.fiber ?? macros?.fiber ?? null,
           source: input.source,
           eatenAt: input.eatenAt,
           itemsJson: input.itemsJson,
-          scanId: input.scanId,
+          scanId: keptScanId ?? productScanId,
           plateId,
-        })
-        .returning();
+        },
+      ]);
+      if (bucket && images && productCode && productImage && productScanId) {
+        context.waitUntil(storeProductSticker(images, bucket, productCode, productImage, productScanId));
+      }
       return row;
     }),
 
@@ -480,7 +608,12 @@ export const foodRouter = {
       const [row] = await context.db
         .delete(foodLog)
         .where(and(eq(foodLog.id, input.id), eq(foodLog.userId, context.session.user.id)))
-        .returning({ scanId: foodLog.scanId, photoId: foodLog.photoId, plateId: foodLog.plateId });
+        .returning({
+          scanId: foodLog.scanId,
+          plateScanId: foodLog.plateScanId,
+          photoId: foodLog.photoId,
+          plateId: foodLog.plateId,
+        });
       // A plate with no components left is deleted with its last item.
       if (row?.plateId) {
         const [remaining] = await context.db
@@ -525,26 +658,73 @@ export const foodRouter = {
   // the max(date) row, so kcal, grams and the macros are each name's latest
   // values, all from the same row. They ride along so a one-tap chip logs the
   // same P/K/L as the row it repeats instead of a kcal-only entry.
+  // Catat cepat > Atur: foods the user hid never come back until "Tampilkan lagi" (restoreRecent), and a food that is
+  // already a one-food favorite is not repeated as a recent chip. `hiddenCount` is how many of the newest names are hidden.
   recent: protectedProcedure.handler(async ({ context }) => {
-    const items = await context.db
-      .select({
-        name: foodLog.name,
-        kcal: foodLog.kcal,
-        grams: foodLog.grams,
-        protein: foodLog.protein,
-        carbs: foodLog.carbs,
-        fat: foodLog.fat,
-        fiber: foodLog.fiber,
-        meal: foodLog.meal,
-        scanId: foodLog.scanId,
-        lastDate: sql<string>`max(${foodLog.date})`,
-      })
-      .from(foodLog)
-      .where(eq(foodLog.userId, context.session.user.id))
-      .groupBy(foodLog.name)
-      .orderBy(desc(sql`max(${foodLog.date})`))
-      .limit(10);
-    return { items };
+    const userId = context.session.user.id;
+    const [rows, marks, favorites] = await Promise.all([
+      context.db
+        .select({
+          id: foodLog.id,
+          name: foodLog.name,
+          kcal: foodLog.kcal,
+          grams: foodLog.grams,
+          protein: foodLog.protein,
+          carbs: foodLog.carbs,
+          fat: foodLog.fat,
+          fiber: foodLog.fiber,
+          meal: foodLog.meal,
+          scanId: foodLog.scanId,
+          lastDate: sql<string>`max(${foodLog.date})`,
+        })
+        .from(foodLog)
+        .where(eq(foodLog.userId, userId))
+        .groupBy(foodLog.name)
+        .orderBy(desc(sql`max(${foodLog.date})`))
+        .limit(RECENT_SCAN_ROWS),
+      context.db
+        .select({ key: foodQuickMark.key })
+        .from(foodQuickMark)
+        .where(and(eq(foodQuickMark.userId, userId), eq(foodQuickMark.kind, "recent_hidden"))),
+      context.db.select({ itemsJson: savedFood.itemsJson }).from(savedFood).where(eq(savedFood.userId, userId)),
+    ]);
+    const hidden = new Set(marks.map((mark) => mark.key));
+    const favorited = new Set(
+      favorites.flatMap((row) => {
+        const items = parseSavedItems(row.itemsJson);
+        return items.length === 1 ? [habitKey([items[0]!.name])] : [];
+      }),
+    );
+    const shown = rows.filter((row) => {
+      const key = habitKey([row.name]);
+      return !hidden.has(key) && !favorited.has(key);
+    });
+    return {
+      items: shown.slice(0, 10),
+      hiddenCount: rows.filter((row) => hidden.has(habitKey([row.name]))).length,
+    };
+  }),
+
+  // "Sembunyikan" on a recent chip: the name stays out of the chips until restoreRecent. The diary rows are untouched.
+  hideRecent: protectedProcedure
+    .input(z.object({ name: z.string().trim().min(1).max(200) }))
+    .handler(async ({ context, input }) => {
+      const key = habitKey([input.name]);
+      if (key !== "") {
+        await context.db
+          .insert(foodQuickMark)
+          .values({ userId: context.session.user.id, kind: "recent_hidden", key })
+          .onConflictDoNothing();
+      }
+      return { ok: true };
+    }),
+
+  // "Tampilkan lagi": every hidden recent chip comes back.
+  restoreRecent: protectedProcedure.handler(async ({ context }) => {
+    await context.db
+      .delete(foodQuickMark)
+      .where(and(eq(foodQuickMark.userId, context.session.user.id), eq(foodQuickMark.kind, "recent_hidden")));
+    return { ok: true };
   }),
 
   // "Ulangi makanan" chips: meals logged in the last week, newest first, minus

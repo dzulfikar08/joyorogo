@@ -5,6 +5,9 @@ import type { Locale, Region } from "@joyorogo/i18n";
 import { localNameRule, localNameShape } from "./ai-locale";
 import { resolveFoodKind } from "./food-kind";
 import type { FoodKind } from "./food-kind";
+import { clampCount, MAX_PIECES } from "./piece-chip";
+import type { Pieces } from "./piece-chip";
+import { piecesFor, readCount } from "./piece-count";
 import { rescaleForGrams } from "./portion";
 import { calibrateItems, canonicalFood, libraryKcal } from "./tkpi";
 
@@ -57,6 +60,17 @@ export const correctionItemSchema = z.object({
   confidence: z.number().min(0).max(1).optional(),
   kind: z.string().max(20).optional(),
   box: z.array(z.number()).length(4).optional(),
+  // The row's "Jumlah" and "Dengan tulang" state (piece-chip.ts, bone-chip.ts): echoed on rows the correction leaves alone.
+  pieces: z
+    .object({
+      count: z.number().int().min(1).max(MAX_PIECES),
+      unit: z.string().max(20),
+      unitGrams: z.number().positive().max(5000),
+    })
+    .optional(),
+  grossGrams: z.number().min(0).max(5000).optional(),
+  edibleGrams: z.number().min(0).max(5000).optional(),
+  withBone: z.boolean().optional(),
 });
 
 export type CorrectionItemInput = z.infer<typeof correctionItemSchema>;
@@ -252,6 +266,30 @@ function applyRename(row: Row, op: Extract<Op, { op: "rename" }>, region?: Regio
   };
 }
 
+/**
+ * A corrected row's count and bone weights follow its new grams: the count is what the grams amount to in
+ * pieces; a bone-in row keeps its edible share on whichever side `grams` is on. A row without pieces (a rename
+ * built from nothing) gets them if its new name and weight name countable pieces.
+ */
+function syncCounted<T extends CalibratedItem>(item: T): T {
+  const { grams } = item;
+  if (grams === undefined || !(grams > 0)) return item;
+  const next: T = { ...item };
+  const old: Pieces | undefined = item.pieces;
+  const pieces = old
+    ? { ...old, count: clampCount(grams / old.unitGrams) }
+    : piecesFor(item.name, grams, readCount({ portion: item.portion }));
+  if (pieces) next.pieces = pieces;
+  else delete next.pieces;
+  if (item.grossGrams !== undefined && item.edibleGrams !== undefined && item.grossGrams > 0) {
+    const edibleShare = item.edibleGrams / item.grossGrams;
+    const withBone = item.withBone ?? true;
+    next.grossGrams = Math.round(withBone ? grams : grams / edibleShare);
+    next.edibleGrams = Math.round(withBone ? grams * edibleShare : grams);
+  }
+  return next;
+}
+
 const COUNT_UNIT =
   "pcs?|buah|biji|butir|potong|iris|lembar|slices?|pieces?|tusuk|batang|bungkus|bks|bulatan|keping";
 const COUNT_RE = new RegExp(`(\\d+(?:[.,]\\d+)?)\\s*(${COUNT_UNIT})\\b`, "i");
@@ -420,7 +458,7 @@ export function applyCorrection(
     })),
     region ? { region } : undefined,
   );
-  const calibrated = new Map(touched.map((row, i) => [row, fixed[i]!]));
+  const calibrated = new Map(touched.map((row, i) => [row, syncCounted(fixed[i]!)]));
   const local = locale !== DEFAULT_LOCALE;
   const items: CorrectedItem[] = kept.map((row) => {
     const result = calibrated.get(row);
