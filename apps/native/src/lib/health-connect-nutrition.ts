@@ -28,6 +28,8 @@ export type MealRow = {
   carbs: number | null;
   fat: number | null;
   fiber: number | null;
+  /** Unix ms the person set with "Jam makan"; the record starts then. */
+  eatenAt?: number | null;
   createdAt: Date | string;
 };
 
@@ -77,11 +79,13 @@ export async function requestNutritionPermission(): Promise<boolean> {
   return hasNutritionWritePermission();
 }
 
-function mealInstant(row: MealRow): Date {
+export function mealInstant(row: MealRow): Date {
   const now = Date.now();
   const created = new Date(row.createdAt);
   let ms: number;
-  if (!Number.isNaN(created.getTime()) && dayOfMs(created.getTime()) === row.date) {
+  if (typeof row.eatenAt === "number" && dayOfMs(row.eatenAt) === row.date) {
+    ms = row.eatenAt;
+  } else if (!Number.isNaN(created.getTime()) && dayOfMs(created.getTime()) === row.date) {
     ms = created.getTime();
   } else {
     const hour = MEAL_HOUR[row.meal] ?? 12;
@@ -93,8 +97,9 @@ function mealInstant(row: MealRow): Date {
 export function toNutritionRecord(row: MealRow, version: number): NutritionRecord {
   const start = mealInstant(row);
   const end = new Date(start.getTime() + 60_000);
+  // null = never filled in: left out, so Health Connect shows it as unknown. A real 0 g is written as 0.
   const grams = (value: number | null | undefined) =>
-    value && value > 0 ? { value, unit: "grams" as const } : undefined;
+    value != null && value >= 0 ? { value, unit: "grams" as const } : undefined;
   return {
     recordType: "Nutrition",
     startTime: start.toISOString(),

@@ -44,7 +44,7 @@ import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { equivalentLine } from "@joyorogo/api/lib/facts";
 import { foodKind, isHeavyDish } from "@joyorogo/api/lib/food-kind";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
-import { scalePortion } from "@joyorogo/api/lib/portion";
+import { macrosForTypedKcal, scalePortion } from "@joyorogo/api/lib/portion";
 import { modelNumbers, swapPortionPrior, withoutPortionPrior } from "@joyorogo/api/lib/portion-chip";
 import type { PortionPriorChip } from "@joyorogo/api/lib/portion-chip";
 import { swapScaleRead, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
@@ -1030,10 +1030,7 @@ export default function MakanAi() {
           name: item.name,
           kcal: parseNum(draft.kcal) ?? 0,
           grams: item.grams,
-          protein: item.protein,
-          carbs: item.carbs,
-          fat: item.fat,
-          fiber: item.fiber,
+          ...macrosForTypedKcal(item, parseNum(draft.kcal) ?? 0),
           box: item.box,
           // Already-cut stickers are promoted on save; unfinished ones are
           // cut by the server in the background.

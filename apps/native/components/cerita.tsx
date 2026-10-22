@@ -17,6 +17,7 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { MEALS, jakartaToday, storySlotLabel } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
+import { macrosForTypedKcal } from "@joyorogo/api/lib/portion";
 import { copyChipLabel, copyWantedLabel } from "@joyorogo/api/lib/meal-copy-label";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
@@ -412,10 +413,7 @@ export function Cerita({
           name: item.name,
           kcal: values[index] ?? 0,
           grams: item.grams,
-          protein: item.protein,
-          carbs: item.carbs,
-          fat: item.fat,
-          fiber: item.fiber,
+          ...macrosForTypedKcal(item, values[index] ?? 0),
           source: item.copied ? "copy" : "ai",
           ...(existing ? { plateId: existing } : plate ? { plate } : {}),
         });
