@@ -6,6 +6,7 @@ import { getAppleHealthModule } from "@/modules/apple-health";
 import type * as AppleHealth from "@/src/lib/apple-health";
 import type * as HealthConnect from "@/src/lib/health-connect";
 import type { HealthSyncResult } from "@/src/lib/health-sync";
+import { recordHealthSync } from "@/src/lib/health-last-sync-store";
 
 /**
  * US-013: health data is the primary activity source, so the sync runs by
@@ -38,6 +39,7 @@ export function useHealthAutoSync(latestWeightKg: number | null, enabled: boolea
         if (!(await hasReadPermissions())) return;
         result = await syncHealthConnect(latestWeightKg);
       }
+      if (result) await recordHealthSync(result);
       if (
         !cancelled &&
         result &&

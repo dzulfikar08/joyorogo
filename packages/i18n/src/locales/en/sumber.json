@@ -1,0 +1,53 @@
+{
+  "title": "Data sources",
+  "intro": "Where your activity, weight and entries come from, and when each last arrived.",
+  "sections": {
+    "connected": "Connected",
+    "available": "Not connected",
+    "apps": "AI apps"
+  },
+  "usedToday": "Used today",
+  "usedTodayNote": "\"Used today\" marks the source of today's all-day activity total.",
+  "lastIn": "last arrived {{when}}",
+  "lastSync": "last synced {{when}}",
+  "counts": {
+    "workouts_one": "{{count}} workout in 7 days",
+    "workouts_other": "{{count}} workouts in 7 days",
+    "entries_one": "{{count}} entry in 7 days",
+    "entries_other": "{{count}} entries in 7 days",
+    "weighIns_one": "{{count}} weigh-in in 7 days",
+    "weighIns_other": "{{count}} weigh-ins in 7 days"
+  },
+  "retry": "Try again",
+  "rows": {
+    "joyofit": {
+      "title": "JoyoFit",
+      "via": "via the JoyoFit app",
+      "empty": "Nothing from JoyoFit yet. Open JoyoFit to pair your watch."
+    },
+    "health": {
+      "titleAndroid": "Health Connect",
+      "titleIos": "Apple Health",
+      "viaAndroid": "via Health Connect",
+      "viaIos": "via Apple Health",
+      "noRecord": "no sync recorded on this phone yet",
+      "empty": "Allow reading steps, sleep and workouts so they arrive on their own."
+    },
+    "strava": {
+      "title": "Strava",
+      "via": "via Strava",
+      "none": "no workouts in the last 30 days",
+      "empty": "Connect so runs and rides arrive on their own."
+    },
+    "scale": {
+      "title": "Smart scale",
+      "via": "via JoyoFit",
+      "empty": "Weight and body composition from a smart scale arrive through JoyoFit. Nothing has arrived yet."
+    },
+    "manual": {
+      "title": "Manual entries",
+      "sub": "Food, weight, water and workouts you log yourself",
+      "none": "no manual entries in the last 30 days"
+    }
+  }
+}

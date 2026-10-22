@@ -1,0 +1,50 @@
+{
+  "title": "Sumber data",
+  "intro": "Dari mana aktivitas, berat, dan catatanmu masuk, dan kapan terakhir.",
+  "sections": {
+    "connected": "Terhubung",
+    "available": "Belum terhubung",
+    "apps": "Aplikasi AI"
+  },
+  "usedToday": "Dipakai hari ini",
+  "usedTodayNote": "Tanda \"Dipakai hari ini\" menunjukkan sumber total aktivitas harian yang masuk hitungan hari ini.",
+  "lastIn": "terakhir masuk {{when}}",
+  "lastSync": "terakhir sinkron {{when}}",
+  "counts": {
+    "workouts_other": "{{count}} latihan dalam 7 hari",
+    "entries_other": "{{count}} catatan dalam 7 hari",
+    "weighIns_other": "{{count}} timbangan dalam 7 hari"
+  },
+  "retry": "Coba lagi",
+  "rows": {
+    "joyofit": {
+      "title": "JoyoFit",
+      "via": "via aplikasi JoyoFit",
+      "empty": "Belum ada data dari JoyoFit. Buka JoyoFit untuk memasangkan jam."
+    },
+    "health": {
+      "titleAndroid": "Health Connect",
+      "titleIos": "Apple Health",
+      "viaAndroid": "via Health Connect",
+      "viaIos": "via Apple Health",
+      "noRecord": "belum ada sinkron tercatat di HP ini",
+      "empty": "Izinkan baca langkah, tidur, dan olahraga agar masuk sendiri."
+    },
+    "strava": {
+      "title": "Strava",
+      "via": "via Strava",
+      "none": "belum ada latihan dalam 30 hari terakhir",
+      "empty": "Hubungkan agar lari dan sepeda masuk sendiri."
+    },
+    "scale": {
+      "title": "Timbangan pintar",
+      "via": "via JoyoFit",
+      "empty": "Berat dan komposisi tubuh dari timbangan pintar masuk lewat JoyoFit. Belum ada yang masuk."
+    },
+    "manual": {
+      "title": "Catatan manual",
+      "sub": "Makan, berat, air, dan olahraga yang kamu catat sendiri",
+      "none": "belum ada catatan manual dalam 30 hari terakhir"
+    }
+  }
+}
