@@ -185,6 +185,9 @@
         "empty": "belum dicatat",
         "pending": "belum dinilai"
       }
+    },
+    "pills": {
+      "today": "hari ini"
     }
   },
   "inbox": {

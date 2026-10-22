@@ -10,12 +10,13 @@ import { jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
 import { weekRangeLabel, weekStartOf } from "@joyorogo/api/lib/recap";
 
 import { Card, Num, Text } from "@/components/ui";
+import { WeekPills } from "@/components/week-pills";
 import { fmtInt, kcalUnit } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 /**
  * "Rekap minggu ini" on Beranda: only on Monday (day zone), summarizing the week
- * that just ended. The full recap lives at /rekap and stays reachable from Lainnya.
+ * that just ended: the average, the days on target as a count, and the week as seven pills. The full recap lives at /rekap and stays reachable from Lainnya.
  */
 export function RecapCard() {
   const { theme } = useUnistyles();
@@ -71,6 +72,7 @@ export function RecapCard() {
             <Text style={styles.cellSub}>{t("recap.logged", { count: data.loggedDays })}</Text>
           </View>
         </View>
+        <WeekPills days={data.days} gain={data.gain} />
         {teaser ? (
           <View style={styles.teaser}>
             <Ionicons
