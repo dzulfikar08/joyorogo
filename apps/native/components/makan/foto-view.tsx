@@ -38,7 +38,7 @@ export function FotoView({
   date: string;
   kind: FoodKindFilter;
   onOpen: (item: StickerRow) => void;
-  onViewSticker: (item: StickerRow) => void;
+  onViewSticker: (item: StickerRow, rows: readonly StickerRow[]) => void;
 }) {
   const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
@@ -132,7 +132,12 @@ export function FotoView({
                       scanId={item.scanId}
                       name={item.name}
                       size={56}
-                      onPress={item.scanId ? () => onViewSticker(item) : undefined}
+                      // A kind filter hides some rows of a scan: the plate's total would not match, so the tile opens its own cutout.
+                      onPress={
+                        item.scanId
+                          ? () => onViewSticker(kind === "semua" ? item : { ...item, plateScanId: null }, items)
+                          : undefined
+                      }
                     />
                     <Text style={styles.date} numberOfLines={2}>
                       {fmtDate(item.date, "weekday")}

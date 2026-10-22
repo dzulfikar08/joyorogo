@@ -21,7 +21,7 @@ import { MacroLine } from "@/components/macro-line";
 import { IdrInput } from "@/components/plate/idr-input";
 import { MealSlotField } from "@/components/plate/meal-slot-field";
 import { RecalcPlateAction } from "@/components/plate/recalc-plate";
-import { FoodThumb, StickerHero } from "@/components/sticker";
+import { FoodThumb, StickerHero, useStickerTarget } from "@/components/sticker";
 import { fmtRupiah } from "@/lib/app-config";
 import { fmtDateLong, fmtInt } from "@/lib/format";
 import { insertFoodRow, stripFoodRow, useOptimisticMutation } from "@/lib/optimistic";
@@ -31,6 +31,7 @@ import { client, orpc } from "@/utils/orpc";
 type Item = { id: string; plateId: string | null };
 /** Rows the plate date-move needs to relocate between day caches. */
 type FoodRowFields = {
+  name: string;
   date: string;
   meal: string;
   kcal: number;
@@ -38,7 +39,8 @@ type FoodRowFields = {
   carbs: number | null;
   fat: number | null;
   fiber: number | null;
-  scanId?: string | null;
+  scanId: string | null;
+  plateScanId?: string | null;
   photoId?: string | null;
   createdAt?: Date | string;
 };
@@ -128,6 +130,7 @@ export function PlateDiary<T extends Item & FoodRowFields>({
   plateAction?: (plate: PlateRow, rows: T[]) => ReactNode;
 }) {
   const { t } = useTranslation(["makan", "common"]);
+  const stickerTarget = useStickerTarget();
   const plates = useQuery(orpc.plate.byDate.queryOptions({ input: { date } }));
   const byId = new Map((plates.data ?? []).map((plate) => [plate.id, plate]));
   const [editing, setEditing] = useState<string | null>(null);
@@ -160,7 +163,7 @@ export function PlateDiary<T extends Item & FoodRowFields>({
         const totalCarbs = group.items.reduce((sum, row) => sum + (row.carbs ?? 0), 0);
         const totalFat = group.items.reduce((sum, row) => sum + (row.fat ?? 0), 0);
         const totalFiber = group.items.reduce((sum, row) => sum + (row.fiber ?? 0), 0);
-        const photo = group.items.find((row) => row.scanId || row.photoId);
+        const photo = group.items.find((row) => row.scanId || row.plateScanId || row.photoId);
         const firstAt = group.items
           .map((row) => (row.createdAt ? new Date(row.createdAt) : null))
           .filter((at): at is Date => at !== null && !Number.isNaN(at.getTime()))
@@ -181,6 +184,8 @@ export function PlateDiary<T extends Item & FoodRowFields>({
                 protein={totalProtein}
                 carbs={totalCarbs}
                 fat={totalFat}
+                {...(photo ? stickerTarget(photo, group.items, plate.name) : {})}
+                viewThumb
                 className="size-12"
                 iconClassName="size-5"
               />
@@ -253,6 +258,8 @@ function PlateEditSheet({
   action?: ReactNode;
 }) {
   const { t } = useTranslation(["makan", "common"]);
+  const stickerTarget = useStickerTarget();
+  const anchor = rows.find((row) => row.scanId || row.plateScanId);
   const [name, setName] = useState(plate.name);
   const [place, setPlace] = useState(plate.place ?? "");
   const [price, setPrice] = useState(plate.priceIdr != null ? String(plate.priceIdr) : "");
@@ -402,9 +409,10 @@ function PlateEditSheet({
           }}
         >
           <StickerHero
-            scanId={rows.find((row) => row.scanId)?.scanId}
-            photoId={rows.find((row) => row.scanId)?.photoId}
+            scanId={anchor?.scanId}
+            photoId={anchor?.photoId}
             name={plate.name}
+            {...(anchor ? stickerTarget(anchor, rows, plate.name) : {})}
           />
           <div>
             <FieldLabel htmlFor="plate-name">{t("plate.edit.name")}</FieldLabel>

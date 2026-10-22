@@ -1,3 +1,5 @@
+import { mealStickerTarget } from "@joyorogo/api/lib/meal-sticker";
+import type { StickerRowLike } from "@joyorogo/api/lib/meal-sticker";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { Utensils, X } from "lucide-react";
 import type { ReactNode } from "react";
@@ -45,8 +47,55 @@ const STICKER_FILTER_LARGE = {
 /** Cutouts are made in the background after saving: retry briefly, then give up. */
 const RETRY_DELAYS_MS = [3000, 6000, 12000];
 
+function preload(url: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
+}
+
+/** Resolves true once the sticker loads (retrying while it is still being cut), false when it never does. */
+export async function stickerReady(scanId: string, cancelled: () => boolean = () => false): Promise<boolean> {
+  for (let attempt = 0; ; attempt++) {
+    if (await preload(`${stickerUrl(scanId)}${attempt > 0 ? `?r=${attempt}` : ""}`)) return true;
+    const delay = RETRY_DELAYS_MS[attempt];
+    if (delay === undefined || cancelled()) return false;
+    await new Promise<void>((resolve) => setTimeout(resolve, delay));
+    if (cancelled()) return false;
+  }
+}
+
+/** The plate sticker once it loads, the component cutout until then (and for good if it never does). */
+function useResolvedSticker(
+  id: string | null,
+  fallbackId: string | null | undefined,
+  enabled: boolean,
+): string | null {
+  const [readyId, setReadyId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!enabled || !id || !fallbackId) return;
+    let cancelled = false;
+    void stickerReady(id, () => cancelled).then((ok) => {
+      if (ok && !cancelled) setReadyId(id);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, id, fallbackId]);
+  return fallbackId && readyId !== id ? fallbackId : id;
+}
+
 type StickerProps = {
-  scanId: string;
+  /** Thumbnail cutout; null for a row that only has a plate sticker (it still opens the viewer). */
+  scanId: string | null;
+  /** What the viewer shows and shares instead of `scanId`: the whole-plate sticker. */
+  viewScanId?: string | null;
+  /** Component cutout the viewer shows until the plate sticker loads, or for good if it cannot. */
+  fallbackScanId?: string | null;
+  /** The thumbnail shows the viewer's sticker too (plate header). */
+  viewThumb?: boolean;
   photoId?: string | null;
   name: string;
   kcal?: number;
@@ -67,6 +116,9 @@ type StickerProps = {
  */
 export function Sticker({
   scanId,
+  viewScanId,
+  fallbackScanId,
+  viewThumb,
   photoId,
   name,
   kcal,
@@ -82,6 +134,8 @@ export function Sticker({
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const viewId = useResolvedSticker(viewScanId ?? null, fallbackScanId, !!viewScanId && (!!viewThumb || open));
+  const thumbId = viewThumb && viewScanId ? viewId : scanId;
 
   useEffect(() => {
     if (!open) return;
@@ -101,7 +155,8 @@ export function Sticker({
     setTimeout(() => setAttempt((n) => n + 1), delay);
   };
 
-  const src = `${stickerUrl(scanId)}${attempt > 0 ? `?r=${attempt}` : ""}`;
+  const src = thumbId ? `${stickerUrl(thumbId)}${attempt > 0 ? `?r=${attempt}` : ""}` : "";
+  const lightboxSrc = viewScanId && viewId ? stickerUrl(viewId) : src;
 
   if (failed) return <>{fallback ?? null}</>;
 
@@ -113,22 +168,24 @@ export function Sticker({
           setShowPhoto(false);
           setOpen(true);
         }}
-        disabled={!loaded}
+        disabled={!!thumbId && !loaded}
         aria-label={t("sticker.view", { name })}
         className={`relative cursor-zoom-in overflow-hidden rounded-2xl bg-makan-soft disabled:cursor-default ${className ?? ""}`}
       >
-        {!loaded && fallback ? (
+        {(!thumbId || !loaded) && fallback ? (
           <span className="absolute inset-0 grid place-items-center">{fallback}</span>
         ) : null}
-        <img
-          key={src}
-          src={src}
-          alt={name}
-          loading="lazy"
-          onLoad={() => setLoaded(true)}
-          onError={onError}
-          className={`size-full object-contain p-[8%] ${loaded ? "" : "opacity-0"}`}
-        />
+        {thumbId ? (
+          <img
+            key={src}
+            src={src}
+            alt={name}
+            loading="lazy"
+            onLoad={() => setLoaded(true)}
+            onError={onError}
+            className={`size-full object-contain p-[8%] ${loaded ? "" : "opacity-0"}`}
+          />
+        ) : null}
       </button>
       {open && (
         <div
@@ -150,7 +207,7 @@ export function Sticker({
               />
             ) : (
               <img
-                src={src}
+                src={lightboxSrc}
                 alt={name}
                 className="max-h-[70vh] max-w-full object-contain"
                 style={STICKER_FILTER_LARGE}
@@ -179,7 +236,7 @@ export function Sticker({
                     protein,
                     carbs,
                     fat,
-                    scanId,
+                    scanId: viewScanId ? viewId : scanId,
                     photoId,
                   }}
                 />
@@ -200,10 +257,8 @@ export function Sticker({
   );
 }
 
-type FoodThumbProps = Pick<
-  StickerProps,
-  "scanId" | "photoId" | "name" | "kcal" | "protein" | "carbs" | "fat"
-> & {
+type FoodThumbProps = Omit<StickerProps, "scanId" | "className" | "fallback"> & {
+  scanId?: string | null;
   /** Tailwind size class pair, e.g. "size-16". */
   className?: string;
   iconClassName?: string;
@@ -218,7 +273,7 @@ export function FoodThumb({
   className = "size-16",
   iconClassName = "size-6",
   ...sticker
-}: Omit<FoodThumbProps, "scanId"> & { scanId?: string | null }) {
+}: FoodThumbProps) {
   const fallback = (
     <span
       className={`flex items-center justify-center rounded-2xl bg-makan-soft ${className}`}
@@ -227,8 +282,47 @@ export function FoodThumb({
       <Utensils className={`${iconClassName} text-makan-ink`} />
     </span>
   );
-  if (!scanId) return fallback;
-  return <Sticker scanId={scanId} className={`block ${className}`} fallback={fallback} {...sticker} />;
+  if (!scanId && !sticker.viewScanId) return fallback;
+  return (
+    <Sticker scanId={scanId ?? null} className={`block ${className}`} fallback={fallback} {...sticker} />
+  );
+}
+
+type StickerTargetProps = Pick<
+  StickerProps,
+  "viewScanId" | "fallbackScanId" | "name" | "kcal" | "protein" | "carbs" | "fat" | "photoId"
+>;
+
+/**
+ * Props, spread after the row's own, that make its sticker open and share the whole plate
+ * when the scan has a plate sticker (name and numbers summed over the scan's rows in `rows`).
+ * Empty for a row without one: its own cutout and numbers apply, as before plate stickers.
+ */
+export function useStickerTarget(): (
+  anchor: StickerRowLike,
+  rows: readonly StickerRowLike[],
+  plateName?: string | null,
+) => Partial<StickerTargetProps> {
+  const { t } = useTranslation("scan");
+  return (anchor, rows, plateName) => {
+    const target = mealStickerTarget(
+      anchor,
+      rows,
+      (first, count) => t("result.names.more", { first, count }),
+      plateName,
+    );
+    if (!target?.plate) return {};
+    return {
+      viewScanId: target.scanId,
+      fallbackScanId: target.fallbackScanId,
+      name: target.name,
+      kcal: target.kcal,
+      protein: target.protein,
+      carbs: target.carbs,
+      fat: target.fat,
+      photoId: target.photoId,
+    };
+  };
 }
 
 /**
@@ -276,14 +370,21 @@ export function CutoutTile({
  */
 export function StickerHero({
   scanId,
+  viewScanId,
   ...sticker
 }: Omit<FoodThumbProps, "scanId" | "className" | "iconClassName"> & {
   scanId?: string | null;
 }) {
-  if (!scanId) return null;
+  if (!scanId && !viewScanId) return null;
   return (
     <div className="flex justify-center">
-      <FoodThumb scanId={scanId} className="size-36" iconClassName="size-10" {...sticker} />
+      <FoodThumb
+        scanId={scanId}
+        viewScanId={viewScanId}
+        className="size-36"
+        iconClassName="size-10"
+        {...sticker}
+      />
     </div>
   );
 }

@@ -356,7 +356,7 @@ Catatan desain dan runbook ada di `docs/`:
 | JoyoFit: coach, latihan beban, sinkron cloud, Strava | [coach.md](docs/coach.md), [strength-moved.md](docs/strength-moved.md), [watch-workout-cloud.md](docs/watch-workout-cloud.md), [strava.md](docs/strava.md) |
 | Scan makanan: akurasi, barcode | [ai-accuracy-review-2026-10-17.md](docs/ai-accuracy-review-2026-10-17.md), [ai-accuracy-log.md](docs/ai-accuracy-log.md), [accuracy-digest.md](docs/accuracy-digest.md), [ai-clef-probe.md](docs/ai-clef-probe.md), [barcode-sources.md](docs/barcode-sources.md), [barcode-community.md](docs/barcode-community.md) |
 | Notifikasi push (web, HP, JoyoFit): jalur, jam tenang, batas harian, pengingat | [push.md](docs/push.md) |
-| Berbagi dan stiker | [story-sharing.md](docs/story-sharing.md), [sticker-studio.md](docs/sticker-studio.md) |
+| Berbagi dan stiker (termasuk stiker piring utuh dan gambar produk barcode) | [story-sharing.md](docs/story-sharing.md), [sticker-studio.md](docs/sticker-studio.md), [plate-sticker.md](docs/plate-sticker.md) |
 | Rilis: CI, OTA, iOS, pembaruan dalam aplikasi | [ci-release.md](docs/ci-release.md), [ota.md](docs/ota.md), [ios-mac.md](docs/ios-mac.md), [in-app-updates.md](docs/in-app-updates.md) |
 | Bahasa, merek, email, UTM | [i18n.md](docs/i18n.md), [brand-marks.md](docs/brand-marks.md), [broadcast-email.md](docs/broadcast-email.md), [utm.md](docs/utm.md), [marketing/marketing-plan.md](docs/marketing/marketing-plan.md) |
 

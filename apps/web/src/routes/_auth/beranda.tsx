@@ -44,7 +44,7 @@ import { ManualTdeeSuggestionCard } from "@/components/manual-tdee";
 import { EnergyNotice } from "@/components/energy-notice";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { StorySpec } from "@/components/story/story-spec";
-import { Sticker } from "@/components/sticker";
+import { Sticker, useStickerTarget } from "@/components/sticker";
 import { MaternalCard } from "@/components/maternal/maternal-card";
 import { MaternalEatHero } from "@/components/maternal/eat-hero";
 import { TargetPaceNotice } from "@/components/target-pace-notice";
@@ -453,6 +453,7 @@ function Dashboard({
   const isToday = date === today;
   const firstVisit = useFirstVisit("beranda");
 
+  const stickerTarget = useStickerTarget();
   const foods = useQuery(orpc.food.listByDate.queryOptions({ input: { date: summary.date } }));
   const stickers = (foods.data?.items ?? []).filter(
     (item): item is typeof item & { scanId: string } => item.scanId !== null,
@@ -481,6 +482,7 @@ function Dashboard({
                         photoId={item.photoId}
                         name={item.name}
                         kcal={item.kcal}
+                        {...stickerTarget(item, foods.data?.items ?? [])}
                         className="mx-auto block size-20"
                       />
                       <figcaption className="mt-2 truncate text-xs font-semibold">{item.name}</figcaption>

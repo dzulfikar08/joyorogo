@@ -19,6 +19,7 @@ import {
   claimBoxSticker,
   cutBoxSticker,
   markBoxPending,
+  storePendingPlateSticker,
   waitBoxSticker,
 } from "../lib/sticker";
 import type {
@@ -263,6 +264,12 @@ export type AnalyzeFoodResult = {
   memoryChips?: string[];
   tooMany: boolean;
   scanId: string | null;
+  /**
+   * Cutout of the whole plate (plate or bowl and all its food) cut from the same photo, ready to show
+   * through /sticker/<id> a few seconds after the scan; food.addScan keeps it when sent back as
+   * `plateScanId`. Null when the server has no stickers storage, or for builds that send no `crops`.
+   */
+  plateScanId: string | null;
   photoId: string | null;
   retriesLeft: number;
   quotaReached: boolean;
@@ -532,6 +539,10 @@ async function runAnalyzeFood(
   // them instead of cutting the same box twice. Legacy clients (no
   // `crops`) use the plate sticker.
   const boxes = stickers && images && input.crops ? distinctBoxes(analysis.items) : [];
+  const plateScanId = stickers && images && input.crops ? newScanId() : null;
+  if (plateScanId && stickers && images) {
+    context.waitUntil(storePendingPlateSticker(images, stickers, userId, plateScanId, wholeCutout));
+  }
   const stickerRun: { promise: Promise<ScanStickerTiming> | null } = { promise: null };
   const datasetOn = stickers !== undefined && datasetEnabled(context.env, userId);
   const [scanId, photoId, [[scansEverRow], [askedTodayRow]]] = await Promise.all([
@@ -608,6 +619,7 @@ async function runAnalyzeFood(
     items: items.map((item) => (item.scaleRead ? item : withPortionPrior(item, usual))),
     tooMany: analysis.tooMany,
     scanId,
+    plateScanId,
     photoId,
     retriesLeft: photoId ? MAX_SCAN_RETRIES : 0,
     quotaReached,

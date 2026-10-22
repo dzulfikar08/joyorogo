@@ -55,15 +55,16 @@ import { watchBlobPrefix } from "./watch-workout";
 /** Sticker keys of the user's diary; read BEFORE the rows are wiped. */
 export async function userStickerKeys(db: Database, userId: string): Promise<string[]> {
   const rows = await db
-    .select({ scanId: foodLog.scanId })
+    .select({ scanId: foodLog.scanId, plateScanId: foodLog.plateScanId })
     .from(foodLog)
-    .where(and(eq(foodLog.userId, userId), isNotNull(foodLog.scanId)));
+    .where(and(eq(foodLog.userId, userId), or(isNotNull(foodLog.scanId), isNotNull(foodLog.plateScanId))));
   const saved = await db
     .select({ itemsJson: savedFood.itemsJson })
     .from(savedFood)
     .where(eq(savedFood.userId, userId));
   const savedIds = saved.flatMap((row) => parseSavedItems(row.itemsJson).flatMap((i) => (i.scanId ? [i.scanId] : [])));
-  return [...rows.flatMap((row) => (row.scanId ? [row.scanId] : [])), ...savedIds].map(stickerKey);
+  const rowIds = rows.flatMap((row) => [row.scanId, row.plateScanId].filter((id): id is string => id !== null));
+  return [...new Set([...rowIds, ...savedIds])].map(stickerKey);
 }
 
 /**

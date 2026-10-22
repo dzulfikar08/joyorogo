@@ -212,6 +212,9 @@ export const foodLog = sqliteTable(
     // of one scan, stored privately at photos/<user_id>/<photo_id>.jpg
     scanId: text("scan_id"),
     photoId: text("photo_id"),
+    // Cutout of the whole plate (the plate or bowl with all its food) from the same scan photo, scans/<id>.png.
+    // One id per scan, the same on every component row of it; null for meals scanned before plate stickers.
+    plateScanId: text("plate_scan_id"),
     // plate.id this component was paid as part of (plans.ts); null for rows
     // logged before plates existed
     plateId: text("plate_id"),

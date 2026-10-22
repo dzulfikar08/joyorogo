@@ -45,6 +45,7 @@ import { MaternalCard } from "@/components/maternal/maternal-card";
 import { StravaRetentionNotice } from "@/components/strava-retention-notice";
 import { useAppConfig } from "@/components/billing";
 import { FoodSticker, StickerViewer, stickerUrl } from "@/components/sticker";
+import { mealStickerTarget } from "@joyorogo/api/lib/meal-sticker";
 import type { StickerViewerTarget } from "@/components/sticker";
 import { ShareStoryButton, StoryShareSheet } from "@/components/story/share-story-button";
 import type { StorySpec } from "@/components/story/types";
@@ -108,6 +109,7 @@ type PlateItem = {
   name: string;
   kcal: number;
   scanId: string | null;
+  plateScanId?: string | null;
   photoId?: string | null;
   protein?: number | null;
   carbs?: number | null;
@@ -205,7 +207,7 @@ function MacroStat({
 
 export default function Dashboard() {
   const { theme } = useUnistyles();
-  const { t } = useTranslation(["home", "common", "berat", "maternal", "gain"]);
+  const { t } = useTranslation(["home", "common", "berat", "maternal", "gain", "scan"]);
   const gate = useSessionGate();
   const { today, now } = useJakartaClock();
   // null = follow the live day; a past day is pinned only once the person picks it.
@@ -733,17 +735,22 @@ export default function Dashboard() {
                     scanId={item.scanId}
                     name={item.name}
                     size={72}
-                    onPress={() =>
+                    onPress={() => {
+                      const target = mealStickerTarget(item, plates, (first, count) =>
+                        t("scan:result.names.more", { first, count }),
+                      );
+                      if (!target) return;
                       setViewer({
-                        uri: stickerUrl(item.scanId),
-                        name: item.name,
-                        kcal: item.kcal,
-                        photoId: item.photoId,
-                        protein: item.protein,
-                        carbs: item.carbs,
-                        fat: item.fat,
-                      })
-                    }
+                        uri: stickerUrl(target.scanId),
+                        fallbackUri: target.fallbackScanId ? stickerUrl(target.fallbackScanId) : undefined,
+                        name: target.name,
+                        kcal: target.kcal,
+                        photoId: target.photoId,
+                        protein: target.protein,
+                        carbs: target.carbs,
+                        fat: target.fat,
+                      });
+                    }}
                   />
                   <Text style={styles.plateName} numberOfLines={1}>
                     {item.name}

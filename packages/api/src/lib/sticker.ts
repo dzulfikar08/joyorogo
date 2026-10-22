@@ -3,6 +3,8 @@
 // The original photo is kept privately per user (photos/<userId>/<id>.jpg)
 // once the meal is saved; scans that are never saved store nothing.
 
+import { opaqueBounds } from "./png-bounds";
+
 /** 32 hex chars — unguessable capability id, also the R2 object key. */
 export const SCAN_ID_RE = /^[a-f0-9]{32}$/;
 
@@ -285,6 +287,79 @@ async function storePending(
     return id;
   } catch {
     return null;
+  }
+}
+
+/** Room kept around the plate's silhouette, as a share of its longer side. */
+const PLATE_PAD = 0.03;
+
+/**
+ * The whole-plate sticker: the whole-photo cutout trimmed to what the
+ * segmentation kept (the plate or bowl and all the food on it), so the sticker
+ * is the plate and not the photo's frame. Falls back to the untrimmed cutout
+ * when its pixels cannot be read, or when trimming would barely shrink it.
+ */
+export async function trimPlateCutout(images: ImagesBinding, whole: WholeCutout): Promise<ArrayBuffer> {
+  const bounds = await opaqueBounds(whole.png);
+  if (!bounds) return whole.png;
+  const pad = Math.round(Math.max(bounds.right - bounds.left, bounds.bottom - bounds.top) * PLATE_PAD);
+  const left = Math.max(0, bounds.left - pad);
+  const top = Math.max(0, bounds.top - pad);
+  const right = Math.min(bounds.width, bounds.right + pad);
+  const bottom = Math.min(bounds.height, bounds.bottom + pad);
+  const rect: CropRect = { left, top, width: right - left, height: bottom - top };
+  if (rect.width < 24 || rect.height < 24 || rect.width * rect.height > bounds.width * bounds.height * 0.9) {
+    return whole.png;
+  }
+  return (await cropCutout(images, whole.png, rect)) ?? whole.png;
+}
+
+/**
+ * Plate sticker of a fresh scan: trims the whole-photo cutout that has been
+ * segmenting since the photo arrived and parks it under the expiring pending
+ * prefix at `id` (the id the scan result already handed to the client);
+ * food.addScan promotes it on save. Nothing to store when the segmentation
+ * failed or the write does; the save then cuts the plate itself.
+ */
+export async function storePendingPlateSticker(
+  images: ImagesBinding,
+  bucket: StickersBucket,
+  userId: string,
+  id: string,
+  whole: Promise<WholeCutout | null>,
+): Promise<boolean> {
+  const cutout = await whole;
+  if (!cutout) return false;
+  try {
+    await bucket.put(pendingStickerKey(id), await trimPlateCutout(images, cutout), {
+      httpMetadata: { contentType: "image/png" },
+      customMetadata: { userId },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Plate sticker cut from the saved photo itself, for a scan whose pending one is
+ * missing at save time (still running, failed, expired): the same segmentation
+ * and trim, written straight to its final key. Failures leave it missing.
+ */
+export async function storePlateStickerFromPhoto(
+  images: ImagesBinding,
+  bucket: StickersBucket,
+  bytes: ArrayBuffer,
+  id: string,
+): Promise<void> {
+  const whole = await makeWholeCutout(images, bytes, await readPhotoSize(images, bytes));
+  if (!whole) return;
+  try {
+    await bucket.put(stickerKey(id), await trimPlateCutout(images, whole), {
+      httpMetadata: { contentType: "image/png" },
+    });
+  } catch {
+    // a missing plate sticker is harmless: the diary falls back to the component cutouts
   }
 }
 

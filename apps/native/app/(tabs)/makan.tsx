@@ -33,6 +33,7 @@ import { Cerita } from "@/components/cerita";
 import { FoodPortionSheet } from "@/components/food-portion-sheet";
 import type { CeritaPhase } from "@/components/cerita";
 import { StickerMini, StickerViewer, stickerUrl } from "@/components/sticker";
+import { mealStickerTarget } from "@joyorogo/api/lib/meal-sticker";
 import { FoodRow } from "@/components/makan/food-row";
 import { FitnessCard } from "@/components/makan/fitness-card";
 import type { StickerViewerTarget } from "@/components/sticker";
@@ -80,7 +81,7 @@ import { usePlaceLocation } from "@/src/lib/location";
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
 
 export default function Makan() {
-  const { t } = useTranslation(["makan", "common"]);
+  const { t } = useTranslation(["makan", "common", "scan"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const today = jakartaToday();
@@ -244,6 +245,7 @@ export default function Makan() {
         source: input.source ?? "manual",
         itemsJson: input.itemsJson ?? null,
         scanId: input.scanId ?? null,
+        plateScanId: null,
         photoId: null,
         plateId: null,
         eatenAt: input.eatenAt ?? null,
@@ -570,18 +572,27 @@ export default function Makan() {
     refreshDiary();
   };
 
-  /** Open a day's cutout in the full-size viewer. */
-  const viewSticker = (item: FoodRow) => {
-    const scanId = item.scanId;
-    if (!scanId) return;
+  /** Open a meal's sticker in the full-size viewer: the plate when its scan has one, else the row's cutout. */
+  const viewSticker = (item: FoodRow, rows: readonly FoodRow[] = items) => {
+    const plateName = item.plateId
+      ? ((plateDayQuery.data ?? []).find((row) => row.id === item.plateId)?.name ?? null)
+      : null;
+    const target = mealStickerTarget(
+      item,
+      rows,
+      (first, count) => t("scan:result.names.more", { first, count }),
+      plateName,
+    );
+    if (!target) return;
     setViewer({
-      uri: stickerUrl(scanId),
-      name: item.name,
-      kcal: item.kcal,
-      photoId: item.photoId,
-      protein: item.protein,
-      carbs: item.carbs,
-      fat: item.fat,
+      uri: stickerUrl(target.scanId),
+      fallbackUri: target.fallbackScanId ? stickerUrl(target.fallbackScanId) : undefined,
+      name: target.name,
+      kcal: target.kcal,
+      photoId: target.photoId,
+      protein: target.protein,
+      carbs: target.carbs,
+      fat: target.fat,
     });
   };
 
@@ -691,6 +702,8 @@ export default function Makan() {
               );
             }
             const cutout = segment.rows.find((item) => item.scanId) ?? null;
+            const plateScanId = segment.rows.find((item) => item.plateScanId)?.plateScanId ?? null;
+            const viewAnchor = segment.rows.find((item) => item.plateScanId) ?? cutout;
             return (
               <PlateGroup
                 key={segment.plateId ?? `plain-${segmentIndex}`}
@@ -704,9 +717,10 @@ export default function Makan() {
                     fat={sumMacro((item) => item.fat)}
                     fiber={sumMacro((item) => item.fiber)}
                     scanId={cutout?.scanId ?? null}
+                    plateScanId={plateScanId}
                     eatenAt={new Date(segment.rows[0]!.createdAt)}
                     onEdit={() => setPlateEditId(plateRow.id)}
-                    onViewSticker={cutout ? () => viewSticker(cutout) : undefined}
+                    onViewSticker={viewAnchor ? () => viewSticker(viewAnchor) : undefined}
                     disabled={updatePlate.isPending}
                   />
                 }

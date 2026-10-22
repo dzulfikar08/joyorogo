@@ -413,7 +413,8 @@ Data builders (`rogo/data.ts`, `buildStickerData(spec, prefs)`):
   `proteinRatio`, `carbs`, `fat`, `segProtein|segCarbs|segFat` (kcal share of the target, ring segments), `streak`.
   Without a target (pregnancy) `target`, `ratio`, `remaining` are absent.
 - `meal.*`: `name`, `kcal`, `protein`, `carbs`, `fat`, `reaction`; images `photo` (full-bleed) and `cutout`
-  (transparent PNG of the food, never used as a background).
+  (transparent PNG of the food, never used as a background). A meal's `cutoutUri` (the whole-plate sticker) fills `cutout` while
+  `photoUri` stays the photo, so one meal can offer photo and cutout cards; see [plate-sticker.md](plate-sticker.md).
 - `streak.*`: `days`, `week` (7 x 1/0, last 7 days ending on the sticker day), `weekDates`, `total`, `next`, `toNext`, `milestone`.
 - `weight.*`: `goalPct`, `direction`, `trend` (normalized 0..1, no kg), `dates`, `gain`, `moved`; the kg values
   `lostKg`, `gainedKg`, `deltaKg`, `startKg`, `nowKg`, `goalKg` exist only when `options.hideNumbers` is false.

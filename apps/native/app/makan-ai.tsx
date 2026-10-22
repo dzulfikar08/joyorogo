@@ -96,7 +96,7 @@ import { client, isPaywallError, orpc, queryClient } from "@/utils/orpc";
 import { LiveRows } from "@/components/scan/live-rows";
 import { analyzeStreaming } from "@joyorogo/api/lib/scan-live";
 import type { LiveRow } from "@joyorogo/api/lib/scan-live";
-import { StickerMini } from "@/components/sticker";
+import { StickerMini, stickerUrl } from "@/components/sticker";
 
 type AnalyzedItem = {
   name: string;
@@ -207,6 +207,9 @@ type Phase = "camera" | "confirm" | "done";
 // this rhythm so nothing promises "up to a minute".
 const ANALYZE_STAGES = ["sending", "recognizing", "counting", "almost"] as const;
 const STAGE_MS = 2500;
+
+/** Waits between checks that the whole-plate sticker has been cut. */
+const PLATE_PREFETCH_DELAYS_MS = [2000, 3000, 5000, 8000];
 
 /**
  * Result tile: pulsing placeholder, then the plain rectangular crop, then the
@@ -542,6 +545,8 @@ export default function MakanAi() {
   // Hitung ulang: the server keeps the photo, a retry sends only the id and
   // spends no daily scan. Previous items stay visible when a retry fails.
   const [photoId, setPhotoId] = useState<string | null>(null);
+  const [plateScanId, setPlateScanId] = useState<string | null>(null);
+  const [plateReadyId, setPlateReadyId] = useState<string | null>(null);
   const [memoryChips, setMemoryChips] = useState<string[]>([]);
   const [retriesLeft, setRetriesLeft] = useState(0);
   const [retryHint, setRetryHint] = useState("");
@@ -596,6 +601,32 @@ export default function MakanAi() {
   const live = useRef({ items, drafts, kinds, fullPortion, crops, stickers, baseline });
   live.current = { items, drafts, kinds, fullPortion, crops, stickers, baseline };
 
+  // The whole-plate sticker is cut in the background, so it can 404 for a few seconds after the scan.
+  // The share story only offers it once it loads (a share sheet whose image fails is disabled).
+  useEffect(() => {
+    if (!plateScanId) return;
+    let current = true;
+    const tryPrefetch = (attempt: number) => {
+      Image.prefetch(stickerUrl(plateScanId)).then(
+        (ok) => {
+          if (!current) return;
+          if (ok) setPlateReadyId(plateScanId);
+          else retryLater(attempt);
+        },
+        () => current && retryLater(attempt),
+      );
+    };
+    // A stale timer fires harmlessly: it re-checks `current` before fetching.
+    const retryLater = (attempt: number) => {
+      const delay = PLATE_PREFETCH_DELAYS_MS[attempt];
+      if (delay !== undefined) setTimeout(() => current && tryPrefetch(attempt + 1), delay);
+    };
+    tryPrefetch(0);
+    return () => {
+      current = false;
+    };
+  }, [plateScanId]);
+
   if (gate === "loading") {
     return <BootLoader />;
   }
@@ -632,6 +663,7 @@ export default function MakanAi() {
     setPlateValues({ name: "", place: "", price: "" });
     setEatenAt(null);
     setPhotoId(null);
+    setPlateScanId(null);
     setMemoryChips([]);
     setRetriesLeft(0);
     setRetryHint("");
@@ -816,6 +848,7 @@ export default function MakanAi() {
       }
       setQuotaReached(result.quotaReached);
       setPhotoId(result.photoId ?? null);
+      setPlateScanId(result.plateScanId ?? null);
       setRetriesLeft(result.retriesLeft ?? 0);
       setRetryHint("");
       setRetryCount(0);
@@ -1040,6 +1073,7 @@ export default function MakanAi() {
           ...(stickers[index] ? { scanId: stickers[index] } : {}),
         })),
         ...(photoId ? { scanPhotoId: photoId } : {}),
+        ...(plateScanId ? { plateScanId } : {}),
         itemsJson: JSON.stringify(withoutScaleRead(withoutPortionPrior(aiItems))),
         ...(plate ? { plate } : {}),
         ...(eatenAt !== null
@@ -1900,6 +1934,7 @@ export default function MakanAi() {
           fat: included.reduce((sum, entry) => sum + (entry.item.fat ?? 0), 0),
           reaction: savedKcal > 0 && !gain ? t(`reaction.${reactionKey(savedKcal)}`) : undefined,
           photoUri: previewUri,
+          ...(plateReadyId && plateReadyId === plateScanId ? { cutoutUri: stickerUrl(plateReadyId) } : {}),
         }
       : null;
   return (

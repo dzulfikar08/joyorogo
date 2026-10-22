@@ -172,11 +172,14 @@ export function StickerMini({
  */
 export function FoodSticker({
   scanId,
+  fallbackScanId,
   name,
   onPress,
   size = 56,
 }: {
   scanId?: string | null;
+  /** Cutout to show when `scanId` never loads (a plate sticker that failed to cut), before the food icon. */
+  fallbackScanId?: string | null;
   name: string;
   onPress?: () => void;
   size?: number;
@@ -215,6 +218,9 @@ export function FoodSticker({
     </View>
   );
 
+  if (failed && fallbackScanId) {
+    return <FoodSticker scanId={fallbackScanId} name={name} onPress={onPress} size={size} />;
+  }
   if (!scanId || failed) return tile;
 
   return (
@@ -261,6 +267,8 @@ export function StickerHero({
 
 export type StickerViewerTarget = {
   uri: string;
+  /** Shown instead when `uri` fails to load (a plate sticker that is not ready or failed to cut). */
+  fallbackUri?: string;
   name: string;
   kcal: number;
   photoId?: string | null;
@@ -283,9 +291,12 @@ export function StickerViewer({
 }) {
   const { t } = useTranslation("feed");
   const [showPhoto, setShowPhoto] = useState(false);
+  const [mainFailed, setMainFailed] = useState(false);
   useEffect(() => {
     setShowPhoto(false);
+    setMainFailed(false);
   }, [viewer]);
+  const uri = mainFailed && viewer?.fallbackUri ? viewer.fallbackUri : (viewer?.uri ?? "");
 
   const { width } = useWindowDimensions();
   const { theme } = useUnistyles();
@@ -304,10 +315,11 @@ export function StickerViewer({
             <AuthedPhoto photoId={viewer.photoId} name={viewer.name} />
           ) : (
             <StickerImage
-              uri={viewer?.uri ?? ""}
+              uri={uri}
               size={Math.min(width - theme.spacing.xl * 2, 360)}
               name={viewer?.name ?? ""}
               variant="diecut"
+              onError={() => setMainFailed(true)}
             />
           )}
           <View style={styles.viewerCaptionRow}>
@@ -337,8 +349,7 @@ export function StickerViewer({
                 protein: viewer.protein,
                 carbs: viewer.carbs,
                 fat: viewer.fat,
-                photoUri: viewer.uri,
-                photoCutout: true,
+                cutoutUri: uri,
                 photoId: viewer.photoId,
               }}
               variant="secondary"

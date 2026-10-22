@@ -5,7 +5,7 @@ import { Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { MacroLine } from "@/components/macro-line";
-import { FoodThumb } from "@/components/sticker";
+import { FoodThumb, useStickerTarget } from "@/components/sticker";
 import type { FoodItem } from "@/lib/api-types";
 import type { Presence } from "@/lib/use-presence";
 import { fmtInt } from "@/lib/format";
@@ -20,12 +20,15 @@ import { fmtInt } from "@/lib/format";
  */
 export function FoodRow({
   item,
+  dayRows,
   presence,
   nested = false,
   onEdit,
   onDelete,
 }: {
   item: FoodItem;
+  /** The day's rows: a plate sticker opens as the whole scan, summed over its rows. */
+  dayRows: readonly FoodItem[];
   /** "enter" / "leave" while the row animates in or out of the list. */
   presence?: Presence;
   nested?: boolean;
@@ -33,6 +36,7 @@ export function FoodRow({
   onDelete: () => void;
 }) {
   const { t } = useTranslation("makan");
+  const stickerTarget = useStickerTarget();
   const hasMacros = [item.protein, item.carbs, item.fat, item.fiber].some((g) => (g ?? 0) > 0);
   // Never filled in (null, not 0 g): the day total counts nothing for it, so say so and let a tap open the editor.
   const macrosMissing = item.protein == null && item.carbs == null && item.fat == null && item.kcal > 0;
@@ -73,6 +77,7 @@ export function FoodRow({
                 protein={item.protein}
                 carbs={item.carbs}
                 fat={item.fat}
+                {...stickerTarget(item, dayRows)}
                 className="size-12"
                 iconClassName="size-5"
               />

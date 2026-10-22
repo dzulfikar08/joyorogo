@@ -19,6 +19,12 @@ export type MealStory = {
   photoUri?: string | null;
   /** True when `photoUri` is a sticker cutout with a transparent background. */
   photoCutout?: boolean;
+  /**
+   * The whole-plate sticker (transparent PNG of the plate or bowl with all its food). It fills the `cutout` slot
+   * of the cutout templates while `photoUri` stays the photo behind the photo templates, so a meal with both
+   * offers both. Wins over a `photoCutout` photoUri.
+   */
+  cutoutUri?: string | null;
   date?: Date;
 };
 
@@ -438,6 +444,7 @@ export function buildStickerData(spec: StorySpec, prefs: StickerPrefs = {}): Sti
   const assets: Record<string, ImageRef | undefined> = {};
   // A cutout (transparent PNG of the food) is never a full-bleed background: it has its own slot.
   if (prefs.cutout) assets.cutout = prefs.cutout;
+  else if (spec.kind === "meal" && spec.cutoutUri) assets.cutout = { uri: spec.cutoutUri };
   else if (spec.kind === "meal" && spec.photoCutout && spec.photoUri) assets.cutout = { uri: spec.photoUri };
   if (prefs.photo) assets.photo = prefs.photo;
   else if (spec.kind === "meal" && spec.photoUri && !spec.photoCutout) assets.photo = { uri: spec.photoUri };
