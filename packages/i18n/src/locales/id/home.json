@@ -320,5 +320,11 @@
   "notice": {
     "expand": "Buka catatan",
     "collapse": "Tutup catatan"
+  },
+  "calChip": {
+    "days_other": "Kalibrasi, paling cepat {{count}} hari lagi",
+    "weigh": "Kalibrasi mulai dari timbangan pertamamu",
+    "waiting": "Kalibrasi mulai {{date}}",
+    "hint": "Buka kemajuan kalibrasi target makan"
   }
 }

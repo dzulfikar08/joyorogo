@@ -172,6 +172,13 @@ status, push reminders, coach context), because every one of them calls `buildPl
   before), `day.summary.calibrationNotice = { fromKcal, toKcal }` and Beranda shows a dismissible line old → new with a
   link to the setting. Dismissing stores the synced pref `energy.calibrationSeen` (integer kcal = the new base). Only
   while the calibration is active.
+- **Chip** (native Beranda, `components/calibration-chip.tsx`, rule in `src/lib/calibration-chip.ts`): while the status is
+  `collecting` a one-line pill says "Kalibrasi, paling cepat N hari lagi", N being the longest of what each gate still
+  needs (`loggedDaysNeeded - loggedDays`, `weighInsNeeded - weighIns`, `spanDaysNeeded - spanDays`, at least 1), each
+  counted at best one a day, so it is a floor, never a promise. With no weigh-in in the window it says the clock starts
+  with the first one instead of a count. In `waiting` it names the Monday it starts. Hidden when active, off or manual.
+  It reads `profile.activityGuide.autoCalibration` (no server change) and gives way to the setup checklist while that
+  card is up. Tapping opens Profil > Target & tubuh, where the three progress bars are.
 
 ## Own TDEE (`lib/manual-tdee.ts`, "Pakai TDEE sendiri")
 
