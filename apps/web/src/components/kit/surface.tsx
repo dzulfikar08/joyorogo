@@ -290,7 +290,7 @@ export function Segmented<T extends string>({
       role="radiogroup"
       aria-label={label}
       className={cn(
-        "relative flex gap-1 overflow-x-auto rounded-full bg-muted p-1 no-scrollbar",
+        "relative flex gap-1 overflow-x-auto rounded-full bg-muted p-1 scrollbar-none",
         className,
       )}
     >

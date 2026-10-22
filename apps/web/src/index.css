@@ -61,14 +61,6 @@
   transform: scale(0.97);
 }
 
-/* Hide scrollbars on horizontal chip rails; they still scroll by touch/trackpad. */
-.no-scrollbar {
-  scrollbar-width: none;
-}
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
 @keyframes milestone-pop {
   from {
     transform: scale(0.95);

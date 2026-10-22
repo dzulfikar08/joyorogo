@@ -93,7 +93,7 @@ export function QuickAddCard({
           <p className="px-1 text-xs text-muted-foreground">
             {t("diary.quick.recent", { meal: mealLabel })}
           </p>
-          <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1 no-scrollbar">
+          <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none">
             {recent.map((food) => (
               <Chip
                 key={food.name}

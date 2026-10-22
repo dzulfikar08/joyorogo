@@ -183,3 +183,61 @@
     @apply font-sans bg-background text-foreground antialiased;
   }
 }
+
+/*
+ * Scrollbars: thin, rounded, themed (page, tables, code, sheets, chat lists). Pointer devices only; touch screens
+ * keep their native overlay bar, which is already thin and auto-hiding. Firefox reads scrollbar-width/-color
+ * (no hover state there); Chromium and Safari read the ::-webkit-scrollbar pieces, which ignore scrollbar-color,
+ * so the Firefox-only gate keeps the two paths from fighting. The thumb looks 4px (10px bar minus 3px border each
+ * side) and widens to 8px on hover. The gutter is reserved on the page so short and long routes do not jump.
+ */
+:root {
+  --scrollbar-thumb: color-mix(in oklab, var(--foreground) 30%, transparent);
+  --scrollbar-thumb-hover: color-mix(in oklab, var(--foreground) 55%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  html {
+    scrollbar-gutter: stable;
+  }
+  @supports (-moz-appearance: none) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) transparent;
+    }
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+    border-width: 1px;
+  }
+}
+@media (forced-colors: active) {
+  :root {
+    --scrollbar-thumb: ButtonText;
+    --scrollbar-thumb-hover: Highlight;
+  }
+  * {
+    scrollbar-color: auto;
+  }
+}
+
+/* Horizontal chip/tab rails: still scroll by touch and trackpad, no bar. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

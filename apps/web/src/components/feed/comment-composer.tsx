@@ -284,7 +284,7 @@ function AttachPicker({
           <X className="size-4" aria-hidden />
         </button>
       </div>
-      <div role="tablist" className="flex gap-1 overflow-x-auto pb-2 [scrollbar-width:none]">
+      <div role="tablist" className="flex gap-1 overflow-x-auto pb-2 scrollbar-none">
         {KINDS.map((k) => (
           <button
             key={k}

@@ -392,7 +392,7 @@ function IdeasCard({ summary }: { summary: Summary }) {
         {gaining ? t("gain:today.ideasTitle") : t("ideas.title")}
       </p>
       {gaining && <p className="mt-0.5 text-xs text-muted-foreground">{t("gain:today.ideasHint")}</p>}
-      <ul className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 no-scrollbar">
+      <ul className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 scrollbar-none">
         {summary.ideas.map((idea) => (
           <li key={idea.name} className="w-40 shrink-0 rounded-2xl bg-makan-soft px-3 py-2.5">
             <p className="line-clamp-2 text-sm leading-snug font-semibold">{idea.name}</p>
@@ -473,7 +473,7 @@ function Dashboard({
             {stickers.length > 0 && (
               <section aria-label={t("plates.title")}>
                 <SectionTitle className="mb-1">{t("plates.title")}</SectionTitle>
-                <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 no-scrollbar lg:mx-0 lg:px-0">
+                <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 scrollbar-none lg:mx-0 lg:px-0">
                   {stickers.map((item) => (
                     <figure key={item.id} className="w-28 shrink-0 rounded-2xl bg-card p-3 text-center">
                       <Sticker
