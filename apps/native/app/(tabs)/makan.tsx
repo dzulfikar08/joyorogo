@@ -743,7 +743,7 @@ export default function Makan() {
   };
 
   return (
-    <Screen>
+    <Screen decorated>
       <PageHeader title={t("common:nav.food")} right={<AskJoyoHeaderButton />} />
 
       <View style={styles.switcherRow}>

@@ -43,6 +43,7 @@ import { fmtInt } from "@/utils/format";
 import { Container } from "@/components/container";
 import { Mascot, type MascotPose } from "@/components/mascot";
 import { EASE_OUT, PressableScale, useCountUp } from "@/components/motion";
+import { HeaderArt } from "@/components/header-art";
 import { useInTabs, useTabContentInset } from "@/components/tab-bar-inset";
 
 const AnimatedCircle = Reanimated.createAnimatedComponent(Circle);
@@ -134,9 +135,12 @@ export function Screen({
   onRefresh,
   scrollEnabled = true,
   footer,
+  decorated = false,
 }: {
   children: React.ReactNode;
   style?: ViewStyle;
+  /** Draws the top-right header art behind the page. The main tab screens use it. */
+  decorated?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
   /** False while a child gesture (chart scrubbing) owns the touch. */
@@ -164,6 +168,7 @@ export function Screen({
         onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined
       }
     >
+      {decorated ? <HeaderArt /> : null}
       {children}
     </KeyboardAwareScrollView>
   );

@@ -976,7 +976,7 @@ export default function Dashboard() {
   };
 
   return (
-    <Screen refreshing={refreshing} onRefresh={() => void refreshAll()}>
+    <Screen decorated refreshing={refreshing} onRefresh={() => void refreshAll()}>
       {/* Greeting + avatar → /profil */}
       <View style={styles.greetRow}>
         <View style={styles.greetText}>
