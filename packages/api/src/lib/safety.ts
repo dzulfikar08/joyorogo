@@ -4,7 +4,7 @@
 // prescription, and every threshold below is the app's product choice (named, with its reasoning), not a clinical cut-off.
 
 import { PROTEIN_G_PER_KG } from "./gain";
-import { daysBetween, emaTrendPoints, shiftDate } from "./engine";
+import { daysBetween, shiftDate } from "./engine";
 import type { WeighIn } from "./engine";
 
 /** A sustained fall faster than this (% of body weight per week) trips the note. 0.5-1% a week is the usual "steady" pace; past 1% the fall is mostly water and muscle. Gain plans keep their own, stricter 0.5% flag (gain.ts RAPID_LOSS_PCT_PER_WEEK). */
