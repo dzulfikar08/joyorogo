@@ -18,6 +18,9 @@ const TOOLS = [
   "list_workouts",
   "get_workout",
   "get_recovery_metrics",
+  "get_plan",
+  "get_sleep_nights",
+  "get_sleep_findings",
 ] as const;
 const OUTCOMES = ["ok", "error", "not_pro", "rate_limited", "scope"] as const;
 const TONE = {

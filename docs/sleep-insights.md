@@ -25,7 +25,7 @@ the existing `watch_workout`; JoyoFit sends no workout data for this feature. Sc
 
 `status`, `setConsent`, `setFreeDays`, `upsertNights` (1..14 full snapshots, last wins per date), `get({ locale })`, `dismiss({ id })`.
 Each night replaces its row; anything older than 90 nights is trimmed on every write. `upsertScores` and `pickNightSleep` are untouched, so Beranda,
-Tidur and the MCP tools never read `sleep_night`.
+Tidur and the other MCP tools never read `sleep_night`.
 
 ## Computation and gating
 
@@ -51,7 +51,7 @@ Tidur and the MCP tools never read `sleep_night`.
 ## Retention and wipe
 
 90 nights. Turning the switch off deletes `sleep_night`, the cache and the dismissals immediately. `deleteAllUserData` ("Hapus semua data") and account
-deletion (FK cascade) cover the tables. Not shared with groups, feed, family monitoring or the MCP connector. Logs carry counts only.
+deletion (FK cascade) cover the tables. Not shared with groups, feed or family monitoring; the MCP connector reads it only through `get_sleep_nights` / `get_sleep_findings` while the switch is on (`docs/mcp-connector.md`). Logs carry counts only.
 
 ## Bedroom sensor, and air quality later
 

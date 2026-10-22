@@ -29,7 +29,7 @@ A request that names scopes always gets `offline_access` added and a request wit
 scope list from metadata and may omit either (no refresh token = signed out every hour; no resource = an opaque token the endpoint cannot
 read). A request without `scope` gets every scope. Each tool checks its scope; a token missing it gets a friendly tool error.
 
-### Tools (all `readOnlyHint`)
+### Tools (all `readOnlyHint`), ten in all
 
 | Tool | Scope | Returns |
 |---|---|---|
@@ -40,6 +40,16 @@ read). A request without `scope` gets every scope. Each tool checks its scope; a
 | `list_workouts` | workouts | JoyoFit watch workouts + gym sessions, newest first (≤ 366 days, default 30, ≤ 50 items) with an `id` |
 | `get_workout` | workouts | `watch:<start>`: analysis summary (stats, HR zones, pace zones, best efforts, effort, load, splits, laps, comparison; no series, no GPS); `strength:<id>`: exercises with sets, total volume |
 | `get_recovery_metrics` | recovery | per day (≤ 92 days, default 14): sleep h + source, sleep %, recovery %, strain, readiness, resting HR, HRV + status, VO2max, training status, load ratio, recovery hours left, steps, distance, active kcal, exercise min |
+| `get_plan` | workouts | the JoyoFit coach plan (`coach_doc`, `lib/fit-data-ai.ts`): kind, goal, level, sessions/week, weekdays, start day, weeks, current week + the coach's load adjustment for it, sessions done / skipped in the last 14 days. No per-session list (the schedule is generated in the app). `hasPlan:false` without one |
+| `get_sleep_nights` | recovery | per night (≤ 90 days, default 14), **only with the sleep-insights switch on**: onset/wake (ISO), asleep/awake min, awakenings, deep/REM/light min (null without stages), watch score, night HRV, resting HR, nap min, bedroom temp/humidity. Switch off: `{ consent:false, message }` telling where to switch it on (not an error) |
+| `get_sleep_findings` | recovery | the personal patterns `sleepFindingsFor` found (caffeine, dinner, late workout, regularity, temperature, humidity): confidence, effect in minutes, nights compared. Same consent gate; empty list = nothing strong enough yet |
+
+### Prompts
+
+Five ready-made questions served through MCP `prompts/list` and `prompts/get` (`PROMPTS` in `mcp.ts`): `weekly_review`, `why_tired`, `workout_debrief`,
+`sleep_check`, `plan_check`. Each takes an optional `language` (`id` default, `en`) and returns one user message that names the tools to call; a prompt
+carries no data and is not gated (every data call it causes is, by the rules above). The texts keep the safety line (not medical advice; doctor for pain
+or lasting symptoms; no injury diagnosis). Whether a given AI app shows MCP prompts is up to that app [not checked per app].
 
 Never exposed: Strava-imported rows (Strava API terms keep that data out of AI, see `docs/strava.md`), GPS routes, photos, other people's data,
 emails, ids of other accounts. Nothing writes.
@@ -52,8 +62,10 @@ JoyoRogo. JoyoFit's richer daily metrics were not, so `fitness.upsertScores` now
 `vo2max`, `trainingStatus`, `loadRatio`, `recoveryHours` (all optional, a missing one keeps the stored value). JoyoFit sends them with the
 scores it already pushes (JS only, OTA).
 
-Sleep insights data (`sleep_night`, `sleep_insight_*`, see `docs/sleep-insights.md`) is **not** exposed by the connector: no tool reads it, and
-`get_recovery_metrics` keeps reading only `sleep_log` / `fitness_score`. The optional `food_log.eaten_at` is not returned by any tool either.
+Sleep insights data (`sleep_night`, `sleep_insight_*`, see `docs/sleep-insights.md`) is exposed **only** by `get_sleep_nights` and `get_sleep_findings`, and
+only while `sleep_insight_pref.enabled` is on (checked on every call; turning it off deletes the nights, so nothing stays readable).
+`get_recovery_metrics` keeps reading only `sleep_log` / `fitness_score`. The optional `food_log.eaten_at` is not returned by any tool.
+**Menstrual cycle data is never exposed**: no tool, prompt or reader in `fit-data*.ts` touches it (owner decision for the AI features).
 
 The hours of one night can sit in both `sleep_log` (keyed by the day the night started) and `fitness_score.sleep_hours` (keyed by the day it ended,
 JoyoFit sends them for today and, since the week-window push, for each of the six days before). Every reader goes through `lib/sleep-night.ts`
