@@ -145,6 +145,14 @@ describe("a branded cup whose contents are hidden", () => {
     expect(answer.items[0]).toMatchObject({ name: "Iced sweet tea", cup: { drink: "iced_tea", size: "M" } });
   });
 
+  test("a retry hint puts the user's own names, counts and weights above the photo", () => {
+    const text = retryInstruction("ini bakwan, telurnya 3");
+    expect(text).toContain('Catatan pengguna: "ini bakwan, telurnya 3"');
+    expect(text).toContain("menang atas foto");
+    expect(retryInstruction()).not.toContain("Catatan pengguna");
+    expect(retryInstruction()).toContain("jumlah potongan");
+  });
+
   test("a retry hint naming the contents overrides the cup guess", () => {
     expect(retryInstruction("coke zero")).toContain("Coke Zero");
     expect(retryInstruction("coke zero")).toContain("tanpa field");

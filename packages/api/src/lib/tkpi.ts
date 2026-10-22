@@ -4,9 +4,11 @@
 // is a plausible band per dish, not lab precision.
 import type { Region } from "@joyorogo/i18n";
 
+import { boneInFraction } from "./bone-in";
 import { foodKind } from "./food-kind";
 import { indonesianName } from "./scan-names";
 import { MYFCD_DISHES } from "./myfcd-dishes";
+import type { Pieces } from "./piece-chip";
 import { lookupTkpi2019, portionFromTkpi2019 } from "./tkpi2019";
 
 export type TdpiDish = {
@@ -718,10 +720,14 @@ const BONE_IN_KCAL_SLACK = 1.35;
 /** The meat is already off the bone (fillet, shredded, "tanpa tulang"). */
 const BONELESS = /\b(fillet|filet|suwir|tanpa tulang|boneless|tulang lunak|presto)\b/;
 
-/** Edible share of a library dish's weight as seen; 1 for boneless dishes and for a name that says it is boneless. */
+/**
+ * Edible share of a library dish's weight as seen; 1 for boneless dishes and for a name that says it is boneless.
+ * A bone-in dish named by its part (paha, sayap, dada) takes that part's share over the dish's own (lib/bone-in.ts).
+ */
 export function edibleFractionOf(dish: TdpiDish, name: string): number {
   const fraction = dish.edibleFraction ?? 1;
-  return fraction < 1 && !BONELESS.test(normalize(name)) ? fraction : 1;
+  if (fraction >= 1 || BONELESS.test(normalize(name))) return 1;
+  return boneInFraction(name) ?? fraction;
 }
 
 /**
@@ -764,6 +770,12 @@ export type CalibratedItem = {
   matched?: boolean;
   /** Eaten part of `grams` for a bone-in dish (ayam goreng, ikan utuh); absent = all of it is eaten. */
   edibleGrams?: number;
+  /** Bone-in only: the weight with the bone as seen (`grams` while `withBone`), so a client can switch `grams` between it and `edibleGrams`. */
+  grossGrams?: number;
+  /** Bone-in only: `grams` is the weight with the bone (true) or the edible part (false). The scan answers true. */
+  withBone?: boolean;
+  /** Separate pieces (eggs, satay, dumplings): how many, for the row's "Jumlah" stepper (lib/piece-count.ts). */
+  pieces?: Pieces;
 };
 
 // Fallback band for dishes outside the library — catches truncation garbage
@@ -785,6 +797,8 @@ export type CalibratableItem = {
   fat?: number;
   fiber?: number;
   confidence?: number;
+  /** Counted pieces ride through calibration untouched. */
+  pieces?: Pieces;
   /** The caller knows this is a drink (model kind); otherwise the name decides. Zero-calorie drinks stay near 0. */
   drink?: boolean;
   /**
@@ -906,6 +920,8 @@ function calibrateOne({ drink, asSeen, ...entered }: CalibratableItem, options: 
     }
     const densityCap =
       item.grams && item.grams > 0 ? Math.max(400, item.grams * 7) : GENERIC_KCAL_RANGE[1];
+    // Ribs, a whole fish or a wing the library has no row for: the model's kcal stand, the edible part is only stated.
+    const fraction = asSeen && item.grams && item.grams > 0 ? boneInFraction(item.name) : undefined;
     return atwaterAdjust({
       ...item,
       kcal: clamp(
@@ -914,6 +930,7 @@ function calibrateOne({ drink, asSeen, ...entered }: CalibratableItem, options: 
         Math.min(GENERIC_KCAL_RANGE[1], densityCap),
       ),
       matched: false,
+      ...(fraction !== undefined ? boneFields(item.grams!, fraction) : {}),
     });
   }
   const edible = asSeen ? edibleFractionOf(dish, item.name) : 1;
@@ -946,6 +963,11 @@ function calibrateOne({ drink, asSeen, ...entered }: CalibratableItem, options: 
     fiber,
     kcal,
     matched: true,
-    ...(edible < 1 ? { edibleGrams: Math.round(edibleGrams) } : {}),
+    ...(edible < 1 ? boneFields(grams, edible) : {}),
   });
+}
+
+/** What a bone-in item carries beside its grams as seen: the edible part, the gross weight, the bone switched on. */
+function boneFields(grams: number, edible: number): Pick<CalibratedItem, "edibleGrams" | "grossGrams" | "withBone"> {
+  return { edibleGrams: Math.round(grams * edible), grossGrams: grams, withBone: true };
 }

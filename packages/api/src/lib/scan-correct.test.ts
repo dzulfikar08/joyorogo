@@ -371,3 +371,30 @@ describe("correctionPrompt", () => {
     expect(correctionPrompt(plate, "setengah", "id")).not.toContain("localName");
   });
 });
+
+describe("a correction keeps the Jumlah and Dengan tulang state of the rows it touches", () => {
+  const egg: CorrectionItemInput = { name: "telur rebus", portion: "3 butir", grams: 150, kcal: 225, protein: 18, carbs: 2, fat: 15, kind: "makanan", pieces: { count: 3, unit: "butir", unitGrams: 50 } };
+  const rice: CorrectionItemInput = { name: "nasi putih", portion: "1 piring", grams: 150, kcal: 195, kind: "makanan" };
+  const chicken: CorrectionItemInput = { name: "ayam goreng", portion: "2 potong, dengan tulang", grams: 200, kcal: 400, kind: "makanan", grossGrams: 200, edibleGrams: 130, withBone: true, pieces: { count: 2, unit: "potong", unitGrams: 100 } };
+
+  test("rows left alone come back with their pieces and bone weights", () => {
+    const patch = applyCorrection([egg, chicken, rice], ops({ op: "portion", i: 3, scale: 0.5 }));
+    expect(patch.items[0]?.pieces).toEqual(egg.pieces);
+    expect(patch.items[1]).toMatchObject({ grossGrams: 200, edibleGrams: 130, withBone: true });
+  });
+
+  test("a count the user states moves the row's count with its grams", () => {
+    const patch = applyCorrection([egg, rice], ops({ op: "portion", i: 1, count: 2 }));
+    expect(patch.items[0]).toMatchObject({ grams: 100, portion: "2 butir", pieces: { count: 2, unit: "butir", unitGrams: 50 } });
+  });
+
+  test("half the chicken halves both weights and the count, bone side kept", () => {
+    const patch = applyCorrection([chicken], ops({ op: "portion", i: 1, scale: 0.5 }));
+    expect(patch.items[0]).toMatchObject({ grams: 100, grossGrams: 100, edibleGrams: 65, withBone: true, pieces: { count: 1 } });
+  });
+
+  test("a rename to a countable food gets a count from its new weight", () => {
+    const patch = applyCorrection([rice], ops({ op: "rename", i: 1, name: "telur rebus", grams: 100, kcal100: 155 }));
+    expect(patch.items[0]?.pieces).toEqual({ count: 2, unit: "butir", unitGrams: 50 });
+  });
+});

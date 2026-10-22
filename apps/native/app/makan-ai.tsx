@@ -46,6 +46,9 @@ import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { equivalentLine } from "@joyorogo/api/lib/facts";
 import { foodKind, isHeavyDish } from "@joyorogo/api/lib/food-kind";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
+import { hasBone, setWithBone, stripBoneLabel } from "@joyorogo/api/lib/bone-chip";
+import { itemAtCount } from "@joyorogo/api/lib/piece-chip";
+import type { Pieces } from "@joyorogo/api/lib/piece-chip";
 import { macrosForTypedKcal, scalePortion } from "@joyorogo/api/lib/portion";
 import { modelNumbers, swapPortionPrior, withoutPortionPrior } from "@joyorogo/api/lib/portion-chip";
 import type { PortionPriorChip } from "@joyorogo/api/lib/portion-chip";
@@ -83,6 +86,7 @@ import { ContextualTip } from "@/components/tips/contextual-tip";
 import { FoodSafetyNotes } from "@/components/maternal/flag-notes";
 import { CorrectBox } from "@/components/scan/correct-box";
 import { CupChoices } from "@/components/scan/cup-choices";
+import { BoneChips, PieceCountChip } from "@/components/scan/piece-chips";
 import { PortionPriorChips } from "@/components/scan/portion-prior-chips";
 import { MemoryChips } from "@/components/scan/memory-chips";
 import { ReferenceHint } from "@/components/scan/reference-hint";
@@ -120,6 +124,12 @@ type AnalyzedItem = {
   scaleRead?: ScaleReadChip;
   /** Set when the kcal is the user's own per gram from an earlier log of the same food: what the model said is in the note. */
   usualDensity?: UsualDensityNote;
+  /** Separate pieces (eggs, satay, dumplings): how many, for the "Jumlah" stepper. */
+  pieces?: Pieces;
+  /** Bone-in: the weight with the bone, the edible part, and which of them `grams` is (the "Dengan tulang" switch). */
+  grossGrams?: number;
+  edibleGrams?: number;
+  withBone?: boolean;
 };
 
 /** Everything per-row that a correction rewrites; "Urungkan" restores one of these. */
@@ -566,6 +576,8 @@ export default function MakanAi() {
   >([]);
   const [feedbackNote, setFeedbackNote] = useState("");
   const [feedbackKeepPhoto, setFeedbackKeepPhoto] = useState(false);
+  // A negative rating sent with no reason and no note is held back once and the reason chips are asked again.
+  const [reasonNudged, setReasonNudged] = useState(false);
   // Item kind: the AI's call, or what the user tapped on the row. Advice only.
   const [kinds, setKinds] = useState<Record<number, FoodKind>>({});
   // Items and kcal drafts as they were before "Setengah porsi", so one tap restores them.
@@ -676,6 +688,7 @@ export default function MakanAi() {
     setFeedbackAnswered(false);
     setFeedbackRating(null);
     setFeedbackReasons([]);
+    setReasonNudged(false);
     setFeedbackNote("");
     setFeedbackKeepPhoto(false);
     correctRunRef.current += 1;
@@ -862,6 +875,7 @@ export default function MakanAi() {
       setFeedbackAnswered(false);
       setFeedbackRating(null);
       setFeedbackReasons([]);
+      setReasonNudged(false);
       setFeedbackNote("");
       setFeedbackKeepPhoto(false);
       setItems(result.items);
@@ -1179,6 +1193,28 @@ export default function MakanAi() {
     );
   };
 
+  /**
+   * "Jumlah": one tap on the stepper puts another count on a row of pieces; weight, kcal (the typed one scales
+   * too) and macros follow. The AI breakdown stays as the model answered, so the new count is a correction.
+   */
+  const setCount = (index: number, count: number) => {
+    const item = items[index];
+    if (!item?.pieces) return;
+    const typed = parseNum(drafts[index]?.kcal ?? "");
+    const next = itemAtCount({ ...item, kcal: typed ?? item.kcal }, count);
+    setItems((prev) => prev.map((it, i) => (i === index ? next : it)));
+    setDrafts((prev) =>
+      prev.map((draft, i) => (i === index ? { ...draft, kcal: String(next.kcal) } : draft)),
+    );
+  };
+
+  /** "Dengan tulang" / "Tanpa tulang": the row's weight moves between gross and edible; kcal stay. */
+  const setBone = (index: number, withBone: boolean) => {
+    setItems((prev) =>
+      prev.map((it, i) => (i === index ? setWithBone(it, withBone, t("result.withBone")) : it)),
+    );
+  };
+
   /** A cup whose contents the photo hides: the user's drink / size pick replaces the row's numbers. */
   const pickCup = (index: number, next: CupChoice) => {
     const picked = cupPick(next, getActiveLocale());
@@ -1236,6 +1272,10 @@ export default function MakanAi() {
         confidence: item.confidence,
         kind: kinds[index] ?? item.kind,
         box: item.box,
+        pieces: item.pieces,
+        grossGrams: item.grossGrams,
+        edibleGrams: item.edibleGrams,
+        withBone: item.withBone,
       })),
       ...input,
     });
@@ -1552,6 +1592,11 @@ export default function MakanAi() {
               ) : null}
               {feedbackRating !== null ? (
                 <View style={styles.feedbackDetail}>
+                  {reasonNudged && feedbackReasons.length === 0 ? (
+                    <Text style={styles.feedbackSubtitle} accessibilityRole="alert">
+                      {t("feedback.reasonNudge")}
+                    </Text>
+                  ) : null}
                   <View style={styles.feedbackRow}>
                     {FEEDBACK_REASONS.map((key) => (
                       <Chip
@@ -1603,6 +1648,10 @@ export default function MakanAi() {
                       size="sm"
                       label={t("feedback.send")}
                       onPress={() => {
+                        if (feedbackReasons.length === 0 && !feedbackNote.trim() && !reasonNudged) {
+                          setReasonNudged(true);
+                          return;
+                        }
                         sendFeedback(
                           feedbackRating,
                           feedbackReasons,
@@ -1663,14 +1712,33 @@ export default function MakanAi() {
                       <MetaLine
                         itemStyle={styles.itemMetaText}
                         items={[
-                          item.portion,
+                          hasBone(item) ? stripBoneLabel(item.portion) : item.portion,
                           // a cup's portion already says "350 ml"; the same number as grams is noise
-                          item.grams !== undefined && !item.cup ? `±${fmtGramsLabel(item.grams)}` : null,
+                          hasBone(item)
+                            ? (item.withBone ?? true)
+                              ? t("result.items.boneOn", {
+                                  gross: fmtGramsLabel(item.grossGrams!),
+                                  edible: fmtGramsLabel(item.edibleGrams!),
+                                })
+                              : t("result.items.boneOff", { edible: fmtGramsLabel(item.edibleGrams!) })
+                            : item.grams !== undefined && !item.cup
+                              ? `±${fmtGramsLabel(item.grams)}`
+                              : null,
                           t("result.items.estimate"),
                         ]}
                       />
                       {item.cup ? (
                         <CupChoices choice={item.cup} onPick={(next) => pickCup(index, next)} />
+                      ) : null}
+                      {item.pieces ? (
+                        <PieceCountChip
+                          name={item.name}
+                          pieces={item.pieces}
+                          onChange={(count) => setCount(index, count)}
+                        />
+                      ) : null}
+                      {hasBone(item) ? (
+                        <BoneChips name={item.name} item={item} onChange={(on) => setBone(index, on)} />
                       ) : null}
                       {item.portionPrior ? (
                         <PortionPriorChips name={item.name} item={item} onSwap={() => swapPrior(index)} />

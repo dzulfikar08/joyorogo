@@ -42,6 +42,8 @@ import type { LiveRow } from "@joyorogo/api/lib/scan-live";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
+import { hasBone, setWithBone, stripBoneLabel } from "@joyorogo/api/lib/bone-chip";
+import { itemAtCount } from "@joyorogo/api/lib/piece-chip";
 import { macrosForTypedKcal, scalePortion } from "@joyorogo/api/lib/portion";
 import { modelNumbers, swapPortionPrior, withoutPortionPrior } from "@joyorogo/api/lib/portion-chip";
 import { swapScaleRead, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
@@ -50,6 +52,7 @@ import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { cupPick } from "@joyorogo/api/lib/drink-options";
 import type { CupChoice } from "@joyorogo/api/lib/drink-options";
 import { CupChoices } from "@/components/scan/cup-choices";
+import { BoneChips, PieceCountChip } from "@/components/scan/piece-chips";
 import { PortionPriorChips } from "@/components/scan/portion-prior-chips";
 import { MemoryChips } from "@/components/scan/memory-chips";
 import { ScaleReadChips } from "@/components/scan/scale-read-chips";
@@ -419,6 +422,8 @@ function AiFoodPage() {
   const [feedbackAnswered, setFeedbackAnswered] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState<"kurang_akurat" | "salah" | null>(null);
   const [feedbackReasons, setFeedbackReasons] = useState<FeedbackReason[]>([]);
+  // A negative rating sent with no reason and no note is held back once and the reason chips are asked again.
+  const [reasonNudged, setReasonNudged] = useState(false);
   const [feedbackNote, setFeedbackNote] = useState("");
   const [feedbackKeepPhoto, setFeedbackKeepPhoto] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -543,6 +548,25 @@ function AiFoodPage() {
     touchList();
     setItems((current) => current.map((it, i) => (i === index ? swapped : it)));
     setKcals((current) => ({ ...current, [index]: String(swapped.kcal) }));
+  };
+
+  /** "Jumlah": one tap on the stepper puts another count on a row of pieces; weight, kcal (the typed one scales too) and macros follow. */
+  const setCount = (index: number, count: number) => {
+    const item = items[index];
+    if (!item?.pieces) return;
+    const typed = parseNum(kcals[index] ?? String(item.kcal));
+    const next = itemAtCount({ ...item, kcal: typed ?? item.kcal }, count);
+    touchList();
+    setItems((current) => current.map((it, i) => (i === index ? next : it)));
+    setKcals((current) => ({ ...current, [index]: String(next.kcal) }));
+  };
+
+  /** "Dengan tulang" / "Tanpa tulang": the row's weight moves between gross and edible; kcal stay. */
+  const setBone = (index: number, withBone: boolean) => {
+    const item = items[index];
+    if (!item) return;
+    touchList();
+    setItems((current) => current.map((it, i) => (i === index ? setWithBone(it, withBone, t("result.withBone")) : it)));
   };
 
   /** A cup whose contents the photo hides: the user's drink / size pick replaces the row's numbers. */
@@ -761,6 +785,7 @@ function AiFoodPage() {
       setFeedbackAnswered(false);
       setFeedbackRating(null);
       setFeedbackReasons([]);
+      setReasonNudged(false);
       setFeedbackNote("");
       setFeedbackKeepPhoto(false);
       setRetryCount(0);
@@ -905,6 +930,7 @@ function AiFoodPage() {
     setFeedbackAnswered(false);
     setFeedbackRating(null);
     setFeedbackReasons([]);
+    setReasonNudged(false);
     setFeedbackNote("");
     setFeedbackKeepPhoto(false);
     setRetryCount(0);
@@ -1264,6 +1290,11 @@ function AiFoodPage() {
             </div>
             {feedbackRating !== null && (
               <div className="mt-3 space-y-3">
+                {reasonNudged && feedbackReasons.length === 0 && (
+                  <p className="text-xs font-semibold text-muted-foreground" role="status">
+                    {t("feedback.reasonNudge")}
+                  </p>
+                )}
                 <div
                   className="flex flex-wrap gap-2"
                   role="group"
@@ -1322,6 +1353,10 @@ function AiFoodPage() {
                   <Button
                     size="sm"
                     onClick={() => {
+                      if (feedbackReasons.length === 0 && !feedbackNote.trim() && !reasonNudged) {
+                        setReasonNudged(true);
+                        return;
+                      }
                       sendFeedback(feedbackRating, feedbackReasons, feedbackNote, feedbackKeepPhoto);
                       setFeedbackAnswered(true);
                     }}
@@ -1374,9 +1409,18 @@ function AiFoodPage() {
                     </span>
                     <span className="block text-[0.8125rem] leading-snug text-muted-foreground">
                       {[
-                        item.portion,
+                        hasBone(item) ? stripBoneLabel(item.portion) : item.portion,
                         // a cup's portion already says "350 ml"; the same number as grams is noise
-                        item.grams != null && !item.cup ? `±${fmtGramsLabel(item.grams)}` : null,
+                        hasBone(item)
+                          ? (item.withBone ?? true)
+                            ? t("result.items.boneOn", {
+                                gross: fmtGramsLabel(item.grossGrams!),
+                                edible: fmtGramsLabel(item.edibleGrams!),
+                              })
+                            : t("result.items.boneOff", { edible: fmtGramsLabel(item.edibleGrams!) })
+                          : item.grams != null && !item.cup
+                            ? `±${fmtGramsLabel(item.grams)}`
+                            : null,
                         t("result.items.estimate"),
                       ]
                         .filter(Boolean)
@@ -1423,6 +1467,20 @@ function AiFoodPage() {
                     />
                   </span>
                   {item.cup && <CupChoices choice={item.cup} onPick={(next) => pickCup(index, next)} />}
+                  {(item.pieces || hasBone(item)) && (
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      {item.pieces && (
+                        <PieceCountChip
+                          name={item.name}
+                          pieces={item.pieces}
+                          onChange={(count) => setCount(index, count)}
+                        />
+                      )}
+                      {hasBone(item) && (
+                        <BoneChips name={item.name} item={item} onChange={(on) => setBone(index, on)} />
+                      )}
+                    </span>
+                  )}
                   {item.portionPrior && (
                     <PortionPriorChips name={item.name} item={item} onSwap={() => swapPrior(index)} />
                   )}

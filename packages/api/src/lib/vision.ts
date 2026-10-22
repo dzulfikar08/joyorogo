@@ -12,6 +12,7 @@ import type { ScanFailReason } from "./scan-errors";
 import { CUP_CONFIDENCE, cupItem, guessCupChoice } from "./drink-options";
 import type { CupChoice } from "./drink-options";
 import { reconcileCount } from "./piece-count";
+import type { Pieces } from "./piece-chip";
 import { calibrateItems } from "./tkpi";
 import type { CalibratedItem, CalibrateOptions } from "./tkpi";
 
@@ -300,15 +301,15 @@ export const defaultSchedule: ScheduleTimeout = (fn, ms) => {
 };
 
 /**
- * Prompt preamble for "Hitung ulang": the user judged the first answer on
- * this photo wrong. The optional hint is the user's own words; both lines
- * steer the same re-read of the same pixels.
+ * Prompt preamble for "Hitung ulang": the user judged the first answer on this photo wrong. The optional
+ * hint is the user's own words and outranks the photo: names, counts and weights they wrote are used as
+ * written (prod: 13 of 16 retry passes carried a hint, mostly "Nasi 75 g", "telurnya 3", "2pcs").
  */
 export function retryInstruction(hint?: string): string {
   const base =
-    "Koreksi: jawabanmu sebelumnya untuk foto ini dinilai tidak akurat oleh pengguna. Periksa ulang nama, porsi, dan angka kalorinya, lalu jawab dengan bentuk JSON yang sama.";
+    "Koreksi: jawabanmu sebelumnya untuk foto ini dinilai tidak akurat oleh pengguna. Periksa ulang nama, porsi, jumlah potongan, dan angka kalorinya, lalu jawab dengan bentuk JSON yang sama.";
   return hint
-    ? `${base} Catatan pengguna: "${hint}". Isi atau nama yang disebut pengguna dipakai apa adanya (mis. gelas yang kata pengguna Coke Zero adalah Coke Zero, tanpa field "cup").`
+    ? `${base} Catatan pengguna: "${hint}". Nama, jumlah, berat, dan isi yang disebut pengguna dipakai apa adanya dan menang atas foto (mis. gelas yang kata pengguna Coke Zero adalah Coke Zero, tanpa field "cup").`
     : base;
 }
 
@@ -590,6 +591,8 @@ type BoundItem = Omit<ParsedItem, "box" | "kind" | "kcal" | "cup"> & {
   kcal: number | undefined;
   /** Cup size the model read off a cup whose contents it could not see; set = contents hidden. */
   cup: string | undefined;
+  /** Counted pieces of an item in the weight table or with a count the model gave (lib/piece-count.ts). */
+  pieces?: Pieces;
 };
 type UsableItem = BoundItem & { kcal: number };
 

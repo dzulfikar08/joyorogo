@@ -95,6 +95,25 @@ describe("calibrateItems", () => {
     expect(edibleFractionOf(TKPI_DISHES.find((d) => d.name === "bakso")!, "bakso")).toBe(1);
   });
 
+  test("a chicken part takes its own edible share, and both weights ride on the item", () => {
+    const wing = calibrateItems([{ name: "ayam goreng sayap", kcal: 700, grams: 200, asSeen: true }])[0];
+    // 200 g with bone x 0.5 = 100 g; 260 kcal/100 g x 1.35 slack = 351
+    expect(wing).toMatchObject({ grams: 200, edibleGrams: 100, grossGrams: 200, withBone: true, kcal: 351 });
+    expect(calibrateItems([{ name: "ayam goreng paha bawah", kcal: 700, grams: 200, asSeen: true }])[0]).toMatchObject({ edibleGrams: 120, grossGrams: 200 });
+    expect(calibrateItems([{ name: "ayam bakar dada", kcal: 300, grams: 200, asSeen: true }])[0]).toMatchObject({ edibleGrams: 140 });
+  });
+
+  test("ribs and whole fish without a library row state the edible part and keep the model's kcal", () => {
+    expect(calibrateItems([{ name: "iga bakar", kcal: 850, grams: 400, asSeen: true }])[0]).toMatchObject({ grams: 400, edibleGrams: 200, grossGrams: 400, withBone: true, kcal: 850 });
+    expect(calibrateItems([{ name: "lele goreng", kcal: 300, grams: 200, asSeen: true }])[0]).toMatchObject({ edibleGrams: 110, kcal: 300 });
+  });
+
+  test("a bone-in item with no weight or not as seen carries no bone weights", () => {
+    expect(calibrateItems([{ name: "iga bakar", kcal: 850, grams: 400 }])[0]?.edibleGrams).toBeUndefined();
+    expect(calibrateItems([{ name: "sop iga", kcal: 400, grams: 400, asSeen: true }])[0]?.edibleGrams).toBeUndefined();
+    expect(calibrateItems([{ name: "iga bakar", kcal: 850, asSeen: true }])[0]?.edibleGrams).toBeUndefined();
+  });
+
   test("fills missing grams from the typical portion", () => {
     const [item] = calibrateItems([{ name: "bakso", kcal: 400 }]);
     expect(item?.grams).toBe(400);

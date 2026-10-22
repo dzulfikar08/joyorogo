@@ -50,6 +50,7 @@ import type { ItemBox, VisionAnalysis, VisionEvent } from "../lib/vision";
 import { loadScanReference } from "../lib/dishware-store";
 import type { CardScanNote, DishwareScanNote, ScanReference } from "../lib/dishware-store";
 import { EventChannel } from "../lib/event-channel";
+import { applyHintCounts } from "../lib/piece-count";
 import { withPortionPrior } from "../lib/portion-prior";
 import type { PortionPrior } from "../lib/portion-prior";
 import { chipsFor, correctionMemoryEnabled, loadCorrectionMemory } from "../lib/correction-memory";
@@ -778,7 +779,8 @@ export const aiRouter = {
       // Kitchen-scale readout (lib/scale-reading.ts): allowlist only.
       const scaleCall = await scalePending;
       const scale = scaleCall ? applyScaleReading(analysis.items, scaleCall.reading) : null;
-      const answered: AnalyzeFoodResult["items"] = scale?.items ?? analysis.items;
+      // A count the user wrote in the hint ("telurnya 3") is put on its row whatever the model made of it.
+      const answered: AnalyzeFoodResult["items"] = applyHintCounts(scale?.items ?? analysis.items, input.hint);
       // "Seperti biasanya" as on the first pass; the owner dataset below keeps the model's own numbers.
       const usualMap = await usualDensities;
       const shownItems: AnalyzeFoodResult["items"] = answered.map((item) => (item.scaleRead ? item : withUsualDensity(item, usualMap)));

@@ -72,6 +72,10 @@ export function toPayload(
       confidence: item.confidence ?? undefined,
       kind: kinds[index] ?? item.kind,
       box: item.box ? [...item.box] : undefined,
+      pieces: item.pieces,
+      grossGrams: item.grossGrams,
+      edibleGrams: item.edibleGrams,
+      withBone: item.withBone,
     };
   });
 }
