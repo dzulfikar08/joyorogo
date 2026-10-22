@@ -105,12 +105,15 @@
         "get_weight_history": "Riwayat berat",
         "list_workouts": "Daftar latihan",
         "get_workout": "Detail latihan",
-        "get_recovery_metrics": "Tidur dan pemulihan"
+        "get_recovery_metrics": "Tidur dan pemulihan",
+        "get_plan": "Rencana latihan",
+        "get_sleep_nights": "Tidur per malam",
+        "get_sleep_findings": "Pola tidur pribadi"
       }
     },
     "reads": {
       "title": "Apa yang bisa dibaca",
-      "intro": "Tujuh alat, semuanya hanya membaca. Tiap alat butuh izin yang kamu setujui di layar Izinkan.",
+      "intro": "Sepuluh alat, semuanya hanya membaca. Tiap alat butuh izin yang kamu setujui di layar Izinkan. Ada juga pertanyaan siap pakai (Review minggu ini, Kenapa aku capek, Debrief latihan terakhir) di menu prompt aplikasi AI-mu. Data siklus haid tidak pernah bisa dibaca.",
       "get_profile": "Profil dan target: mode (turun, jaga, naik, hamil), tinggi, umur, berat awal dan target, target kalori dan protein.",
       "get_food_log": "Catatan makan: tiap makanan per hari dengan kalori dan makronya.",
       "get_daily_totals": "Total harian: kalori dan makro per hari dibanding target.",
@@ -118,6 +121,9 @@
       "list_workouts": "Daftar latihan dari jam JoyoFit dan sesi latihan beban.",
       "get_workout": "Detail satu latihan: detak jantung, zona, set dan beban. Tanpa rute GPS.",
       "get_recovery_metrics": "Tidur dan pemulihan: jam tidur, pemulihan, detak jantung istirahat, HRV, VO2max, dan langkah.",
+      "get_plan": "Rencana latihan: jenis, target, pekan berjalan, dan berapa sesi dikerjakan atau dilewati 14 hari terakhir.",
+      "get_sleep_nights": "Tidur per malam: jam tidur dan bangun, tahap tidur, bangun malam, HRV malam. Hanya kalau Wawasan tidur kamu nyalakan.",
+      "get_sleep_findings": "Pola tidur pribadi: kebiasaan yang tampak berkaitan dengan tidurmu. Hanya kalau Wawasan tidur menyala.",
       "never": "Tidak pernah dibagikan: rute GPS, foto, data yang diimpor dari Strava, dan data orang lain."
     },
     "limits": {

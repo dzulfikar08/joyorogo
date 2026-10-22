@@ -105,12 +105,15 @@
         "get_weight_history": "Sejarah berat",
         "list_workouts": "Senarai latihan",
         "get_workout": "Butiran latihan",
-        "get_recovery_metrics": "Tidur dan pemulihan"
+        "get_recovery_metrics": "Tidur dan pemulihan",
+        "get_plan": "Pelan latihan",
+        "get_sleep_nights": "Tidur setiap malam",
+        "get_sleep_findings": "Corak tidur peribadi"
       }
     },
     "reads": {
       "title": "Apa yang boleh dibaca",
-      "intro": "Tujuh alat, semuanya baca sahaja. Setiap alat memerlukan kebenaran yang anda setujui pada skrin Benarkan.",
+      "intro": "Sepuluh alat, semuanya baca sahaja. Setiap alat memerlukan kebenaran yang anda setujui pada skrin Benarkan. Ada juga soalan sedia guna (Ulasan minggu ini, Kenapa saya letih, Ulasan latihan terakhir) dalam menu prompt aplikasi AI anda. Data kitaran haid tidak pernah boleh dibaca.",
       "get_profile": "Profil dan sasaran: mod (turun, kekal, naik, mengandung), tinggi, umur, berat awal dan sasaran, sasaran kalori dan protein.",
       "get_food_log": "Catatan makan: setiap makanan mengikut hari dengan kalori dan makronya.",
       "get_daily_totals": "Jumlah harian: kalori dan makro setiap hari berbanding sasaran.",
@@ -118,6 +121,9 @@
       "list_workouts": "Senarai latihan daripada jam JoyoFit dan sesi latihan beban.",
       "get_workout": "Butiran satu latihan: degup jantung, zon, set dan beban. Tanpa laluan GPS.",
       "get_recovery_metrics": "Tidur dan pemulihan: jam tidur, pemulihan, degup jantung rehat, HRV, VO2max, dan langkah.",
+      "get_plan": "Pelan latihan: jenis, matlamat, minggu semasa, dan berapa sesi dibuat atau dilangkau dalam 14 hari lepas.",
+      "get_sleep_nights": "Tidur setiap malam: waktu tidur dan bangun, peringkat tidur, terjaga malam, HRV malam. Hanya jika Wawasan tidur anda hidupkan.",
+      "get_sleep_findings": "Corak tidur peribadi: tabiat yang nampak berkait dengan tidur anda. Hanya jika Wawasan tidur dihidupkan.",
       "never": "Tidak pernah dikongsi: laluan GPS, foto, data yang diimport daripada Strava, dan data orang lain."
     },
     "limits": {

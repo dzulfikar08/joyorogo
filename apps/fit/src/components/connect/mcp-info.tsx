@@ -14,10 +14,13 @@ const READS = [
   "list_workouts",
   "get_workout",
   "get_recovery_metrics",
+  "get_plan",
+  "get_sleep_nights",
+  "get_sleep_findings",
 ] as const;
 const LIMITS = ["l1", "l2", "l3", "l4", "l5"] as const;
 
-/** What the seven tools can read, and what is never shared. */
+/** What the ten tools can read, and what is never shared. */
 export function ReadsCard() {
   const { t } = useTranslation("fitWebConnect");
   return (

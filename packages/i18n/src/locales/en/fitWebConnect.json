@@ -106,12 +106,15 @@
         "get_weight_history": "Weight history",
         "list_workouts": "Workout list",
         "get_workout": "Workout detail",
-        "get_recovery_metrics": "Sleep and recovery"
+        "get_recovery_metrics": "Sleep and recovery",
+        "get_plan": "Training plan",
+        "get_sleep_nights": "Sleep by night",
+        "get_sleep_findings": "Personal sleep patterns"
       }
     },
     "reads": {
       "title": "What it can read",
-      "intro": "Seven tools, all read only. Each tool needs a permission you approved on the Allow screen.",
+      "intro": "Ten tools, all read only. Each tool needs a permission you approved on the Allow screen. Ready-made questions (Review my week, Why am I tired, Debrief my last workout) also appear in the prompt menu of your AI app. Menstrual cycle data can never be read.",
       "get_profile": "Profile and targets: mode (lose, maintain, gain, pregnancy), height, age, start and target weight, calorie and protein targets.",
       "get_food_log": "Food log: every food per day with calories and macros.",
       "get_daily_totals": "Daily totals: calories and macros per day against your target.",
@@ -119,6 +122,9 @@
       "list_workouts": "Workout list from the JoyoFit watch and strength sessions.",
       "get_workout": "One workout in detail: heart rate, zones, sets and loads. No GPS route.",
       "get_recovery_metrics": "Sleep and recovery: sleep hours, recovery, resting heart rate, HRV, VO2max, and steps.",
+      "get_plan": "Training plan: kind, goal, current week, and how many sessions were done or skipped in the last 14 days.",
+      "get_sleep_nights": "Sleep by night: bed and wake times, sleep stages, awakenings, night HRV. Only when you switched on Sleep insights.",
+      "get_sleep_findings": "Personal sleep patterns: habits that seem linked to your sleep. Only when Sleep insights is on.",
       "never": "Never shared: GPS routes, photos, data imported from Strava, and other people's data."
     },
     "limits": {
