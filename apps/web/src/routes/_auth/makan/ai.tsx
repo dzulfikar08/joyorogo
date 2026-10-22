@@ -188,22 +188,22 @@ type SentImage = {
   encodeMs: number;
 };
 
+// No Promise.withResolvers here: Safari < 17.4 (iOS 17.3 and older) lacks it, and the scan died on
+// the first line of the resize with nothing reaching the server.
 function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number) {
-  const { promise, resolve } = Promise.withResolvers<Blob | null>();
-  canvas.toBlob(resolve, type, quality);
-  return promise;
+  return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality));
 }
 
 function blobToBase64(blob: Blob) {
-  const { promise, resolve, reject } = Promise.withResolvers<string>();
-  const reader = new FileReader();
-  reader.onload = () => {
-    const url = reader.result as string;
-    resolve(url.slice(url.indexOf(",") + 1));
-  };
-  reader.onerror = () => reject(reader.error);
-  reader.readAsDataURL(blob);
-  return promise;
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = reader.result as string;
+      resolve(url.slice(url.indexOf(",") + 1));
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
 }
 
 /**

@@ -26,20 +26,21 @@ function writeSaveLocation(on: boolean) {
   }
 }
 
+// new Promise, not Promise.withResolvers: Safari < 17.4 (iOS 17.3) lacks it.
 /** One position fix, cut to ~100 m right away so the precise fix is never kept. */
 export function getPosition(): Promise<Coords> {
-  const { promise, resolve, reject } = Promise.withResolvers<Coords>();
-  if (typeof navigator === "undefined" || !navigator.geolocation) {
-    reject(Object.assign(new Error("unavailable"), { code: 0 }));
-    return promise;
-  }
-  navigator.geolocation.getCurrentPosition(
-    (pos) =>
-      resolve({ lat: roundCoord(pos.coords.latitude), lng: roundCoord(pos.coords.longitude) }),
-    reject,
-    { enableHighAccuracy: false, timeout: 10_000, maximumAge: 5 * 60_000 },
-  );
-  return promise;
+  return new Promise((resolve, reject) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      reject(Object.assign(new Error("unavailable"), { code: 0 }));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        resolve({ lat: roundCoord(pos.coords.latitude), lng: roundCoord(pos.coords.longitude) }),
+      reject,
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 5 * 60_000 },
+    );
+  });
 }
 
 const PERMISSION_DENIED = 1;

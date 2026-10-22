@@ -42,13 +42,14 @@ function recorderMime(): string | null {
   return AUDIO_TYPES.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
 }
 
+// new Promise, not Promise.withResolvers: Safari < 17.4 (iOS 17.3) lacks it.
 function blobToBase64(blob: Blob): Promise<string> {
-  const { promise, resolve, reject } = Promise.withResolvers<string>();
-  const reader = new FileReader();
-  reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
-  reader.onerror = () => reject(reader.error);
-  reader.readAsDataURL(blob);
-  return promise;
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
 }
 
 /** The list as the user currently sees it: edited kcal and tapped kinds included. */
