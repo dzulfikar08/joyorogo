@@ -18,6 +18,35 @@ export const SECRET = {
   due: "2027-03-03-due-secret",
 } as const;
 
+/** What Health Connect / Apple Health wrote for the person: must never reach the own-key engine. */
+export const HEALTH = {
+  steps: 12345,
+  activeCalories: 777.7,
+  exerciseMinutes: 4747,
+  sleepHours: 7.77,
+  heartRate: 6161,
+  weightKg: 61.3,
+  creditKcal: 150,
+} as const;
+
+/** Keys of health-store data that must never appear in an own-key tool result or digest, as `"key":`. */
+export const FORBIDDEN_HEALTH_KEYS = [
+  "steps",
+  "distanceMeters",
+  "activeCalories",
+  "exerciseMinutes",
+  "dailyActivity",
+  "exerciseCredit",
+  "exerciseSources",
+  "exerciseKcal",
+  "burnedKcal",
+  "allDayKcal",
+  "allDaySource",
+  "sleepHoursLastNight",
+  "heartRate",
+  "restingHeartRate",
+] as const;
+
 /** Keys that must never appear in a tool result or digest JSON, as `"key":`. */
 export const FORBIDDEN_KEYS = [
   "maternalMode",
@@ -42,6 +71,8 @@ export const TODAY = "2026-10-22";
 
 export interface FixtureOptions {
   maternal?: boolean;
+  /** Health Connect rows exist: a later weigh-in came from Health Connect and the server's latest weight is that one. */
+  health?: boolean;
   /** Leave `ai.diaryRange` off the wrapper (an older server / the BYOK fallback). */
   noDiaryRange?: boolean;
   /** Make `ai.diaryRange` reject with this error. */
@@ -76,6 +107,14 @@ export function fakeRpc(options: FixtureOptions = {}): RogoRpc {
           maternal: options.maternal ? { trimester: SECRET.maternal } : null,
           gain: null,
         },
+        // The activity rollup, sleep, heart rate and workouts a health store synced: named nowhere in the seam.
+        dailyActivity: { steps: HEALTH.steps, distanceMeters: 9000, activeCalories: HEALTH.activeCalories, exerciseMinutes: HEALTH.exerciseMinutes, source: "health_connect" },
+        exerciseCredit: { allDayKcal: HEALTH.activeCalories, allDaySource: "health_connect", countedKcal: HEALTH.creditKcal, activeKcal: 700 },
+        exerciseSources: ["health_connect"],
+        burnedKcal: 650,
+        sleepHoursLastNight: HEALTH.sleepHours,
+        heartRate: HEALTH.heartRate,
+        restingHeartRate: HEALTH.heartRate,
         protein: { eatenG: 11, targetG: 100 },
         carbsEatenG: 41,
         fatEatenG: 9,
@@ -118,6 +157,7 @@ export function fakeRpc(options: FixtureOptions = {}): RogoRpc {
           { id: "w2", userId: "u1", date: "2026-10-12", weightKg: 70, source: "manual", createdAt: 2 },
           { id: "w3", userId: "u1", date: "2026-10-18", weightKg: 69.8, source: "manual", createdAt: 3 },
           { id: "w4", userId: "u1", date: "2026-10-21", weightKg: 69.4, source: "manual", createdAt: 4 },
+          ...(options.health ? [{ id: "w5", userId: "u1", date: TODAY, weightKg: HEALTH.weightKg, source: "health_connect", createdAt: 5 }] : []),
         ],
         summary: { startKg: 72, latestKg: 69.4, deltaKg: -2.6, remainingKg: 4.4, targetKg: 65, gain: null },
       } as never;
@@ -148,7 +188,7 @@ export function fakeRpc(options: FixtureOptions = {}): RogoRpc {
           handle: "secret-handle",
         },
         targets: { tdee: 2300, level: "light", eatKcal: 1850, maternal: options.maternal ? { trimester: SECRET.maternal } : null },
-        latestWeightKg: 69.4,
+        latestWeightKg: options.health ? HEALTH.weightKg : 69.4,
         tier: "founder",
         founderUntil: null,
       } as never;

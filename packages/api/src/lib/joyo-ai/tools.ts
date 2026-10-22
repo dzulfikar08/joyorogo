@@ -8,12 +8,12 @@
  * we lack (sugar) are never turned into 0 or a guess. Free text from the diary is flattened.
  */
 
-import type { ToolCall, ToolSpec } from "./types";
+import type { Engine, ToolCall, ToolSpec } from "./types";
 import { daysBetween, shiftDate } from "../engine";
 import { flat } from "./digest";
 import { RANK_BY, choosePortion, compareFoods, fitsToday, lookupFood, searchFoods } from "./foods";
 import type { RankBy, Remaining } from "./foods";
-import { MEAL_ORDER } from "./tool-data";
+import { BYOK_HEALTH_NOTE, MEAL_ORDER } from "./tool-data";
 import type { DayData, MacroSum, RangeDay, ToolData, WeighIn } from "./tool-data";
 
 export const TOOL_LIMITS = { maxDays: 90, maxRows: 200, resultChars: 6_000, itemsPerDay: 40 } as const;
@@ -112,6 +112,17 @@ export const TOOL_SPECS: readonly ToolSpec[] = [
     },
   },
 ];
+
+/** The tools as an engine sees them: the own-key engine's budget has no exercise credit (health-store data is not shared with it). */
+export function toolSpecsFor(engine: Engine): readonly ToolSpec[] {
+  if (engine === "hosted") return TOOL_SPECS;
+  return TOOL_SPECS.map((spec) => ({
+    ...spec,
+    description: spec.description
+      .replace("(kcal is the eat budget including counted exercise)", "(kcal is the base eat budget; credit for exercise from health apps is not shared with own-key AI)")
+      .replace("today's eat budget in kcal (including counted exercise)", "today's base eat budget in kcal (no credit for exercise from health apps, which is not shared with own-key AI)"), // i18n-ok: model-facing text
+  }));
+}
 
 /** What the answer screen shows under a reply as "based on": the tool and its plain arguments. No health values. */
 export interface ToolTrace {
@@ -261,6 +272,9 @@ function windowStats(entries: readonly WeighIn[], rows: readonly RangeDay[], fro
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Dispatch
+
+/** Tools whose figures hang on the kcal budget carry the health-store note for the own-key engine, so the model never reads missing activity as zero. */
+const BYOK_NOTE_TOOLS: readonly string[] = ["get_day", "get_targets", "fits_today"];
 
 async function dispatch(call: ToolCall, data: ToolData): Promise<Dispatched> {
   const a = call.args ?? {};
@@ -456,7 +470,8 @@ export async function runTool(call: ToolCall, data: ToolData): Promise<ToolOutco
   const known = isToolName(call.name);
   try {
     const out = await dispatch(call, data);
-    return { content: cap(out.value, out.listKey), trace: out.trace, summary: out.summary };
+    const value = data.engine === "byok" && BYOK_NOTE_TOOLS.includes(call.name) ? { ...out.value, healthDataNote: BYOK_HEALTH_NOTE } : out.value;
+    return { content: cap(value, out.listKey), trace: out.trace, summary: out.summary };
   } catch (error) {
     const message = error instanceof ToolInputError ? error.message : "the data could not be read"; // i18n-ok: model-facing text
     return {

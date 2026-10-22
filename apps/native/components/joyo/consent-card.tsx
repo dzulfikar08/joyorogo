@@ -34,7 +34,7 @@ export function ConsentCard({ recipient, termsProvider, onSample }: ConsentCardP
         ))}
       </View>
       <Text style={styles.strong}>{t("consent.notSentTitle")}</Text>
-      <Text style={styles.small}>{t("consent.notSent")}</Text>
+      <Text style={styles.small}>{t(termsProvider ? "consent.notSentOwnKey" : "consent.notSent")}</Text>
       {termsProvider ? (
         <Text style={styles.small}>{t("consent.terms", { provider: termsProvider })}</Text>
       ) : (

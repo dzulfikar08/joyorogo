@@ -22,7 +22,7 @@ import { TOOL_NAMES, runTool } from "./tools";
 const person: Person = { ageYears: 36, sex: "female", heightCm: 165, goal: "lose" };
 
 async function sourceFor(maternal = false, locale: "id" | "en" = "id"): Promise<DigestSource> {
-  return gatherDigestSource(createToolData(fakeRpc({ maternal }), { today: () => TODAY }), person, locale);
+  return gatherDigestSource(createToolData(fakeRpc({ maternal }), { today: () => TODAY, engine: "hosted" }), person, locale);
 }
 
 /** Every key path of a value, `[]` for list items: what `DIGEST_FIELDS` must list. */
@@ -38,7 +38,7 @@ function paths(value: unknown, prefix = ""): string[] {
 
 describe("consent pin", () => {
   test("DIGEST_FIELDS is pinned to CONSENT_VERSION: change the fields and this fails until the version is bumped", () => {
-    expect(CONSENT_VERSION).toBe(1);
+    expect(CONSENT_VERSION).toBe(2);
     expect(fieldsHash(DIGEST_FIELDS)).toBe("f4b22e82");
     expect(CONSENT_FIELDS_HASH[CONSENT_VERSION]).toBe(fieldsHash(DIGEST_FIELDS));
   });
@@ -99,7 +99,7 @@ describe("what the digest holds", () => {
     rpc.weightHistory = async () => {
       throw new Error("down");
     };
-    const source = await gatherDigestSource(createToolData(rpc, { today: () => TODAY }), person, "en");
+    const source = await gatherDigestSource(createToolData(rpc, { today: () => TODAY, engine: "hosted" }), person, "en");
     expect(source.day).toBeNull();
     expect(source.weights).toEqual([]);
     expect(source.days.length).toBe(7);
@@ -176,7 +176,7 @@ describe("no sensitive field reaches the digest or any tool result", () => {
     };
     for (const maternal of [false, true]) {
       const rpc = fakeRpc({ maternal });
-      const data = createToolData(rpc, { today: () => TODAY });
+      const data = createToolData(rpc, { today: () => TODAY, engine: "hosted" });
       const texts: string[] = [digestJson(buildDigest(await gatherDigestSource(data, person, "id")))];
       for (const name of TOOL_NAMES) {
         const out = await runTool({ id: name, name, args: toolCalls[name] }, data);

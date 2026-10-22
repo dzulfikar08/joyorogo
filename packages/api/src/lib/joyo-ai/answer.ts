@@ -8,7 +8,7 @@ import type { Person } from './person';
 import { assessMessages, buildSystemPrompt, finishReply, personMode, safeReply, SAFETY_LIMITS, type ChatLine, type CoachFlag, type SafetyText } from './safety';
 import { noMark, type Mark } from './timing';
 import type { ToolData } from './tool-data';
-import { isToolName, runTool, TOOL_SPECS, type ToolSummary, type ToolTrace } from './tools';
+import { isToolName, runTool, toolSpecsFor, type ToolSummary, type ToolTrace } from './tools';
 import { AiError, type Adapter, type NeutralMessage, type ProviderConnection, type ToolCall, type Usage } from './types';
 
 export const ANSWER_LIMITS = { toolRounds: 4, toolCallsPerRound: 4, maxTokens: 800, maxTokensRetry: 2_400, turns: 12, reasoningChars: 6_000, oldAnswerChars: 500 } as const;
@@ -139,11 +139,11 @@ export async function answer(history: readonly ChatLine[], deps: AnswerDeps): Pr
     deps.onEvent?.({ type: 'round', round: rounds });
     rounds += 1;
     let seenToken = false;
-    const system = buildSystemPrompt({ locale: deps.locale, digestJson: digestText, foodBlock, safety, mode, tools: withTools });
+    const system = buildSystemPrompt({ locale: deps.locale, digestJson: digestText, foodBlock, safety, mode, tools: withTools, engine: deps.data.engine });
     try {
       const reply = await deps.adapter.complete(
         deps.conn,
-        { model: deps.conn.model, system, messages, tools: withTools ? TOOL_SPECS : undefined, maxTokens, fast: deps.fast, fastFields: deps.fastFields },
+        { model: deps.conn.model, system, messages, tools: withTools ? toolSpecsFor(deps.data.engine) : undefined, maxTokens, fast: deps.fast, fastFields: deps.fastFields },
         {
           signal: deps.signal,
           fetchImpl: deps.fetchImpl,

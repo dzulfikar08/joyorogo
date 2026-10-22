@@ -10,7 +10,8 @@ import type { Locale } from '@joyorogo/i18n';
 
 import { formatDurations } from './durations';
 import type { Person } from './person';
-import type { ToolSpec } from './types';
+import { BYOK_HEALTH_NOTE } from './tool-data';
+import type { Engine, ToolSpec } from './types';
 
 export const SAFETY_LIMITS = {
   maxReplyChars: 2_000,
@@ -187,6 +188,9 @@ const EXTREME = `The person asked about an extreme diet. Do not give a plan. Say
 
 const TOOLS_NOTE = `You can look up more with read-only tools (a day or a range of the food log, weight trend, targets, food facts, food comparison, what fits in today's remaining budget). Call a tool only when DATA and FOOD DATA do not answer the question. For "which food is higher in X" use compare_foods; for "does it fit today" use fits_today.`;
 
+/** Own-key engine only: what the model is not given and how to treat the gap. */
+const OWN_KEY_HEALTH = `${BYOK_HEALTH_NOTE} If asked about steps, workouts, sleep, heart rate or activity from a health app, say that data is not shared with the AI key being used and that you cannot see it.`;
+
 export const LANGUAGE: Record<Locale, string> = {
   id: 'Answer in casual Indonesian using "kamu". Write the energy unit as "kkal", never "kcal". Durations in the data are minutes: write them as jam and menit ("1 jam 30 menit"), never as a raw number of minutes.',
   en: 'Answer in plain, friendly English. Write the energy unit as "kcal". Durations in the data are minutes: write them as hours and minutes ("1h 30m"), never as a raw number of minutes, and never in Indonesian.',
@@ -202,6 +206,8 @@ export interface PromptInput {
   mode: PersonMode;
   /** False for a model that cannot call tools: the tool sentence is left out. Pass the specs to list their names. */
   tools: boolean | readonly ToolSpec[];
+  /** `byok` adds the note that health-app data is not shared; `hosted` keeps everything. */
+  engine: Engine;
 }
 
 /** The system prompt: rules, the stricter blocks that apply, the language, the digest and the food block. */
@@ -216,6 +222,7 @@ export function buildSystemPrompt(input: PromptInput): string {
     input.safety.condition ? CONDITION : null,
     input.safety.extremeDiet ? EXTREME : null,
     toolsOn ? TOOLS_NOTE : null,
+    input.engine === 'byok' ? OWN_KEY_HEALTH : null,
     LANGUAGE[input.locale],
   ].filter((s): s is string => s !== null);
   const food = input.foodBlock ? `\n\n${input.foodBlock}` : '';

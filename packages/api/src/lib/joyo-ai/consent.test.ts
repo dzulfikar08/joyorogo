@@ -84,7 +84,7 @@ describe('consent records', () => {
   });
   test('the consent screen lists the categories that leave the device', () => {
     expect(CONSENT_CATEGORIES).toEqual(['body', 'food', 'water', 'weight', 'fasting', 'chat']);
-    expect(CONSENT_VERSION).toBe(1);
+    expect(CONSENT_VERSION).toBe(2);
   });
 });
 

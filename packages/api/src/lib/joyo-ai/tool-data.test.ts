@@ -5,7 +5,7 @@ import { FALLBACK_MACRO_DAYS, createToolData } from "./tool-data";
 import type { RogoRpc } from "./tool-data";
 import { runTool } from "./tools";
 
-const dataFor = (rpc: RogoRpc) => createToolData(rpc, { today: () => TODAY });
+const dataFor = (rpc: RogoRpc) => createToolData(rpc, { today: () => TODAY, engine: "hosted" });
 
 describe("createToolData sanitises", () => {
   test("day, range, weights and profile are named fields only", async () => {
@@ -37,7 +37,7 @@ describe("createToolData sanitises", () => {
   });
 
   test("age is the year difference from the birth year", async () => {
-    const data = createToolData(fakeRpc(), { today: () => "2030-03-01" });
+    const data = createToolData(fakeRpc(), { today: () => "2030-03-01", engine: "hosted" });
     expect((await data.profile()).ageYears).toBe(40);
   });
 });

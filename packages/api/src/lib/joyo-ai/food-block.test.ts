@@ -5,7 +5,7 @@ import { FOOD_BLOCK_LIMITS, foodBlockFor } from "./food-block";
 import { createToolData } from "./tool-data";
 import type { RogoRpc } from "./tool-data";
 
-const data = (rpc: RogoRpc = fakeRpc()) => createToolData(rpc, { today: () => TODAY });
+const data = (rpc: RogoRpc = fakeRpc()) => createToolData(rpc, { today: () => TODAY, engine: "hosted" });
 
 describe("owner example questions", () => {
   test("id: fiber across pepaya, melon, semangka -> a ranked block from our rows", async () => {

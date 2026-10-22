@@ -46,7 +46,7 @@ describe('keyword safety pass', () => {
     ]);
     expect(report.last.reason).toBeNull();
     expect(report.earlier).toBe('medical');
-    const prompt = buildSystemPrompt({ locale: 'en', digestJson: '{}', foodBlock: null, safety: report, mode: personMode(person(30), false), tools: true });
+    const prompt = buildSystemPrompt({ locale: 'en', digestJson: '{}', foodBlock: null, safety: report, mode: personMode(person(30), false), tools: true, engine: 'hosted' });
     expect(prompt).toContain('Earlier in this conversation');
   });
 
@@ -71,7 +71,7 @@ describe('keyword safety pass', () => {
 describe('system prompt', () => {
   const plain = assessMessages([{ role: 'user', content: 'Mana yang lebih tinggi serat, pepaya atau melon?' }]);
   const prompt = (over: Partial<Parameters<typeof buildSystemPrompt>[0]> = {}, age: number | null = 30) =>
-    buildSystemPrompt({ locale: 'id', digestJson: '{"today":1}', foodBlock: null, safety: plain, mode: personMode(person(age), false), tools: true, ...over });
+    buildSystemPrompt({ locale: 'id', digestJson: '{"today":1}', foodBlock: null, safety: plain, mode: personMode(person(age), false), tools: true, engine: 'hosted', ...over });
 
   test('normal adult: rules, language, data, tools sentence, no extra blocks', () => {
     const p = prompt();

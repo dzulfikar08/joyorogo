@@ -157,6 +157,7 @@
     },
     "notSentTitle": "Never sent",
     "notSent": "Menstrual cycle data, pregnancy or breastfeeding mode, name, email, photos, GPS location, device IDs and Strava data.",
+    "notSentOwnKey": "Data from Health Connect / Apple Health (steps, workouts, sleep, heart rate), menstrual cycle data, pregnancy or breastfeeding mode, name, email, photos, GPS location, device IDs and Strava data.",
     "terms": "Once it reaches {{provider}}, the data is handled under their own terms and privacy policy. Read their terms on the {{provider}} site first.",
     "hostedKept": "The JoyoRogo server does not store questions or answers. It only counts questions per day for the daily limit.",
     "sample": "See a sample of the data",

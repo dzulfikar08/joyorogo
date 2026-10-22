@@ -276,6 +276,8 @@ Removed from the manifest in this change because the code never used them: `READ
 
 Other Health Connect Play requirements already met: privacy policy covers Health Connect (section "Health Connect (Android)"); the permission-rationale activity exists (`androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE` on `MainActivity` and the `ViewPermissionUsageActivity` alias from `react-native-health-connect`); the health data is not used for advertising.
 
+Joyo AI and Health Connect: data read from Health Connect (steps, distance, active calories, exercise, sleep, and any weigh-in or heart rate it holds) is never sent to a third party. With an own API key (BYOK) Joyo AI sends the provider the food diary, JoyoRogo's own targets, water, fasting, profile and weigh-ins logged in JoyoRogo, and none of the Health Connect data; the kcal budget it gets has no activity credit, and the consent screen lists "Data dari Health Connect / Apple Health (langkah, olahraga, tidur, detak jantung)" under "Tidak pernah dikirim" (consent version 2, asked again for everyone). The hosted Joyo AI (Pro) runs on JoyoRogo's own server, which is the service provider (Cloudflare Workers AI answers for us, nothing is stored, nothing is used for training or ads), not a third party. See `docs/joyo-ai.md` (Safety and privacy).
+
 ## 9. Permissions kept in the Play manifest, with justification
 
 Source: `bundletool dump manifest` of the Play AAB. Normal install-time permissions that need no declaration (network, vibrate, wake lock, boot, badges, biometrics, `MODIFY_AUDIO_SETTINGS`) are omitted.
