@@ -196,7 +196,12 @@
       "a11y": "Water glasses per day, target {{goal}}. {{days}}",
       "a11yDay_one": "{{date}} {{count}} glass",
       "a11yDay_other": "{{date}} {{count}} glasses",
-      "empty": "No water logged in this range. Tap + to start."
+      "empty": "No water logged in this range. Tap + to start.",
+      "readoutWeek": "{{range}}: average {{avg}} of {{goal}} glasses/day",
+      "glasses_one": "{{count}} glass",
+      "glasses_other": "{{count}} glasses",
+      "weekRow": "daily average",
+      "a11yShort": "Water glasses per day, {{range}}, goal {{goal}}. The figures are in the list below the chart."
     }
   },
   "movement": {

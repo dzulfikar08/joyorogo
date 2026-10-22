@@ -1,6 +1,7 @@
 import "@/unistyles";
 import { useQuery } from "@tanstack/react-query";
-import { Animated, PanResponder, useWindowDimensions, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Animated, PanResponder, Pressable, useWindowDimensions, View } from "react-native";
 import { Redirect } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
@@ -20,6 +21,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { daysBetween, emaTrendPoints, jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
 import { kcalBars, kcalSummary, type KcalBar } from "@joyorogo/api/lib/kcal-bars";
 import { gainDayHit } from "@joyorogo/api/lib/gain";
+import { shortDateRange } from "@joyorogo/api/lib/format";
 import { periodWeight, type PeriodWeight } from "@joyorogo/api/lib/period-progress";
 
 import {
@@ -33,10 +35,11 @@ import {
   Num,
   PageHeader,
   Screen,
-  Segmented,
   Skeleton,
   Text,
 } from "@/components/ui";
+import { RangeNav } from "@/components/range-nav";
+import { RANGE_DAYS, canStepBack, canStepForward, windowAt, type RangeKey } from "@/src/lib/range-window";
 
 import { Mascot } from "@/components/mascot";
 import { WeighInSheet } from "@/components/weigh-in-sheet";
@@ -62,7 +65,7 @@ import {
 } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
-type Range = "7" | "30" | "90" | "all";
+type Range = RangeKey | "all";
 
 /** Naikin BB plan drawn on the chart: upward target line plus the weekly pace fan. */
 type GainPlanLine = {
@@ -550,9 +553,10 @@ function KcalChart({
   domainStart: string;
   domainEnd: string;
 }) {
-  const { t } = useTranslation(["berat"]);
+  const { t } = useTranslation(["berat", "common"]);
   const { theme } = useUnistyles();
   const { width: winW } = useWindowDimensions();
+  const [selectedFrom, setSelectedFrom] = useState<string | null>(null);
   const w = Math.min(winW - 80, 400);
   const h = 140;
   const innerW = w - PAD.left - PAD.right;
@@ -573,8 +577,49 @@ function KcalChart({
   for (let d = 0; d <= spanDays; d += dayStep) xTickDates.push(shiftDate(domainStart, d));
   if (spanDays - (xTickDates.length - 1) * dayStep >= dayStep * 0.5) xTickDates.push(domainEnd);
   const labelColor = theme.colors.mutedForeground;
+  // A tap picks the bar nearest the finger; a second tap on it, or the close button, clears it.
+  const pick = (px: number) => {
+    const day = shiftDate(
+      domainStart,
+      Math.min(Math.max(Math.round(((px - PAD.left) / innerW) * spanDays), 0), spanDays),
+    );
+    const gap = (b: KcalBar) => (day < b.from ? daysBetween(day, b.from) : day > b.to ? daysBetween(b.to, day) : 0);
+    const nearest = bars.reduce<KcalBar | null>((best, b) => (best === null || gap(b) < gap(best) ? b : best), null);
+    setSelectedFrom((current) => (nearest === null || nearest.from === current ? null : nearest.from));
+  };
+  const picked = bars.find((b) => b.from === selectedFrom);
+  const readout = !picked
+    ? t(weekly ? "kcal.hintWeek" : "kcal.hintDay")
+    : picked.avgKcal === null
+      ? t("kcal.readoutNone", { date: fmtDateShort(picked.from) })
+      : weekly
+        ? t("kcal.readoutWeek", { range: shortDateRange(picked.from, picked.to), kcal: fmtKcalLabel(picked.avgKcal) })
+        : t("kcal.readoutDay", { date: fmtDateShort(picked.from), kcal: fmtKcalLabel(picked.avgKcal) });
   return (
-    <Svg width={w} height={h} accessibilityLabel={t("kcal.a11y")}>
+    <View>
+      <View style={styles.kcalReadoutRow}>
+        <Text style={[styles.kcalReadout, picked && { color: theme.colors.foreground }]} numberOfLines={1}>
+          {readout}
+        </Text>
+        {picked ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("common:range.clearSelection")}
+            hitSlop={12}
+            onPress={() => setSelectedFrom(null)}
+            style={styles.kcalClear}
+          >
+            <Ionicons name="close" size={16} color={theme.colors.mutedForeground} />
+          </Pressable>
+        ) : null}
+      </View>
+      <Pressable
+        accessibilityRole="image"
+        accessibilityLabel={t("kcal.a11y")}
+        onPress={(event) => pick(event.nativeEvent.locationX)}
+        style={{ width: w, height: h }}
+      >
+    <Svg width={w} height={h} pointerEvents="none">
       <Defs>
         <Pattern
           id="kcal-hatch"
@@ -636,7 +681,7 @@ function KcalChart({
                 height={barH}
                 rx={Math.min(bw / 4, 2)}
                 fill={theme.colors.bakar}
-                fillOpacity={strong ? 0.8 : 0.35}
+                fillOpacity={(strong ? 0.8 : 0.35) * (picked && picked.from !== b.from ? 0.45 : 1)}
               />
             ) : null}
             {ghostH > 0 ? (
@@ -683,6 +728,8 @@ function KcalChart({
         </SvgText>
       ))}
     </Svg>
+      </Pressable>
+    </View>
   );
 }
 
@@ -723,7 +770,9 @@ export default function Berat() {
   const { theme } = useUnistyles();
   const { t } = useTranslation(["berat", "common", "gain"]);
   const gate = useSessionGate();
-  const [range, setRange] = useState<Range>("30");
+  const [range, setRange] = useState<Range>("m");
+  // Windows back from today: 0 is the newest, 1 the one before it, and so on. "Semua" has just the one.
+  const [offset, setOffset] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [showAllHistory, setShowAllHistory] = useState(false);
@@ -735,23 +784,28 @@ export default function Berat() {
     placeholderData: (prev) => prev,
   });
   const dayQuery = useQuery(orpc.day.summary.queryOptions({ input: {} }));
-  // One fetch of the last 400 days (the API cap); ranges filter locally.
-  const kcalQuery = useQuery(
-    orpc.day.kcalSeries.queryOptions({
-      input: { from: shiftDate(jakartaToday(), -399), to: jakartaToday() },
-    }),
-  );
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
   const maternal = useMaternal().mode !== "none";
   const { gain: gainInfo } = useGain();
   const today = jakartaToday();
-  // The share card reads the same period as the tabs: same start, same end, same trend.
-  const periodFrom =
+  // The period on screen: "Semua" runs from the first weigh-in to today, the others are whole windows of days counted
+  // back from today (or from the window `offset` steps before it).
+  const firstEntryDate = historyQuery.data?.entries[0]?.date ?? null;
+  const periodWindow =
     range === "all"
-      ? (historyQuery.data?.entries[0]?.date ?? today)
-      : shiftDate(today, -(Number(range) - 1));
+      ? { from: firstEntryDate ?? today, to: today }
+      : windowAt(RANGE_DAYS[range], offset, today);
+  const periodFrom = periodWindow.from;
+  const periodTo = periodWindow.to;
+  // Calories eaten over the same period (the API caps a request at 400 days; "Semua" reaches back that far at most).
+  const kcalFrom = periodFrom < shiftDate(today, -399) ? shiftDate(today, -399) : periodFrom;
+  const kcalQuery = useQuery({
+    ...orpc.day.kcalSeries.queryOptions({ input: { from: kcalFrom, to: periodTo } }),
+    placeholderData: (prev) => prev,
+  });
+  // The share card reads the same period as the tabs: same start, same end, same trend.
   const periodQuery = useQuery({
-    ...orpc.stats.periodProgress.queryOptions({ input: { from: periodFrom, to: today } }),
+    ...orpc.stats.periodProgress.queryOptions({ input: { from: periodFrom, to: periodTo } }),
     enabled: historyQuery.data !== undefined && historyQuery.data.summary.latestKg !== null,
   });
   const periodStory = useMemo<StorySpec | null>(
@@ -795,16 +849,21 @@ export default function Berat() {
   const hasData = summary.latestKg !== null;
   const gain = summary.gain;
 
-  const rangeDays = range === "all" ? null : Number(range);
-  const cutoff = rangeDays === null ? null : shiftDate(today, -(rangeDays - 1));
-  const rangeEntries = cutoff === null ? entries : entries.filter((e) => e.date >= cutoff);
-  const rangeTrend = cutoff === null ? allTrend : allTrend.filter((p) => p.date >= cutoff);
+  const inPeriod = (date: string) => date >= periodFrom && date <= periodTo;
+  const rangeEntries = entries.filter((e) => inPeriod(e.date));
+  const rangeTrend = allTrend.filter((p) => inPeriod(p.date));
+  const periodText = shortDateRange(periodFrom, periodTo);
   const rangeLabel =
-    range === "all" ? t("chart.sinceStart") : t("chart.rangeLast", { count: Number(range) });
-  const domainStart = cutoff ?? rangeEntries[0]?.date ?? today;
+    range === "all"
+      ? t("chart.sinceStart")
+      : offset === 0
+        ? t("chart.rangeLast", { count: RANGE_DAYS[range] })
+        : periodText;
+  const domainStart = periodFrom;
+  const newestPeriod = offset === 0;
   // The period's numbers (start, now, change, pace, projection) come from one function, over the same trend the chart
   // draws and the same bounds the share card is built from.
-  const period = periodWeight(entries, domainStart, today, summary.targetKg);
+  const period = periodWeight(entries, domainStart, periodTo, summary.targetKg);
   // Naikin BB: the plan line starts where the gain began (the latest earlier weigh-in at the
   // gain's starting weight, else the first weigh-in) and the x axis reaches toward the target date.
   const latestTrend = allTrend.at(-1);
@@ -827,7 +886,7 @@ export default function Berat() {
           base: latestTrend ? { date: latestTrend.date, kg: latestTrend.trendKg } : null,
         }
       : null;
-  const chartEnd = gainPlan
+  const chartEnd = gainPlan && newestPeriod
     ? shiftDate(
         today,
         Math.min(
@@ -835,11 +894,17 @@ export default function Berat() {
           Math.max(14, daysBetween(domainStart, today)),
         ),
       )
-    : today;
+    : periodTo;
   const targetKcal = maternal ? null : (dayQuery.data?.targets?.eatKcal ?? null);
   const kcalRange = kcalQuery.data ?? [];
-  const { bars: kcalBarList, weekly: kcalWeekly } = kcalBars(kcalRange, domainStart, today);
-  const kcalStats = kcalSummary(kcalRange, domainStart, today);
+  // A finished period has no open day: the last day without a log counts as skipped, not as still to come.
+  const { bars: kcalBarList, weekly: kcalWeekly } = kcalBars(
+    kcalRange,
+    domainStart,
+    periodTo,
+    newestPeriod ? today : null,
+  );
+  const kcalStats = kcalSummary(kcalRange, domainStart, periodTo);
   // Losing only counts as good while the target sits below the start weight.
   const wantDown =
     summary.targetKg === null || summary.targetKg <= (summary.startKg ?? Number.POSITIVE_INFINITY);
@@ -873,6 +938,9 @@ export default function Berat() {
   const toGoalKg =
     trendKg !== null && summary.targetKg !== null ? Math.abs(trendKg - summary.targetKg) : null;
   const newestEntries = entries.slice().toReversed();
+  // The history lists the weigh-ins of the period on screen, each read against the one before it (also from before the period).
+  const periodNewest = rangeEntries.toReversed();
+  const previousOf = new Map(entries.map((entry, i) => [entry.id, entries[i - 1] ?? null]));
   const scaleDate = newestEntries[0]
     ? newestEntries[0].date === today
       ? t("common:date.today")
@@ -978,15 +1046,27 @@ export default function Berat() {
             <Card>
               <Text style={styles.sectionLabel}>{t("period.title")}</Text>
               <View style={styles.rangeBox}>
-                <Segmented
+                <RangeNav
                   options={[
-                    { value: "7", label: t("chart.range.d7") },
-                    { value: "30", label: t("chart.range.d30") },
-                    { value: "90", label: t("chart.range.d90") },
-                    { value: "all", label: t("chart.range.all") },
+                    { value: "w", label: t("common:range.d7") },
+                    { value: "m", label: t("common:range.d30") },
+                    { value: "q", label: t("common:range.d90") },
+                    { value: "y", label: t("common:range.d365") },
+                    { value: "all", label: t("common:range.all") },
                   ]}
                   value={range}
-                  onChange={(value) => setRange(value)}
+                  onChange={(next) => {
+                    setRange(next);
+                    setOffset(0);
+                  }}
+                  label={range === "all" ? t("chart.sinceStart") : periodText}
+                  onPrev={
+                    range !== "all" && canStepBack(RANGE_DAYS[range], offset, today, firstEntryDate)
+                      ? () => setOffset(offset + 1)
+                      : null
+                  }
+                  onNext={range !== "all" && canStepForward(offset) ? () => setOffset(offset - 1) : null}
+                  onReset={range !== "all" && canStepForward(offset) ? () => setOffset(0) : null}
                 />
               </View>
 
@@ -996,11 +1076,13 @@ export default function Berat() {
                     {t("chart.emptyTitle", { range: rangeLabel })}
                   </Text>
                   <Text style={styles.chartEmpty}>{t("chart.emptyBody")}</Text>
-                  <Button
-                    variant="secondary"
-                    label={t("chart.emptyAction")}
-                    onPress={() => setSheetOpen(true)}
-                  />
+                  {newestPeriod ? (
+                    <Button
+                      variant="secondary"
+                      label={t("chart.emptyAction")}
+                      onPress={() => setSheetOpen(true)}
+                    />
+                  ) : null}
                 </View>
               ) : (
                 <>
@@ -1077,7 +1159,7 @@ export default function Berat() {
                     targetKg={summary.targetKg}
                     domainStart={domainStart}
                     domainEnd={chartEnd}
-                    rangeKey={range}
+                    rangeKey={`${range}-${offset}`}
                     rangeLabel={rangeLabel}
                     bars={kcalBarList}
                     weekly={kcalWeekly}
@@ -1160,6 +1242,7 @@ export default function Berat() {
                   {kcalWeekly ? t("kcal.titleWeekly") : t("kcal.title")}
                 </Text>
                 <KcalChart
+                  key={`${domainStart}-${periodTo}`}
                   bars={kcalBarList}
                   weekly={kcalWeekly}
                   targetKcal={targetKcal}
@@ -1235,6 +1318,7 @@ export default function Berat() {
         {entries.length > 0 ? (
           <Card style={styles.historyCard}>
             <Text style={styles.historyTitle}>{t("history.title")}</Text>
+            <Text style={styles.historyPeriod}>{range === "all" ? t("chart.sinceStart") : periodText}</Text>
             {maternal ? null : (
               <Button
                 variant="secondary"
@@ -1242,10 +1326,13 @@ export default function Berat() {
                 onPress={() => setShareOpen(true)}
               />
             )}
+            {periodNewest.length === 0 ? (
+              <Text style={styles.chartHint}>{t("chart.emptyTitle", { range: rangeLabel })}</Text>
+            ) : null}
             <ListGroup style={styles.historyGroup}>
-              {(showAllHistory ? newestEntries : newestEntries.slice(0, 10)).map((entry, index) => {
-                const newer = index > 0 ? newestEntries[index - 1] : null;
-                const delta = newer ? entry.weightKg - newer.weightKg : null;
+              {(showAllHistory ? periodNewest : periodNewest.slice(0, 10)).map((entry) => {
+                const previous = previousOf.get(entry.id) ?? null;
+                const delta = previous ? entry.weightKg - previous.weightKg : null;
                 return (
                   <ListRow
                     key={entry.id}
@@ -1271,13 +1358,13 @@ export default function Berat() {
                 );
               })}
             </ListGroup>
-            {entries.length > 10 ? (
+            {periodNewest.length > 10 ? (
               <Button
                 variant="secondary"
                 label={
                   showAllHistory
                     ? t("history.showLess")
-                    : t("history.showAll", { count: entries.length })
+                    : t("history.showAll", { count: periodNewest.length })
                 }
                 onPress={() => setShowAllHistory((v) => !v)}
               />
@@ -1443,6 +1530,16 @@ const styles = StyleSheet.create((theme) => ({
     lineHeight: 20,
   },
   // The segmented control spans the card so four options (7H..Semua) fit.
+  kcalReadoutRow: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
+  kcalReadout: {
+    flex: 1,
+    height: 24,
+    lineHeight: 24,
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
+  kcalClear: { width: 24, height: 24, alignItems: "center", justifyContent: "center" },
   rangeBox: {
     width: "100%",
     marginTop: theme.spacing.sm,
@@ -1558,6 +1655,11 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.md,
     fontWeight: "700",
     color: theme.colors.foreground,
+    paddingLeft: theme.spacing.xs,
+  },
+  historyPeriod: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
     paddingLeft: theme.spacing.xs,
   },
   historyGroup: {

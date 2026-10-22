@@ -122,5 +122,23 @@
       "subtitleCapped_one": "Pro: {{count}} AI scan per day",
       "subtitleCapped_other": "Pro: {{count}} AI scans per day"
     }
+  },
+  "range": {
+    "d7": "7D",
+    "d30": "30D",
+    "d90": "90D",
+    "d365": "1Y",
+    "all": "All",
+    "label": "Range",
+    "prev": "Previous period",
+    "next": "Next period",
+    "reset": "Latest",
+    "resetLabel": "Back to the latest period",
+    "clearSelection": "Clear selection",
+    "list": "Per day",
+    "listWeekly": "Per week",
+    "today": "today",
+    "showAll": "Show all {{count}} rows",
+    "showLess": "Show less"
   }
 }

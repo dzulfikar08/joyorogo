@@ -167,6 +167,23 @@
         "over": "Lewat target",
         "under": "Kurang dari separuh target",
         "target": "Target"
+      },
+      "hint": "Ketuk batang untuk lihat harinya"
+    },
+    "ongoing": "Masih berjalan",
+    "range": {
+      "w1": "1 mgg",
+      "w4": "4 mgg",
+      "w13": "13 mgg"
+    },
+    "list": {
+      "sub": "{{status}} · target {{kcal}}",
+      "status": {
+        "on_target": "sesuai target",
+        "over": "lewat target",
+        "under": "di bawah target",
+        "empty": "belum dicatat",
+        "pending": "belum dinilai"
       }
     }
   },
