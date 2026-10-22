@@ -40,6 +40,7 @@ export const FIT_LIMITS = {
   totalsDays: 366,
   weightDays: 730,
   recoveryDays: 92,
+  sleepNightDays: 90,
   workoutDays: 366,
   workoutItems: 50,
 } as const;

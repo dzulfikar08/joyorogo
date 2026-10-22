@@ -17,6 +17,7 @@ import {
   parseWorkoutRef,
   resolveRange,
 } from "@joyorogo/api/lib/fit-data";
+import { getPlanView, getSleepFindings, getSleepNights } from "@joyorogo/api/lib/fit-data-ai";
 import type { RateLimitBinding } from "@joyorogo/api/lib/group-preview";
 import { countCalls, hasActiveConnection, writeAudit } from "@joyorogo/api/lib/mcp-connections";
 import type { AuditEntry } from "@joyorogo/api/lib/mcp-connections";
@@ -62,6 +63,7 @@ const MCP_INSTRUCTIONS = [
   "Days are calendar days in the person's own zone (WIB, UTC+7, in Indonesia; UTC+8 in Malaysia and Singapore) as YYYY-MM-DD; get_profile returns today's date. Units are in the field names: Kcal, G, Kg, Cm, Bpm, Min, Sec, Km.",
   "A day with no food logged is a skipped log, not a day of fasting. Do not read missing values as zero.",
   "profile.mode is lose, maintain, gain or hamil (pregnant or breastfeeding: no deficit and no weight target; never suggest weight loss).",
+  "Menstrual cycle data is never available here. Sleep detail (get_sleep_nights, get_sleep_findings) exists only when the person switched on sleep insights; if a tool says so, tell them where to switch it on and carry on without it.",
   "This is not medical advice. For pain, pregnancy, eating disorders or any medical question, point the person to a doctor.",
 ].join("\n");
 
@@ -135,6 +137,62 @@ async function runTool(
     if (error instanceof FitDataError) return failure(error.message);
     console.error(`[mcp] ${tool} failed`, error);
     return failure("Terjadi kesalahan di server JoyoRogo. Coba lagi sebentar lagi. / JoyoRogo had an error; try again in a moment.");
+  }
+}
+
+const PROMPT_LANG = z.enum(["id", "en"]).optional().describe("Answer language: id (default) or en.");
+
+type PromptDef = { name: string; title: string; description: string; id: string; en: string };
+
+/** Ready-made questions. They carry no data: the model must call the read-only tools above to answer. */
+const PROMPTS: PromptDef[] = [
+  {
+    name: "weekly_review",
+    title: "Review minggu ini / Review my week",
+    description: "A review of the last 7 days: food, weight, workouts, sleep and recovery, with one or two concrete next steps.",
+    id: "Review minggu ini. Panggil get_profile dulu untuk tanggal hari ini dan target, lalu get_daily_totals, get_weight_history, list_workouts dan get_recovery_metrics untuk 7 hari terakhir. Rangkum apa yang berjalan baik, apa yang meleset dari target, dan beri satu atau dua langkah konkret untuk minggu depan. Hari tanpa catatan makan berarti tidak dicatat, bukan puasa. Jangan mengarang angka.",
+    en: "Review my week. Call get_profile first for today's date and targets, then get_daily_totals, get_weight_history, list_workouts and get_recovery_metrics for the last 7 days. Summarise what went well, what missed the targets, and give one or two concrete next steps for next week. A day without food logged is not logged, not fasting. Do not invent numbers.",
+  },
+  {
+    name: "why_tired",
+    title: "Kenapa aku capek? / Why am I tired?",
+    description: "Looks for likely reasons for low energy in the last 2 weeks: sleep, recovery, training load, food.",
+    id: "Kenapa aku capek minggu ini? Pakai get_recovery_metrics (14 hari), get_daily_totals, list_workouts dan, kalau tersedia, get_sleep_nights dan get_sleep_findings. Lihat tidur, pemulihan, beban latihan, dan asupan (termasuk protein). Sebut kemungkinan penyebab yang didukung data dan yang tidak bisa dipastikan. Ini bukan saran medis: kalau capeknya berlangsung lama atau disertai gejala lain, sarankan ke dokter.",
+    en: "Why am I tired this week? Use get_recovery_metrics (14 days), get_daily_totals, list_workouts and, if available, get_sleep_nights and get_sleep_findings. Look at sleep, recovery, training load and intake (including protein). Name likely causes the data supports and say what cannot be known. This is not medical advice: if tiredness lasts or comes with other symptoms, suggest a doctor.",
+  },
+  {
+    name: "workout_debrief",
+    title: "Debrief latihan terakhir / Debrief my last workout",
+    description: "Reviews the most recent workout: effort, heart-rate zones, how it compares with similar ones, and recovery.",
+    id: "Debrief latihan terakhirku. Panggil list_workouts (ambil yang terbaru), lalu get_workout untuk detailnya, dan get_recovery_metrics untuk pemulihan setelahnya. Jelaskan usaha dan zona detak jantung, bandingkan dengan latihan serupa, dan beri saran pemulihan serta latihan berikutnya. Kalau ada rencana latihan (get_plan), sebut apakah ini sesuai rencana. Jangan memberi diagnosis cedera; kalau ada nyeri, sarankan ke dokter atau fisioterapis.",
+    en: "Debrief my last workout. Call list_workouts (take the newest), then get_workout for its detail and get_recovery_metrics for recovery afterwards. Explain the effort and heart-rate zones, compare with similar workouts, and suggest recovery and the next session. If there is a plan (get_plan), say whether this fit it. Do not diagnose injuries; if there is pain, suggest a doctor or physiotherapist.",
+  },
+  {
+    name: "sleep_check",
+    title: "Cek tidurku / Check my sleep",
+    description: "Looks at the last 2 weeks of sleep and any personal patterns found.",
+    id: "Cek tidurku 2 minggu terakhir. Pakai get_sleep_nights dan get_sleep_findings; kalau keduanya bilang wawasan tidur belum diaktifkan, beri tahu aku cara menyalakannya dan pakai get_recovery_metrics saja. Ceritakan pola durasi, keteraturan, dan pola pribadi yang ditemukan (itu asosiasi, bukan sebab pasti). Beri satu kebiasaan kecil untuk dicoba. Ini bukan saran medis.",
+    en: "Check my sleep for the last 2 weeks. Use get_sleep_nights and get_sleep_findings; if both say sleep insights are off, tell me how to switch them on and use get_recovery_metrics only. Describe duration, regularity and any personal patterns found (associations, not proven causes). Give one small habit to try. This is not medical advice.",
+  },
+  {
+    name: "plan_check",
+    title: "Cek rencana latihanku / Check my training plan",
+    description: "Compares the coach plan with what was actually done and recovery.",
+    id: "Cek rencana latihanku. Panggil get_plan, lalu list_workouts (14 hari) dan get_recovery_metrics. Bandingkan yang direncanakan dengan yang dilakukan, nilai apakah bebannya pas dengan pemulihanku, dan beri saran penyesuaian. Kalau belum ada rencana, bilang begitu dan tawarkan ide sederhana.",
+    en: "Check my training plan. Call get_plan, then list_workouts (14 days) and get_recovery_metrics. Compare what was planned with what was done, judge whether the load suits my recovery, and suggest adjustments. If there is no plan, say so and offer a simple idea.",
+  },
+];
+
+function registerPrompts(server: McpServer) {
+  for (const def of PROMPTS) {
+    server.registerPrompt(
+      def.name,
+      { title: def.title, description: def.description, argsSchema: { language: PROMPT_LANG } },
+      ({ language }) => ({
+        description: def.description,
+        messages: [{ role: "user", content: { type: "text", text: language === "en" ? def.en : def.id } }],
+      }),
+    );
   }
 }
 
@@ -284,6 +342,54 @@ function createMcpServer(
         return { from: range.from, to: range.to, days: await getRecoveryDays(db, principal.userId, range.from, range.to) };
       }),
   );
+
+  server.registerTool(
+    "get_plan",
+    {
+      title: "Training plan and adherence",
+      description:
+        "The person's JoyoFit coach plan, when they have one: kind (run or strength), goal (run5k, run10k, runHalf, runRoutine, strengthFull), level, sessions per week, training weekdays (0 = Sunday), start day, length in weeks, the current week and the coach's load adjustment for it (scalePct of the planned load and why), plus how many sessions were done or skipped in the last 14 days. Does not list individual sessions; use list_workouts and get_workout for what was actually done. hasPlan is false when there is none.",
+      inputSchema: {},
+      annotations: readOnly,
+    },
+    () => run("get_plan", "workouts:read", {}, async (db) => getPlanView(db, principal.userId, await zoneOfUser(db, principal.userId))),
+  );
+
+  server.registerTool(
+    "get_sleep_nights",
+    {
+      title: "Sleep night by night",
+      description: `Per night, newest first, from the sleep detail the person shared: when they fell asleep and woke (ISO, person's zone), minutes asleep and awake, awakenings, minutes of deep/REM/light (null on watches without stages), watch sleep score, night HRV (ms) and resting heart rate (bpm), nap minutes and bedroom temperature/humidity when a sensor was used. Only available when the person switched on sleep insights; otherwise consent is false with where to switch it on. Dates are YYYY-MM-DD (the day the night ended); default is the last 14 days; at most ${FIT_LIMITS.sleepNightDays} days. For simple hours slept use get_recovery_metrics.`,
+      inputSchema: {
+        from: dayArg("First wake day, YYYY-MM-DD. Default: 13 days before `to`."),
+        to: dayArg("Last wake day, YYYY-MM-DD. Default: today."),
+      },
+      annotations: readOnly,
+    },
+    ({ from, to }) =>
+      run("get_sleep_nights", "recovery:read", { from, to }, async (db) => {
+        const zone = await zoneOfUser(db, principal.userId);
+        const range = resolveRange(from, to, { maxDays: FIT_LIMITS.sleepNightDays, defaultDays: 14, zone });
+        return getSleepNights(db, principal.userId, range.from, range.to, zone);
+      }),
+  );
+
+  server.registerTool(
+    "get_sleep_findings",
+    {
+      title: "Personal sleep patterns",
+      description:
+        "The personal sleep patterns JoyoRogo found in the person's own nights (caffeine, late dinner, late hard workout, regularity, bedroom temperature, humidity): the factor, confidence (maybe or leaning), the effect in minutes (asleep or awake), and the nights compared. These are associations, not proof of cause; word them carefully. Only available when the person switched on sleep insights; otherwise consent is false. An empty list means no pattern is strong enough yet.",
+      inputSchema: {},
+      annotations: readOnly,
+    },
+    () =>
+      run("get_sleep_findings", "recovery:read", {}, async (db) =>
+        getSleepFindings(db, principal.userId, await zoneOfUser(db, principal.userId)),
+      ),
+  );
+
+  registerPrompts(server);
 
   return server;
 }

@@ -11,6 +11,7 @@ import { createClient } from "../../../packages/db/node_modules/@libsql/client";
 import { createAuth } from "@joyorogo/auth";
 import { MCP_DATA_SCOPES } from "@joyorogo/auth/mcp-scopes";
 import { deleteUserMcpData, listConnections, recentActivity, revokeConnection, sweepMcp } from "@joyorogo/api/lib/mcp-connections";
+import { jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
 import { WATCH_WORKOUT_DOC_VERSION, encodePoints } from "@joyorogo/api/lib/watch-workout";
 import type { WatchWorkoutDoc } from "@joyorogo/api/lib/watch-workout";
@@ -19,6 +20,8 @@ import type { WorkoutAnalysis } from "@joyorogo/api/lib/workout-analysis";
 import type { Database } from "@joyorogo/db";
 import { exerciseLog, foodLog, profile, sleepLog, weightLog } from "@joyorogo/db/schema/fitness";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
+import { coachDoc } from "@joyorogo/db/schema/coach";
+import { sleepInsightPref, sleepNight } from "@joyorogo/db/schema/sleep-insights";
 import { mcpAudit } from "@joyorogo/db/schema/oauth";
 import { workoutSession, workoutSet } from "@joyorogo/db/schema/plans";
 
@@ -377,8 +380,11 @@ describe("MCP endpoint", () => {
     expect(tools.map((t) => t.name).sort()).toEqual([
       "get_daily_totals",
       "get_food_log",
+      "get_plan",
       "get_profile",
       "get_recovery_metrics",
+      "get_sleep_findings",
+      "get_sleep_nights",
       "get_weight_history",
       "get_workout",
       "list_workouts",
@@ -446,6 +452,113 @@ describe("MCP endpoint", () => {
     expect(audit.find((row) => row.tool === "get_food_log")?.args).toBe(JSON.stringify({ from: DAY, to: DAY }));
   });
 
+  test("get_plan reads the coach plan; get_sleep_* need the sleep switch", async () => {
+    const { accessToken } = await connect("pro@test.id");
+
+    const none = await callTool(accessToken, "get_plan");
+    expect(none.data).toMatchObject({ hasPlan: false, plan: null });
+
+    const startDay = shiftDate(jakartaToday(), -8);
+    const doc = {
+      version: 1,
+      plan: {
+        id: "p1",
+        kind: "run",
+        goal: "run5k",
+        level: "beginner",
+        daysPerWeek: 3,
+        setting: null,
+        weekdays: [1, 3, 5],
+        startDay,
+        weeks: 8,
+        createdAt: 1,
+        updatedAt: 1,
+        adjust: { "2": { scalePct: 85, reason: "low_recovery", at: 1 } },
+      },
+      planUpdatedAt: 1,
+      done: {
+        a: { workoutStart: 1790000000, at: Date.now() - 86_400_000, manual: false, skipped: false },
+        b: { workoutStart: null, at: Date.now() - 2 * 86_400_000, manual: true, skipped: true },
+        old: { workoutStart: null, at: 1, manual: true, skipped: false },
+      },
+      logs: {},
+    };
+    await db.insert(coachDoc).values({ userId: "pro", doc: JSON.stringify(doc), rev: 1, updatedAt: Date.now() });
+    const plan = await callTool(accessToken, "get_plan");
+    expect(plan.data.plan).toMatchObject({
+      kind: "run",
+      goal: "run5k",
+      weekdays: [1, 3, 5],
+      currentWeek: 2,
+      currentWeekAdjust: { scalePct: 85, reason: "low_recovery" },
+    });
+    expect(plan.data.recent).toMatchObject({ done: 1, skipped: 1, doneWithWorkout: 1 });
+
+    const off = await callTool(accessToken, "get_sleep_nights");
+    expect(off.data.consent).toBe(false);
+    expect(off.data.message).toContain("Sleep insights are switched off");
+    expect((await callTool(accessToken, "get_sleep_findings")).data.consent).toBe(false);
+
+    await db.insert(sleepInsightPref).values({ userId: "pro", enabled: true, consentVersion: 1, consentedAt: Date.now() });
+    await db.insert(sleepNight).values({
+      userId: "pro",
+      wakeDate: DAY,
+      onsetMs: Date.parse("2026-10-13T16:00:00Z"),
+      wakeMs: Date.parse("2026-10-13T23:30:00Z"),
+      tzOffsetMin: 420,
+      asleepS: 7 * 3600,
+      awakeS: 20 * 60,
+      awakenings: 2,
+      hasStages: true,
+      deepS: 3600,
+      remS: 5400,
+      lightS: 18_000,
+      watchScore: 81,
+      hrvMs: 48.26,
+      rhrBpm: 54,
+      updatedAt: 1,
+    });
+    const nights = await callTool(accessToken, "get_sleep_nights", { from: "2026-10-10", to: DAY });
+    expect(nights.data.consent).toBe(true);
+    expect(nights.data.nights).toHaveLength(1);
+    expect(nights.data.nights[0]).toMatchObject({
+      date: DAY,
+      asleepMin: 420,
+      awakeMin: 20,
+      awakenings: 2,
+      stagesMin: { deep: 60, rem: 90, light: 300 },
+      watchScore: 81,
+      hrvMs: 48.3,
+      restingHrBpm: 54,
+      bedroom: null,
+    });
+    const findings = await callTool(accessToken, "get_sleep_findings");
+    expect(findings.data).toMatchObject({ consent: true, findings: [] });
+
+    const tooLong = await callTool(accessToken, "get_sleep_nights", { from: "2026-01-01", to: DAY });
+    expect(tooLong.isError).toBe(true);
+  });
+
+  test("prompts are listed and carry no data, only questions that point at the read-only tools", async () => {
+    const { accessToken } = await connect("pro@test.id");
+    const list = await rpc(accessToken, "prompts/list");
+    const prompts = ((await list.json()) as { result: { prompts: { name: string }[] } }).result.prompts.map((p) => p.name).sort();
+    expect(prompts).toEqual(["plan_check", "sleep_check", "weekly_review", "why_tired", "workout_debrief"]);
+
+    const get = async (name: string, args: Record<string, string> = {}) => {
+      const res = await rpc(accessToken, "prompts/get", { name, arguments: args });
+      const body = (await res.json()) as { result: { messages: { role: string; content: { text: string } }[] } };
+      return body.result.messages[0]!;
+    };
+    const id = await get("weekly_review");
+    expect(id.role).toBe("user");
+    expect(id.content.text).toContain("Review minggu ini");
+    expect(id.content.text).toContain("get_daily_totals");
+    const en = await get("why_tired", { language: "en" });
+    expect(en.content.text).toContain("not medical advice");
+    expect(en.content.text).not.toMatch(/menstru|cycle|haid/i);
+  });
+
   test("a bad range or id is a friendly tool error, not a crash", async () => {
     const { accessToken } = await connect("pro@test.id");
     const tooLong = await callTool(accessToken, "get_food_log", { from: "2026-01-01", to: DAY });
@@ -478,6 +591,13 @@ describe("MCP endpoint", () => {
     expect(result.text).toContain("JoyoRogo Pro");
     const audit = await db.select().from(mcpAudit).where(eq(mcpAudit.userId, "free"));
     expect(audit.map((row) => row.outcome)).toEqual(["not_pro"]);
+    for (const name of ["get_plan", "get_sleep_nights", "get_sleep_findings"]) {
+      const locked = await callTool(accessToken, name);
+      expect(locked.isError).toBe(true);
+      expect(locked.text).toContain(`${SITE}/harga`);
+    }
+    const all = await db.select().from(mcpAudit).where(eq(mcpAudit.userId, "free"));
+    expect(all.map((row) => row.outcome)).toEqual(["not_pro", "not_pro", "not_pro", "not_pro"]);
   });
 
   test("a token without a scope cannot call that tool", async () => {
