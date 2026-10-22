@@ -287,7 +287,7 @@ function PrivasiPage() {
               items={[
                 "Tidak ada yang dikirim sebelum kamu memasukkan kunci, uji koneksi berhasil, dan kamu menyetujui untuk penyedia itu. Persetujuan menyebut data apa saja yang dikirim.",
                 "Yang dikirim ke penyedia pilihanmu saat kamu bertanya: ringkasan data kebugaranmu (usia, jenis kelamin, tinggi, tujuan, kesiapan dan pemulihan, 14 hari terakhir tidur, detak jantung istirahat, HRV, strain, langkah, kalori aktif, dan menit olahraga, sampai 10 latihan terakhir, rencana latihan, serta berat badan dan catatan makan dari akun JoyoRogo bila kamu masuk), catatan coach yang kamu simpan, percakapannya, dan hasil pembacaan data yang diminta AI itu (maksimal 90 hari ke belakang).",
-                "Tidak pernah dikirim: data siklus haid, nama, email, rute GPS, foto, dan data Strava.",
+                "Tidak pernah dikirim: data siklus haid, mode hamil atau menyusui, nama, email, rute GPS, foto, dan data Strava.",
                 "Kuncinya disimpan di penyimpanan aman ponselmu. JoyoRogo tidak menerima kunci, percakapan, catatan coach, atau ringkasan data dari mesin ini, dan semuanya tidak ikut sinkron ke akunmu. Untuk membaca berat badan dan catatan makan, aplikasi memakai sambungan akun JoyoRogo-mu yang biasa, hanya membaca.",
                 "Setelah data sampai di penyedia, aturan privasi, penyimpanan, dan pelatihan model penyedia itu yang berlaku, bukan aturan JoyoRogo. Penyedia itu pilihanmu dan memakai akunmu sendiri; biaya pemakaian kamu tanggung sendiri. Pada tier gratis Gemini, aplikasi memperingatkan bahwa Google memakai isi yang diterimanya untuk memperbaiki produknya.",
                 "Tidak tersedia untuk pengguna di bawah 18 tahun.",
