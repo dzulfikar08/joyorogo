@@ -260,18 +260,50 @@ function PrivasiPage() {
             <h2 className="text-base font-bold tracking-tight">Coach JoyoFit (Pro)</h2>
             <p className="mt-3 text-sm leading-relaxed">
               Coach di aplikasi JoyoFit punya dua bagian yang menyentuh server: dokumen rencana dan
-              fitur Tanya coach. Keduanya hanya untuk akun Pro. Coach bukan dokter dan jawabannya
-              bukan saran medis.
+              Joyo AI (dulu bernama Tanya coach) dengan mesin JoyoRogo. Keduanya hanya untuk akun Pro.
+              Coach bukan dokter dan jawabannya bukan saran medis. Joyo AI juga punya mesin dengan
+              kunci API milikmu sendiri, yang tidak lewat server kami (bagian di bawah ini).
             </p>
             <CheckList
               items={[
                 "Dokumen rencana: pilihan rencana latihanmu (jenis, tingkat, hari, tanggal mulai), sesi yang kamu centang atau lewati, dan repetisi serta beban yang kamu catat. Disimpan di database JoyoRogo, terhubung ke akunmu, supaya sama di semua ponselmu dan bisa dipulihkan. Hanya kamu yang bisa membacanya. Dihapus saat kamu memakai Hapus semua data saya atau menghapus akun.",
-                "Tanya coach: pesan yang kamu ketik, ringkasan data kebugaran dari ponselmu (kesiapan, tidur, beban latihan, latihan terakhir, rencana), dan sedikit data akunmu (profil, berat terakhir, ringkasan makan) dikirim ke penyedia AI, yaitu Cloudflare Workers AI, untuk dijawab.",
-                "Pesan dan jawaban Tanya coach tidak disimpan di server kami. Yang dicatat hanya jumlah pesan per hari (untuk batas harian) dan pemakaian token.",
+                "Joyo AI dengan mesin JoyoRogo: pesan yang kamu ketik, ringkasan data kebugaran dari ponselmu (kesiapan, tidur, beban latihan, latihan terakhir, rencana), dan sedikit data akunmu (profil, berat terakhir, ringkasan makan) dikirim ke penyedia AI, yaitu Cloudflare Workers AI, untuk dijawab.",
+                "Pesan dan jawaban Joyo AI dengan mesin JoyoRogo tidak disimpan di server kami. Yang dicatat hanya jumlah pesan per hari (untuk batas harian) dan pemakaian token.",
                 "Pesan yang menyebut cedera, nyeri, gejala, obat, atau gangguan makan dijawab dengan anjuran menemui dokter atau fisioterapis, tanpa saran latihan atau diet.",
                 "Tidak dipakai untuk iklan atau melatih model, dan tidak dijual.",
               ]}
             />
+          </section>
+
+          <section className="rounded-3xl bg-card p-5" id="joyo-ai">
+            <h2 className="text-base font-bold tracking-tight">Joyo AI dengan kunci sendiri (JoyoFit, opsional, gratis)</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Di aplikasi JoyoFit, Joyo AI juga bisa memakai kunci API milikmu sendiri (OpenRouter,
+              OpenAI, Anthropic, Google Gemini, atau alamat yang kamu isi). Ini jalur terpisah dari
+              mesin JoyoRogo di atas: ponselmu mengirim langsung ke penyedia yang kamu pilih, tanpa
+              lewat server JoyoRogo.
+            </p>
+            <CheckList
+              items={[
+                "Tidak ada yang dikirim sebelum kamu memasukkan kunci, uji koneksi berhasil, dan kamu menyetujui untuk penyedia itu. Persetujuan menyebut data apa saja yang dikirim.",
+                "Yang dikirim ke penyedia pilihanmu saat kamu bertanya: ringkasan data kebugaranmu (usia, jenis kelamin, tinggi, tujuan, kesiapan dan pemulihan, 14 hari terakhir tidur, detak jantung istirahat, HRV, strain, langkah, kalori aktif, dan menit olahraga, sampai 10 latihan terakhir, rencana latihan, serta berat badan dan catatan makan dari akun JoyoRogo bila kamu masuk), catatan coach yang kamu simpan, percakapannya, dan hasil pembacaan data yang diminta AI itu (maksimal 90 hari ke belakang).",
+                "Tidak pernah dikirim: data siklus haid, nama, email, rute GPS, foto, dan data Strava.",
+                "Kuncinya disimpan di penyimpanan aman ponselmu. JoyoRogo tidak menerima kunci, percakapan, catatan coach, atau ringkasan data dari mesin ini, dan semuanya tidak ikut sinkron ke akunmu. Untuk membaca berat badan dan catatan makan, aplikasi memakai sambungan akun JoyoRogo-mu yang biasa, hanya membaca.",
+                "Setelah data sampai di penyedia, aturan privasi, penyimpanan, dan pelatihan model penyedia itu yang berlaku, bukan aturan JoyoRogo. Penyedia itu pilihanmu dan memakai akunmu sendiri; biaya pemakaian kamu tanggung sendiri. Pada tier gratis Gemini, aplikasi memperingatkan bahwa Google memakai isi yang diterimanya untuk memperbaiki produknya.",
+                "Tidak tersedia untuk pengguna di bawah 18 tahun.",
+                "Kamu bisa menghapus kunci, catatan dan percakapan, atau semuanya di pengaturan Joyo AI di aplikasi, dan Hapus dari HP ini saat keluar akun di JoyoFit juga menghapus semuanya. Data yang sudah sampai ke penyedia dihapus di akunmu di penyedia itu.",
+              ]}
+            />
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Jawaban AI bisa keliru dan bukan saran medis. Rincian lengkap ada di{" "}
+              <a
+                href="https://fit.joyorogo.com/privasi#joyo-ai"
+                className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
+              >
+                fit.joyorogo.com/privasi
+              </a>
+              .
+            </p>
           </section>
 
           <section className="rounded-3xl bg-card p-5" id="beberapa-ponsel">
