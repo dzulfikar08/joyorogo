@@ -30,6 +30,7 @@ import * as ImagePicker from "expo-image-picker";
 import ConfettiCannon from "react-native-confetti-cannon";
 import { AskJoyoAction, useAskT } from "@/components/joyo/ask-button";
 import { scanQuestion } from "@/src/lib/joyo-ai/ask";
+import { useCameraActive } from "@/src/lib/use-camera-active";
 import { PlateNote, type ScanReferences } from "@/components/dishware/plate-note";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
@@ -502,6 +503,7 @@ export default function MakanAi() {
   const rawDate = useLocalSearchParams<{ date?: string | string[] }>().date;
   const scanDate = typeof rawDate === "string" ? rawDate : undefined;
   const [permission, requestPermission] = useCameraPermissions();
+  const cameraActive = useCameraActive();
   const cameraRef = useRef<CameraView>(null);
 
   const [phase, setPhase] = useState<Phase>("camera");
@@ -1397,7 +1399,9 @@ export default function MakanAi() {
     return (
       <View style={styles.cameraWrap}>
         {/* 4:3 portrait, the sensor's native shape: what you frame is what gets sent. */}
-        <CameraView ref={cameraRef} style={styles.camera} facing="back" ratio="4:3" />
+        {cameraActive ? (
+          <CameraView ref={cameraRef} style={styles.camera} facing="back" ratio="4:3" />
+        ) : null}
         <PressableScale
           accessibilityRole="button"
           accessibilityLabel={t("camera.close")}

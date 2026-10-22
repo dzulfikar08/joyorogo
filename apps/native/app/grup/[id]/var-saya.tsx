@@ -29,6 +29,7 @@ import { useToast } from "@/components/toast";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
 import type { VarHistory } from "@/src/lib/group";
+import { useCameraActive } from "@/src/lib/use-camera-active";
 import { errorMessage, fmtDateShort } from "@/utils/format";
 import { client, isPaywallError, orpc } from "@/utils/orpc";
 import { undoLabel, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
@@ -142,6 +143,7 @@ export default function VarSaya() {
   const groupId = Array.isArray(id) ? (id[0] ?? "") : (id ?? "");
 
   const [permission, requestPermission] = useCameraPermissions();
+  const cameraActive = useCameraActive();
   const history = useQuery(orpc.group.varHistory.queryOptions({ input: { groupId } }));
   const [view, setView] = useState<"capture" | "result">("capture");
   const [timerOn, setTimerOn] = useState(true);
@@ -357,7 +359,9 @@ export default function VarSaya() {
             <View style={styles.finderWrap}>
               {cameraReady ? (
                 <View style={styles.finder}>
-                  <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
+                  {cameraActive ? (
+                    <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
+                  ) : null}
                   <Silhouette />
                   <Text style={styles.finderHint}>{t("capture.guide")}</Text>
                   {countdown !== null ? (

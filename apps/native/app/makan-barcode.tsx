@@ -33,6 +33,7 @@ import {
   Text,
 } from "@/components/ui";
 import { useSessionGate } from "@/lib/use-session-gate";
+import { useCameraActive } from "@/src/lib/use-camera-active";
 import { errorMessage, fmtInt, fmtKcalLabel, parseNum } from "@/utils/format";
 import { FoodSafetyNotes } from "@/components/maternal/flag-notes";
 import { KindPicker, SnackAdviceSection } from "@/components/makan/snack-advice";
@@ -54,6 +55,7 @@ export default function MakanBarcode() {
   const logDate = typeof params.date === "string" ? params.date : undefined;
   const startMeal = ALL_MEAL_KEYS.find((key) => key === params.meal);
   const [permission, requestPermission] = useCameraPermissions();
+  const cameraActive = useCameraActive();
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
   const ramadan = effectiveRamadan(profile.data?.profile?.ramadanMode);
   const MEAL_KEYS = ALL_MEAL_KEYS.filter((key) => slotsFor(ramadan).includes(key));
@@ -658,12 +660,14 @@ export default function MakanBarcode() {
 
   return (
     <View style={styles.cameraWrap}>
-      <CameraView
-        style={styles.camera}
-        facing="back"
-        barcodeScannerSettings={{ barcodeTypes: ["ean13", "ean8", "upc_a"] }}
-        onBarcodeScanned={onScanned}
-      />
+      {cameraActive ? (
+        <CameraView
+          style={styles.camera}
+          facing="back"
+          barcodeScannerSettings={{ barcodeTypes: ["ean13", "ean8", "upc_a"] }}
+          onBarcodeScanned={onScanned}
+        />
+      ) : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t("camera.close")}
