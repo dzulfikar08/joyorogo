@@ -326,5 +326,28 @@
     "weigh": "Kalibrasi mulai dari timbangan pertamamu",
     "waiting": "Kalibrasi mulai {{date}}",
     "hint": "Buka kemajuan kalibrasi target makan"
+  },
+  "setup": {
+    "title": "Mulai di sini",
+    "count": "{{done}}/{{total}}",
+    "countLabel": "{{done}} dari {{total}} langkah selesai",
+    "dismiss": "Tutup daftar ini",
+    "meal": {
+      "title": "Catat makan pertama",
+      "sub": "Foto piringnya atau ketik namanya; kkal dan makro dihitung otomatis.",
+      "done": "Makan pertama sudah tercatat"
+    },
+    "weigh": {
+      "title": "Timbang lagi di hari lain",
+      "sub": "Satu catatan per hari; dua hari berbeda membuka garis tren.",
+      "subToday": "Hari ini sudah ditimbang. Timbang lagi besok agar garis tren mulai.",
+      "done": "Garis tren sudah mulai"
+    },
+    "source": {
+      "title": "Sambungkan sumber aktivitas",
+      "subAndroid": "Health Connect, Strava, atau JoyoFit: latihan dan langkah masuk sendiri.",
+      "subIos": "Apple Health, Strava, atau JoyoFit: latihan dan langkah masuk sendiri.",
+      "done": "Sumber aktivitas tersambung"
+    }
   }
 }

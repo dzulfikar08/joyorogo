@@ -27,6 +27,7 @@ import { clockHourIn, fmtNumber, instantIn } from "@joyorogo/i18n";
 
 import { CalibrationChip } from "@/components/calibration-chip";
 import { CalibrationNotice } from "@/components/calibration-notice";
+import { SetupChecklist, useSetupChecklist } from "@/components/setup-checklist";
 import { ManualTdeeSuggestionCard } from "@/components/manual-tdee";
 import { EnergyNotice } from "@/components/energy-notice";
 import { BelanjaCompact } from "@/components/plate/belanja";
@@ -286,6 +287,13 @@ export default function Dashboard() {
   const [recapStory, setRecapStory] = useState<StorySpec | null>(null);
   const [viewer, setViewer] = useState<StickerViewerTarget | null>(null);
   const { prefs: cardPrefs } = useHomeCards();
+  // New-account steps (first meal, a second weigh-in, an activity source), detected from the data; today's view only.
+  const checklist = useSetupChecklist({
+    userId: sessionData?.user.id ?? null,
+    accountCreatedAt: sessionData?.user.createdAt ?? null,
+    enabled: gate === "authed" && summary.data?.hasProfile === true && isToday,
+    eatenToday: (summary.data?.eatenKcal ?? 0) > 0,
+  });
 
   if (gate === "loading") {
     return <BootLoader />;
@@ -477,6 +485,9 @@ export default function Dashboard() {
   // Nothing eaten yet: Sisa would equal the target, so the ring carries the target once and the side offers the first log.
   const dayStarted = data.eatenKcal > 0;
   const showFirstLog = !maternal && !gainLeft && !dayStarted;
+  // While the checklist is up, its first-meal row is the one "Catat": the ring keeps the target and drops its own button.
+  const checklistOffersLog =
+    checklist.list?.rows.some((row) => row.id === "meal" && !row.done) ?? false;
 
   const cards: Record<HomeCardId, ReactNode> = {
     calorie: (
@@ -525,12 +536,14 @@ export default function Dashboard() {
             </Ring>
             <View style={styles.heroStats}>
               {showFirstLog ? (
-                <Button
-                  size="sm"
-                  icon="add"
-                  label={t("meals.log")}
-                  onPress={() => router.navigate("/makan")}
-                />
+                checklistOffersLog ? null : (
+                  <Button
+                    size="sm"
+                    icon="add"
+                    label={t("meals.log")}
+                    onPress={() => router.navigate("/makan")}
+                  />
+                )
               ) : (
                 <>
                   <View style={styles.heroStat}>
@@ -1009,8 +1022,18 @@ export default function Dashboard() {
       {/* Free account that just hit a streak milestone: one Pro card, once per milestone */}
       {maternal ? null : <StreakNudge userId={sessionData?.user.id ?? null} streakDays={data.streakDays} />}
 
-      {/* While the automatic calibration is still collecting: its one-line chip */}
-      <CalibrationChip enabled={isToday && !maternal} />
+      {/* New account: the setup checklist. Afterwards, and while the calibration is still collecting: its one-line chip. */}
+      {isToday && checklist.list ? (
+        <SetupChecklist
+          list={checklist.list}
+          dismiss={checklist.dismiss}
+          weighedToday={data.weightLoggedToday}
+          onWeigh={() => setWeighOpen(true)}
+        />
+      ) : null}
+      <CalibrationChip
+        enabled={isToday && !maternal && checklist.settled && checklist.list === null}
+      />
 
       {/* The cards, in the order this person arranged them (daily report first by default) */}
       {visibleHomeCards(cardPrefs).map((id) => (

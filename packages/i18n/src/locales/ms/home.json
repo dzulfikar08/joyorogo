@@ -326,5 +326,28 @@
     "weigh": "Penentukuran bermula dengan timbangan pertama anda",
     "waiting": "Penentukuran bermula {{date}}",
     "hint": "Buka kemajuan penentukuran sasaran makan"
+  },
+  "setup": {
+    "title": "Mulakan di sini",
+    "count": "{{done}}/{{total}}",
+    "countLabel": "{{done}} daripada {{total}} langkah selesai",
+    "dismiss": "Tutup senarai ini",
+    "meal": {
+      "title": "Catat makanan pertama",
+      "sub": "Ambil gambar pinggan atau taip namanya; kcal dan makro dikira secara automatik.",
+      "done": "Makanan pertama sudah dicatat"
+    },
+    "weigh": {
+      "title": "Timbang lagi pada hari lain",
+      "sub": "Satu catatan sehari; dua hari berbeza membuka garis trend.",
+      "subToday": "Anda sudah menimbang hari ini. Timbang lagi esok untuk memulakan garis trend.",
+      "done": "Garis trend sudah bermula"
+    },
+    "source": {
+      "title": "Sambungkan sumber aktiviti",
+      "subAndroid": "Health Connect, Strava atau JoyoFit: senaman dan langkah masuk sendiri.",
+      "subIos": "Apple Health, Strava atau JoyoFit: senaman dan langkah masuk sendiri.",
+      "done": "Sumber aktiviti sudah disambungkan"
+    }
   }
 }
