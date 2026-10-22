@@ -118,15 +118,17 @@ describe("portions: yours, library, piece, asked, else none", () => {
     expect(choosePortion(food("nasi putih"), { usual: 120, asked: 80 })).toMatchObject({ grams: 80, source: "asked" });
   });
 
-  test("a fruit without a library portion has none: null, never an invented one", () => {
-    for (const q of ["pepaya", "melon", "semangka", "nasi merah"]) expect(choosePortion(food(q))).toBeNull();
-    expect(choosePortion(food("pepaya"), { asked: 150 })).toMatchObject({ grams: 150, source: "asked" });
+  test("a food with no portion of any kind has none: null, never an invented one", () => {
+    for (const q of ["anggur hutan", "bihun mentah", "jambu bol"]) expect(choosePortion(food(q))).toBeNull();
+    expect(choosePortion(food("anggur hutan"), { asked: 150 })).toMatchObject({ grams: 150, source: "asked" });
   });
 
   test("bad grams are ignored", () => {
-    expect(choosePortion(food("pepaya"), { asked: 0 })).toBeNull();
-    expect(choosePortion(food("pepaya"), { asked: Number.NaN })).toBeNull();
-    expect(choosePortion(food("pepaya"), { usual: -5 })).toBeNull();
+    expect(choosePortion(food("anggur hutan"), { asked: 0 })).toBeNull();
+    expect(choosePortion(food("anggur hutan"), { asked: Number.NaN })).toBeNull();
+    expect(choosePortion(food("anggur hutan"), { usual: -5 })).toBeNull();
+    // with a typical portion behind it, bad grams fall through to it
+    expect(choosePortion(food("pepaya"), { asked: 0 })).toMatchObject({ grams: 100, source: "typical" });
   });
 });
 
@@ -138,11 +140,19 @@ describe("compareFoods", () => {
       { rank: 2, name: "Melon, segar", value: 1 },
       { rank: 3, name: "Semangka, segar", value: 0.4 },
     ]);
-    // No portion in our data for any of them: no per-portion numbers, and the result says to compare per 100 g.
-    expect(r.perPortionRanking).toBeNull();
-    expect(r.items.every((i) => i.portion === null && i.perPortion === null)).toBe(true);
-    expect(r.noPortion).toEqual(["Pepaya, segar", "Melon, segar", "Semangka, segar"]);
-    expect(r.notes.join(" ")).toContain("per 100 g");
+    // Each has a typical household portion (100 g, 100 g, 150 g): per-portion numbers without grams.
+    expect(r.items.map((i) => [i.portion?.grams, i.portion?.source])).toEqual([
+      [100, "typical"],
+      [100, "typical"],
+      [150, "typical"],
+    ]);
+    expect(r.perPortionRanking?.map((e) => [e.name, e.value])).toEqual([
+      ["Pepaya, segar", 1.6],
+      ["Melon, segar", 1],
+      ["Semangka, segar", 0.6],
+    ]);
+    expect(r.noPortion).toEqual([]);
+    expect(r.notes.join(" ")).toContain("typical estimate");
     expect(r.unknown).toEqual([]);
   });
 
@@ -182,8 +192,11 @@ describe("compareFoods", () => {
     expect(rice?.perPortion).toMatchObject({ kcal: 270, fiber: 0.3 });
     expect(banana?.portion).toMatchObject({ grams: 90, source: "piece" });
     expect(banana?.perPortion?.fiber).toBe(1.7);
-    expect(r.perPortionRanking?.map((e) => e.name)).toEqual(["Pisang ambon, segar", "Nasi"]);
-    expect(r.noPortion).toEqual(["Pepaya, segar"]);
+    expect(r.perPortionRanking?.map((e) => e.name)).toEqual(["Pisang ambon, segar", "Pepaya, segar", "Nasi"]);
+    expect(r.noPortion).toEqual([]);
+    const grapes = compareFoods(["anggur hutan", "melon"], { by: "fiber" });
+    expect(grapes.noPortion).toEqual(["Anggur hutan, segar"]);
+    expect(grapes.notes.join(" ")).toContain("no portion in our data");
   });
 
   test("asked grams (one for all, or one per food) give per-portion for every food", () => {

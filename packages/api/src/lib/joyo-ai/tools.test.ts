@@ -225,10 +225,17 @@ describe("compare_foods", () => {
       ["Semangka, segar", 0.4],
     ]);
     const pepaya = json.items.find((i: { code: string }) => i.code === "ER073");
-    expect(pepaya).toMatchObject({ dataNote: "macros_inconsistent", portion: null, perPortion: null });
+    // no grams: the typical household portion of each fruit (1 potong pepaya 100 g, melon 100 g, semangka 150 g)
+    expect(pepaya).toMatchObject({ dataNote: "macros_inconsistent", portion: { grams: 100, source: "typical" }, perPortion: { kcal: 46, fiber: 1.6, protein: null } });
+    expect(pepaya.portion.label).toContain("typical estimate");
     expect(pepaya.per100g).toMatchObject({ kcal: 46, fiber: 1.6, protein: null, fat: null, carbs: null });
-    expect(json.perPortionRanking).toBeNull();
-    expect(json.noPortion).toHaveLength(3);
+    expect(json.perPortionRanking.map((r: { name: string; value: number }) => [r.name, r.value])).toEqual([
+      ["Pepaya, segar", 1.6],
+      ["Melon, segar", 1],
+      ["Semangka, segar", 0.6],
+    ]);
+    expect(json.noPortion).toEqual([]);
+    expect(json.notes.join(" ")).toContain("typical estimate");
     expect(summary).toMatchObject({ count: 3, unknown: false });
   });
 
@@ -288,11 +295,36 @@ describe("fits_today", () => {
     expect(typical.json.portion).toMatchObject({ grams: 150, source: "library" });
   });
 
-  test("no portion in our data and no grams: needsGrams, no invented portion", async () => {
+  test("the fruit question with no grams: one typical portion, per-portion kcal and what is left, no needsGrams", async () => {
     const { json, summary } = await run("fits_today", { food: "pepaya" });
+    expect(json.needsGrams).toBeUndefined();
+    expect(json.portion).toMatchObject({ grams: 100, source: "typical" });
+    expect(json.portion.label).toContain("1 potong");
+    expect(json.portionNote).toContain("do not ask for grams");
+    expect(json.amounts).toMatchObject({ kcal: 46, fiber: 1.6, protein: null });
+    expect(json.remainingBefore).toMatchObject({ kcal: 1590 });
+    expect(json.after.kcal).toBe(1590 - 46);
+    expect(json.over.kcal).toBe(false);
+    expect(summary).toMatchObject({ count: 1, unknown: false });
+    const melon = await run("fits_today", { food: "melon" });
+    expect(melon.json).toMatchObject({ portion: { grams: 100, source: "typical" }, amounts: { kcal: 37, fiber: 1 } });
+    const semangka = await run("fits_today", { food: "semangka" });
+    expect(semangka.json).toMatchObject({ portion: { grams: 150, source: "typical" }, amounts: { kcal: 42, fiber: 0.6 } });
+    expect(semangka.json.after.kcal).toBe(1590 - 42);
+  });
+
+  test("typical portions carry the note; asked grams, the person's usual and real portions do not", async () => {
+    expect((await run("fits_today", { food: "pepaya", grams: 200 })).json).toMatchObject({ portion: { grams: 200, source: "asked" }, amounts: { kcal: 92 } });
+    expect((await run("fits_today", { food: "pepaya", grams: 200 })).json.portionNote).toBeUndefined();
+    expect((await run("fits_today", { food: "nasi putih" })).json.portionNote).toBeUndefined();
+    expect((await run("fits_today", { food: "pisang ambon" })).json).toMatchObject({ portion: { grams: 90, source: "piece" } });
+  });
+
+  test("a food with no portion at all and no grams: needsGrams, no invented portion", async () => {
+    const { json, summary } = await run("fits_today", { food: "anggur hutan" });
     expect(json.needsGrams).toBe(true);
     expect(json.after).toBeUndefined();
-    expect(json.per100g).toMatchObject({ kcal: 46, fiber: 1.6 });
+    expect(json.per100g).toMatchObject({ kcal: 30, fiber: 1.2 });
     expect(summary).toMatchObject({ count: 1, unknown: false });
   });
 

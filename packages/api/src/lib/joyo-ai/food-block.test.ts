@@ -18,8 +18,12 @@ describe("owner example questions", () => {
     // ER073's macros are withheld, not shown
     expect(block).toContain("protein/carbs/fat withheld");
     expect(block).not.toContain("fat 12");
-    // no portion in our data for these fruits
-    expect(block).toContain("Pepaya, segar: no portion in our data");
+    // no portion of their own: the typical household portion, labelled as an estimate, with what is left after it
+    expect(block).toContain("Pepaya, segar, 100 g (1 potong (1 slice), typical estimate): kcal 46");
+    expect(block).toContain("left today after it: kcal 1544");
+    expect(block).toContain("Semangka, segar, 150 g (1 potong (1 slice), typical estimate): kcal 42");
+    expect(block).toContain("do not ask for grams first");
+    expect(block).not.toContain("no portion in our data");
   });
 
   test("id: nasi merah atau nasi putih for my target -> both rows, the person's usual portion, what is left today", async () => {

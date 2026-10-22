@@ -8,6 +8,7 @@ import { TKPI_DISHES } from "../tkpi";
 import type { TdpiDish } from "../tkpi";
 import { TKPI_2019 } from "../tkpi2019-data";
 import type { Tkpi2019Row } from "../tkpi2019-data";
+import { typicalPortionFor } from "./typical-portions";
 
 export const NUTRIENTS = ["kcal", "protein", "carbs", "fat", "fiber"] as const;
 export type Nutrient = (typeof NUTRIENTS)[number];
@@ -35,7 +36,7 @@ export type DataNote = "macros_inconsistent" | "dish_estimate";
 
 export interface PortionOption {
   grams: number;
-  /** Where the gram figure comes from in our data: a typical dish portion, or one counted piece of an ingredient. */
+  /** Where the gram figure comes from in our data: a typical dish portion, one counted piece of an ingredient, or a curated typical estimate. */
   label: string;
 }
 
@@ -47,7 +48,7 @@ export interface FoodFacts {
   source: FoodSource;
   per100g: Per100g;
   dataNote: DataNote | null;
-  portions: { library: PortionOption | null; piece: PortionOption | null };
+  portions: { library: PortionOption | null; piece: PortionOption | null; typical: PortionOption | null };
 }
 
 export type UnknownReason = "empty" | "no_match" | "ambiguous";
@@ -63,11 +64,11 @@ export interface FoodCandidate {
   score: number;
 }
 
-export type PortionSource = "yours" | "library" | "piece" | "asked";
+export type PortionSource = "yours" | "library" | "piece" | "typical" | "asked";
 export interface ChosenPortion {
   grams: number;
   source: PortionSource;
-  /** Present for library/piece, so the model can say what the portion is. */
+  /** Present for library/piece/typical, so the model can say what the portion is. */
   label: string | null;
 }
 
@@ -146,8 +147,9 @@ for (const dish of TKPI_DISHES) {
 }
 
 /**
- * English and Malay names of foods the ingredient registry does not carry, mapped to the Indonesian name the resolver then
- * looks up. Names only: every number still comes from the TKPI row that name resolves to.
+ * English and Malay names of foods the ingredient registry does not carry, plus the bare Indonesian "roti" (many rows, so otherwise unmatched) mapped to the everyday one, all mapped to the Indonesian
+ * name the resolver then looks up. Names only:
+ * every number still comes from the TKPI row that name resolves to.
  */
 const ALT_NAMES: Readonly<Record<string, string>> = {
   papaya: "pepaya",
@@ -161,6 +163,7 @@ const ALT_NAMES: Readonly<Record<string, string>> = {
   "sweet corn": "jagung manis rebus",
   "red rice": "nasi beras merah",
   "steamed rice": "nasi",
+  roti: "roti tawar",
   rice: "nasi",
   // Malay
   betik: "pepaya",
@@ -198,6 +201,12 @@ function libraryOf(dish: TdpiDish | undefined): PortionOption | null {
   return { grams: dish.typicalPortionG, label: `1 typical serving of ${dish.name}` };
 }
 
+/** A curated typical household portion (an estimate, not a measurement) for a TKPI code, labelled as such. */
+function typicalOf(code: string | null): PortionOption | null {
+  const t = typicalPortionFor(code);
+  return t ? { grams: t.grams, label: `${t.id} (${t.en}), typical estimate` } : null;
+}
+
 function fromTkpi(entry: TkpiEntry, queryKey: string, def?: IngredientDef): FoodFacts {
   const [, , , kcal, protein, fat, carbs, fiber] = entry.row;
   const consistent = atwaterConsistent(kcal, protein, carbs, fat);
@@ -215,7 +224,7 @@ function fromTkpi(entry: TkpiEntry, queryKey: string, def?: IngredientDef): Food
       sugar: null,
     },
     dataNote: consistent ? null : "macros_inconsistent",
-    portions: { library: libraryOf(dishFor(queryKey, entry.key, entry.head)), piece: pieceOf(ingredient) },
+    portions: { library: libraryOf(dishFor(queryKey, entry.key, entry.head)), piece: pieceOf(ingredient), typical: typicalOf(entry.code) },
   };
 }
 
@@ -228,7 +237,7 @@ function fromUsda(def: IngredientDef): FoodFacts | null {
     source: "usda",
     per100g: { kcal: u.kcal, protein: u.proteinG, carbs: u.carbsG, fat: u.fatG, fiber: u.fiberG, sugar: null },
     dataNote: null,
-    portions: { library: null, piece: pieceOf(def) },
+    portions: { library: null, piece: pieceOf(def), typical: null },
   };
 }
 
@@ -239,7 +248,7 @@ function fromDish(dish: TdpiDish): FoodFacts {
     source: "dish",
     per100g: { kcal: dish.kcalPer100g, protein: null, carbs: null, fat: null, fiber: dish.fiberPer100g, sugar: null },
     dataNote: "dish_estimate",
-    portions: { library: libraryOf(dish), piece: null },
+    portions: { library: libraryOf(dish), piece: null, typical: null },
   };
 }
 
@@ -372,7 +381,10 @@ export function searchFoods(query: string, limit = SEARCH_LIMIT): FoodCandidate[
 // ---------------------------------------------------------------------------------------------------------------------
 // Portions and amounts
 
-/** The person's own usual grams, else a typical dish portion, else one counted piece; the caller's own grams always win. */
+/**
+ * The caller's own grams always win, then the person's own usual grams, then what our data really has (a typical dish portion,
+ * one counted piece), and last a curated typical household portion (an estimate; `source: "typical"`). Null only when none exists.
+ */
 export function choosePortion(food: FoodFacts, opts: { asked?: number | null; usual?: number | null } = {}): ChosenPortion | null {
   if (typeof opts.asked === "number" && Number.isFinite(opts.asked) && opts.asked > 0) {
     return { grams: opts.asked, source: "asked", label: null };
@@ -382,8 +394,16 @@ export function choosePortion(food: FoodFacts, opts: { asked?: number | null; us
   }
   if (food.portions.library) return { grams: food.portions.library.grams, source: "library", label: food.portions.library.label };
   if (food.portions.piece) return { grams: food.portions.piece.grams, source: "piece", label: food.portions.piece.label };
+  if (food.portions.typical) return { grams: food.portions.typical.grams, source: "typical", label: food.portions.typical.label };
   return null;
 }
+
+/**
+ * Model-facing note carried by every result that used a typical portion: the number is an assumption we make, so the answer says
+ * it and still answers, instead of asking for grams first.
+ */
+export const TYPICAL_PORTION_NOTE =
+  'A "typical" portion (label ends "typical estimate") is our household estimate, not a measurement: assume one such portion, state the assumption with its unit, grams and kcal (for example "1 slice papaya = 100 g = 46 kcal"), say it changes with the real amount, and answer; do not ask for grams first.'; // i18n-ok: model-facing text
 
 /** Amounts of `grams` of the food; a column that is unknown for the food stays null. */
 export function amountsFor(food: FoodFacts, grams: number): Amounts {
@@ -508,6 +528,7 @@ export function compareFoods(foods: readonly string[], opts: CompareOptions = {}
       notes.push("Some foods have no portion in our data: compare them per 100 g, or give grams for each.");
     }
   }
+  if (items.some((i) => i.portion?.source === "typical")) notes.push(TYPICAL_PORTION_NOTE);
   if (items.some((i) => i.dataNote === "macros_inconsistent")) {
     notes.push("A row whose numbers do not add up has its protein, carbs and fat withheld (null); its kcal and fiber are kept.");
   }
