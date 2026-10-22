@@ -101,7 +101,7 @@ async function creditTransaction(
     const [, flipped] = await db.batch([
       db
         .insert(payment)
-        .values({ orderId: ledgerId, userId: input.userId, amountIdr, months })
+        .values({ orderId: ledgerId, userId: input.userId, amountIdr, months, isTest: transaction.environment === "Sandbox" ? 1 : 0 })
         .onConflictDoNothing(),
       db
         .update(payment)

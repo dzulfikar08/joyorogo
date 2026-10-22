@@ -24,6 +24,7 @@ import { SCAN_ID_RE, scanSrcKey } from "@joyorogo/api/lib/sticker";
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
 import { session, user } from "@joyorogo/db/schema/auth";
 import { payment } from "@joyorogo/db/schema/billing";
+import { realPayment } from "./real-payment";
 import { aiUsage, foodLog, profile, scanFeedback } from "@joyorogo/db/schema/fitness";
 import { post as postTable, postComment, socialReport } from "@joyorogo/db/schema/social";
 import type { Database } from "@joyorogo/db";
@@ -276,8 +277,8 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
           scans7d: sql<number>`(select count(*) from ai_usage where scan_type = 'user' and created_at >= ${now - 7 * DAY_MS})`,
           anonScansToday: sql<number>`(select count(*) from ai_usage where scan_type != 'user' and created_at between ${startMs} and ${endMs})`,
           pendingOrders: sql<number>`(select count(*) from payment where status = 'pending')`,
-          paidOrders: sql<number>`(select count(*) from payment where status = 'paid' and amount_idr > 0)`,
-          revenueIdr: sql<number>`(select coalesce(sum(amount_idr), 0) from payment where status = 'paid')`,
+          paidOrders: sql<number>`(select count(*) from payment where status = 'paid' and amount_idr > 0 and coalesce(is_test, 0) = 0)`,
+          revenueIdr: sql<number>`(select coalesce(sum(amount_idr), 0) from payment where status = 'paid' and coalesce(is_test, 0) = 0)`,
         })
         // Every column is a scalar subquery; any one-row source works.
         .from(user)
@@ -327,7 +328,7 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
           revenueIdr: sql<number>`sum(${payment.amountIdr})`,
         })
         .from(payment)
-        .where(and(eq(payment.status, "paid"), gt(payment.amountIdr, 0), sql`${payment.paidAt} >= ${since}`))
+        .where(and(eq(payment.status, "paid"), gt(payment.amountIdr, 0), realPayment, sql`${payment.paidAt} >= ${since}`))
         .groupBy(wibDay(payment.paidAt)),
     ]);
     const byDay: Record<string, { day: string; scans: number; scanUsers: number; signups: number; paid: number; revenueIdr: number }> = {};
@@ -519,6 +520,7 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
           createdAt: payment.createdAt,
           paidAt: payment.paidAt,
           founderUntil: payment.founderUntil,
+          isTest: payment.isTest,
         })
         .from(payment)
         .innerJoin(user, eq(user.id, payment.userId))

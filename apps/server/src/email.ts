@@ -2,6 +2,7 @@ import type { SendEmail } from "@cloudflare/workers-types";
 import { and, eq, gt, isNotNull, lte, or, sql } from "drizzle-orm";
 
 import { emailLog, googlePurchase, payment } from "@joyorogo/db/schema/billing";
+import { realPayment } from "./real-payment";
 import { user } from "@joyorogo/db/schema/auth";
 import type { Database } from "@joyorogo/db";
 import { DEFAULT_DAY_ZONE, DEFAULT_LOCALE, fmtIdr, getT } from "@joyorogo/i18n";
@@ -157,7 +158,11 @@ type PaidOrderInfo = {
   /** What a Polar order charged, before tax, in its own currency (ISO code + minor units); null on IDR gateways and store orders. */
   charged: { currency: string; minor: number } | null;
   founderUntil: Date | null;
+  /** Not really charged (Play license tester, Apple/Polar sandbox). */
+  isTest?: boolean;
 };
+
+export const TEST_MARKER = "TEST (tidak ditagih)";
 
 /** "Rp29.000", or "RM43.99 (setara Rp193.800 di ledger)" for a Polar order in another currency. */
 export function amountLabel(info: Pick<PaidOrderInfo, "amountIdr" | "charged">): string {
@@ -173,9 +178,10 @@ function chargedOf(row: { chargedCurrency: string | null; chargedAmountMinor: nu
     : null;
 }
 
-function adminDraft(info: PaidOrderInfo): Draft {
+export function adminDraft(info: PaidOrderInfo): Draft {
   const planLabel = info.months >= 12 ? "tahunan" : "bulanan";
   const rows: [string, string][] = [
+    ...(info.isTest ? ([["Status", TEST_MARKER]] as [string, string][]) : []),
     ["Pembeli", `${info.name} (${info.email})`],
     ["Jumlah", amountLabel(info)],
     ["Paket", `Pro ${planLabel}`],
@@ -184,8 +190,9 @@ function adminDraft(info: PaidOrderInfo): Draft {
     // WIB on purpose: admin notice.
     ["Pro sampai", info.founderUntil ? formatWibDate(info.founderUntil) : "-"],
   ];
+  const title = info.isTest ? `Pembayaran Pro masuk — ${TEST_MARKER}` : "Pembayaran Pro masuk";
   const html = shell(
-    "Pembayaran Pro masuk",
+    title,
     `<table style="width:100%;border-collapse:collapse;font-size:14px;">${rows
       .map(
         ([k, v]) =>
@@ -196,11 +203,11 @@ function adminDraft(info: PaidOrderInfo): Draft {
     "id",
   );
   const text = [
-    "Pembayaran Pro masuk:",
+    `${title}:`,
     ...rows.map(([k, v]) => `${k}: ${v}`),
     "https://admin.joyorogo.com/#orders",
   ].join("\n");
-  return { to: "", subject: `Pro baru: ${amountLabel(info)} — ${info.name}`, html, text };
+  return { to: "", subject: `${info.isTest ? `[${TEST_MARKER}] ` : ""}Pro baru: ${amountLabel(info)} — ${info.name}`, html, text };
 }
 
 /**
@@ -223,6 +230,7 @@ export async function sendOrderEmails(
       chargedAmountMinor: payment.chargedAmountMinor,
       months: payment.months,
       founderUntil: payment.founderUntil,
+      isTest: payment.isTest,
     })
     .from(payment)
     .innerJoin(user, eq(user.id, payment.userId))
@@ -258,6 +266,7 @@ export async function sendOrderEmails(
       amountIdr: row.amountIdr,
       charged: chargedOf(row),
       founderUntil: row.founderUntil,
+      isTest: row.isTest === 1,
     });
     await sendEmail(env, { ...draft, to: admins });
   }
@@ -270,7 +279,7 @@ async function lockedMonthlyIdr(db: Database, userId: string): Promise<number | 
       lowest: sql<number | null>`min(case when ${payment.months} >= 12 then ${payment.amountIdr} / 10.0 else ${payment.amountIdr} end)`,
     })
     .from(payment)
-    .where(and(eq(payment.userId, userId), eq(payment.status, "paid"), gt(payment.amountIdr, 0)));
+    .where(and(eq(payment.userId, userId), eq(payment.status, "paid"), gt(payment.amountIdr, 0), realPayment));
   return row?.lowest ?? null;
 }
 

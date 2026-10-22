@@ -354,6 +354,8 @@ export interface AdminOrder {
   createdAt: string | number;
   paidAt: string | number | null;
   founderUntil: string | number | null;
+  /** 1 = test purchase (not charged: Play tester, Apple/Polar sandbox), 0 real, null unknown. */
+  isTest?: number | null;
 }
 
 /**
@@ -363,7 +365,14 @@ export interface AdminOrder {
  * qris_only=1), anything else with a link is DOKU (the Transfer Bank button;
  * DOKU's page can still offer other methods). No link = checkout never opened.
  */
-export function orderMethod(o: Pick<AdminOrder, "orderId" | "paymentUrl" | "amountIdr" | "chargedCurrency">): string {
+export function orderMethod(
+  o: Pick<AdminOrder, "orderId" | "paymentUrl" | "amountIdr" | "chargedCurrency"> & { isTest?: number | null },
+): string {
+  const base = orderGateway(o);
+  return o.isTest === 1 ? `${base} · TEST` : base;
+}
+
+function orderGateway(o: Pick<AdminOrder, "orderId" | "paymentUrl" | "amountIdr" | "chargedCurrency">): string {
   if (o.orderId.startsWith("apple:")) return o.amountIdr === 0 ? "TestFlight (uji)" : "Apple";
   if (o.orderId.startsWith("polar:")) return `Polar (${o.chargedCurrency ?? "USD"})`;
   if (!o.paymentUrl) return "—";

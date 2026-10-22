@@ -1,8 +1,12 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import { sql as dsql } from "drizzle-orm";
+import { payment } from "@joyorogo/db/schema/billing";
 import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 
-import { amountLabel, founderEmailsDue } from "./email";
+import { adminDraft, amountLabel, founderEmailsDue, TEST_MARKER } from "./email";
+import { realPayment } from "./real-payment";
 
 const NOW = Date.UTC(2026, 9, 15, 8, 0, 0);
 const DAY = 24 * 60 * 60 * 1000;
@@ -64,5 +68,46 @@ describe("amountLabel (admin order notice)", () => {
     expect(amountLabel({ amountIdr: 193_556, charged: { currency: "MYR", minor: 4399 } })).toBe("RM43.99 (setara Rp193.556 di ledger)");
     expect(amountLabel({ amountIdr: 195_720, charged: { currency: "SGD", minor: 1398 } })).toBe("S$13.98 (setara Rp195.720 di ledger)");
     expect(amountLabel({ amountIdr: 29_000, charged: { currency: "USD", minor: 999 } })).toBe("US$9.99 (setara Rp29.000 di ledger)");
+  });
+});
+
+describe("adminDraft test marker", () => {
+  const base = {
+    orderId: "google:GPA.1",
+    gateway: "google",
+    name: "Budi",
+    email: "budi@example.com",
+    months: 1,
+    amountIdr: 29_000,
+    charged: null,
+    founderUntil: null,
+  };
+
+  test("a test purchase is flagged in subject, html and text", () => {
+    const d = adminDraft({ ...base, isTest: true });
+    expect(d.subject).toContain(TEST_MARKER);
+    expect(d.html).toContain(TEST_MARKER);
+    expect(d.text).toContain(TEST_MARKER);
+  });
+
+  test("a real purchase carries no marker", () => {
+    const d = adminDraft({ ...base, isTest: false });
+    expect(d.subject).toBe("Pro baru: Rp29.000 — Budi");
+    expect(d.html).not.toContain(TEST_MARKER);
+    expect(d.text).not.toContain(TEST_MARKER);
+  });
+});
+
+describe("realPayment (revenue exclusion)", () => {
+  test("sums real and unknown rows, skips tests", () => {
+    const sqlite = new Database(":memory:");
+    sqlite.run("create table payment (order_id text, amount_idr integer, is_test integer)");
+    sqlite.run("insert into payment values ('a', 29000, 0), ('b', 29000, null), ('c', 29000, 1), ('d', 100000, 1)");
+    const [row] = drizzle(sqlite)
+      .select({ total: dsql<number>`sum(${payment.amountIdr})` })
+      .from(payment)
+      .where(realPayment)
+      .all();
+    expect(row?.total).toBe(58_000);
   });
 });

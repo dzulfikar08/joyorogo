@@ -105,7 +105,7 @@ async function creditOrder(
     const [, flipped] = await db.batch([
       db
         .insert(payment)
-        .values({ orderId: ledgerId, userId: input.userId, amountIdr, months })
+        .values({ orderId: ledgerId, userId: input.userId, amountIdr, months, isTest: input.sub.test ? 1 : 0 })
         .onConflictDoNothing(),
       db
         .update(payment)
@@ -159,7 +159,7 @@ async function applySubscription(
   const setState = (latestOrderId: string | null) =>
     deps.db
       .update(googlePurchase)
-      .set({ state: sub.state, latestOrderId, updatedAt: now })
+      .set({ state: sub.state, latestOrderId, isTest: sub.test ? 1 : 0, updatedAt: now })
       .where(eq(googlePurchase.purchaseToken, link.purchaseToken));
 
   // Pending (cash / convenience store) is not paid yet: nothing to credit or
@@ -257,6 +257,7 @@ export async function verifyGooglePurchase(
       productId: sub.productId,
       basePlanId: sub.basePlanId,
       state: sub.state,
+      isTest: sub.test ? 1 : 0,
       createdAt: now,
       updatedAt: now,
     })

@@ -7,7 +7,7 @@ import type { Database } from "@joyorogo/db";
 
 import { idrQuote, minorToIdr } from "./fx";
 import type { FxQuote, FxRateSource } from "./fx";
-import { polarLedgerId, polarProductPlan } from "./polar";
+import { POLAR_SANDBOX_URL, polarLedgerId, polarProductPlan } from "./polar";
 import type { PolarConfig } from "./polar";
 import { addMonths, nextFounderUntil, planMonths } from "./tiers";
 import type { FounderPlan } from "./tiers";
@@ -16,7 +16,7 @@ const CREDIT_ATTEMPTS = 3;
 
 export type PolarBillingDeps = {
   db: Database;
-  config: Pick<PolarConfig, "productIds" | "priceUsdCents">;
+  config: Pick<PolarConfig, "productIds" | "priceUsdCents"> & Partial<Pick<PolarConfig, "baseUrl">>;
   /** Plan prices in IDR: the ledger's equivalent of a USD order, as for non-IDR Apple transactions. */
   fallbackPriceIdr: Record<FounderPlan, number>;
   /** IDR rate for a MYR/SGD order (see fx.ts); without it only the in-code fallback table prices those. */
@@ -236,6 +236,7 @@ async function creditOrder(
     chargedTaxMinor: order.tax_amount,
     fxRateIdr: fx?.rate ?? null,
     fxSource: fx?.source ?? null,
+    isTest: deps.config.baseUrl === POLAR_SANDBOX_URL ? 1 : 0,
   };
 
   for (let attempt = 0; attempt < CREDIT_ATTEMPTS; attempt++) {
