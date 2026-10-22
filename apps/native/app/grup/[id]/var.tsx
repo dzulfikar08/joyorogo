@@ -25,6 +25,7 @@ import { BootLoader, Button, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { useSessionGate } from "@/lib/use-session-gate";
 import type { VarScan } from "@/src/lib/group";
+import { useCameraActive } from "@/src/lib/use-camera-active";
 import { errorMessage, fmtDateShort, fmtInt, kcalUnit } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
 
@@ -156,6 +157,7 @@ export default function VarPerut() {
   const hidden = shareFood === "0";
 
   const [permission, requestPermission] = useCameraPermissions();
+  const cameraActive = useCameraActive();
   const [phase, setPhase] = useState<"aim" | "scanning" | "reveal">("aim");
   const [scan, setScan] = useState<VarScan | null>(null);
   const [stage, setStage] = useState(0);
@@ -270,7 +272,10 @@ export default function VarPerut() {
         {/* --- Camera + USG overlay --- */}
         <View style={styles.cameraWrap}>
           {permission.granted ? (
-            <CameraView style={StyleSheet.absoluteFill} facing="back" />
+            // The reveal card covers the viewfinder: no reason to keep the sensor on behind it.
+            phase !== "reveal" && cameraActive ? (
+              <CameraView style={StyleSheet.absoluteFill} facing="back" />
+            ) : null
           ) : (
             <View style={StyleSheet.absoluteFill}>
               <Text style={styles.placeholderHint}>
