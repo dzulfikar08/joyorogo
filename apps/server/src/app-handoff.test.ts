@@ -109,7 +109,14 @@ describe("androidAppHandoff replay of a used callback", () => {
     const second = await handoff(browserRequest(ANDROID_CHROME, { cookie }), redirect(ERROR_PAGE));
     expect(second?.status).toBe(200);
     expect(second?.headers.get("location")).toBeNull();
-    expect(second?.headers.getSetCookie()).toHaveLength(0);
+    // The person is back at a callback they already handed off: this browser is marked for manual hand-offs.
+    const cookies = second?.headers.getSetCookie() ?? [];
+    expect(cookies).toHaveLength(1);
+    expect(cookies[0]).toContain("joyo_handoff_manual=1");
+    expect(cookies[0]).toContain("Max-Age=2592000");
+    expect(cookies[0]).toContain("Path=/api/auth/callback");
+    expect(cookies[0]).toContain("HttpOnly");
+    expect(cookies[0]).toContain("Secure");
     const html = await second?.text();
     expect(html).toContain(`href="${APP_URL}"`);
     expect(html).toContain("Buka JoyoFit");
@@ -151,6 +158,35 @@ describe("androidAppHandoff replay of a used callback", () => {
     const elsewhere = browserRequest(ANDROID_CHROME, { cookie, url: "https://api.joyorogo.com/api/auth/magic-link/verify?token=x" });
     expect(await handoff(elsewhere, redirect(ERROR_PAGE))).toBeNull();
   });
+
+  test("the replayed page waits for the tap: no automatic attempt, and the intent link as a second way", async () => {
+    const cookie = replayCookieOf(await handoff(browserRequest(ANDROID_CHROME), redirect(APP_URL)));
+    const second = await handoff(browserRequest(ANDROID_CHROME, { cookie }), redirect(ERROR_PAGE));
+    const html = (await second?.text()) ?? "";
+    expect(html).not.toContain("location.replace");
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("Ketuk tombol di bawah untuk membuka JoyoFit.");
+    expect(html).toContain('id="alt"');
+  });
+});
+
+describe("androidAppHandoff for a browser marked for manual hand-offs", () => {
+  const MARKED = "joyo_handoff_manual=1";
+
+  test("a new sign-in callback gets the page without the automatic attempt, and still a replay cookie", async () => {
+    const page = await handoff(browserRequest(ANDROID_CHROME, { cookie: MARKED }), redirect(APP_URL));
+    expect(page?.status).toBe(200);
+    const html = (await page?.text()) ?? "";
+    expect(html).toContain(`href="${APP_URL}"`);
+    expect(html).not.toContain("location.replace");
+    expect(page?.headers.getSetCookie().some((cookie) => cookie.startsWith("joyo_handoff="))).toBe(true);
+  });
+
+  test("an unmarked browser still gets the automatic attempt", async () => {
+    const html = (await (await handoff(browserRequest(ANDROID_CHROME, { cookie: "a=b" }), redirect(APP_URL)))?.text()) ?? "";
+    expect(html).toContain("location.replace");
+    expect(html).not.toContain('id="alt"');
+  });
 });
 
 describe("handoffHtml", () => {
@@ -159,5 +195,27 @@ describe("handoffHtml", () => {
     expect(html).not.toContain('"><script>alert(1)');
     expect(html.match(/<script>/g)).toHaveLength(1);
     expect(html).toContain("\\u003c/script>");
+  });
+
+  test("the manual page has no script and an intent link naming the app's package", () => {
+    const joyorogo = handoffHtml("joyorogo:///?cookie=a%3Db", "id", false);
+    expect(joyorogo).not.toContain("<script>");
+    expect(joyorogo).toContain('href="intent:///?cookie=a%3Db#Intent;scheme=joyorogo;package=com.joyodigitama.joyorogo;end"');
+    const joyofit = handoffHtml("joyofit:///?cookie=a%3Db", "en", false);
+    expect(joyofit).toContain("package=com.joyodigitama.joyofit;end");
+    expect(joyofit).toContain("Tap the button below to open JoyoFit.");
+    expect(joyofit).toContain("Not opening? Try another way");
+    expect(handoffHtml("joyofit:///?cookie=a%3Db", "ms", false)).toContain("Cuba cara lain");
+  });
+
+  test("no intent link for an unknown scheme, a fragment, or the automatic page", () => {
+    expect(handoffHtml("someapp://done", "id", false)).not.toContain('id="alt"');
+    expect(handoffHtml("joyofit:///?x=1#frag", "id", false)).not.toContain('id="alt"');
+    expect(handoffHtml("joyofit:///?cookie=a", "id", true)).not.toContain('id="alt"');
+  });
+
+  test("an intent link cannot break out of its attribute", () => {
+    const html = handoffHtml('joyofit:///?x="><b>', "id", false);
+    expect(html).not.toContain('"><b>');
   });
 });
