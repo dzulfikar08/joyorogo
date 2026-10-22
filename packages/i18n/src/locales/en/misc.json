@@ -189,6 +189,9 @@
         "empty": "not logged",
         "pending": "not judged yet"
       }
+    },
+    "pills": {
+      "today": "today"
     }
   },
   "inbox": {
