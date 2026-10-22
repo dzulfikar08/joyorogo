@@ -121,9 +121,9 @@ describe("applyCorrection", () => {
     const patch = applyCorrection(plate, ops({ op: "portion", i: 1, scale: 0.5 }));
     const rice = patch.items[0]!;
     expect(rice.grams).toBe(75);
-    // 97.5 kcal: a plain 150-350 band would have clamped this up to 150.
-    expect(rice.kcal).toBeCloseTo(97.5, 0);
-    expect(rice.carbs).toBe(21);
+    // 97.5 kcal (library 130 /100 g, rounded): a plain 150-350 band would have clamped this up to 150.
+    expect(rice.kcal).toBe(98);
+    expect(rice.carbs).toBeCloseTo(21, 0);
     expect(rice.portion).toBe("75 g");
     expect(rice.matched).toBe(true);
     expect(patch.changes).toEqual([{ index: 0, kind: "portion" }]);
@@ -167,7 +167,7 @@ describe("applyCorrection", () => {
 
     test("a count on an item that is not counted by piece falls back to its other fields", () => {
       const patch = applyCorrection(snacks, ops({ op: "portion", i: 2, count: 2, scale: 0.5 }));
-      expect(patch.items[1]).toMatchObject({ kcal: 45, grams: 125 });
+      expect(patch.items[1]).toMatchObject({ kcal: 38, grams: 125 });
     });
 
     test("eating more than listed scales up", () => {

@@ -13,6 +13,7 @@ import { MAX_GRAMS, portionFromGrams } from "@joyorogo/api/lib/portion";
 import { foodKind } from "@joyorogo/api/lib/food-kind";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
+import { Sheet } from "@joyorogo/ui/components/sheet";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { Card, FieldLabel, Page, PageHeader, Segmented } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
@@ -285,15 +286,28 @@ function BarcodeResult({
     contributors: number;
   } | null>(null);
   const [confirming, setConfirming] = useState(false);
+  // Same barcode logged again within 15 minutes: ask before adding a second row.
+  const [repeatAsk, setRepeatAsk] = useState<{
+    name: string;
+    ago: number;
+    input: Parameters<typeof client.food.add>[0];
+  } | null>(null);
   const [communityDone, setCommunityDone] = useState(false);
   // The cutout of the pack photo the person chose to keep in the label flow (opt-in); it becomes the logged meal's sticker.
   const [keptSticker, setKeptSticker] = useState<string | null>(null);
   const foundRef = useRef<HTMLElement>(null);
 
-  const save = async (input: Parameters<typeof client.food.add>[0]) => {
+  const save = async (input: Parameters<typeof client.food.add>[0], skipRepeatCheck = false) => {
     setSaving(true);
     setError(null);
     try {
+      if (input.source === "barcode" && !skipRepeatCheck) {
+        const { loggedAt } = await client.barcode.recentLog({ code }).catch(() => ({ loggedAt: null }));
+        if (loggedAt !== null) {
+          setRepeatAsk({ name: input.name, ago: Math.max(1, Math.round((Date.now() - loggedAt) / 60_000)), input });
+          return;
+        }
+      }
       await client.food.add({
         ...input,
         date,
@@ -638,6 +652,7 @@ function BarcodeResult({
           {t("result.sugar", { value: fmtNumber(data.sugar100, 1), unit })}
         </p>
       )}
+      {data.kcalFromMacros && <p className="text-sm text-muted-foreground">{t("result.kcalFromMacros")}</p>}
 
       <div>
         <FieldLabel htmlFor="barcode-grams">{t("quantity.label", { unit })}</FieldLabel>
@@ -750,6 +765,32 @@ function BarcodeResult({
           </p>
         )}
       </Notes>
+      <Sheet
+        open={repeatAsk !== null}
+        onOpenChange={(open) => !open && setRepeatAsk(null)}
+        title={t("repeat.title", { ago: repeatAsk?.ago ?? 0 })}
+      >
+        <div className="space-y-4">
+          <p className="text-[0.9375rem] leading-relaxed">
+            {t("repeat.body", { name: repeatAsk?.name ?? "", ago: repeatAsk?.ago ?? 0 })}
+          </p>
+          <div className="flex flex-col gap-2">
+            <Button
+              className="w-full"
+              onClick={() => {
+                const input = repeatAsk?.input;
+                setRepeatAsk(null);
+                if (input) void save(input, true);
+              }}
+            >
+              {t("repeat.confirm")}
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => setRepeatAsk(null)}>
+              {t("repeat.cancel")}
+            </Button>
+          </div>
+        </div>
+      </Sheet>
     </Card>
   );
 

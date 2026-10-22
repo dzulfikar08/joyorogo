@@ -10,6 +10,7 @@
  */
 import { z } from "zod";
 
+import { atwaterOverride } from "./barcode";
 import { EMPTY_NUTRIENTS, KJ_PER_KCAL, checkLabelNutrients } from "./barcode-nutrition";
 import type {
   LabelBasis,
@@ -146,9 +147,17 @@ export function buildDraft(labelText: string, frontText: string | null): LabelRe
   // pack) when the serving size makes it convertible; otherwise per 100.
   const useServing = serving !== null && (servingSize !== null || per100 === null);
   const basis: LabelBasis = useServing ? "serving" : "per100";
-  const nutrients = (useServing ? serving : per100) ?? serving ?? per100 ?? EMPTY_NUTRIENTS;
+  let nutrients = (useServing ? serving : per100) ?? serving ?? per100 ?? EMPTY_NUTRIENTS;
   if (useServing && servingSize === null) warnings.push("no_serving_size");
   if (nutrients.kcal === null) warnings.push("no_energy");
+  else {
+    // A printed energy far below its own macros (0 kcal beside 2.5 g fat) is a misprint or misread: use Atwater and say so.
+    const atwater = atwaterOverride({ ...nutrients, kcal: nutrients.kcal });
+    if (atwater !== null) {
+      nutrients = { ...nutrients, kcal: atwater };
+      warnings.push("energy_adjusted");
+    }
+  }
   if (serving && per100 && servingSize !== null && !columnsAgree(serving, per100, servingSize)) {
     warnings.push("columns_disagree");
   }

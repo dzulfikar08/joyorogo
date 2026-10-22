@@ -37,7 +37,8 @@ import { errorMessage, fmtInt, fmtKcalLabel, parseNum } from "@/utils/format";
 import { FoodSafetyNotes } from "@/components/maternal/flag-notes";
 import { KindPicker, SnackAdviceSection } from "@/components/makan/snack-advice";
 import type { PickableKind } from "@/components/makan/snack-advice";
-import { orpc, queryClient } from "@/utils/orpc";
+import { client, orpc, queryClient } from "@/utils/orpc";
+import { ConfirmSheet } from "@/components/confirm-sheet";
 import { fmtNumber } from "@joyorogo/i18n";
 import { CommunityCheckCard, LabelFlow, LabelThanks } from "@/components/makan/label-flow";
 import type { ContributeOutcome } from "@/components/makan/label-flow";
@@ -93,6 +94,8 @@ export default function MakanBarcode() {
     staleTime: Infinity,
   });
   const addFood = useMutation(orpc.food.add.mutationOptions());
+  // Same barcode logged again within 15 minutes: ask before adding a second row.
+  const [repeatAsk, setRepeatAsk] = useState<{ name: string; ago: number; add: () => void } | null>(null);
 
   if (gate === "loading" || permission === null) return <BootLoader />;
   if (gate === "anon") return <Redirect href="/login" />;
@@ -115,6 +118,7 @@ export default function MakanBarcode() {
     setThanks(null);
     setKeptSticker(null);
     setHalfUndo(null);
+    setRepeatAsk(null);
     addFood.reset();
   };
 
@@ -334,34 +338,49 @@ export default function MakanBarcode() {
       const gramsOk = gramsNum !== null && gramsNum >= 1 && gramsNum <= MAX_GRAMS;
       const scaled = gramsOk ? portionFromGrams(base, gramsNum) : null;
       const servingLabel = data.servingSize ? `${fmtInt(data.servingSize)} ${unit}` : "";
-      const save = () => {
+      const save = async () => {
         if (!scaled || !gramsOk) {
           setFormError(t("quantity.range", { max: MAX_GRAMS, unit }));
           return;
         }
         setFormError(null);
-        addFood.mutate(
-          {
-            ...(logDate ? { date: logDate } : {}),
-            meal,
-            name: data.product.name,
-            grams: scaled.grams ?? gramsNum,
-            kcal: scaled.kcal,
-            ...(scaled.protein !== null ? { protein: scaled.protein } : {}),
-            ...(scaled.carbs !== null ? { carbs: scaled.carbs } : {}),
-            ...(scaled.fat !== null ? { fat: scaled.fat } : {}),
-            ...(scaled.fiber !== null ? { fiber: scaled.fiber } : {}),
-            source: "barcode",
-            ...(keptSticker ? { scanId: keptSticker } : {}),
-            ...eatenAtInput(),
-            itemsJson: JSON.stringify({
-              barcode: data.code,
-              brand: data.product.brand,
-              source: data.source,
-            }),
-          },
-          { onSuccess: () => finishSave(data.product.name, scaled.kcal) },
-        );
+        const add = () =>
+          addFood.mutate(
+            {
+              ...(logDate ? { date: logDate } : {}),
+              meal,
+              name: data.product.name,
+              grams: scaled.grams ?? gramsNum,
+              kcal: scaled.kcal,
+              ...(scaled.protein !== null ? { protein: scaled.protein } : {}),
+              ...(scaled.carbs !== null ? { carbs: scaled.carbs } : {}),
+              ...(scaled.fat !== null ? { fat: scaled.fat } : {}),
+              ...(scaled.fiber !== null ? { fiber: scaled.fiber } : {}),
+              source: "barcode",
+              ...(keptSticker ? { scanId: keptSticker } : {}),
+              ...eatenAtInput(),
+              itemsJson: JSON.stringify({
+                barcode: data.code,
+                brand: data.product.brand,
+                source: data.source,
+              }),
+            },
+            { onSuccess: () => finishSave(data.product.name, scaled.kcal) },
+          );
+        try {
+          const { loggedAt } = await client.barcode.recentLog({ code: data.code });
+          if (loggedAt !== null) {
+            setRepeatAsk({
+              name: data.product.name,
+              ago: Math.max(1, Math.round((Date.now() - loggedAt) / 60_000)),
+              add,
+            });
+            return;
+          }
+        } catch {
+          // The guard is a courtesy; never block logging on it.
+        }
+        add();
       };
       body = (
         <View style={styles.block}>
@@ -419,6 +438,7 @@ export default function MakanBarcode() {
               {t("result.sugar", { value: fmtNumber(data.sugar100, 1), unit })}
             </Text>
           ) : null}
+          {data.kcalFromMacros ? <Text style={styles.caption}>{t("result.kcalFromMacros")}</Text> : null}
           {data.source === "label_photo" && data.mine !== true ? (
             <CommunityCheckCard code={data.code} onWrong={() => setLabelOpen(true)} />
           ) : null}
@@ -566,6 +586,20 @@ export default function MakanBarcode() {
           ) : null}
           <View onLayout={(event) => (bodyY.current = event.nativeEvent.layout.y)}>{body}</View>
         </KeyboardAwareScrollView>
+        <ConfirmSheet
+          visible={repeatAsk !== null}
+          onClose={() => setRepeatAsk(null)}
+          title={t("repeat.title", { ago: repeatAsk?.ago ?? 0 })}
+          message={t("repeat.body", { name: repeatAsk?.name ?? "", ago: repeatAsk?.ago ?? 0 })}
+          confirmLabel={t("repeat.confirm")}
+          cancelLabel={t("repeat.cancel")}
+          destructive={false}
+          onConfirm={() => {
+            const add = repeatAsk?.add;
+            setRepeatAsk(null);
+            add?.();
+          }}
+        />
       </SafeAreaView>
     );
   }

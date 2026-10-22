@@ -291,3 +291,21 @@ describe("readLabelPhotos", () => {
     expect((outcome as LabelReadError).reason).toBe("timeout");
   });
 });
+
+describe("label energy that contradicts its macros", () => {
+  test("0 kcal with fat is replaced by Atwater and flagged", () => {
+    const answer = JSON.stringify({
+      servingSize: 100,
+      unit: "g",
+      perServing: null,
+      per100: { kcal: 0, kj: null, protein: 0, carbs: 0, fat: 2.5, fiber: null, sugar: null },
+      problem: null,
+    });
+    const result = buildDraft(answer, null);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.draft.nutrients.kcal).toBe(23);
+      expect(result.draft.warnings).toContain("energy_adjusted");
+    }
+  });
+});

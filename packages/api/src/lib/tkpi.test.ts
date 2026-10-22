@@ -14,7 +14,7 @@ describe("konjac rice", () => {
     }
     expect(libraryKcal("nasi beras konjac", 150)).toBe(105);
     expect(libraryKcal("konjac rice", 100)).toBe(15);
-    expect(calibrateItems([{ name: "nasi putih", kcal: 40, grams: 150 }])[0]?.kcal).toBe(150);
+    expect(calibrateItems([{ name: "nasi putih", kcal: 40, grams: 150 }])[0]?.kcal).toBe(195);
   });
 });
 
@@ -368,5 +368,45 @@ describe("band follows grams, not the typical portion", () => {
       const item = kcalOf(name, 5000, grams);
       expect((item?.kcal ?? 0) / grams).toBeLessThanOrEqual(9);
     }
+  });
+});
+
+describe("consistent staples and drinks", () => {
+  const kcal = (name: string, grams: number, modelKcal: number) => calibrateItems([{ name, kcal: modelKcal, grams }])[0];
+
+  test("an English rice name is the same row and kcal as nasi putih", () => {
+    const english = kcal("White rice", 150, 231);
+    const local = kcal("nasi putih", 150, 182);
+    expect(english?.name).toBe("nasi putih");
+    expect(english?.kcal).toBe(195);
+    expect(local?.kcal).toBe(195);
+  });
+
+  test("americano and black coffee are ~5 kcal whatever the model said", () => {
+    for (const [name, model] of [["Es Kopi Americano", 60], ["Americano Es", 20], ["Iced Americano", 35], ["kopi hitam", 5]] as const) {
+      const item = kcal(name, 240, model);
+      expect(item?.kcal).toBe(5);
+      expect(item?.matched).toBe(true);
+    }
+  });
+
+  test("es kopi susu is its own row at the same kcal on every scan", () => {
+    expect(kcal("es kopi susu", 250, 60)?.kcal).toBe(175);
+    expect(kcal("Es Kopi Susu Gula Aren", 250, 230)?.kcal).toBe(175);
+  });
+
+  test("juice with and without sugar are two rows keyed by the name", () => {
+    expect(kcal("jus mangga", 250, 40)?.kcal).toBe(138);
+    expect(kcal("jus mangga tanpa gula", 250, 120)?.kcal).toBe(88);
+  });
+
+  test("a fixed kcal keeps the model's macro split proportional", () => {
+    const item = calibrateItems([{ name: "nasi putih", kcal: 200, grams: 150, protein: 4, carbs: 44, fat: 0.4 }])[0];
+    expect(item?.kcal).toBe(195);
+    expect(item?.carbs).toBeCloseTo(42.9, 1);
+  });
+
+  test("the eval harness's bandSlack leaves the model's number alone", () => {
+    expect(calibrateItems([{ name: "nasi putih", kcal: 231, grams: 150 }], { bandSlack: 0.5 })[0]?.kcal).toBe(231);
   });
 });

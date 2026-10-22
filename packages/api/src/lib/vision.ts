@@ -43,7 +43,9 @@ ${PACKAGE_RULE}
 ${DRINK_RULE}
 ${SAUCE_RULE}
 ${COUNT_RULE}
-${PRINTED_TEXT_RULE}${regionRule(region)}`;
+${PRINTED_TEXT_RULE}
+${LOOKALIKE_RULE}
+${JUICE_RULE}${regionRule(region)}`;
 }
 
 /**
@@ -83,6 +85,20 @@ export const COUNT_RULE =
  */
 export const PRINTED_TEXT_RULE =
   'Baca dulu semua tulisan yang tercetak di foto (label cup, bungkus, kemasan, menu, struk) dan PERCAYAI tulisan itu di atas penampilan makanan: cup berlabel "Americano ICE" = Americano es hitam tanpa susu (5-15 kkal), bungkus bertulisan "NASI KEBULI" = nasi kebuli, bukan nasi putih. Cup yang cairannya terlihat (cup bening) atau yang labelnya menyebut minumannya BUKAN cup tersembunyi: jangan isi field cup, tulis nama minuman dari label atau warna cairannya. Makanan kemasan memakai porsi dan kkal yang tertulis di label bila terbaca. Nasi konjac/shirataki (beras konjac, 10-120 kkal per 100 g) tampak sama dengan nasi putih di foto: tulis "nasi konjac" HANYA bila kemasan atau teks di foto menyebut konjac/shirataki/porang, atau catatan pengguna menyebutnya; jangan pernah menebak konjac dari tampilan saja, nasi yang tampak biasa = nasi putih. Kopi es yang gelap dan tembus pandang, tanpa warna susu, = Americano/kopi hitam es (5-15 kkal); pilih es kopi susu hanya jika warna susu atau lapisan krim terlihat atau tulisannya menyebut susu/latte. Tempe vs tahu: tempe goreng = lempeng/potongan persegi panjang cokelat tua, padat, permukaan kasar bergaris dengan butir kedelai atau bercak putih keabuan (sering 2-3 potong tipis di tepi piring); tahu goreng = kuning keemasan, kulit halus dan menggembung/berongga tanpa butir. Ragu = tempe jika tampak butir, tahu jika polos halus.';
+
+/**
+ * Lookalikes testers reported as wrong (scan feedback 2026-10-17/21): bakwan sayur read as tempe goreng tepung,
+ * a Pizza Hut slice as plain cheese pizza, siomay with its peanut sauce as one blob.
+ */
+export const LOOKALIKE_RULE =
+  'Gorengan bertepung yang mirip: bakwan sayur = adonan tepung penuh serutan sayur (kol, wortel, tauge, jagung) dengan permukaan bergelombang, isinya sayur; tempe goreng tepung = irisan tempe tipis dan padat berbintik kedelai di dalam lapisan tepung. Lihat isinya yang tampak di bagian yang patah atau tepi, jangan menukar keduanya. Pizza: bila ada kotak, kertas, atau tulisan merek (Pizza Hut, Domino\'s, Papa John\'s, Sbarro) pakai merek itu di name (mis. "pizza Pizza Hut keju") dan hitung per potong ukuran restoran (satu potong sedang 100-130 g, pinggiran isi keju atau topping tebal lebih berat), bukan satu loyang. Siomay atau batagor yang disiram bumbu kacang: siomay (pangsit, tahu, kentang, kol, telur) satu item dan bumbu kacang item terpisah (aturan bumbu kacang di atas) bila saus terlihat banyak; jangan menggabungkan saus ke kcal siomay.';
+
+/**
+ * Juice sugar cannot be seen in the glass (tester: "jus mangga" logged with sugar though made without), so the
+ * name carries the assumption and the library has one row per choice (tkpi.ts "jus buah dengan/tanpa gula").
+ */
+export const JUICE_RULE =
+  'Jus buah: gula tidak terlihat dari gelas. Tulis name "jus X dengan gula" (jus warung, kafe, atau dagang: ini dugaan bawaan) atau "jus X tanpa gula" HANYA bila label, menu, atau catatan pengguna menyebut tanpa gula/no sugar/unsweetened; jangan menebak dari warna atau kekentalan. Americano atau kopi hitam di gelas sekitar 5 kkal, es kopi susu sekitar 175 kkal per gelas 250 ml.';
 
 /**
  * Shadow variant (see lib/shadow-scan.ts): the production prompt plus the
@@ -658,7 +674,8 @@ function calibrateRaw(
       ...(item.edibleGrams !== undefined ? { portion: boneInPortion(item, locale) } : {}),
       box: entry.box,
       kind: resolveFoodKind(item.name, entry.kind),
-      localName: entry.localName,
+      // An English name the library renamed to its Indonesian row stays what an English reader sees.
+      localName: entry.localName ?? (item.name !== entry.name ? entry.name : undefined),
     };
   });
 }

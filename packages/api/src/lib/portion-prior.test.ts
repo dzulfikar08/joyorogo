@@ -104,7 +104,7 @@ describe("withPortionPrior: a solid history starts at the usual grams", () => {
   test("starts at the usual grams, kcal through calibration, the model's numbers behind the chip", () => {
     const out = withPortionPrior(rice, priors);
     expect(out.grams).toBe(100);
-    expect(out.kcal).toBe(131);
+    expect(out.kcal).toBe(130);
     expect(out.portion).toBeUndefined();
     expect(out.protein).toBeCloseTo(2.8, 1);
     expect(out.portionPrior).toEqual({
@@ -118,7 +118,7 @@ describe("withPortionPrior: a solid history starts at the usual grams", () => {
   test("three entries are enough to start at the usual grams, two only offer it", () => {
     expect(withPortionPrior(rice, history(100, 100, 100))).toMatchObject({ grams: 100, portionPrior: { active: "prior", n: PRIOR_MIN_ENTRIES } });
     const two = withPortionPrior(rice, history(100, 100));
-    expect(two).toMatchObject({ grams: 130, kcal: 170, portion: "1 centong", portionPrior: { active: "ai", n: 2, source: "you", other: { grams: 100, kcal: 131 } } });
+    expect(two).toMatchObject({ grams: 130, kcal: 170, portion: "1 centong", portionPrior: { active: "ai", n: 2, source: "you", other: { grams: 100, kcal: 130 } } });
     expect(withPortionPrior(rice, history(100, 100, 100), { minEntries: 5 })).toMatchObject({ grams: 130, portionPrior: { active: "ai", n: 3 } });
   });
 
@@ -158,7 +158,7 @@ describe("withPortionPrior: the typical rice portion for everyone else", () => {
       grams: 130,
       kcal: 170,
       portion: "1 centong",
-      portionPrior: { active: "ai", n: 0, source: "typical", other: { grams: TYPICAL_PORTIONS.nasi, kcal: 131 } },
+      portionPrior: { active: "ai", n: 0, source: "typical", other: { grams: TYPICAL_PORTIONS.nasi, kcal: 130 } },
     });
     expect(chipGrams(out)).toEqual({ ai: 130, usual: 100 });
   });

@@ -70,7 +70,7 @@ import { parseFoodStory } from "../packages/api/src/lib/story";
 import { cardOutcome, dishwareInstruction, dishwareLabel, plateRefSchema, referenceInstruction } from "../packages/api/src/lib/dishware";
 import type { PlateRef } from "../packages/api/src/lib/dishware";
 
-import { analyzeFoodPhoto, DEFAULT_VISION_MODEL, PRINTED_TEXT_RULE, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
+import { analyzeFoodPhoto, DEFAULT_VISION_MODEL, JUICE_RULE, LOOKALIKE_RULE, PRINTED_TEXT_RULE, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
 import type { AiRunner, CardAnswer } from "../packages/api/src/lib/vision";
 import type { CalibrateOptions } from "../packages/api/src/lib/tkpi";
 import { PRIOR_BIG_PLATE, PRIOR_MIN_ENTRIES, TYPICAL_MIN_RATIO, TYPICAL_PORTIONS, buildPriors, userSetSamples, withPortionPrior } from "../packages/api/src/lib/portion-prior";
@@ -129,6 +129,10 @@ const VARIANTS: Record<string, Variant> = {
   "no-printed-text": {
     promptTransform: (base) => base.replace(`\n${PRINTED_TEXT_RULE}`, ""),
     notes: "The shipped prompt without the printed-text rule (PRINTED_TEXT_RULE): the paired 'before' for that rule, run the same day as baseline.",
+  },
+  "no-lookalike": {
+    promptTransform: (base) => base.replace(`\n${LOOKALIKE_RULE}`, "").replace(`\n${JUICE_RULE}`, ""),
+    notes: "The shipped prompt without the lookalike (bakwan/tempe, chain pizza, siomay sauce) and juice-sugar rules: the paired 'before' for them.",
   },
   "prompt-b": {
     // PLACEHOLDER: shows the mechanism. The wording is illustrative, not a recommendation.

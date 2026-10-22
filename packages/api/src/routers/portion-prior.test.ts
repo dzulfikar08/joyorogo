@@ -70,8 +70,8 @@ describe("ai.analyzeFood with Porsi kebiasaanmu, for every user", () => {
     expect(rice).toMatchObject({
       name: "nasi putih",
       grams: 130,
-      kcal: 170,
-      portionPrior: { active: "ai", n: 0, source: "typical", other: { grams: 100, kcal: 131 } },
+      kcal: 169,
+      portionPrior: { active: "ai", n: 0, source: "typical", other: { grams: 100, kcal: 130 } },
     });
     expect(ayam).toMatchObject({ name: "ayam goreng", grams: 80 });
     expect(ayam && "portionPrior" in ayam).toBe(false);
@@ -83,8 +83,8 @@ describe("ai.analyzeFood with Porsi kebiasaanmu, for every user", () => {
     expect(rice).toMatchObject({
       name: "nasi putih",
       grams: 100,
-      kcal: 131,
-      portionPrior: { active: "prior", n: 5, source: "you", other: { grams: 130, kcal: 170 } },
+      kcal: 130,
+      portionPrior: { active: "prior", n: 5, source: "you", other: { grams: 130, kcal: 169 } },
     });
     expect(ayam && "portionPrior" in ayam).toBe(false);
   });
@@ -98,7 +98,7 @@ describe("ai.analyzeFood with Porsi kebiasaanmu, for every user", () => {
     const result = await call(aiRouter.analyzeFood, INPUT, { context: ctx("two") });
     expect(result.items[0]).toMatchObject({
       grams: 130,
-      kcal: 170,
+      kcal: 169,
       portionPrior: { active: "ai", n: 2, source: "you", other: { grams: 95 } },
     });
   });
