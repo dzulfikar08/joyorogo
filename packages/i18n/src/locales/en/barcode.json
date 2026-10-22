@@ -139,10 +139,10 @@
   "label": {
     "title": "Nutrition label photo",
     "intro": "Photograph the \"Informasi Nilai Gizi\" table on the pack. The numbers are read automatically; you check them before saving.",
-    "privacy": "The photo is only read, then deleted. Only the name and nutrition numbers are saved, shared with every JoyoRogo user.",
+    "privacy": "Usually the photos are only read, then deleted. If you turn on the sticker option for the front photo, its cutout (background removed) is kept as the sticker of the meal you log, and goes when you delete that meal. The nutrition table photo is always deleted. Only the name and nutrition numbers are shared with every JoyoRogo user.",
     "permission": {
       "title": "Camera for the label photo",
-      "body": "JoyoRogo needs the camera to photograph the nutrition table on the pack. The photo is sent once to be read, then deleted.",
+      "body": "JoyoRogo needs the camera to photograph the nutrition table on the pack. The photo is sent once to be read, then deleted. The front photo only becomes your meal's sticker if you switch that on.",
       "continue": "Continue",
       "denied": "Camera access was denied. Open your phone settings to allow it, or pick a photo from your gallery."
     },
@@ -161,7 +161,12 @@
       "photoAlt": "Photo of {{what}}",
       "manual": "Enter the numbers myself",
       "labelWhat": "nutrition table",
-      "frontWhat": "front of the pack"
+      "frontWhat": "front of the pack",
+      "keep": {
+        "title": "Use the front photo as my meal's sticker",
+        "off": "Off: the front photo is read, then deleted.",
+        "on": "On: the front photo is cut out and kept as the sticker of the meal you log. The photo itself is still deleted."
+      }
     },
     "form": {
       "title": "Check the numbers",

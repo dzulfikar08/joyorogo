@@ -358,7 +358,7 @@ export const foodRouter = {
         fiber: z.number().min(0).max(500).optional(),
         source: z.enum(["manual", "ai", "barcode", "copy"]).default("manual"),
         itemsJson: z.string().max(10_000).optional(),
-        // capability id of the dish sticker generated at scan time
+        // capability id of the dish sticker generated at scan time (barcode meals: the kept pack photo's cutout)
         scanId: z.string().regex(SCAN_ID_RE).optional(),
         plate: plateInput.optional(),
         // attach to a plate created by an earlier item of the same Cerita group
@@ -413,10 +413,18 @@ export const foodRouter = {
           plate: input.plate,
         }));
       // A barcode meal with no photo of its own shows the product's front photo as its sticker (lib/barcode-image.ts).
-      // A cutout the client sends (a photo the person took) always wins.
+      // A cutout the client sends (the pack photo the person chose to keep, barcode.readLabel's stickerScanId) always
+      // wins. For a barcode meal that id must still be a pending cutout of this user (it expires with the scan-src/
+      // prefix); one that is gone is dropped, so the row falls back to the product photo instead of a sticker that 404s.
       const bucket = context.env.STICKERS;
       const images = context.env.IMAGES;
-      const productCode = input.source === "barcode" && !input.scanId && bucket && images ? barcodeFromItemsJson(input.itemsJson) : null;
+      const keptScanId =
+        input.source === "barcode" && bucket
+          ? input.scanId && (await promotePending(bucket, context.session.user.id, input.scanId))
+            ? input.scanId
+            : undefined
+          : input.scanId;
+      const productCode = input.source === "barcode" && !keptScanId && bucket && images ? barcodeFromItemsJson(input.itemsJson) : null;
       const productImage = productCode ? await productImageUrl(context.db, productCode) : null;
       const productScanId = productCode && productImage ? newScanId() : undefined;
       const [row] = await insertFoodRows(context.db, [
@@ -435,7 +443,7 @@ export const foodRouter = {
           source: input.source,
           eatenAt: input.eatenAt,
           itemsJson: input.itemsJson,
-          scanId: input.scanId ?? productScanId,
+          scanId: keptScanId ?? productScanId,
           plateId,
         },
       ]);

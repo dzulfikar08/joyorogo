@@ -5,6 +5,10 @@
 // barcode_product cache (never from the client) and only from OFF's hosts. The
 // cutout is made once per product and copied per logged row, because a row's
 // sticker is deleted with the row and so cannot be shared between rows.
+//
+// The other way to get a sticker is opt-in: the front photo the person took in
+// the label flow, cut out by the same pipeline as a dish and kept as that one
+// meal's sticker (storeKeptFrontSticker). It wins over the product photo.
 
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -13,7 +17,15 @@ import type { Database } from "@joyorogo/db";
 import { barcodeProduct } from "@joyorogo/db/schema/barcode";
 
 import { normalizeBarcode } from "./barcode";
-import { makeSticker, stickerKey } from "./sticker";
+import {
+  base64ToBytes,
+  makeSticker,
+  makeWholeCutout,
+  newScanId,
+  readPhotoSize,
+  stickerKey,
+  storePendingPlateSticker,
+} from "./sticker";
 import type { ImagesBinding, StickersBucket } from "./sticker";
 
 const MAX_IMAGE_BYTES = 2_000_000;
@@ -106,5 +118,29 @@ export async function storeProductSticker(
     await bucket.put(stickerKey(scanId), png, { httpMetadata: { contentType: "image/png" } });
   } catch {
     // the row keeps its icon
+  }
+}
+
+/**
+ * The opt-in path: cuts the front-of-pack photo the person took while reading a
+ * label and parks the cutout under the expiring pending prefix for them. The
+ * photo itself is never stored. `food.add` promotes the cutout when the meal is
+ * logged (a barcode meal's `scanId` must be one of these). Resolves the pending
+ * id, or null when the cut or the write failed (the meal then falls back to the
+ * product photo, or none). Never throws.
+ */
+export async function storeKeptFrontSticker(
+  images: ImagesBinding,
+  bucket: StickersBucket,
+  userId: string,
+  imageBase64: string,
+): Promise<string | null> {
+  try {
+    const bytes = base64ToBytes(imageBase64);
+    const id = newScanId();
+    const whole = makeWholeCutout(images, bytes, await readPhotoSize(images, bytes));
+    return (await storePendingPlateSticker(images, bucket, userId, id, whole)) ? id : null;
+  } catch {
+    return null;
   }
 }

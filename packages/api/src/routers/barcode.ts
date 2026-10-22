@@ -9,6 +9,7 @@ import type { Locale } from "@joyorogo/i18n";
 import { protectedProcedure } from "../index";
 import { SourceUnavailableError, normalizeBarcode } from "../lib/barcode";
 import type { BarcodeLookup } from "../lib/barcode";
+import { storeKeptFrontSticker } from "../lib/barcode-image";
 import { LabelReadError, readLabelPhotos } from "../lib/barcode-label";
 import type { LabelDraft } from "../lib/barcode-nutrition";
 import {
@@ -21,6 +22,7 @@ import type { ContributionInput, ContributionOutcome, ContributionResult } from 
 import { barcodeSources } from "../lib/barcode-sources";
 import { jakartaToday } from "../lib/engine";
 import { serverT } from "../lib/messages";
+import { pendingStickerKey } from "../lib/sticker";
 import { dayBounds } from "../lib/tiers";
 import { userZone } from "../lib/user-zone";
 import { DEFAULT_VISION_MODEL } from "../lib/vision";
@@ -130,18 +132,24 @@ export const barcodeRouter = {
     }),
 
   // Reads a photo of the nutrition panel (and optionally the front of the pack)
-  // into a draft the user confirms on a form. The photos exist only inside this
-  // request: they go to the model and are dropped, never stored or logged.
-  // Free of the daily scan quota (it improves the shared database) but capped.
+  // into a draft the user confirms on a form. By default the photos exist only
+  // inside this request: they go to the model and are dropped, never stored or
+  // logged. Only when the person opts in (`keepFront`, with a front photo) is
+  // the front photo also cut out like a dish and its cutout (never the photo, never
+  // the panel photo) parked for them as `stickerScanId`, to be sent as the `scanId`
+  // of the barcode meal they log (food.add). Free of the daily scan quota (it
+  // improves the shared database) but capped.
   readLabel: protectedProcedure
     .input(
       z.object({
         code: codeSchema,
         label: photoSchema,
         front: photoSchema.optional(),
+        /** Opt-in, default off: keep the front photo as this meal's sticker. */
+        keepFront: z.boolean().optional(),
       }),
     )
-    .handler(async ({ context, input }): Promise<{ draft: LabelDraft }> => {
+    .handler(async ({ context, input }): Promise<{ draft: LabelDraft; stickerScanId: string | null }> => {
       normalizedCode(input.code, context.locale);
       const t = serverT(context.locale, "barcode");
       const ai = context.env.AI;
@@ -182,13 +190,25 @@ export const barcodeRouter = {
             () => undefined,
             (error: unknown) => console.error("[barcode] label ledger insert failed", error),
           );
+      const bucket = context.env.STICKERS;
+      const images = context.env.IMAGES;
+      // Cut while the model reads; a failed read throws the cutout away.
+      const kept =
+        input.keepFront && input.front && bucket && images
+          ? storeKeptFrontSticker(images, bucket, userId, input.front.imageBase64)
+          : null;
       try {
         const run = await readLabelPhotos(ai, { model, label: input.label, front: input.front ?? null });
         context.waitUntil(ledger({ ok: true, ...run.usage }));
-        return { draft: run.draft };
+        return { draft: run.draft, stickerScanId: kept ? await kept : null };
       } catch (error) {
         const reason = error instanceof LabelReadError ? error.reason : "failed";
         context.waitUntil(ledger({ ok: false, reason }));
+        if (kept && bucket) {
+          context.waitUntil(
+            kept.then((id) => (id ? bucket.delete(pendingStickerKey(id)) : undefined)).catch(() => undefined),
+          );
+        }
         throw labelReadError(error, context.locale);
       }
     }),

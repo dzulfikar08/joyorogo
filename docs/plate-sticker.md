@@ -64,13 +64,35 @@ portion sheet, the viewer and the share cards show it with no client change (`li
 - The image URL is read from our own `barcode_product.image_url` for the barcode in the row's `itemsJson` (never from the client),
   and only `https://*.openfoodfacts.org` is fetched (2 MB, 6 s). OFF now supplies the 400 px front photo (`image_front_url`, the
   small one as fallback). Rows from label photos (`label_photo`) and USDA have no image: a pack photo that someone took is not ours
-  to keep or show.
+  to keep or show, unless that person opts in (next section).
 - The photo is cut out like a dish (`segment: foreground`, 480 px; if that fails, the plain resized photo). The cutout is made once
   per product (`barcode-img/<code>.png`, shared, not personal data) and **copied** to `scans/<id>.png` for each logged row, because
   a row's sticker is deleted with the row.
-- A cutout the client already has (`scanId`, a photo the person took) always wins over the product photo.
+- A cutout the client already has (`scanId`, the kept pack photo below) always wins over the product photo.
 - Only new logs get one: barcode meals logged before this have no stickers. Open Food Facts images are CC BY-SA; the barcode
   screen keeps linking the source.
+
+## A kept pack photo (opt-in)
+
+In the label flow, once the person has taken the front-of-pack photo, a switch "Pakai foto depan jadi stiker makanan" can keep that
+photo as the sticker of the meal they log next. It is **off by default and every time** (not remembered), so "photos are read, then
+deleted" stays true for everyone who does not turn it on. The label screen and the privacy pages (id, en, ms) describe both cases.
+
+1. `barcode.readLabel({ ..., front, keepFront: true })` starts `storeKeptFrontSticker` (`lib/barcode-image.ts`) next to the model
+   call: the same whole-photo segmentation and trim as a plate (`makeWholeCutout` + `storePendingPlateSticker`), parked at
+   `scan-src/stk/<id>.png` with the owner in its metadata, and the id returned as `stickerScanId`. Only the cutout is kept; the
+   original front photo and the nutrition-panel photo are never written. A failed read deletes the cutout; a failed cut returns null.
+2. The barcode screen (native and web) holds the id until the code is reset and sends it as `scanId` with `food.add`
+   (`source: "barcode"`). For a barcode meal the server only accepts a `scanId` that is still a pending cutout of that user
+   (`promotePending`, copied to `scans/<id>.png`); an expired or foreign id is dropped and the row falls back to the product photo,
+   so a sticker that 404s is never stored. Logging the same product again within the pending window reuses the id (rows share the
+   object; deleting one keeps it until the last is gone).
+3. Unlogged cutouts expire with the `scan-src/` lifecycle (about 2 days); logged ones live and die with the row like any dish
+   sticker (row delete, account delete, "hapus semua data").
+
+Needs no D1 migration (it reuses `food_log.scan_id`) and no native module, plugin or `app.json` change: JS only, so the OTA keeps the
+runtimeVersion. The server must be deployed first (old servers ignore `keepFront` and answer no `stickerScanId`, so a new client
+would log with no sticker).
 
 ## Rollout order
 
