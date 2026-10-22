@@ -11,7 +11,7 @@
 import type { Engine, ToolCall, ToolSpec } from "./types";
 import { daysBetween, shiftDate } from "../engine";
 import { flat } from "./digest";
-import { RANK_BY, choosePortion, compareFoods, fitsToday, lookupFood, searchFoods } from "./foods";
+import { RANK_BY, TYPICAL_PORTION_NOTE, amountsFor, choosePortion, compareFoods, fitsToday, lookupFood, searchFoods } from "./foods";
 import type { RankBy, Remaining } from "./foods";
 import { BYOK_HEALTH_NOTE, MEAL_ORDER } from "./tool-data";
 import type { DayData, MacroSum, RangeDay, ToolData, WeighIn } from "./tool-data";
@@ -69,7 +69,7 @@ export const TOOL_SPECS: readonly ToolSpec[] = [
     name: "search_foods",
     // i18n-ok: model-facing text
     description:
-      "Looks a food name up in OUR food data (Indonesian TKPI 2019, a dish library, a few USDA rows). Returns up to 8 candidate rows with code and name, and kcal and fiber per 100 g for the best ones. Use it when a name is ambiguous or unknown before comparing.",
+      "Looks a food name up in OUR food data (Indonesian TKPI 2019, a dish library, a few USDA rows). Returns up to 8 candidate rows with code and name, and for the best ones kcal and fiber per 100 g plus per typical portion (`portion` with its source; typical = our household estimate). Use it when a name is ambiguous or unknown before comparing.",
     parameters: {
       type: "object",
       properties: {
@@ -83,14 +83,14 @@ export const TOOL_SPECS: readonly ToolSpec[] = [
     name: "compare_foods",
     // i18n-ok: model-facing text
     description:
-      "Compares 2 to 6 foods from OUR data: per 100 g (kcal, protein, carbs, fat, fiber) and per typical portion when our data has a portion (the person's own usual grams, a typical dish serving, or one counted piece), ranked by one nutrient (highest first). A food we have no row for is listed under `unknown` and never ranked; a row whose macros do not add up has them withheld (null) but keeps kcal and fiber. Sugar is not in our data (always unknown). Fruit and vegetable rows usually have no portion: compare them per 100 g, or pass grams. NEVER quote a number for a food that is not in this result.",
+      "Compares 2 to 6 foods from OUR data: per 100 g (kcal, protein, carbs, fat, fiber) and per typical portion (the person's own usual grams, a typical dish serving, one counted piece, or our typical household portion such as 1 slice of papaya, source typical), ranked by one nutrient (highest first). A food we have no row for is listed under `unknown` and never ranked; a row whose macros do not add up has them withheld (null) but keeps kcal and fiber. Sugar is not in our data (always unknown). A food with no portion at all is compared per 100 g, or pass grams. NEVER quote a number for a food that is not in this result.",
     parameters: {
       type: "object",
       properties: {
         foods: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 6, description: "Food names as the person said them" }, // i18n-ok: model-facing text
         grams: {
           oneOf: [{ type: "number" }, { type: "array", items: { type: "number" } }],
-          description: "Grams eaten: one number for all foods, or one per food in the same order. Omit to use typical portions.", // i18n-ok: model-facing text
+          description: "Grams eaten: one number for all foods, or one per food in the same order. Omit to use typical portions (do not ask the person for grams first).", // i18n-ok: model-facing text
         },
         by: { type: "string", enum: [...RANK_BY], description: "Nutrient to rank by; default fiber" }, // i18n-ok: model-facing text
       },
@@ -101,12 +101,12 @@ export const TOOL_SPECS: readonly ToolSpec[] = [
     name: "fits_today",
     // i18n-ok: model-facing text
     description:
-      "How one food fits TODAY's remaining kcal, protein, carbs, fat and fiber (the app's own numbers: target minus eaten): the food's amounts and what is left after eating it, with over flags (null = unknown). Grams default to the typical portion when our data has one; otherwise the result says needsGrams and you must ask the person for grams.",
+      "How one food fits TODAY's remaining kcal, protein, carbs, fat and fiber (the app's own numbers: target minus eaten): the food's amounts and what is left after eating it, with over flags (null = unknown). Grams default to the typical portion: the person's own usual grams, a dish serving, a counted piece, or our typical household portion (an estimate, source typical: assume one portion, state the assumption and answer without asking for grams). Only when the result says needsGrams do you ask the person for grams.",
     parameters: {
       type: "object",
       properties: {
         food: { type: "string", description: "Food name as the person said it" }, // i18n-ok: model-facing text
-        grams: { type: "number", description: "Grams to eat; default the typical portion if we have one" }, // i18n-ok: model-facing text
+        grams: { type: "number", description: "Grams to eat; default one typical portion" }, // i18n-ok: model-facing text
       },
       required: ["food"],
     },
@@ -366,7 +366,16 @@ async function dispatch(call: ToolCall, data: ToolData): Promise<Dispatched> {
         const base: Record<string, unknown> = { code: c.code, name: c.name, source: c.source };
         if (i < 3) {
           const found = lookupFood(c.code ?? c.name);
-          if (found.ok) base.per100g = { kcal: found.food.per100g.kcal, fiber: found.food.per100g.fiber };
+          if (found.ok) {
+            const { food } = found;
+            base.per100g = { kcal: food.per100g.kcal, fiber: food.per100g.fiber };
+            const portion = choosePortion(food);
+            if (portion) {
+              const per = amountsFor(food, portion.grams);
+              base.portion = portion;
+              base.perPortion = { kcal: per.kcal, fiber: per.fiber };
+            }
+          }
         }
         return base;
       });
@@ -446,6 +455,7 @@ async function dispatch(call: ToolCall, data: ToolData): Promise<Dispatched> {
           code: food.code,
           dataNote: food.dataNote,
           portion,
+          ...(portion.source === "typical" ? { portionNote: TYPICAL_PORTION_NOTE } : {}),
           amounts: fit.amounts,
           remainingBefore: remaining,
           after: fit.after,

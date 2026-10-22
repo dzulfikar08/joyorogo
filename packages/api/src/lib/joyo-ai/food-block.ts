@@ -2,7 +2,7 @@
 // calling answers from our numbers. No network, no model: a cue check, a 1 to 3-gram scan of the text against our resolver, and
 // the same functions the tools use.
 
-import { NUTRIENTS, amountsFor, choosePortion, fitsToday, lookupFood, normalize } from "./foods";
+import { NUTRIENTS, TYPICAL_PORTION_NOTE, amountsFor, choosePortion, fitsToday, lookupFood, normalize } from "./foods";
 import type { Amounts, FoodFacts, Nutrient, Remaining } from "./foods";
 import type { ToolData } from "./tool-data";
 
@@ -155,6 +155,7 @@ export async function foodBlockFor(text: string, data: ToolData): Promise<string
     remaining = null;
   }
   if (foods.length > 0) lines.push("Per portion, and what is left of today's budget after it (the app's own numbers):");
+  let usedTypical = false;
   for (const food of foods) {
     let usual: number | null = null;
     try {
@@ -167,6 +168,7 @@ export async function foodBlockFor(text: string, data: ToolData): Promise<string
       lines.push(`- ${food.name}: no portion in our data, compare per 100 g or ask the person for grams`);
       continue;
     }
+    if (portion.source === "typical") usedTypical = true;
     const amounts = amountsFor(food, portion.grams);
     const where = portion.source === "yours" ? "the person's usual" : (portion.label ?? portion.source);
     let line = `- ${food.name}, ${portion.grams} g (${where}): ${amountsText(amounts)}`;
@@ -177,6 +179,7 @@ export async function foodBlockFor(text: string, data: ToolData): Promise<string
     lines.push(line);
   }
 
+  if (usedTypical) lines.push(TYPICAL_PORTION_NOTE);
   if (ambiguous.length > 0) {
     lines.push(`Several rows match (ask which one, do not pick): ${ambiguous.map((a) => `${a.query} -> ${a.candidates.join(" / ")}`).join("; ")}`);
   }
