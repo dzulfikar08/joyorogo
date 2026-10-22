@@ -102,6 +102,8 @@
     "FREE_DAILY_SCANS": "3",
     // Coach chat (docs/coach.md): messages per user per WIB day; "0" turns it off. Optional AI_COACH_MODEL overrides the model.
     "COACH_DAILY_CAP": "20",
+    // Joyo AI hosted chat (Pro; packages/api/src/lib/joyo-ai/server-limit.ts): messages per user per local day; "0" turns it off. Optional AI_JOYO_MODEL overrides the model (unset = AI_COACH_MODEL, AI_CORRECT_MODEL, then the default text model).
+    "JOYO_AI_DAILY_CAP": "20",
     // Weekly reflection AI text (docs/weekly-recap-ai.md): optional AI_RECAP_MODEL overrides the model, unset = AI_VISION_MODEL's default (Gemma 4).
     "FOUNDER_DAILY_CAP": "100",
     "ANON_SCANS": "2",

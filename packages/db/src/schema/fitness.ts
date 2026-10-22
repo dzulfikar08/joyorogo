@@ -369,9 +369,10 @@ export const aiUsage = sqliteTable(
     // "correction": a typed/spoken fix of a scan result (ai.correctScan); free, only rate-limited.
     // "label": a nutrition-label photo read (barcode.readLabel); free, only rate-limited, failures included.
     // "coach": one coach chat message that reached the model (coach.chat); free for food scans, capped per day by COACH_DAILY_CAP.
+    // "joyo": one hosted Joyo AI question that reached the model (joyo.chat); Pro, capped per day by JOYO_AI_DAILY_CAP. Counts only, never text.
     // "recap": one model run of the weekly reflection (stats.generateWeekReflection); free, capped per week by its cache row.
     // "macros": P/K/L guessed for a typed name + kcal (food.add without macros, lib/macro-estimate.ts); free, capped per day.
-    scanType: text("scan_type", { enum: ["anon", "user", "retry", "failed", "correction", "label", "coach", "recap", "dishware", "macros"] }).notNull(),
+    scanType: text("scan_type", { enum: ["anon", "user", "retry", "failed", "correction", "label", "coach", "joyo", "recap", "dishware", "macros"] }).notNull(),
     latencyMs: integer("latency_ms").notNull(),
     usageJson: text("usage_json"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })

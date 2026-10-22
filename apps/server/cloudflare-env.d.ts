@@ -36,6 +36,8 @@ declare module "cloudflare:workers" {
       FREE_DAILY_SCANS?: string;
       COACH_DAILY_CAP?: string;
       AI_COACH_MODEL?: string;
+      JOYO_AI_DAILY_CAP?: string;
+      AI_JOYO_MODEL?: string;
       AI_RECAP_MODEL?: string;
       FOUNDER_DAILY_CAP?: string;
       ANON_SCANS?: string;

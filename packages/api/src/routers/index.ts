@@ -16,6 +16,7 @@ import { fitnessRouter } from "./fitness";
 import { fitWebRouter } from "./fit-web";
 import { foodRouter } from "./food";
 import { groupRouter } from "./group";
+import { joyoRouter } from "./joyo";
 import { mcpConnectionRouter } from "./mcp-connection";
 import { mealPlanRouter } from "./meal-plan";
 import { plateRouter } from "./plate";
@@ -76,6 +77,7 @@ export const appRouter = {
   barcode: barcodeRouter,
   fitness: fitnessRouter,
   fitWeb: fitWebRouter,
+  joyo: joyoRouter,
   coach: coachRouter,
   strength: strengthRouter,
   sync: syncRouter,

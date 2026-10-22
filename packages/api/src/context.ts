@@ -19,10 +19,14 @@ export type ApiEnv = PaywallEnv & ShadowEnv & {
   AI_CORRECT_MODEL?: string;
   /** Model for coach.chat; unset = AI_CORRECT_MODEL, else the vision model (thinking off). */
   AI_COACH_MODEL?: string;
+  /** Model for joyo.chat (Joyo AI hosted); unset = AI_COACH_MODEL, else AI_CORRECT_MODEL, else the default text model. */
+  AI_JOYO_MODEL?: string;
   /** Model for the weekly reflection (stats.generateWeekReflection); unset = the vision model (Gemma 4, thinking off). */
   AI_RECAP_MODEL?: string;
   /** Coach chat messages per user per WIB day (default 20); "0" turns the chat off. See docs/coach.md. */
   COACH_DAILY_CAP?: string;
+  /** Joyo AI hosted chat messages per user per local day (default 20); "0" turns it off. */
+  JOYO_AI_DAILY_CAP?: string;
   /**
    * Comma-separated user ids whose scans are kept as an internal accuracy dataset
    * (R2 dataset/<userId>/<scanId>/, see lib/dataset.ts). Unset or empty = nobody.
