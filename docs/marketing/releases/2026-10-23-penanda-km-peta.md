@@ -5,7 +5,7 @@ shipped: 2026-10-23
 available: code
 tier: free
 post: todo
-atur: 
+atur: JRG-397
 ---
 
 **Apa:** Peta rute latihan di feed web dan di aplikasi menampilkan penanda kilometer secukupnya. Rute 157 km tidak lagi penuh angka: hanya sekitar selusin yang tidak saling menimpa, dan makin dekat peta di-zoom, makin rapat penandanya.
