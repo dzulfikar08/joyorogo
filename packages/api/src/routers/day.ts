@@ -21,7 +21,6 @@ import {
   jakartaToday,
   macroTargets,
   shiftDate,
-  gainStreak,
   streakFromDates,
   suggestMealNow,
 } from "../lib/engine";
@@ -47,6 +46,8 @@ import {
 } from "../lib/readiness-food";
 import type { GuidanceTargets, HistoryFood } from "../lib/readiness-food";
 import { fastLossNote } from "../lib/safety";
+import { STREAK_WINDOW_DAYS } from "../lib/streak";
+import { loadStreak } from "../lib/streak-store";
 import { paywallConfig } from "../lib/tiers";
 import { userZone } from "../lib/user-zone";
 
@@ -98,7 +99,7 @@ export const dayRouter = {
       const today = jakartaToday(undefined, zone);
       const date = input.date ?? today;
       const weekStart = shiftDate(today, -6);
-      const streakStart = shiftDate(today, -45);
+      const streakStart = shiftDate(today, -STREAK_WINDOW_DAYS);
 
       const [
         profileRows,
@@ -226,6 +227,7 @@ export const dayRouter = {
           latestWeightKg: null,
           weightLoggedToday: false,
           streakDays,
+          streak: null,
           weightLostKg: 0,
           weekEatenKcal: 0,
           weekBurnedKcal: 0,
@@ -237,6 +239,7 @@ export const dayRouter = {
           maternal: null,
           ideas: [],
           date,
+          zone,
         };
       }
 
@@ -286,9 +289,18 @@ export const dayRouter = {
       // Naikin BB: the recap speaks of kg gained, never "lost"; the streak counts days at 90% of the target.
       const gaining = targets.gain !== null;
       const weightGainedKg = gaining ? gainedKg(prof, plan.weightNowKg) : 0;
-      const planStreakDays = gaining
-        ? gainStreak(foodDates, planTargets.eatKcal, today)
-        : streakDays;
+      // No streak pressure in Hamil / Menyusui. A run that fills the window is followed further back (lib/streak-store).
+      const streak = maternal
+        ? null
+        : await loadStreak(
+            context.db,
+            userId,
+            today,
+            streakStart,
+            { food: foodDates, weight: weightDates },
+            gaining ? planTargets.eatKcal : null,
+          );
+      const planStreakDays = streak?.days ?? 0;
       // Pregnant and breastfeeding users are exempt from fasting: "auto" Ramadan stays off for them.
       const ramadanPref = maternal && prof.ramadanMode === "auto" ? "off" : prof.ramadanMode;
       const loggedNames = async () =>
@@ -364,7 +376,9 @@ export const dayRouter = {
         latestWeightDate: latestRows[0]?.date ?? null,
         weightLoggedToday: (loggedRows[0]?.logged ?? 0) > 0,
         // No streak pressure or weight-loss recap in Hamil / Menyusui.
-        streakDays: maternal ? 0 : planStreakDays,
+        streakDays: planStreakDays,
+        // The streak's state for Beranda's chip and the home-screen widget; null in Hamil / Menyusui.
+        streak,
         weightLostKg: maternal || gaining ? 0 : weightLostKg,
         weightGainedKg,
         weekEatenKcal: Math.round(eatenWeek[0]?.kcal ?? 0),
@@ -417,6 +431,8 @@ export const dayRouter = {
                   context.locale,
                 ),
         date,
+        // The person's day zone: a client that only holds this response (the home-screen widget) cuts "today" in it.
+        zone,
       };
     }),
 
