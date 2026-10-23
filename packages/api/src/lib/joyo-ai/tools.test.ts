@@ -216,7 +216,7 @@ describe("search_foods", () => {
 });
 
 describe("compare_foods", () => {
-  test("pepaya, melon, semangka by fiber: ranked from the TKPI rows, ER073 macros withheld", async () => {
+  test("pepaya, melon, semangka by fiber: ranked from the TKPI rows, ER073 keeps its corrected macros", async () => {
     const { json, trace, summary } = await run("compare_foods", { foods: ["pepaya", "melon", "semangka"], by: "fiber" });
     expect(trace).toEqual({ tool: "compare_foods", args: { foods: ["pepaya", "melon", "semangka"] } });
     expect(json.per100gRanking.map((r: { name: string; value: number }) => [r.name, r.value])).toEqual([
@@ -226,9 +226,9 @@ describe("compare_foods", () => {
     ]);
     const pepaya = json.items.find((i: { code: string }) => i.code === "ER073");
     // no grams: the typical household portion of each fruit (1 potong pepaya 100 g, melon 100 g, semangka 150 g)
-    expect(pepaya).toMatchObject({ dataNote: "macros_inconsistent", portion: { grams: 100, source: "typical" }, perPortion: { kcal: 46, fiber: 1.6, protein: null } });
+    expect(pepaya).toMatchObject({ dataNote: null, portion: { grams: 100, source: "typical" }, perPortion: { kcal: 46, fiber: 1.6, protein: 0.5, fat: 0.1 } });
     expect(pepaya.portion.label).toContain("typical estimate");
-    expect(pepaya.per100g).toMatchObject({ kcal: 46, fiber: 1.6, protein: null, fat: null, carbs: null });
+    expect(pepaya.per100g).toMatchObject({ kcal: 46, fiber: 1.6, protein: 0.5, fat: 0.1, carbs: 12.2 });
     expect(json.perPortionRanking.map((r: { name: string; value: number }) => [r.name, r.value])).toEqual([
       ["Pepaya, segar", 1.6],
       ["Melon, segar", 1],
@@ -301,7 +301,7 @@ describe("fits_today", () => {
     expect(json.portion).toMatchObject({ grams: 100, source: "typical" });
     expect(json.portion.label).toContain("1 potong");
     expect(json.portionNote).toContain("do not ask for grams");
-    expect(json.amounts).toMatchObject({ kcal: 46, fiber: 1.6, protein: null });
+    expect(json.amounts).toMatchObject({ kcal: 46, fiber: 1.6, protein: 0.5, fat: 0.1 });
     expect(json.remainingBefore).toMatchObject({ kcal: 1590 });
     expect(json.after.kcal).toBe(1590 - 46);
     expect(json.over.kcal).toBe(false);
@@ -329,8 +329,8 @@ describe("fits_today", () => {
   });
 
   test("withheld macros stay null in the fit", async () => {
-    const { json } = await run("fits_today", { food: "pepaya", grams: 100 });
-    expect(json.amounts).toEqual({ kcal: 46, protein: null, carbs: null, fat: null, fiber: 1.6 });
+    const { json } = await run("fits_today", { food: "umbi uwi", grams: 100 });
+    expect(json.amounts).toEqual({ kcal: 120, protein: null, carbs: null, fat: null, fiber: 2.6 });
     expect(json.after.protein).toBeNull();
     expect(json.over.protein).toBeNull();
   });

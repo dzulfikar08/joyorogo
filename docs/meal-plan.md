@@ -48,7 +48,7 @@ TKPI caveats worth knowing:
   lists each ingredient's source ("Sumber gizi", `recipe.sources`).
 * Some rows are whole dishes that already contain their oil (`telur-dadar` HP001, rendang FP062, empal FP046, pepes rows):
   no `minyak` is added on top. Tempe/tahu "goreng" rows include the frying oil.
-* Rows with data errors are not used: AP022 (mi kering, carbs 6.3 g), ER073 (pepaya, fat 12 g).
+* Rows with data errors are not used: AP022 (mi kering, carbs 6.3 g). The list of rows that fail the Atwater check is pinned in `lib/tkpi2019-data.test.ts`. ER073 (pepaya, printed fat 12 g) is corrected to 0.1 g.
 * No lontong, kwetiau, bakso or lele rows exist; recipes use the nearest honest stand-in (documented in the recipe data).
 * Raw rows are raw weights (ikan, sayur), cooked rows cooked weights (nasi). The shopping list converts cooked rice to raw
   rice (`shop.ratio` 0.4).

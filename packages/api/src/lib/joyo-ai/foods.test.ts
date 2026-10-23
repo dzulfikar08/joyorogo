@@ -81,10 +81,16 @@ describe("lookupFood: one row of our data, or unknown", () => {
 });
 
 describe("Atwater check", () => {
-  test("ER073 Pepaya, segar fails (fat 12.0 against 46 kcal): macros withheld, kcal and fiber kept", () => {
-    const f = food("pepaya");
+  test("BR033 Umbi Uwi fails (82.3 g carbs against 120 kcal): macros withheld, kcal and fiber kept", () => {
+    const f = food("umbi uwi");
     expect(f.dataNote).toBe("macros_inconsistent");
-    expect(f.per100g).toEqual({ kcal: 46, protein: null, carbs: null, fat: null, fiber: 1.6, sugar: null });
+    expect(f.per100g).toEqual({ kcal: 120, protein: null, carbs: null, fat: null, fiber: 2.6, sugar: null });
+  });
+
+  test("ER073 Pepaya, segar has the corrected fat (0.1 g, not the printed 12.0 g) and keeps its macros", () => {
+    const f = food("pepaya");
+    expect(f.dataNote).toBeNull();
+    expect(f.per100g).toEqual({ kcal: 46, protein: 0.5, carbs: 12.2, fat: 0.1, fiber: 1.6, sugar: null });
   });
 
   test("consistent rows keep their macros", () => {
@@ -156,17 +162,17 @@ describe("compareFoods", () => {
     expect(r.unknown).toEqual([]);
   });
 
-  test("ER073's macros are withheld as inconsistent while kcal and fiber stay", () => {
-    const r = compareFoods(["pepaya", "melon"], { by: "fiber" });
-    const pepaya = r.items.find((i) => i.code === "ER073");
-    expect(pepaya?.dataNote).toBe("macros_inconsistent");
-    expect(pepaya?.per100g).toMatchObject({ kcal: 46, fiber: 1.6, protein: null, carbs: null, fat: null });
+  test("a row whose macros do not add up is withheld as inconsistent while kcal and fiber stay", () => {
+    const r = compareFoods(["umbi uwi", "melon"], { by: "fiber" });
+    const uwi = r.items.find((i) => i.code === "BR033");
+    expect(uwi?.dataNote).toBe("macros_inconsistent");
+    expect(uwi?.per100g).toMatchObject({ kcal: 120, fiber: 2.6, protein: null, carbs: null, fat: null });
     expect(r.notes.join(" ")).toContain("do not add up");
   });
 
   test("a food withheld for the ranked nutrient is unrankable, not ranked as 0", () => {
-    const r = compareFoods(["pepaya", "melon", "semangka"], { by: "protein" });
-    expect(r.unrankable).toEqual([{ name: "Pepaya, segar", reason: "value_unknown" }]);
+    const r = compareFoods(["umbi uwi", "melon", "semangka"], { by: "protein" });
+    expect(r.unrankable).toEqual([{ name: "Umbi Uwi, segar", reason: "value_unknown" }]);
     expect(r.per100gRanking?.map((e) => e.name)).toEqual(["Melon, segar", "Semangka, segar"]);
   });
 
@@ -259,9 +265,9 @@ describe("fitsToday", () => {
   });
 
   test("a nutrient that is unknown (withheld macros, no target) is null, never 0 or false", () => {
-    const fit = fitsToday(food("pepaya"), 150, remaining);
-    expect(fit.amounts).toEqual({ kcal: 69, protein: null, carbs: null, fat: null, fiber: 2.4 });
-    expect(fit.after).toEqual({ kcal: 431, protein: null, carbs: null, fat: null, fiber: 3.6 });
+    const fit = fitsToday(food("umbi uwi"), 150, remaining);
+    expect(fit.amounts).toEqual({ kcal: 180, protein: null, carbs: null, fat: null, fiber: 3.9 });
+    expect(fit.after).toEqual({ kcal: 320, protein: null, carbs: null, fat: null, fiber: 2.1 });
     expect(fit.over).toEqual({ kcal: false, protein: null, carbs: null, fat: null, fiber: false });
     const noTarget = fitsToday(food("melon"), 100, { ...remaining, fiber: null });
     expect(noTarget.after.fiber).toBeNull();

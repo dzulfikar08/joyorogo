@@ -11,6 +11,12 @@ BASE = (
 )
 OUT = "packages/api/src/data/tkpi2019.json"
 
+# The printed TKPI 2019 table (and the andrafarm listing) has a decimal typo: ER073 Pepaya, segar lists fat 12.0 g beside
+# 46 kcal. nilaigizi.com (Kemenkes-based, edited 2021) has fat 0.10 g with the same 46 kcal / 0.5 g protein / 12.2 g carbs.
+# {code: {column index: corrected value}}, applied after scraping so regenerating keeps the fix.
+# Columns: 2 air, 3 kcal, 4 protein, 5 fat, 6 carbs, 7 fiber.
+CORRECTIONS: dict[str, dict[int, float]] = {"ER073": {5: 0.1}}
+
 rows: dict[str, list] = {}
 empty_streak = 0
 
@@ -63,6 +69,10 @@ for kk in range(1, 31):
     else:
         empty_streak = 0
     time.sleep(1.5)
+
+for code, fixes in CORRECTIONS.items():
+    for col, value in fixes.items():
+        rows[code][col] = value
 
 data = {"source": "TKPI 2019 (Tabel Komposisi Pangan Indonesia, Kemenkes) — via andrafarm.com public listing", "columns": ["code", "name", "air_pct", "kcal", "protein_g", "fat_g", "carb_g", "fiber_g"], "items": sorted(rows.values(), key=lambda r: r[0])}
 with open(OUT, "w", encoding="utf-8") as f:

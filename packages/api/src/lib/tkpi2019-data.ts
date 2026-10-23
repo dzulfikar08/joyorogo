@@ -708,7 +708,7 @@ export const TKPI_2019: Tkpi2019Row[] = [
   ["ER070", "Nanas, segar", 88.9, 40.0, 0.6, 0.3, 9.9, 0.6],
   ["ER071", "Nangka masak pohon, segar", 70.0, 106.0, 1.2, 0.3, 27.6, 3.7],
   ["ER072", "Pala, daging, segar", 88.1, 42.0, 0.3, 0.2, 10.9, 0.5],
-  ["ER073", "Pepaya, segar", 86.7, 46.0, 0.5, 12.0, 12.2, 1.6],
+  ["ER073", "Pepaya, segar", 86.7, 46.0, 0.5, 0.1, 12.2, 1.6],
   ["ER074", "Pisang ambon, segar", 72.9, 108.0, 1.0, 0.8, 24.3, 1.9],
   ["ER075", "Pisang angleng (pisang ampyang), segar", 80.3, 68.0, 1.3, 0.2, 17.2, 0.8],
   ["ER076", "Pisang ayam, segar", 71.2, 120.0, 1.1, 0.2, 26.8, 4.1],
