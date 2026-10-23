@@ -1,0 +1,89 @@
+<!doctype html>
+<!-- JRG-388 + JRG-387, Barcode lebih teliti dan gambar produk. Screens: web app, demo account "Rina" (.tmp/appstore/shoot-d2.mjs "barcode-note,barcode-repeat", shoot-d2d.mjs "img2").
+     Slides 2 and 3 MOCK the server: barcode.lookup returns a made-up product ("Minuman kacang hijau", label energy contradicted by its macros, kcalFromMacros true) and barcode.recentLog says
+     "logged 5 minutes ago". The screens and sheet are the real UI; the product is invented, not a real barcode.
+     Slide 4: a real Open Food Facts product (Sedaap Ayam Bawang, 8998866200318) was logged through the local stack, which created the row. The local Images binding cannot cut out
+     the photo, so the sticker (scans/<scanId>.png in the local R2) was written by hand: the OFF front photo with rounded corners, no background cutout. Labelled on the slide.
+     Photo: Open Food Facts contributors, CC BY-SA. -->
+<html lang="id"><head><meta charset="utf-8"><link rel="stylesheet" href="@content/_base.css"></head>
+<body>
+
+<!-- 1 Cover -->
+<section class="slide rogo deep">
+  <div class="k">Update JoyoRogo · 22 Okt</div>
+  <div class="gap-s"></div>
+  <h1 class="h" style="font-size:100px">Scan barcode yang sama dua kali? Ditanya dulu.</h1>
+  <div class="gap-s"></div>
+  <p class="lead" style="font-size:42px">Dan bungkus produknya muncul di diari.</p>
+  <div class="grow"></div>
+  <div class="snap" style="--s:.697;--cx:0;--cy:2020;--cw:1320;--ch:800;margin-bottom:40px"><img src="@content/_shots/rogo-barcode-repeat.webp" alt=""></div>
+  <footer class="foot"><span class="brand">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 2 Tambah lagi -->
+<section class="slide rogo" style="padding-top:84px">
+  <div class="k">Barcode yang sama dalam 15 menit</div>
+  <div class="gap-s"></div>
+  <h1 class="h s" style="font-size:70px">Kepencet dua kali tidak jadi catatan dobel.</h1>
+  <div class="grow"></div>
+  <div class="snap" style="--s:.697;--cx:0;--cy:2030;--cw:1320;--ch:838"><img src="@content/_shots/rogo-barcode-repeat.webp" alt=""></div>
+  <div class="gap-s"></div>
+  <p class="note">Produk contoh, bukan barcode asli. Mau menambah lagi, tinggal pilih Tambah lagi.</p>
+  <div class="grow"></div>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 3 Kalori janggal -->
+<section class="slide rogo soft" style="padding-top:84px">
+  <div class="k">Label yang janggal</div>
+  <div class="gap-s"></div>
+  <h1 class="h s" style="font-size:70px">Label menulis 0 kkal padahal ada lemaknya? Dihitung ulang.</h1>
+  <div class="grow"></div>
+  <div class="snap" style="--s:.697;--cx:0;--cy:330;--cw:1320;--ch:800"><img src="@content/_shots/rogo-barcode-note-top.webp" alt="">
+    <span class="callout" style="--rx:65;--ry:865;--rw:1170;--rh:210"></span></div>
+  <div class="gap-s"></div>
+  <p class="note">Produk contoh: protein 2 g, karbo 6 g, lemak 2 g. Hasilnya perkiraan.</p>
+  <div class="grow"></div>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 4 Gambar produk -->
+<section class="slide rogo" style="padding-top:84px">
+  <div class="k">Gambar produk</div>
+  <div class="gap-s"></div>
+  <h1 class="h s" style="font-size:70px">Mi instan yang discan muncul bungkusnya di diari.</h1>
+  <div class="grow"></div>
+  <div class="fig" style="padding-top:14px"><span class="tag on">Contoh dari server lokal</span><div class="snap" style="--s:.697;--cx:0;--cy:0;--cw:1320;--ch:600"><img src="@content/_shots/rogo-img-diary.webp" alt=""></div></div>
+  <div class="gap-s"></div>
+  <p class="note">Foto produk: kontributor Open Food Facts (CC BY-SA). Di contoh ini fotonya dipasang tanpa potong latar.</p>
+  <div class="grow"></div>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 5 Limits -->
+<section class="slide rogo soft">
+  <div class="k">Batasnya</div>
+  <div class="gap-s"></div>
+  <h1 class="h m">Beberapa hal yang tidak berubah.</h1>
+  <div class="gap-m"></div>
+  <div class="rows">
+    <div class="row"><b>Kalori hitung ulang itu perkiraan</b><span>4, 4, dan 9 kkal per gram, bukan angka resmi label. Dicek ke kemasanmu.</span></div>
+    <div class="row"><b>Gambar hanya kalau ada fotonya</b><span>Open Food Facts harus punya foto depan produknya. Tanpa foto, tetap ikon.</span></div>
+    <div class="row"><b>Hanya catatan baru</b><span>Catatan barcode lama tidak ikut bergambar.</span></div>
+  </div>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- CTA -->
+<section class="slide rogo deep">
+  <img data-bleed class="mascot" src="@joyorogo/apps/web/public/mascot/hero.webp" alt="" style="width:340px;right:56px;top:70px">
+  <div class="grow"></div>
+  <h1 class="h">Satu kali catat, cukup.</h1>
+  <div class="gap-m"></div>
+  <span class="cta">joyorogo.com</span>
+  <div class="gap-m"></div>
+  <p class="lead" style="font-size:38px">Download di Play Store (versi tes, gabung dulu lewat link), iPhone TestFlight, atau web. Semua angka perkiraan, bukan saran medis.</p>
+  <footer class="foot"><span class="brand">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+</body></html>

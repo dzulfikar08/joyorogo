@@ -1,0 +1,81 @@
+<!doctype html>
+<!-- JRG-394, Scan: Jumlah dan Dengan tulang / Tanpa tulang. Screens: web app, demo account "Rina" (.tmp/appstore/shoot-d2.mjs "count,bone"). The scan answer is MOCKED
+     (analyzeFood returns fixed items: Telur rebus with pieces, Ayam goreng paha with gross 200 g / edible 130 g, Nasi putih): the screen and the taps are the real UI, run in the browser
+     (the plus was tapped twice, the app computed 234 kcal; "Tanpa tulang" was tapped), the starting items are an example, not a measured scan. -->
+<html lang="id"><head><meta charset="utf-8"><link rel="stylesheet" href="@content/_base.css"></head>
+<body>
+
+<!-- 1 Cover -->
+<section class="slide rogo deep">
+  <div class="k">Update JoyoRogo · 22 Okt</div>
+  <div class="gap-s"></div>
+  <h1 class="h" style="font-size:100px">Scan salah hitung telur? Ketuk plus.</h1>
+  <div class="gap-s"></div>
+  <p class="lead" style="font-size:42px">Kalorinya ikut naik. Ayam goreng: dengan tulang atau tanpa.</p>
+  <div class="grow"></div>
+  <div class="snap" style="--s:.697;--cx:0;--cy:330;--cw:1320;--ch:700;margin-bottom:40px"><img src="@content/_shots/rogo-count-after.webp" alt="">
+    <span class="callout" style="--rx:885;--ry:380;--rw:270;--rh:145"></span></div>
+  <footer class="foot"><span class="brand">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 2 Jumlah -->
+<section class="slide rogo soft">
+  <div class="k">Jumlah</div>
+  <div class="gap-s"></div>
+  <h1 class="h s" style="font-size:70px">Satu ketukan, berat dan kalori mengikuti.</h1>
+  <div class="gap-m"></div>
+  <div class="stack" style="gap:46px;padding-top:14px">
+    <div class="fig"><span class="tag">AI baca 1 butir</span><div class="snap" style="--s:.697;--cx:0;--cy:340;--cw:1320;--ch:440"><img src="@content/_shots/rogo-count-before.webp" alt="">
+      <span class="callout" style="--rx:885;--ry:380;--rw:270;--rh:145"></span></div></div>
+    <div class="fig"><span class="tag on">Ketuk plus dua kali</span><div class="snap" style="--s:.697;--cx:0;--cy:340;--cw:1320;--ch:440"><img src="@content/_shots/rogo-count-after.webp" alt="">
+      <span class="callout" style="--rx:885;--ry:380;--rw:270;--rh:145"></span></div></div>
+  </div>
+  <div class="grow"></div>
+  <p class="note">Contoh tampilan: item awalnya contoh, bukan hasil scan.</p>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 3 Tulang -->
+<section class="slide rogo">
+  <div class="k">Dengan tulang / Tanpa tulang</div>
+  <div class="gap-s"></div>
+  <h1 class="h s" style="font-size:70px">Pilih berat yang dicatat. Kalorinya tetap.</h1>
+  <div class="gap-m"></div>
+  <div class="stack" style="gap:46px;padding-top:14px">
+    <div class="fig"><span class="tag">Dengan tulang</span><div class="snap" style="--s:.697;--cx:0;--cy:340;--cw:1320;--ch:470"><img src="@content/_shots/rogo-bone-with.webp" alt="">
+      <span class="callout" style="--rx:50;--ry:450;--rw:835;--rh:130"></span></div></div>
+    <div class="fig"><span class="tag on">Tanpa tulang</span><div class="snap" style="--s:.697;--cx:0;--cy:340;--cw:1320;--ch:470"><img src="@content/_shots/rogo-bone-without.webp" alt="">
+      <span class="callout" style="--rx:50;--ry:450;--rw:835;--rh:130"></span></div></div>
+  </div>
+  <div class="grow"></div>
+  <p class="note">Kalori tetap karena itu kalori daging yang kamu makan.</p>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 4 Limits -->
+<section class="slide rogo soft">
+  <div class="k">Batasnya</div>
+  <div class="gap-s"></div>
+  <h1 class="h m">Bagian yang bisa dimakan itu perkiraan.</h1>
+  <div class="gap-m"></div>
+  <div class="rows">
+    <div class="row"><b>Perkiraan per bagian, bukan hasil timbang</b><span>Sayap 50%, paha bawah 60%, paha 65%, dada 70%, iga 50%, ikan utuh 55%.</span></div>
+    <div class="row"><b>AI masih bisa salah baca</b><span>Bagian ayamnya, atau beratnya dengan tulang.</span></div>
+    <div class="row"><b>Jumlah awal dari foto</b><span>AI yang membacanya. Plus dan minus untuk membetulkan.</span></div>
+  </div>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- CTA -->
+<section class="slide rogo deep">
+  <img data-bleed class="mascot" src="@joyorogo/apps/web/public/mascot/hero.webp" alt="" style="width:340px;right:56px;top:70px">
+  <div class="grow"></div>
+  <h1 class="h">Telurnya tiga, bukan satu.</h1>
+  <div class="gap-m"></div>
+  <span class="cta">joyorogo.com</span>
+  <div class="gap-m"></div>
+  <p class="lead" style="font-size:38px">Download di Play Store (versi tes, gabung dulu lewat link), iPhone TestFlight, atau web. Semua angka perkiraan, bukan saran medis.</p>
+  <footer class="foot"><span class="brand">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+</body></html>
