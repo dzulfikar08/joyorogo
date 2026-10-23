@@ -557,6 +557,8 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
   const commentAuthor = alias(user, "comment_author");
   const commentAuthorProfile = alias(profile, "comment_author_profile");
   const postAuthorProfile = alias(profile, "post_author_profile");
+  const reportedUser = alias(user, "reported_user");
+  const reportedUserProfile = alias(profile, "reported_user_profile");
 
   app.get("/api/admin/reports", async (c) => {
     const query = parseQuery(
@@ -581,6 +583,10 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
           resolvedAt: socialReport.resolvedAt,
           postId: socialReport.postId,
           commentId: socialReport.commentId,
+          userId: socialReport.userId,
+          source: socialReport.source,
+          reportedUserName: reportedUser.name,
+          reportedUserHandle: reportedUserProfile.handle,
           postKind: postTable.kind,
           postTitle: postTable.title,
           postCaption: postTable.caption,
@@ -603,6 +609,8 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
         .leftJoin(postComment, eq(postComment.id, socialReport.commentId))
         .leftJoin(commentAuthor, eq(commentAuthor.id, postComment.userId))
         .leftJoin(commentAuthorProfile, eq(commentAuthorProfile.userId, postComment.userId))
+        .leftJoin(reportedUser, eq(reportedUser.id, socialReport.userId))
+        .leftJoin(reportedUserProfile, eq(reportedUserProfile.userId, socialReport.userId))
         .where(filters)
         .orderBy(desc(socialReport.createdAt), desc(socialReport.id))
         .limit(pageSize)

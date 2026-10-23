@@ -2015,16 +2015,23 @@ export const socialRouter = {
       z.object({
         postId: z.string().optional(),
         commentId: z.string().optional(),
+        /** A profile report (a member, not one of their posts). */
+        userId: z.string().optional(),
+        /** The app the report comes from; the admin Reports page tags it. */
+        source: z.enum(["joyorogo", "joyofit"]).default("joyorogo"),
         reason: z.enum(["spam", "kasar", "salah_info", "lainnya"]),
         note: z.string().trim().max(NOTE_MAX).optional(),
       }),
     )
     .handler(async ({ context, input }) => {
       const t = serverT(context.locale, "feed");
-      if (Boolean(input.postId) === Boolean(input.commentId)) {
+      if ([input.postId, input.commentId, input.userId].filter(Boolean).length !== 1) {
         throw new ORPCError("BAD_REQUEST", { message: t("server.error.reportOne") });
       }
       const me = context.session.user.id;
+      if (input.userId === me) {
+        throw new ORPCError("BAD_REQUEST", { message: t("server.error.reportSelf") });
+      }
       const dayCount = await countRow(
         context.db
           .select({ total: count() })
@@ -2048,12 +2055,21 @@ export const socialRouter = {
           .where(eq(postComment.id, input.commentId))
           .limit(1);
         if (!comment) throw new ORPCError("NOT_FOUND", { message: t("server.error.commentNotFound") });
+      } else if (input.userId) {
+        const [member] = await context.db
+          .select({ id: user.id })
+          .from(user)
+          .where(eq(user.id, input.userId))
+          .limit(1);
+        if (!member) throw new ORPCError("NOT_FOUND", { message: t("server.error.profileNotFound") });
       }
       await context.db.insert(socialReport).values({
         id: crypto.randomUUID(),
         reporterId: me,
         postId: input.postId ?? null,
         commentId: input.commentId ?? null,
+        userId: input.userId ?? null,
+        source: input.source,
         reason: input.reason,
         note: input.note?.length ? input.note : null,
       });

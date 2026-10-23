@@ -417,6 +417,10 @@ export interface AdminReport {
   resolvedAt: string | number | null;
   postId: string | null;
   commentId: string | null;
+  userId: string | null;
+  source: "joyorogo" | "joyofit";
+  reportedUserName: string | null;
+  reportedUserHandle: string | null;
   postKind: "makan" | "latihan" | "berat" | "cerita" | null;
   postTitle: string | null;
   postPhotoId: string | null;

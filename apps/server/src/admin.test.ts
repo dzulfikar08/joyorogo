@@ -241,6 +241,21 @@ describe("reports", () => {
     expect((await call("/api/admin/reports?status=resolved")).body.total).toBe(3);
     expect((await call("/api/admin/reports?status=all")).body.total).toBe(33);
   });
+
+  test("a JoyoFit profile report carries its source and the reported member", async () => {
+    await client.execute(
+      `INSERT INTO social_report (id, reporter_id, user_id, source, reason, created_at) VALUES ('fit-profile', 'u05', 'u06', 'joyofit', 'kasar', ${T0 + 1})`,
+    );
+    try {
+      const { body } = await call("/api/admin/reports?pageSize=25");
+      const first = body.reports[0];
+      expect(first).toMatchObject({ id: "fit-profile", source: "joyofit", userId: "u06" });
+      expect(first.reportedUserName).toBeTruthy();
+      expect(body.reports.find((r: { id: string }) => r.id === "r29")?.source).toBe("joyorogo");
+    } finally {
+      await client.execute(`DELETE FROM social_report WHERE id = 'fit-profile'`);
+    }
+  });
 });
 
 describe("feedback", () => {

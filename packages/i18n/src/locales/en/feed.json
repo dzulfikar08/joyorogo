@@ -700,6 +700,7 @@
       "notYourComment": "That's not your comment.",
       "blockSelf": "You can't block yourself.",
       "reportOne": "Report one item at a time.",
+      "reportSelf": "You cannot report yourself.",
       "reportQuota": "You've reached today's report limit.",
       "commentNotFound": "Comment not found.",
       "commentEmpty": "Write a comment or attach something first.",

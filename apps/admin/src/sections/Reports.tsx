@@ -73,6 +73,14 @@ function ReportContent({ report }: { report: AdminReport }) {
       </div>
     );
   }
+  if (report.userId) {
+    return (
+      <div className="min-w-0 break-words">
+        <div className="font-medium">Profil @{report.reportedUserHandle ?? report.reportedUserName ?? "?"}</div>
+        <div className="text-muted-foreground">{report.reportedUserName ?? "(akun dihapus)"}</div>
+      </div>
+    );
+  }
   return (
     <div className="min-w-0 break-words">
       <div className="text-muted-foreground">“{report.commentBody ?? "(komentar dihapus)"}”</div>
@@ -207,6 +215,7 @@ export function ReportsSection() {
       cell: (r) => (
         <>
           <ReasonBadge report={r} />
+          {r.source === "joyofit" && <Badge tone="muted">JoyoFit</Badge>}
           {r.note && <div className="text-muted-foreground">{r.note}</div>}
         </>
       ),
