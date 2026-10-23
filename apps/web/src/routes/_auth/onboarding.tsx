@@ -807,7 +807,10 @@ function OnboardingPage() {
                     mode="single"
                     selected={new Date(`${form.targetDate}T00:00:00`)}
                     defaultMonth={new Date(`${form.targetDate}T00:00:00`)}
-                    disabled={{ before: new Date() }}
+                    disabled={[
+                      { before: new Date(`${jakartaToday()}T00:00:00`) },
+                      { after: new Date(`${jakartaDatePlusDays(MAX_TARGET_DAYS)}T00:00:00`) },
+                    ]}
                     onSelect={(day) => {
                       if (day) {
                         set({
