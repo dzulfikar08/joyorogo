@@ -1,6 +1,19 @@
 import { ORPCError } from "@orpc/server";
 import {
-  and, asc, count, desc, eq, gte, inArray, isNull, lt, lte, max, min, ne, sql,
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  lt,
+  lte,
+  max,
+  min,
+  ne,
+  sql,
 } from "drizzle-orm";
 import { z } from "zod";
 
@@ -23,21 +36,11 @@ import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 import { team, teamMember, teamNudge } from "@joyorogo/db/schema/social";
 
 import { protectedProcedure, publicProcedure } from "../index";
-import {
-  ADAPTIVE_WINDOW_DAYS,
-  computeBurn,
-  gainStreak,
-  jakartaToday,
-  shiftDate,
-  streakFromDates,
-} from "../lib/engine";
-import {
-  newInviteCode,
-  normalizeInviteCode,
-  rateLimited,
-  varVerdict,
-} from "../lib/group";
+import { computeBurn, jakartaToday, shiftDate } from "../lib/engine";
+import { newInviteCode, normalizeInviteCode, rateLimited, varVerdict } from "../lib/group";
 import { D1_MAX_PARAMS, chunk, readChunked } from "../lib/d1";
+import { loadStreaks } from "../lib/streak-store";
+import type { StreakSubject } from "../lib/streak-store";
 import { leaveTeamChallenges } from "../lib/challenge-db";
 import { serverT } from "../lib/messages";
 import { loadPublicGroupPreview, previewAllowed } from "../lib/group-preview";
@@ -47,14 +50,8 @@ import { userZone } from "../lib/user-zone";
 import { CALIBRATION_HISTORY_DAYS } from "../lib/calibration";
 import { calibrationPrefsOfUsersQuery, readCalibrationPrefs } from "../lib/calibration-store";
 import { buildPlan, planQueries } from "../lib/plan";
-import { IMPORT_SOURCE } from "../lib/history-import";
 import { dateSchema } from "../lib/schemas";
-import {
-  base64ToBytes,
-  bytesToBase64,
-  newScanId,
-  varPhotoKey,
-} from "../lib/sticker";
+import { base64ToBytes, bytesToBase64, newScanId, varPhotoKey } from "../lib/sticker";
 import { restoreVarVerdict, retryVarScan, varRetriesLeft } from "../lib/varretry";
 import { analyzeVarPhotos } from "../lib/varscan";
 import type { VarVerdict } from "../lib/varscan";
@@ -67,7 +64,6 @@ const MAX_GROUPS = 5;
 const MAX_NOTES_PER_DAY = 20;
 const POKE_WINDOW_MS = 60 * 60 * 1000;
 const ACTIVITY_WINDOW_DAYS = 7;
-const STREAK_LOOKBACK_DAYS = 45;
 const TREND_HISTORY_DAYS = 60;
 /** One glass in the water tracker, in ml. */
 const GLASS_ML = 250;
@@ -92,7 +88,8 @@ function errT(context: { locale: Locale }) {
 /** Loads the caller's membership; NOT_FOUND when they are not in the group. */
 async function requireMember(db: Database, groupId: string, userId: string, locale: Locale) {
   const row = await memberRow(db, groupId, userId);
-  if (!row) throw new ORPCError("NOT_FOUND", { message: serverT(locale, "grup")("server.error.notFound") });
+  if (!row)
+    throw new ORPCError("NOT_FOUND", { message: serverT(locale, "grup")("server.error.notFound") });
   return row;
 }
 
@@ -169,7 +166,8 @@ export const groupRouter = {
         });
       }
       const found = await loadPublicGroupPreview(context.db, input.code);
-      if (!found) throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.invalidCode") });
+      if (!found)
+        throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.invalidCode") });
       const viewerId = context.session?.user.id;
       const existing = viewerId ? await memberRow(context.db, found.id, viewerId) : null;
       return {
@@ -188,7 +186,8 @@ export const groupRouter = {
         .from(team)
         .where(eq(team.inviteCode, code))
         .limit(1);
-      if (!row) throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.invalidCode") });
+      if (!row)
+        throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.invalidCode") });
       const existing = await memberRow(context.db, row.id, context.session.user.id);
       if (existing) return { groupId: row.id };
       const [members] = await context.db
@@ -234,7 +233,8 @@ export const groupRouter = {
         .from(team)
         .where(eq(team.id, input.groupId))
         .limit(1);
-      if (!team_) throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.notFound") });
+      if (!team_)
+        throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.notFound") });
 
       const rest = await db
         .select({ userId: teamMember.userId, joinedAt: teamMember.joinedAt })
@@ -250,7 +250,9 @@ export const groupRouter = {
           const heir = rest[0]!;
           await db.batch([
             db.update(team).set({ ownerId: heir.userId }).where(eq(team.id, input.groupId)),
-            db.delete(teamMember).where(and(eq(teamMember.teamId, input.groupId), eq(teamMember.userId, userId))),
+            db
+              .delete(teamMember)
+              .where(and(eq(teamMember.teamId, input.groupId), eq(teamMember.userId, userId))),
             db
               .update(teamMember)
               .set({ role: "owner" })
@@ -268,7 +270,12 @@ export const groupRouter = {
   removeMember: protectedProcedure
     .input(z.object({ groupId: z.string(), userId: z.string() }))
     .handler(async ({ context, input }) => {
-      const me = await requireMember(context.db, input.groupId, context.session.user.id, context.locale);
+      const me = await requireMember(
+        context.db,
+        input.groupId,
+        context.session.user.id,
+        context.locale,
+      );
       if (me.role !== "owner") {
         throw new ORPCError("FORBIDDEN", { message: errT(context)("server.error.ownerOnly") });
       }
@@ -285,29 +292,33 @@ export const groupRouter = {
   rotateInvite: protectedProcedure
     .input(z.object({ groupId: z.string() }))
     .handler(async ({ context, input }) => {
-      const me = await requireMember(context.db, input.groupId, context.session.user.id, context.locale);
+      const me = await requireMember(
+        context.db,
+        input.groupId,
+        context.session.user.id,
+        context.locale,
+      );
       if (me.role !== "owner") {
         throw new ORPCError("FORBIDDEN", { message: errT(context)("server.error.ownerOnly") });
       }
       const inviteCode = newInviteCode();
-      await context.db
-        .update(team)
-        .set({ inviteCode })
-        .where(eq(team.id, input.groupId));
+      await context.db.update(team).set({ inviteCode }).where(eq(team.id, input.groupId));
       return { inviteCode };
     }),
 
   rename: protectedProcedure
     .input(z.object({ groupId: z.string(), name: nameSchema }))
     .handler(async ({ context, input }) => {
-      const me = await requireMember(context.db, input.groupId, context.session.user.id, context.locale);
+      const me = await requireMember(
+        context.db,
+        input.groupId,
+        context.session.user.id,
+        context.locale,
+      );
       if (me.role !== "owner") {
         throw new ORPCError("FORBIDDEN", { message: errT(context)("server.error.ownerOnly") });
       }
-      await context.db
-        .update(team)
-        .set({ name: input.name })
-        .where(eq(team.id, input.groupId));
+      await context.db.update(team).set({ name: input.name }).where(eq(team.id, input.groupId));
       return { ok: true };
     }),
 
@@ -319,10 +330,7 @@ export const groupRouter = {
         .update(teamMember)
         .set({ shareFitness: input.shareFitness })
         .where(
-          and(
-            eq(teamMember.teamId, input.groupId),
-            eq(teamMember.userId, context.session.user.id),
-          ),
+          and(eq(teamMember.teamId, input.groupId), eq(teamMember.userId, context.session.user.id)),
         );
       return { ok: true };
     }),
@@ -335,10 +343,7 @@ export const groupRouter = {
         .update(teamMember)
         .set({ shareFood: input.shareFood })
         .where(
-          and(
-            eq(teamMember.teamId, input.groupId),
-            eq(teamMember.userId, context.session.user.id),
-          ),
+          and(eq(teamMember.teamId, input.groupId), eq(teamMember.userId, context.session.user.id)),
         );
       return { ok: true };
     }),
@@ -357,7 +362,8 @@ export const groupRouter = {
         .from(team)
         .where(eq(team.id, input.groupId))
         .limit(1);
-      if (!group) throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.notFound") });
+      if (!group)
+        throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.notFound") });
 
       const members = await db
         .select({
@@ -376,7 +382,6 @@ export const groupRouter = {
         .orderBy(asc(teamMember.joinedAt));
       const ids = members.map((m) => m.userId);
 
-      const streakStart = shiftDate(today, -STREAK_LOOKBACK_DAYS);
       const windowStart = shiftDate(date, -CALIBRATION_HISTORY_DAYS);
       const [
         profiles,
@@ -390,7 +395,6 @@ export const groupRouter = {
         activityRows,
         sleepRows,
         waterRows,
-        foodDates,
         lastActive,
         varRows,
         fitnessRows,
@@ -399,13 +403,21 @@ export const groupRouter = {
         db.select().from(profile).where(inArray(profile.userId, ids)),
         // Latest weigh-in ever (per member) via the group-by-max pattern.
         db
-          .select({ userId: weightLog.userId, weightKg: weightLog.weightKg, date: max(weightLog.date) })
+          .select({
+            userId: weightLog.userId,
+            weightKg: weightLog.weightKg,
+            date: max(weightLog.date),
+          })
           .from(weightLog)
           .where(and(inArray(weightLog.userId, ids), lte(weightLog.date, date)))
           .groupBy(weightLog.userId),
         // Earliest weigh-in of the trailing 7 days, for the 7-day delta.
         db
-          .select({ userId: weightLog.userId, weightKg: weightLog.weightKg, date: min(weightLog.date) })
+          .select({
+            userId: weightLog.userId,
+            weightKg: weightLog.weightKg,
+            date: min(weightLog.date),
+          })
           .from(weightLog)
           .where(
             and(
@@ -440,7 +452,11 @@ export const groupRouter = {
           )
           .groupBy(foodLog.userId, foodLog.date),
         db
-          .select({ userId: exerciseLog.userId, kcal: exerciseLog.kcal, source: exerciseLog.source })
+          .select({
+            userId: exerciseLog.userId,
+            kcal: exerciseLog.kcal,
+            source: exerciseLog.source,
+          })
           .from(exerciseLog)
           .where(
             and(
@@ -490,10 +506,6 @@ export const groupRouter = {
           .select({ userId: waterLog.userId, glasses: waterLog.glasses })
           .from(waterLog)
           .where(and(inArray(waterLog.userId, ids), eq(waterLog.date, date))),
-        db
-          .selectDistinct({ userId: foodLog.userId, date: foodLog.date })
-          .from(foodLog)
-          .where(and(inArray(foodLog.userId, ids), gte(foodLog.date, streakStart), ne(foodLog.source, IMPORT_SOURCE))),
         db
           .select({ userId: session.userId, at: max(session.updatedAt) })
           .from(session)
@@ -545,12 +557,6 @@ export const groupRouter = {
       const varStatusByUser = new Map(
         varRows.map((r) => [r.userId, { verdict: r.verdict as VarVerdict, date: r.date }]),
       );
-      const foodDatesByUser = new Map<string, string[]>();
-      for (const row of foodDates) {
-        const list = foodDatesByUser.get(row.userId) ?? [];
-        list.push(row.date);
-        foodDatesByUser.set(row.userId, list);
-      }
       const weighInsByUser = new Map<string, { date: string; weightKg: number }[]>();
       for (const row of weighIns) {
         const list = weighInsByUser.get(row.userId) ?? [];
@@ -558,112 +564,114 @@ export const groupRouter = {
         weighInsByUser.set(row.userId, list);
       }
 
+      // Streaks of the members, filled in after the rows below (one shared read, lib/streak-store).
+      const streakSubjects: StreakSubject[] = [];
+      const rows = members.map((m) => {
+        const prof = profileByUser.get(m.userId);
+        const latest = latestByUser.get(m.userId);
+        const fitness = fitnessByUser.get(m.userId);
+        const baseline = baselineByUser.get(m.userId);
+        const dayIntake = intakeDayByUser.get(m.userId);
+        const eatenKcal = Math.round(dayIntake?.kcal ?? 0);
+
+        let eatTargetKcal: number | null = null;
+        let burnTargetKcal: number | null = null;
+        let burnedKcal = 0;
+        // Naikin BB: the clients say "naik X kg" and count streak days at 90% of the target.
+        let gaining = false;
+        if (prof) {
+          const plan = buildPlan(
+            prof,
+            {
+              latestWeightKg: latest?.weightKg ?? null,
+              weighIns: weighInsByUser.get(m.userId) ?? [],
+              intake: intakeWindow
+                .filter((r) => r.userId === m.userId)
+                .map((r) => ({ date: r.date, kcal: r.kcal })),
+              exercise: exerciseWindow
+                .filter((r) => r.userId === m.userId)
+                .map((r) => ({ date: r.date, kcal: r.kcal })),
+              prefs: readCalibrationPrefs(calibrationRows.filter((r) => r.userId === m.userId)),
+            },
+            date,
+          );
+          const burn = computeBurn({
+            profile: plan.profileInput,
+            weightNowKg: plan.weightNowKg,
+            exerciseLogs: exerciseDay.filter((r) => r.userId === m.userId),
+            tdeeKcal: plan.targets.tdee,
+            zone,
+            // past days are complete; today prorates by the live clock of the viewer's zone
+            ...(date === today ? {} : { dayFraction: 1 }),
+          });
+          // Hamil / Menyusui: the daily need is health data and stays out of the group.
+          if (plan.maternal === null) {
+            eatTargetKcal = Math.round(plan.targets.eatKcal);
+            burnTargetKcal = Math.round(plan.targets.tdee);
+          }
+          gaining = plan.targets.gain !== null;
+          burnedKcal = Math.round(burn.exerciseKcal);
+          // No streak pressure in Hamil / Menyusui.
+          if (plan.maternal === null) {
+            streakSubjects.push({
+              userId: m.userId,
+              gainTargetKcal: gaining ? plan.targets.eatKcal : null,
+            });
+          }
+        } else {
+          streakSubjects.push({ userId: m.userId, gainTargetKcal: null });
+        }
+
+        // Hamil / Menyusui: weight and its changes are health data and stay out of the group.
+        const weightNow = prof && prof.maternalMode !== "none" ? null : (latest?.weightKg ?? null);
+        const weightDeltaKg7d =
+          weightNow !== null && baseline && baseline.date !== latest?.date
+            ? Math.round((weightNow - baseline.weightKg) * 10) / 10
+            : null;
+
+        return {
+          userId: m.userId,
+          name: m.name,
+          image: m.image,
+          role: m.role,
+          joinedAt: m.joinedAt,
+          shareFood: m.shareFood,
+          shareVar: m.shareVar,
+          shareFitness: m.shareFitness,
+          // Verdict+tanggal VAR perut terakhir; foto tidak pernah ikut.
+          varStatus: varStatusByUser.get(m.userId) ?? null,
+          lastActiveAt: lastActiveByUser.get(m.userId) ?? null,
+          today: {
+            eatenKcal,
+            eatTargetKcal,
+            burnedKcal,
+            burnTargetKcal,
+            mealsLogged: dayIntake?.meals ?? 0,
+            exerciseMinutes: activityByUser.get(m.userId)?.exerciseMinutes ?? null,
+            sleepMinutes: Math.round((sleepByUser.get(m.userId)?.hours ?? 0) * 60) || null,
+            waterMl: (waterByUser.get(m.userId)?.glasses ?? 0) * GLASS_ML || null,
+            weightKg: weightNow,
+            weightDeltaKg7d,
+            gaining,
+            // Opt-in per grup; baris sendiri selalu tampil.
+            fitness:
+              fitness && (m.shareFitness || m.userId === viewerId)
+                ? {
+                    recoveryPct: fitness.recoveryPct,
+                    strain: fitness.strain,
+                    sleepPct: fitness.sleepPct,
+                    readiness:
+                      READINESS_LABELS.find((label) => label === fitness.readiness) ?? null,
+                  }
+                : null,
+          },
+          streakDays: 0,
+        };
+      });
+      const streaks = await loadStreaks(db, today, streakSubjects);
       return {
         group,
-        members: members.map((m) => {
-          const prof = profileByUser.get(m.userId);
-          const latest = latestByUser.get(m.userId);
-          const fitness = fitnessByUser.get(m.userId);
-          const baseline = baselineByUser.get(m.userId);
-          const dayIntake = intakeDayByUser.get(m.userId);
-          const eatenKcal = Math.round(dayIntake?.kcal ?? 0);
-
-          let eatTargetKcal: number | null = null;
-          let burnTargetKcal: number | null = null;
-          let burnedKcal = 0;
-          // Naikin BB: the clients say "naik X kg" and count streak days at 90% of the target.
-          let gaining = false;
-          if (prof) {
-            const plan = buildPlan(
-              prof,
-              {
-                latestWeightKg: latest?.weightKg ?? null,
-                weighIns: weighInsByUser.get(m.userId) ?? [],
-                intake: intakeWindow
-                  .filter((r) => r.userId === m.userId)
-                  .map((r) => ({ date: r.date, kcal: r.kcal })),
-                exercise: exerciseWindow
-                  .filter((r) => r.userId === m.userId)
-                  .map((r) => ({ date: r.date, kcal: r.kcal })),
-                prefs: readCalibrationPrefs(calibrationRows.filter((r) => r.userId === m.userId)),
-              },
-              date,
-            );
-            const burn = computeBurn({
-              profile: plan.profileInput,
-              weightNowKg: plan.weightNowKg,
-              exerciseLogs: exerciseDay.filter((r) => r.userId === m.userId),
-              tdeeKcal: plan.targets.tdee,
-              zone,
-              // past days are complete; today prorates by the live clock of the viewer's zone
-              ...(date === today ? {} : { dayFraction: 1 }),
-            });
-            // Hamil / Menyusui: the daily need is health data and stays out of the group.
-            if (plan.maternal === null) {
-              eatTargetKcal = Math.round(plan.targets.eatKcal);
-              burnTargetKcal = Math.round(plan.targets.tdee);
-            }
-            gaining = plan.targets.gain !== null;
-            burnedKcal = Math.round(burn.exerciseKcal);
-          }
-
-          // Hamil / Menyusui: weight and its changes are health data and stay out of the group.
-          const weightNow = prof && prof.maternalMode !== "none" ? null : (latest?.weightKg ?? null);
-          const weightDeltaKg7d =
-            weightNow !== null && baseline && baseline.date !== latest?.date
-              ? Math.round((weightNow - baseline.weightKg) * 10) / 10
-              : null;
-
-          return {
-            userId: m.userId,
-            name: m.name,
-            image: m.image,
-            role: m.role,
-            joinedAt: m.joinedAt,
-            shareFood: m.shareFood,
-            shareVar: m.shareVar,
-            shareFitness: m.shareFitness,
-            // Verdict+tanggal VAR perut terakhir; foto tidak pernah ikut.
-            varStatus: varStatusByUser.get(m.userId) ?? null,
-            lastActiveAt: lastActiveByUser.get(m.userId) ?? null,
-            today: {
-              eatenKcal,
-              eatTargetKcal,
-              burnedKcal,
-              burnTargetKcal,
-              mealsLogged: dayIntake?.meals ?? 0,
-              exerciseMinutes: activityByUser.get(m.userId)?.exerciseMinutes ?? null,
-              sleepMinutes: Math.round((sleepByUser.get(m.userId)?.hours ?? 0) * 60) || null,
-              waterMl: (waterByUser.get(m.userId)?.glasses ?? 0) * GLASS_ML || null,
-              weightKg: weightNow,
-              weightDeltaKg7d,
-              gaining,
-              // Opt-in per grup; baris sendiri selalu tampil.
-              fitness:
-                fitness && (m.shareFitness || m.userId === viewerId)
-                  ? {
-                      recoveryPct: fitness.recoveryPct,
-                      strain: fitness.strain,
-                      sleepPct: fitness.sleepPct,
-                      readiness: READINESS_LABELS.find((label) => label === fitness.readiness) ?? null,
-                    }
-                  : null,
-            },
-            streakDays:
-              gaining && eatTargetKcal !== null
-                ? gainStreak(
-                    [
-                      ...intakeWindow
-                        .filter((r) => r.userId === m.userId && r.date >= shiftDate(date, -ADAPTIVE_WINDOW_DAYS))
-                        .map((r) => ({ date: r.date, kcal: r.kcal })),
-                      { date, kcal: eatenKcal },
-                    ],
-                    eatTargetKcal,
-                    date,
-                  )
-                : streakFromDates(foodDatesByUser.get(m.userId) ?? [], today),
-          };
-        }),
+        members: rows.map((row) => ({ ...row, streakDays: streaks.get(row.userId)?.days ?? 0 })),
       };
     }),
 
@@ -736,8 +744,22 @@ export const groupRouter = {
       ]);
 
       type Event =
-        | { type: "food"; userId: string; name: string | null; meal: string; kcal: number; at: Date }
-        | { type: "exercise"; userId: string; name: string | null; minutes: number | null; kcal: number; at: Date }
+        | {
+            type: "food";
+            userId: string;
+            name: string | null;
+            meal: string;
+            kcal: number;
+            at: Date;
+          }
+        | {
+            type: "exercise";
+            userId: string;
+            name: string | null;
+            minutes: number | null;
+            kcal: number;
+            at: Date;
+          }
         | { type: "weight"; userId: string; kg: number; at: Date };
       const events: Event[] = [
         ...foods.map((f): Event => ({
@@ -760,7 +782,9 @@ export const groupRouter = {
       ];
       events.sort((a, b) => b.at.getTime() - a.at.getTime());
 
-      return events.slice(0, input.limit).map((e) => ({ ...e, userName: nameByUser.get(e.userId) ?? null }));
+      return events
+        .slice(0, input.limit)
+        .map((e) => ({ ...e, userName: nameByUser.get(e.userId) ?? null }));
     }),
 
   nudge: protectedProcedure
@@ -780,7 +804,8 @@ export const groupRouter = {
       }
       await requireMember(db, input.groupId, fromUserId, context.locale);
       const target = await memberRow(db, input.groupId, input.toUserId);
-      if (!target) throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.notInGroup") });
+      if (!target)
+        throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.notInGroup") });
 
       const now = Date.now();
       if (input.kind === "poke") {
@@ -915,7 +940,8 @@ export const groupRouter = {
       const date = input.date ?? jakartaToday(undefined, await userZone(context));
       await requireMember(db, input.groupId, context.session.user.id, context.locale);
       const target = await memberRow(db, input.groupId, input.userId);
-      if (!target) throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.notInGroup") });
+      if (!target)
+        throw new ORPCError("NOT_FOUND", { message: errT(context)("server.error.notInGroup") });
 
       const [targetUser] = await db
         .select({ name: user.name, image: user.image })
@@ -1241,11 +1267,17 @@ export const groupRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
-      await restoreVarVerdict(context.db, context.session.user.id, input.id, {
-        verdict: input.verdict,
-        confidence: input.confidence,
-        note: input.note,
-      }, context.locale);
+      await restoreVarVerdict(
+        context.db,
+        context.session.user.id,
+        input.id,
+        {
+          verdict: input.verdict,
+          confidence: input.confidence,
+          note: input.note,
+        },
+        context.locale,
+      );
       return { ok: true };
     }),
 
@@ -1258,12 +1290,8 @@ export const groupRouter = {
         .update(teamMember)
         .set({ shareVar: input.shareVar })
         .where(
-          and(
-            eq(teamMember.teamId, input.groupId),
-            eq(teamMember.userId, context.session.user.id),
-          ),
+          and(eq(teamMember.teamId, input.groupId), eq(teamMember.userId, context.session.user.id)),
         );
       return { ok: true };
     }),
 };
-

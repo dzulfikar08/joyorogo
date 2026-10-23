@@ -3,15 +3,10 @@ import { parseStoredAttachment } from "@joyorogo/api/lib/comment-attachment";
 import { serverT } from "@joyorogo/api/lib/messages";
 import { appRouter } from "@joyorogo/api/routers/index";
 import { DEFAULT_DAY_ZONE, LOCALE_HEADER, isLocale } from "@joyorogo/i18n";
-import {
-  effectiveRamadan,
-  jakartaToday,
-  shiftDate,
-  gainStreak,
-  streakFromDates,
-} from "@joyorogo/api/lib/engine";
+import { effectiveRamadan, jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
 import { dueReminders, isFastingPattern, wibDateKey, wibMinutes } from "@joyorogo/api/lib/fasting";
 import { commentPhotoKey, pendingStickerKey } from "@joyorogo/api/lib/sticker";
+import { loadUserStreak } from "@joyorogo/api/lib/streak-store";
 import { isGainGap } from "@joyorogo/api/lib/gain";
 import { readCalibrationPrefs } from "@joyorogo/api/lib/calibration-store";
 import { buildPlan, gainedKg, planQueries } from "@joyorogo/api/lib/plan";
@@ -59,7 +54,11 @@ import { registerOgRoutes } from "./og";
 import { registerPrivacyRoutes } from "./privacy";
 import { registerFamilyRoutes } from "./family";
 import { registerStravaRoutes } from "./strava";
-import { runTestflightNoticeSweep, sendTestflightNotice, testflightNoticeConfig } from "./testflight-notice";
+import {
+  runTestflightNoticeSweep,
+  sendTestflightNotice,
+  testflightNoticeConfig,
+} from "./testflight-notice";
 import { registerUnsubscribeRoutes } from "./unsubscribe";
 import { registerFitProxy } from "./fit-proxy";
 import { registerWatchWorkoutRoutes } from "./watch-workout";
@@ -175,8 +174,7 @@ registerBenchRoutes(app, {
 // Owner dataset export (R2 dataset/ prefix), same key gate.
 registerDatasetExportRoutes(app, {
   getBucket: () => ("STICKERS" in env ? env.STICKERS : undefined),
-  key:
-    "AI_BENCH_KEY" in env && typeof env.AI_BENCH_KEY === "string" ? env.AI_BENCH_KEY : undefined,
+  key: "AI_BENCH_KEY" in env && typeof env.AI_BENCH_KEY === "string" ? env.AI_BENCH_KEY : undefined,
 });
 
 // Release APK download — served straight from the R2 bucket so the link
@@ -372,8 +370,7 @@ async function servePostPhoto(c: HonoContext, indexParam: string | undefined) {
       // foto tidak lagi bisa dirender; jatuh ke photoId warisan di bawah
     }
   }
-  const photoId =
-    index !== null ? (photos[index] ?? null) : (row.photoId ?? photos[0] ?? null);
+  const photoId = index !== null ? (photos[index] ?? null) : (row.photoId ?? photos[0] ?? null);
   if (!photoId) {
     return c.json({ error: "Foto tidak ditemukan." }, 404);
   }
@@ -592,61 +589,36 @@ app.get("/u/:code", async (c) => {
     .limit(1);
   const today = jakartaToday(undefined, await zoneOfUser(db, row.userId));
   const weekStart = shiftDate(today, -6);
-  const [foodDates, weightDates, burnedWeek] = await Promise.all([
-    db
-      .selectDistinct({ date: foodLogTable.date })
-      .from(foodLogTable)
-      .where(
-        and(
-          eq(foodLogTable.userId, row.userId),
-          sql`${foodLogTable.date} >= ${shiftDate(today, -45)}`,
-        ),
-      ),
-    db
-      .selectDistinct({ date: weightLogTable.date })
-      .from(weightLogTable)
-      .where(
-        and(
-          eq(weightLogTable.userId, row.userId),
-          sql`${weightLogTable.date} >= ${shiftDate(today, -45)}`,
-        ),
-      ),
-    db
-      .select({ total: sql<number | null>`sum(${exerciseLogTable.kcal})` })
-      .from(exerciseLogTable)
-      .where(
-        and(eq(exerciseLogTable.userId, row.userId), sql`${exerciseLogTable.date} >= ${weekStart}`),
-      ),
-  ]);
+  const [burnedWeek] = await db
+    .select({ total: sql<number | null>`sum(${exerciseLogTable.kcal})` })
+    .from(exerciseLogTable)
+    .where(
+      and(eq(exerciseLogTable.userId, row.userId), sql`${exerciseLogTable.date} >= ${weekStart}`),
+    );
   const latestKg = weighed?.latest ?? row.startWeightKg;
-  // Same streak semantics as day.summary: any food or weight entry per day of the person's zone.
-  let streakDays = streakFromDates(
-    [...foodDates.map((r) => r.date), ...weightDates.map((r) => r.date)],
-    today,
-  );
-  // Naikin BB: "naik X kg", and the streak counts days at 90% of the target (as in day.summary).
+  // Naikin BB: "naik X kg", and the streak counts days at 90% of the target (the one streak, lib/streak-store).
   const gaining = row.goal === "gain" && isGainGap(row.targetWeightKg - latestKg);
   const gained = gaining ? gainedKg(row, latestKg) : 0;
+  let gainTargetKcal: number | null = null;
   if (gaining) {
-    const [, , weighIns, intake, exercise, prefRows] = await db.batch(planQueries(db, row.userId, today));
+    const [, , weighIns, intake, exercise, prefRows] = await db.batch(
+      planQueries(db, row.userId, today),
+    );
     const plan = buildPlan(
       row,
-      { latestWeightKg: latestKg, weighIns, intake, exercise, prefs: readCalibrationPrefs(prefRows) },
+      {
+        latestWeightKg: latestKg,
+        weighIns,
+        intake,
+        exercise,
+        prefs: readCalibrationPrefs(prefRows),
+      },
       today,
     );
-    const eatenDays = await db
-      .select({ date: foodLogTable.date, kcal: sql<number>`sum(${foodLogTable.kcal})` })
-      .from(foodLogTable)
-      .where(
-        and(
-          eq(foodLogTable.userId, row.userId),
-          sql`${foodLogTable.date} >= ${shiftDate(today, -45)}`,
-        ),
-      )
-      .groupBy(foodLogTable.date);
-    if (plan.targets.gain) streakDays = gainStreak(eatenDays, plan.targets.eatKcal, today);
+    if (plan.targets.gain) gainTargetKcal = plan.targets.eatKcal;
   }
-  const geprek = Math.floor((burnedWeek[0]?.total ?? 0) / 600);
+  const { days: streakDays } = await loadUserStreak(db, row.userId, today, gainTargetKcal);
+  const geprek = Math.floor((burnedWeek?.total ?? 0) / 600);
   const lost = Math.round((row.startWeightKg - latestKg) * 10) / 10;
   const title = gaining
     ? gained > 0
@@ -788,7 +760,13 @@ async function runFastingReminders(): Promise<void> {
     if (!profRow) continue;
     const plan = buildPlan(
       profRow,
-      { latestWeightKg: latest[0]?.weightKg ?? null, weighIns, intake, exercise, prefs: readCalibrationPrefs(prefRows) },
+      {
+        latestWeightKg: latest[0]?.weightKg ?? null,
+        weighIns,
+        intake,
+        exercise,
+        prefs: readCalibrationPrefs(prefRows),
+      },
       today,
     );
     const [eatenRow] = await db
@@ -831,7 +809,8 @@ async function runFastingReminders(): Promise<void> {
 // selects match nothing almost always.
 async function runMcpSweep(): Promise<void> {
   const swept = await sweepMcp(getDb());
-  if (swept.audit + swept.clients > 0) console.log(`mcp sweep: ${swept.audit} audit rows, ${swept.clients} clients`);
+  if (swept.audit + swept.clients > 0)
+    console.log(`mcp sweep: ${swept.audit} audit rows, ${swept.clients} clients`);
 }
 
 // Strava API Policy 6.2: imported Strava activities live at most 7 days (lib/strava-retention). The cron runs this
@@ -866,12 +845,16 @@ export default {
   scheduled: (_controller: ScheduledController, _env2: unknown, ctx: ExecutionContext) => {
     ctx.waitUntil(runFastingReminders());
     ctx.waitUntil(
-      runPushCron({ db: getDb(), env }).catch((error: unknown) => console.error("[push] cron failed", error)),
+      runPushCron({ db: getDb(), env }).catch((error: unknown) =>
+        console.error("[push] cron failed", error),
+      ),
     );
     ctx.waitUntil(billing.reconcilePending());
     ctx.waitUntil(billing.runEmails());
     ctx.waitUntil(runStravaRetention());
-    ctx.waitUntil(runMcpSweep().catch((error: unknown) => console.error("[mcp] sweep failed", error)));
+    ctx.waitUntil(
+      runMcpSweep().catch((error: unknown) => console.error("[mcp] sweep failed", error)),
+    );
     // From 07:00 WIB every tick checks (one R2 read) whether yesterday's report is done.
     if (dailyAccuracyDue(Date.now())) {
       ctx.waitUntil(

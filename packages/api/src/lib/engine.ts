@@ -3,7 +3,15 @@
 // imports it into route modules, so keep it tiny (zod schemas for these shapes
 // live in ./schemas).
 
-import { clockHourIn, dayIn, getActiveDayZone, getActiveLocale, getT, relativeDayLabel, yesterdayIn } from "@joyorogo/i18n";
+import {
+  clockHourIn,
+  dayIn,
+  getActiveDayZone,
+  getActiveLocale,
+  getT,
+  relativeDayLabel,
+  yesterdayIn,
+} from "@joyorogo/i18n";
 import type { DayZone } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 
@@ -18,7 +26,6 @@ import {
   bmiOf,
   clampSurplus,
   daysAtSurplus,
-  gainDayHit,
   gainNumbers,
   isGainGap,
   goalOf,
@@ -288,17 +295,6 @@ export function streakFromDates(dates: string[], today: string): number {
   return streak;
 }
 
-/**
- * Naikin BB streak: consecutive days at 90% or more of the target (lib/gain
- * STREAK_FRACTION), ending today, or yesterday while today has not got there yet.
- */
-export function gainStreak(days: DayKcal[], targetKcal: number, today: string): number {
-  return streakFromDates(
-    days.filter((day) => gainDayHit(day.kcal, targetKcal)).map((day) => day.date),
-    today,
-  );
-}
-
 export function bmrMifflin(
   weightKg: number,
   heightCm: number,
@@ -560,7 +556,11 @@ export function isRamadanDate(now: Date = new Date(), zone?: DayZone): boolean {
 export type RamadanPref = "auto" | "on" | "off";
 
 /** Effective Ramadan state for a profile preference + date. */
-export function effectiveRamadan(pref: RamadanPref | undefined, now: Date = new Date(), zone?: DayZone): boolean {
+export function effectiveRamadan(
+  pref: RamadanPref | undefined,
+  now: Date = new Date(),
+  zone?: DayZone,
+): boolean {
   if (pref === "on") return true;
   if (pref === "off") return false;
   return isRamadanDate(now, zone);
@@ -612,7 +612,12 @@ export function suggestMealNow(now: Date = new Date(), ramadan = false, zone?: D
  * which is wrong for a real meal: those hours become makan malam. Ramadan
  * keeps its own eating-window slots.
  */
-export function suggestMealForDish(now: Date, ramadan: boolean, heavy: boolean, zone?: DayZone): Meal {
+export function suggestMealForDish(
+  now: Date,
+  ramadan: boolean,
+  heavy: boolean,
+  zone?: DayZone,
+): Meal {
   const meal = suggestMealNow(now, ramadan, zone);
   return heavy && !ramadan && meal === "snack" ? "makan_malam" : meal;
 }
@@ -708,7 +713,12 @@ export function computeTargets(profile: ProfileInput, options: ComputeOptions = 
   const eat = gainNums
     ? baseKcal + gainNums.surplusKcal
     : Math.max(round5(tdee - totalDeficit), floor);
-  if (!gainNums && eat === floor && round5(tdee - totalDeficit) < floor && !notes.includes("PLAN_CLAMPED")) {
+  if (
+    !gainNums &&
+    eat === floor &&
+    round5(tdee - totalDeficit) < floor &&
+    !notes.includes("PLAN_CLAMPED")
+  ) {
     notes.push("PLAN_CLAMPED");
   }
 
@@ -737,9 +747,7 @@ export function computeTargets(profile: ProfileInput, options: ComputeOptions = 
     idealMaxKg: ideal.maxKg,
     notes,
     maternal: null,
-    gain: gainNums
-      ? { ...gainNums, reachDate: shiftDate(today, gainNums.daysToTarget) }
-      : null,
+    gain: gainNums ? { ...gainNums, reachDate: shiftDate(today, gainNums.daysToTarget) } : null,
     datePace: storedDatePace({
       weightNowKg: weightNow,
       targetWeightKg: profile.targetWeightKg,
@@ -790,7 +798,8 @@ export function computeBurn(input: BurnInput): BurnResult {
   const age = ageFromBirthYear(input.profile.birthYear, today);
   const bmr = bmrMifflin(weightNow, input.profile.heightCm, age, input.profile.gender);
   const fraction =
-    input.dayFraction ?? Math.min(1, Math.max(0, jakartaClockHour(input.now ?? new Date(), input.zone) / 24));
+    input.dayFraction ??
+    Math.min(1, Math.max(0, jakartaClockHour(input.now ?? new Date(), input.zone) / 24));
   const activityKcal =
     (input.tdeeKcal ?? bmr * ACTIVITY_FACTOR[input.profile.activityLevel]) * fraction;
   const exerciseKcal = input.exerciseLogs
@@ -933,13 +942,18 @@ export function checkTargetDate(input: {
         : daysAtSurplus(gainKg, surplusKcal),
     };
   }
-  if (goal !== "lose" || input.weightNowKg <= input.targetWeightKg) return { status: "maintenance", days };
+  if (goal !== "lose" || input.weightNowKg <= input.targetWeightKg)
+    return { status: "maintenance", days };
   const lossKg = input.weightNowKg - input.targetWeightKg;
   const rawDeficitKcal = Math.round((lossKg * KCAL_PER_KG_FAT) / days);
   const deficitKcal = Math.min(MAX_DEFICIT_KCAL, Math.max(MIN_DEFICIT_KCAL, rawDeficitKcal));
   return {
     status:
-      rawDeficitKcal > MAX_DEFICIT_KCAL ? "fast" : rawDeficitKcal < MIN_DEFICIT_KCAL ? "slow" : "ok",
+      rawDeficitKcal > MAX_DEFICIT_KCAL
+        ? "fast"
+        : rawDeficitKcal < MIN_DEFICIT_KCAL
+          ? "slow"
+          : "ok",
     days,
     lossKg,
     rawDeficitKcal,
@@ -952,7 +966,10 @@ export function checkTargetDate(input: {
  * The day's one calorie model: remaining = budget - eaten, where the budget is the base eat target plus the counted
  * activity above the factor (lib/exercise-credit, added by day.summary into `Targets.eatKcal`).
  */
-export function remainingKcal(targetKcal: number, eatenKcal: number): { kcal: number; over: boolean } {
+export function remainingKcal(
+  targetKcal: number,
+  eatenKcal: number,
+): { kcal: number; over: boolean } {
   const left = Math.round(targetKcal - eatenKcal);
   return { kcal: Math.abs(left), over: left < 0 };
 }
@@ -1050,7 +1067,8 @@ function datePaceOf(
   input: { targetWeightKg: number; today: string; reason: DatePace["reason"] },
 ): DatePace | null {
   if (!("feasibleDays" in check)) return null;
-  if (input.reason === "fast" && check.status !== "fast" && check.status !== "gainFast") return null;
+  if (input.reason === "fast" && check.status !== "fast" && check.status !== "gainFast")
+    return null;
   const feasibleDays = Math.min(check.feasibleDays, MAX_TARGET_DAYS);
   const kg = "gainKg" in check ? check.gainKg : check.lossKg;
   return {

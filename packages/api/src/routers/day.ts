@@ -21,14 +21,18 @@ import {
   jakartaToday,
   macroTargets,
   shiftDate,
-  streakFromDates,
   suggestMealNow,
 } from "../lib/engine";
 import { calibrationNotice } from "../lib/calibration";
 import { readCalibrationPrefs } from "../lib/calibration-store";
 import { energyNotice, showEnergyNotice } from "../lib/energy-notice";
 import { budgetKcal, exerciseCredit } from "../lib/exercise-credit";
-import { addBackPrefQuery, dayReadings, loadDayCredit, readAddBackPrefs } from "../lib/exercise-credit-store";
+import {
+  addBackPrefQuery,
+  dayReadings,
+  loadDayCredit,
+  readAddBackPrefs,
+} from "../lib/exercise-credit-store";
 import { READINESS_LABELS, hasFitnessData } from "../lib/fitness-hint";
 import { IMPORT_SOURCE } from "../lib/history-import";
 import { dateSchema } from "../lib/schemas";
@@ -176,12 +180,24 @@ export const dayRouter = {
           })
           .from(foodLog)
           // Imported history (source "huawei") never counts toward a streak.
-          .where(and(eq(foodLog.userId, userId), gte(foodLog.date, streakStart), ne(foodLog.source, IMPORT_SOURCE)))
+          .where(
+            and(
+              eq(foodLog.userId, userId),
+              gte(foodLog.date, streakStart),
+              ne(foodLog.source, IMPORT_SOURCE),
+            ),
+          )
           .groupBy(foodLog.date),
         context.db
           .selectDistinct({ date: weightLog.date })
           .from(weightLog)
-          .where(and(eq(weightLog.userId, userId), gte(weightLog.date, streakStart), ne(weightLog.source, IMPORT_SOURCE))),
+          .where(
+            and(
+              eq(weightLog.userId, userId),
+              gte(weightLog.date, streakStart),
+              ne(weightLog.source, IMPORT_SOURCE),
+            ),
+          ),
         context.db
           .select({
             steps: dailyActivity.steps,
@@ -207,11 +223,16 @@ export const dayRouter = {
       ]);
 
       const prof = profileRows[0];
-      const streakDays = streakFromDates(
-        [...foodDates.map((r) => r.date), ...weightDates.map((r) => r.date)],
-        today,
-      );
       if (!prof) {
+        // No plan yet: the plain streak (no Naikin BB rule, no Hamil / Menyusui to exclude).
+        const { days: streakDays } = await loadStreak(
+          context.db,
+          userId,
+          today,
+          streakStart,
+          { food: foodDates, weight: weightDates },
+          null,
+        );
         return {
           hasProfile: false,
           targets: null,
@@ -339,7 +360,9 @@ export const dayRouter = {
         targets,
         exerciseCredit: credit,
         // Where today's recorded exercise came from (for the "Olahraga hari ini" tile); rest rows are not movement.
-        exerciseSources: EXERCISE_SOURCES.filter((source) => exerciseRows.some((row) => row.source === source)),
+        exerciseSources: EXERCISE_SOURCES.filter((source) =>
+          exerciseRows.some((row) => row.source === source),
+        ),
         // The one-time notice that the target is built on TDEE now (old target -> new target): accounts made before
         // the change, until closed.
         energyNotice: showEnergyNotice({
@@ -599,7 +622,11 @@ export const dayRouter = {
           names: todayRows.map((row) => row.name),
         },
         history,
-        slot: suggestMealNow(new Date(), effectiveRamadan(prof?.ramadanMode, new Date(), zone), zone),
+        slot: suggestMealNow(
+          new Date(),
+          effectiveRamadan(prof?.ramadanMode, new Date(), zone),
+          zone,
+        ),
       },
       context.locale,
     );

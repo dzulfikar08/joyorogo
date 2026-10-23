@@ -4,15 +4,23 @@ import type { Database } from "@joyorogo/db";
 import { dayBoundsIn, dayZoneOffsetMs, weekdayOfMs } from "@joyorogo/i18n";
 import type { DayZone } from "@joyorogo/i18n";
 
-import { readChunked } from "./d1";
 import { calibrationNotice } from "./calibration";
 import { readCalibrationPrefs } from "./calibration-store";
-import { daysBetween, effectiveRamadan, shiftDate, streakFromDates } from "./engine";
-import { insideWindow, isFastingPattern, wibDateKey, wibMinutes, windowHoursFor, windowTimes } from "./fasting";
+import { daysBetween, effectiveRamadan, shiftDate } from "./engine";
+import {
+  insideWindow,
+  isFastingPattern,
+  wibDateKey,
+  wibMinutes,
+  windowHoursFor,
+  windowTimes,
+} from "./fasting";
 import { enqueueMany } from "./notify";
 import type { NotifyDeps, PushCategory, PushEvent } from "./notify";
 import { buildPlan, planQueries } from "./plan";
 import { premiumUnlocked } from "./readiness-food";
+import type { StreakState } from "./streak";
+import { loadStreaks, streakPlanOf } from "./streak-store";
 import { paywallConfig } from "./tiers";
 import type { PaywallEnv } from "./tiers";
 import { ZONE_GROUPS, profileInZone } from "./zone-sql";
@@ -23,7 +31,14 @@ import { ZONE_GROUPS, profileInZone } from "./zone-sql";
 // gets one twice. Rows are stored with `enqueueMany`; the same tick's flush delivers them, applying the person's
 // switches, quiet hours and daily caps. Rules, windows and defaults: docs/push.md.
 
-export type ReminderKind = "meal_noon" | "meal_evening" | "weigh" | "recap" | "plan" | "calibration" | "challenge_end";
+export type ReminderKind =
+  | "meal_noon"
+  | "meal_evening"
+  | "weigh"
+  | "recap"
+  | "plan"
+  | "calibration"
+  | "challenge_end";
 
 export type ReminderSlot = {
   kind: ReminderKind;
@@ -71,7 +86,10 @@ export function activeSlots(now: Date, zone: DayZone): ReminderSlot[] {
   const minute = wibMinutes(now, zone);
   const weekday = wibWeekday(now, zone);
   return REMINDER_SLOTS.filter(
-    (slot) => minute >= slot.startMin && minute < slot.endMin && (slot.dow === undefined || slot.dow === weekday),
+    (slot) =>
+      minute >= slot.startMin &&
+      minute < slot.endMin &&
+      (slot.dow === undefined || slot.dow === weekday),
   );
 }
 
@@ -96,26 +114,34 @@ export function skipMealReminder(input: {
   zone: DayZone;
 }): boolean {
   if (input.maternalMode && input.maternalMode !== "none") return false;
-  const ramadanPref = input.ramadanMode === "on" || input.ramadanMode === "off" || input.ramadanMode === "auto" ? input.ramadanMode : "auto";
+  const ramadanPref =
+    input.ramadanMode === "on" || input.ramadanMode === "off" || input.ramadanMode === "auto"
+      ? input.ramadanMode
+      : "auto";
   if (effectiveRamadan(ramadanPref, input.now, input.zone)) return input.kind === "meal_noon";
   if (isFastingPattern(input.pattern) && input.windowStart) {
-    return !insideWindow(input.nowMin, windowTimes(input.windowStart, windowHoursFor(input.pattern)));
+    return !insideWindow(
+      input.nowMin,
+      windowTimes(input.windowStart, windowHoursFor(input.pattern)),
+    );
   }
   return false;
 }
 
 /** Days since the last weigh-in (or since the account began) once that reaches a week; null before. */
-export function weighGapDays(input: { lastWeighDate: string | null; createdDate: string; today: string }): number | null {
+export function weighGapDays(input: {
+  lastWeighDate: string | null;
+  createdDate: string;
+  today: string;
+}): number | null {
   const since = input.lastWeighDate ?? input.createdDate;
   const days = daysBetween(since, input.today);
   return days >= WEIGH_AFTER_DAYS ? days : null;
 }
 
-/** The streak that today's missing entry would break (0 when today is logged, or the streak is too short to matter). */
-export function streakAtRisk(loggedDates: string[], today: string): number {
-  if (loggedDates.includes(today)) return 0;
-  const streak = streakFromDates(loggedDates, today);
-  return streak >= STREAK_RISK_MIN ? streak : 0;
+/** The streak that today's missing entry would break (0 when today counts, or the streak is too short to matter). */
+export function streakAtRisk(state: StreakState): number {
+  return state.status === "at_risk" && state.days >= STREAK_RISK_MIN ? state.days : 0;
 }
 
 /** Stable small number per person, to spread a daily job over the ticks of its window. */
@@ -152,6 +178,7 @@ type MealCandidate = {
   windowStart: string | null;
   ramadan: string | null;
   maternal: string | null;
+  goal: string | null;
 };
 
 async function mealCandidates(
@@ -160,10 +187,14 @@ async function mealCandidates(
   zone: DayZone,
   slot: "meal_noon" | "meal_evening",
 ): Promise<MealCandidate[]> {
-  const local = localReminderOff(slot === "meal_noon" ? "$.value.meals.makan_siang.enabled" : "$.value.meals.makan_malam.enabled");
+  const local = localReminderOff(
+    slot === "meal_noon"
+      ? "$.value.meals.makan_siang.enabled"
+      : "$.value.meals.makan_malam.enabled",
+  );
   return db.all<MealCandidate>(sql`
     SELECT profile.user_id AS id, profile.fasting_pattern AS pattern, profile.fasting_window_start AS windowStart,
-           profile.ramadan_mode AS ramadan, profile.maternal_mode AS maternal
+           profile.ramadan_mode AS ramadan, profile.maternal_mode AS maternal, profile.goal AS goal
     FROM profile
     WHERE ${reachable} AND ${profileInZone(zone)} AND ${prefOn("meal")} AND ${local} AND ${notYetSent(`meal:${slot === "meal_noon" ? "noon" : "evening"}:${today}`)}
       AND ${engaged(today, zone)}
@@ -171,28 +202,23 @@ async function mealCandidates(
     LIMIT ${CANDIDATE_LIMIT}`);
 }
 
-/** Per person: the days (in their zone) they logged food or weighed in during the last 60 days (what the streak counts). */
-async function loggedDates(db: Database, ids: string[], today: string): Promise<Map<string, string[]>> {
-  const out = new Map<string, string[]>();
-  const since = shiftDate(today, -60);
-  // The id list is bound in both halves of the UNION, next to the two dates.
-  const rows = await readChunked(
-    ids,
-    (slice) => {
-      const list = sql.join(slice.map((id) => sql`${id}`), sql`, `);
-      return db.all<{ user_id: string; date: string }>(sql`
-        SELECT user_id, date FROM food_log WHERE user_id IN (${list}) AND date >= ${since}
-        UNION
-        SELECT user_id, date FROM weight_log WHERE user_id IN (${list}) AND date >= ${since}`);
-    },
-    { reserved: 2, perKey: 2 },
-  );
-  for (const row of rows) {
-    const dates = out.get(row.user_id) ?? [];
-    dates.push(row.date);
-    out.set(row.user_id, dates);
+/** Per person, the streak the evening reminder protects: the shared definition (lib/streak-store), none in Hamil / Menyusui. */
+async function streaksOf(
+  db: Database,
+  candidates: MealCandidate[],
+  today: string,
+): Promise<Map<string, StreakState>> {
+  const subjects = [];
+  for (const c of candidates) {
+    if (c.maternal && c.maternal !== "none") continue;
+    // Only a Naikin BB person needs the plan: the 90% rule counts against their target.
+    const plan =
+      c.goal === "gain"
+        ? await streakPlanOf(db, c.id, today)
+        : { maternal: false, gainTargetKcal: null };
+    if (!plan.maternal) subjects.push({ userId: c.id, gainTargetKcal: plan.gainTargetKcal });
   }
-  return out;
+  return loadStreaks(db, today, subjects);
 }
 
 // --- The runner -------------------------------------------------------------------------------
@@ -215,7 +241,12 @@ export async function runReminders(deps: ReminderDeps): Promise<number> {
   return stored;
 }
 
-async function runSlot(deps: ReminderDeps, slot: ReminderSlot, now: Date, zone: DayZone): Promise<number> {
+async function runSlot(
+  deps: ReminderDeps,
+  slot: ReminderSlot,
+  now: Date,
+  zone: DayZone,
+): Promise<number> {
   const { db } = deps;
   const today = wibDateKey(now, zone);
   const staleMs = slotStaleMs(slot);
@@ -239,27 +270,39 @@ async function runSlot(deps: ReminderDeps, slot: ReminderSlot, now: Date, zone: 
       );
       if (candidates.length === 0) return 0;
       if (slot.kind === "meal_noon") {
-        return enqueueMany(deps, candidates.map((c) => c.id), () => ({
-          ...base,
-          kind: "meal_noon",
-          title: { key: "notify.meal.noon.title" },
-          body: { key: "notify.meal.noon.body" },
-          link: { t: "makan" },
-          dedupeKey: `meal:noon:${today}`,
-        }));
+        return enqueueMany(
+          deps,
+          candidates.map((c) => c.id),
+          () => ({
+            ...base,
+            kind: "meal_noon",
+            title: { key: "notify.meal.noon.title" },
+            body: { key: "notify.meal.noon.body" },
+            link: { t: "makan" },
+            dedupeKey: `meal:noon:${today}`,
+          }),
+        );
       }
-      const dates = await loggedDates(db, candidates.map((c) => c.id), today);
-      return enqueueMany(deps, candidates.map((c) => c.id), (id): PushEvent => {
-        const risk = streakAtRisk(dates.get(id) ?? [], today);
-        return {
-          ...base,
-          kind: risk > 0 ? "streak" : "meal_evening",
-          title: risk > 0 ? { key: "notify.meal.streak.title", params: { n: risk } } : { key: "notify.meal.evening.title" },
-          body: { key: risk > 0 ? "notify.meal.streak.body" : "notify.meal.evening.body" },
-          link: { t: "makan" },
-          dedupeKey: `meal:evening:${today}`,
-        };
-      });
+      const streaks = await streaksOf(db, candidates, today);
+      return enqueueMany(
+        deps,
+        candidates.map((c) => c.id),
+        (id): PushEvent => {
+          const streak = streaks.get(id);
+          const risk = streak ? streakAtRisk(streak) : 0;
+          return {
+            ...base,
+            kind: risk > 0 ? "streak" : "meal_evening",
+            title:
+              risk > 0
+                ? { key: "notify.meal.streak.title", params: { n: risk } }
+                : { key: "notify.meal.evening.title" },
+            body: { key: risk > 0 ? "notify.meal.streak.body" : "notify.meal.evening.body" },
+            link: { t: "makan" },
+            dedupeKey: `meal:evening:${today}`,
+          };
+        },
+      );
     }
 
     case "weigh": {
@@ -295,18 +338,26 @@ async function runSlot(deps: ReminderDeps, slot: ReminderSlot, now: Date, zone: 
           AND (SELECT COUNT(DISTINCT f.date) FROM food_log f
                WHERE f.user_id = profile.user_id AND f.date >= ${shiftDate(today, -7)} AND f.date < ${today}) >= 2
         LIMIT ${CANDIDATE_LIMIT}`);
-      return enqueueMany(deps, rows.map((r) => r.id), () => ({
-        ...base,
-        kind: "recap",
-        title: { key: "notify.recap.weekly.title" },
-        body: { key: "notify.recap.weekly.body" },
-        link: { t: "rekap" },
-        dedupeKey: `recap:${today}`,
-      }));
+      return enqueueMany(
+        deps,
+        rows.map((r) => r.id),
+        () => ({
+          ...base,
+          kind: "recap",
+          title: { key: "notify.recap.weekly.title" },
+          body: { key: "notify.recap.weekly.body" },
+          link: { t: "rekap" },
+          dedupeKey: `recap:${today}`,
+        }),
+      );
     }
 
     case "plan": {
-      const rows = await db.all<{ id: string; tier: "free" | "founder"; founderUntil: number | null }>(sql`
+      const rows = await db.all<{
+        id: string;
+        tier: "free" | "founder";
+        founderUntil: number | null;
+      }>(sql`
         SELECT profile.user_id AS id, "user".tier AS tier, "user".founder_until AS founderUntil
         FROM profile JOIN "user" ON "user".id = profile.user_id
         WHERE ${reachable} AND ${profileInZone(zone)} AND ${prefOn("recap")} AND ${notYetSent(`plan:${today}`)}
@@ -315,16 +366,24 @@ async function runSlot(deps: ReminderDeps, slot: ReminderSlot, now: Date, zone: 
         LIMIT ${CANDIDATE_LIMIT}`);
       const config = paywallConfig(deps.env);
       const pro = rows.filter((r) =>
-        premiumUnlocked({ tier: r.tier, founderUntil: r.founderUntil ? new Date(r.founderUntil) : null }, config, now),
+        premiumUnlocked(
+          { tier: r.tier, founderUntil: r.founderUntil ? new Date(r.founderUntil) : null },
+          config,
+          now,
+        ),
       );
-      return enqueueMany(deps, pro.map((r) => r.id), () => ({
-        ...base,
-        kind: "plan",
-        title: { key: "notify.recap.plan.title" },
-        body: { key: "notify.recap.plan.body" },
-        link: { t: "rencana" },
-        dedupeKey: `plan:${today}`,
-      }));
+      return enqueueMany(
+        deps,
+        pro.map((r) => r.id),
+        () => ({
+          ...base,
+          kind: "plan",
+          title: { key: "notify.recap.plan.title" },
+          body: { key: "notify.recap.plan.body" },
+          link: { t: "rencana" },
+          dedupeKey: `plan:${today}`,
+        }),
+      );
     }
 
     case "calibration": {
@@ -334,15 +393,25 @@ async function runSlot(deps: ReminderDeps, slot: ReminderSlot, now: Date, zone: 
         WHERE ${reachable} AND ${profileInZone(zone)} AND ${prefOn("recap")} AND profile.maternal_mode = 'none'
           AND EXISTS (SELECT 1 FROM weight_log w WHERE w.user_id = profile.user_id AND w.date >= ${shiftDate(today, -21)})
         LIMIT ${CANDIDATE_LIMIT}`);
-      const mine = rows.filter((r) => userSlot(r.id, CALIBRATION_SLOTS) === tick % CALIBRATION_SLOTS).slice(0, CALIBRATION_BATCH);
+      const mine = rows
+        .filter((r) => userSlot(r.id, CALIBRATION_SLOTS) === tick % CALIBRATION_SLOTS)
+        .slice(0, CALIBRATION_BATCH);
       let stored = 0;
       for (const { id } of mine) {
-        const [profRows, latest, weighIns, intake, exercise, prefRows] = await db.batch(planQueries(db, id, today));
+        const [profRows, latest, weighIns, intake, exercise, prefRows] = await db.batch(
+          planQueries(db, id, today),
+        );
         const prof = profRows[0];
         if (!prof) continue;
         const plan = buildPlan(
           prof,
-          { latestWeightKg: latest[0]?.weightKg ?? null, weighIns, intake, exercise, prefs: readCalibrationPrefs(prefRows) },
+          {
+            latestWeightKg: latest[0]?.weightKg ?? null,
+            weighIns,
+            intake,
+            exercise,
+            prefs: readCalibrationPrefs(prefRows),
+          },
           today,
         );
         const notice = calibrationNotice({
@@ -356,7 +425,10 @@ async function runSlot(deps: ReminderDeps, slot: ReminderSlot, now: Date, zone: 
           ...base,
           kind: "calibration",
           title: { key: "notify.recap.calibration.title" },
-          body: { key: "notify.recap.calibration.body", params: { toKcal: notice.toKcal, fromKcal: notice.fromKcal } },
+          body: {
+            key: "notify.recap.calibration.body",
+            params: { toKcal: notice.toKcal, fromKcal: notice.fromKcal },
+          },
           link: { t: "beranda" },
           // Once per change of the figure: a target that moves again is news again.
           dedupeKey: `calibration:${notice.fromKcal}:${notice.toKcal}`,
@@ -367,7 +439,12 @@ async function runSlot(deps: ReminderDeps, slot: ReminderSlot, now: Date, zone: 
 
     case "challenge_end": {
       const yesterday = shiftDate(today, -1);
-      const rows = await db.all<{ id: string; challengeId: string; teamId: string; title: string }>(sql`
+      const rows = await db.all<{
+        id: string;
+        challengeId: string;
+        teamId: string;
+        title: string;
+      }>(sql`
         SELECT m.user_id AS id, c.id AS challengeId, c.team_id AS teamId, c.title AS title
         FROM team_challenge c JOIN team_challenge_member m ON m.challenge_id = c.id
         JOIN profile ON profile.user_id = m.user_id

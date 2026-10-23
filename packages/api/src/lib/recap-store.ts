@@ -4,20 +4,23 @@
 import { and, eq, gte, lte, ne, sql } from "drizzle-orm";
 
 import type { Database } from "@joyorogo/db";
-import { exerciseLog, foodLog, weightLog } from "@joyorogo/db/schema/fitness";
+import { exerciseLog, foodLog } from "@joyorogo/db/schema/fitness";
 import type { DayZone } from "@joyorogo/i18n";
 
-import { gainStreak, jakartaToday, shiftDate } from "./engine";
+import { jakartaToday, shiftDate } from "./engine";
 import { budgetKcal, exerciseCredit } from "./exercise-credit";
 import { readCalibrationPrefs } from "./calibration-store";
-import { addBackPrefQuery, creditDayQueries, dayReadings, readAddBackPrefs } from "./exercise-credit-store";
+import {
+  addBackPrefQuery,
+  creditDayQueries,
+  dayReadings,
+  readAddBackPrefs,
+} from "./exercise-credit-store";
 import { buildPlan, planQueries, proteinGoalG } from "./plan";
 import type { Plan, ProfileRow } from "./plan";
 import { buildWeekRecap, weekStartOf } from "./recap";
 import type { WeekRecap } from "./recap";
-
-/** Same look-back the Beranda streak uses. */
-const STREAK_WINDOW_DAYS = 45;
+import { loadUserStreak } from "./streak-store";
 
 export interface LoadedWeekRecap {
   recap: WeekRecap;
@@ -48,74 +51,73 @@ export async function loadWeekRecap(
   const weekEnd = shiftDate(weekStart, 6);
   const refDay = weekEnd < today ? weekEnd : today;
 
-  const [profileRows, latestRows, weighIns, intake, exercise, calibrationRows, foodRows, exerciseRows, foodDates, weightDates] =
-    await db.batch([
-      ...planQueries(db, userId, refDay),
-      db
-        .select({
-          date: foodLog.date,
-          kcal: sql<number>`sum(${foodLog.kcal})`,
-          protein: sql<number | null>`sum(${foodLog.protein})`,
-        })
-        .from(foodLog)
-        .where(and(eq(foodLog.userId, userId), gte(foodLog.date, weekStart), lte(foodLog.date, weekEnd)))
-        .groupBy(foodLog.date),
-      db
-        .select({
-          date: exerciseLog.date,
-          kcal: sql<number>`sum(${exerciseLog.kcal})`,
-          minutes: sql<number | null>`sum(${exerciseLog.durationMin})`,
-          sessions: sql<number>`count(*)`,
-        })
-        .from(exerciseLog)
-        .where(
-          and(
-            eq(exerciseLog.userId, userId),
-            gte(exerciseLog.date, weekStart),
-            lte(exerciseLog.date, weekEnd),
-            ne(exerciseLog.source, "rest"),
-            ...(opts.excludeStrava ? [ne(exerciseLog.source, "strava")] : []),
-          ),
-        )
-        .groupBy(exerciseLog.date),
-      // One row per logged day with its kcal: the normal streak reads the dates, a gain plan the totals.
-      db
-        .select({ date: foodLog.date, kcal: sql<number>`sum(${foodLog.kcal})` })
-        .from(foodLog)
-        .where(
-          and(
-            eq(foodLog.userId, userId),
-            gte(foodLog.date, shiftDate(refDay, -STREAK_WINDOW_DAYS)),
-            lte(foodLog.date, refDay),
-          ),
-        )
-        .groupBy(foodLog.date),
-      db
-        .selectDistinct({ date: weightLog.date })
-        .from(weightLog)
-        .where(
-          and(
-            eq(weightLog.userId, userId),
-            gte(weightLog.date, shiftDate(refDay, -STREAK_WINDOW_DAYS)),
-            lte(weightLog.date, refDay),
-          ),
+  const [
+    profileRows,
+    latestRows,
+    weighIns,
+    intake,
+    exercise,
+    calibrationRows,
+    foodRows,
+    exerciseRows,
+  ] = await db.batch([
+    ...planQueries(db, userId, refDay),
+    db
+      .select({
+        date: foodLog.date,
+        kcal: sql<number>`sum(${foodLog.kcal})`,
+        protein: sql<number | null>`sum(${foodLog.protein})`,
+      })
+      .from(foodLog)
+      .where(
+        and(eq(foodLog.userId, userId), gte(foodLog.date, weekStart), lte(foodLog.date, weekEnd)),
+      )
+      .groupBy(foodLog.date),
+    db
+      .select({
+        date: exerciseLog.date,
+        kcal: sql<number>`sum(${exerciseLog.kcal})`,
+        minutes: sql<number | null>`sum(${exerciseLog.durationMin})`,
+        sessions: sql<number>`count(*)`,
+      })
+      .from(exerciseLog)
+      .where(
+        and(
+          eq(exerciseLog.userId, userId),
+          gte(exerciseLog.date, weekStart),
+          lte(exerciseLog.date, weekEnd),
+          ne(exerciseLog.source, "rest"),
+          ...(opts.excludeStrava ? [ne(exerciseLog.source, "strava")] : []),
         ),
-    ]);
+      )
+      .groupBy(exerciseLog.date),
+  ]);
 
   const prof = profileRows[0];
   if (!prof) return null;
   const plan = buildPlan(
     prof,
-    { latestWeightKg: latestRows[0]?.weightKg ?? null, weighIns, intake, exercise, prefs: readCalibrationPrefs(calibrationRows) },
+    {
+      latestWeightKg: latestRows[0]?.weightKg ?? null,
+      weighIns,
+      intake,
+      exercise,
+      prefs: readCalibrationPrefs(calibrationRows),
+    },
     refDay,
   );
 
   // Each judged day gets the budget Beranda showed for it: the base plus that day's counted activity above the factor.
-  const judgedDates = Array.from({ length: 7 }, (_, i) => shiftDate(weekStart, i)).filter((date) => date < today);
+  const judgedDates = Array.from({ length: 7 }, (_, i) => shiftDate(weekStart, i)).filter(
+    (date) => date < today,
+  );
   const [prefRows, ...dayRows] = (await db.batch([
     addBackPrefQuery(db, userId),
     ...judgedDates.flatMap((date) => creditDayQueries(db, userId, date)),
-  ] as unknown as Parameters<typeof db.batch>[0])) as unknown as [Parameters<typeof readAddBackPrefs>[0], ...unknown[]];
+  ] as unknown as Parameters<typeof db.batch>[0])) as unknown as [
+    Parameters<typeof readAddBackPrefs>[0],
+    ...unknown[],
+  ];
   const settings = readAddBackPrefs(prefRows).settings;
   const dayTargets: Record<string, number> = {};
   judgedDates.forEach((date, i) => {
@@ -134,7 +136,6 @@ export async function loadWeekRecap(
     dayTargets[date] = budgetKcal(plan.targets.eatKcal, credit);
   });
 
-  const streakRef = weekEnd < today ? weekEnd : today;
   const recap = buildWeekRecap({
     weekStart,
     today,
@@ -144,10 +145,12 @@ export async function loadWeekRecap(
     food: foodRows,
     exercise: exerciseRows.map((row) => ({ ...row, minutes: row.minutes ?? 0 })),
     trendPoints: plan.trend?.points ?? [],
-    // No streak pressure in Hamil / Menyusui.
-    loggedDates: plan.maternal ? [] : [...foodDates, ...weightDates].map((row) => row.date),
-    // Naikin BB: days at 90% or more of the target, not days with any log.
-    gain: plan.targets.gain ? { streakDays: gainStreak(foodDates, plan.targets.eatKcal, streakRef) } : undefined,
+    // No streak pressure in Hamil / Menyusui; Naikin BB counts days at 90% or more of the target (lib/streak-store).
+    streakDays: plan.maternal
+      ? 0
+      : (await loadUserStreak(db, userId, refDay, plan.targets.gain ? plan.targets.eatKcal : null))
+          .days,
+    gain: plan.targets.gain ? true : undefined,
   });
   return { recap, plan, prof, today };
 }
