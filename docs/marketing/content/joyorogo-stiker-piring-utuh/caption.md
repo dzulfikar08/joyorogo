@@ -16,7 +16,7 @@ Post 2 (balasan, link di sini)
 
 batasnya: cuma scan baru yang dapet stiker piring, makanan lama tetap per lauk. potongan latar dikerjakan model segmentasi, jadi tepi piring atau benda di meja kadang ikut kebawa. di diari, gambar kecil tiap baris tetap per makanan, ketuk buat buka stiker piringnya.
 
-versi tes: Android tes tertutup, iPhone TestFlight, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-stiker-piring
+download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-stiker-piring
 
 ## Instagram
 
@@ -24,7 +24,7 @@ Kartu bagikan JoyoRogo dulu dibuat dari potongan tiap lauk. Sekarang gambarnya s
 
 Slide 2 kartu asli dari catatan sebelum pembaruan. Slide 3 render contoh dengan piring ilustrasi, bukan hasil scan. Hanya scan baru yang punya stiker piring, dan potongan latar tidak selalu rapi.
 
-Versi tes: Android tes tertutup, iPhone TestFlight, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-stiker-piring`). Semua angka perkiraan, bukan saran medis.
+Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-stiker-piring`). Semua angka perkiraan, bukan saran medis.
 
 #JoyoRogo #HitungKalori #DietIndonesia
 
@@ -40,4 +40,4 @@ Versi tes: Android tes tertutup, iPhone TestFlight, atau web joyorogo.com (link 
 
 - Slide 3 memakai fixture mesin render yang sama (`day-share-plate-fixture-carousel-3.png`, piring ilustrasi), diberi label di slide. Belum ada ekspor dari scan nyata setelah fitur ini. Kalau pemilik mau versi yang lebih kuat: scan satu piring di build terbaru, buka Makan, Bagikan makanku sehari, ambil halaman waktu makan itu, dan ganti `plate-fixture-carousel-3.webp` (slide 3 dan label "Contoh render" ikut diubah).
 - Slide 2 memakai halaman yang sama dengan `joyorogo-bagikan-makan-sehari/day-carousel-3.webp` (data pribadi pemilik).
-- Butuh migrasi D1 (`food_log.plate_scan_id`), deploy server dan web, serta OTA native sebelum posting. Jangan tulis "tersedia di Play Store/App Store".
+- Butuh migrasi D1 (`food_log.plate_scan_id`), deploy server dan web, serta OTA native sebelum posting. Boleh tulis "download di Play Store (versi tes, gabung dulu lewat link)"; jangan tulis "tersedia di Play Store" tanpa keterangan versi tes, dan iPhone tetap TestFlight.

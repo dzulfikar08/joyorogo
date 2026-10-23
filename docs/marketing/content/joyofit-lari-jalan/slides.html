@@ -1,6 +1,6 @@
 <!doctype html>
-<!-- JRG-399, Lari-jalan (JoyoFit Coach). No screenshot: this is a native-only screen and no device capture of it exists yet, so every number here is drawn from
-     watch-fit/src/features/coach/plans/runWalk.ts (RUNWALK_STEPS, RUNWALK_CONTINUOUS, RETEST_WEEKS, zones 3/4/2) and docs/coach.md. Nothing is a UI mock. -->
+<!-- JRG-399, Lari-jalan (JoyoFit Coach). The plan picker and the plan description are real captures from the owner's phone (fit-coach-*.webp, English UI, status bar cropped, nothing started or saved).
+     No capture exists of the week overview or a session screen: they only appear after a plan is created. Those numbers come from watch-fit/src/features/coach/plans/runWalk.ts (RUNWALK_STEPS, RUNWALK_CONTINUOUS, RETEST_WEEKS, zones 3/4/2) and docs/coach.md and are not a UI mock. -->
 <html lang="id"><head><meta charset="utf-8"><link rel="stylesheet" href="@content/_base.css">
 <style>
   .tl { display: flex; height: 110px; border-radius: 22px; overflow: hidden; gap: 3px; }
@@ -28,6 +28,18 @@
   <div class="grow"></div>
   <p class="lead" style="font-size:40px">Rencana Lari-jalan: 8 minggu, 3 sesi seminggu, untuk mulai lari lagi dari nol.</p>
   <footer class="foot"><span class="brand">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+<!-- 1b Picker -->
+<section class="slide fit soft">
+  <div class="k">Coach › Buat rencana</div>
+  <div class="gap-s"></div>
+  <h1 class="h m">Pilih “Run/walk restart, 8 weeks”.</h1>
+  <div class="gap-m"></div>
+  <div class="snap" style="--s:.697;--cx:0;--cy:235;--cw:1320;--ch:815"><img src="@content/_shots/fit-coach-plan-picker.webp" alt=""></div>
+  <div class="gap-s"></div>
+  <p class="note">Tangkapan layar dari HP kami (app masih berbahasa Inggris). Di app namanya “Run/walk restart”.</p>
+  <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
 </section>
 
 <!-- 2 Week 1 -->
@@ -91,6 +103,18 @@
   <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
 </section>
 
+<!-- 4b Description in app -->
+<section class="slide fit soft">
+  <div class="k">Deskripsi di app</div>
+  <div class="gap-s"></div>
+  <h1 class="h m">Jalan itu bagian dari rencana, bukan mundur.</h1>
+  <div class="gap-m"></div>
+  <div class="snap" style="--s:.697;--cx:0;--cy:965;--cw:1320;--ch:680"><img src="@content/_shots/fit-coach-runwalk-info.webp" alt=""></div>
+  <div class="gap-s"></div>
+  <p class="note">Tangkapan layar dari HP kami, teks aslinya berbahasa Inggris. Ada anjuran periksa ke dokter dulu kalau punya kondisi kesehatan.</p>
+  <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
 <!-- 5 Re-test -->
 <section class="slide fit soft">
   <div class="k">Tes ulang 1 km</div>
@@ -111,6 +135,8 @@
   <h1 class="h">Mulai lagi dari nol, pelan-pelan.</h1>
   <div class="gap-m"></div>
   <span class="cta">fit.joyorogo.com</span>
+  <div class="gap-s"></div>
+  <p class="note" style="font-size:30px;color:oklch(0.85 0.01 200)">Download di Play Store (versi tes, gabung dulu lewat link), iPhone TestFlight, atau web.</p>
   <div class="gap-m"></div>
   <p class="note" style="font-size:28px;color:oklch(0.85 0.01 200)">Coach butuh JoyoRogo Pro. Rencana buatan JoyoFit sendiri, bukan saran medis. Dites di Watch Fit 4 Pro. Tidak berafiliasi dengan Huawei.</p>
   <footer class="foot"><span class="brand">JoyoFit</span><span class="pg"></span></footer>

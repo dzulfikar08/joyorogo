@@ -16,7 +16,7 @@ Post 2 (balasan, link di sini)
 
 yang disorot cuma yang tercapai (protein, serat, pas di target). berat badan nggak pernah ada di gambar, memang nggak ada opsinya. stikernya hasil potong foto, jadi tepinya kadang nggak rapi, keliatan di halaman 3.
 
-versi tes: Android tes tertutup, iPhone TestFlight, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-bagikan-makan-sehari
+download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-bagikan-makan-sehari
 
 ## Instagram
 
@@ -24,7 +24,7 @@ Makanku sehari, tanpa susun 6 screenshot. Di JoyoRogo: Makan, lalu Bagikan makan
 
 Contoh ini dari catatan 22 Okt: 1.760 dari 1.850 kkal, protein 122 dari target 110 g. Yang disorot hanya yang tercapai, berat badan tidak pernah ada di gambar. Stiker makanan hasil potong foto, tepinya tidak selalu rapi.
 
-Versi tes: Android tes tertutup, iPhone TestFlight, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-bagikan-makan-sehari`). Semua angka perkiraan, bukan saran medis.
+Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-bagikan-makan-sehari`). Semua angka perkiraan, bukan saran medis.
 
 #JoyoRogo #HitungKalori #WhatIEatInADay #DietIndonesia
 
@@ -43,4 +43,4 @@ Versi tes: Android tes tertutup, iPhone TestFlight, atau web joyorogo.com (link 
 - Slide 1 bagian atas story terpotong di bawah bingkai ponsel, memang disengaja (`data-bleed`).
 - Slide 5: Story Instagram hanya menerima satu gambar. Carousel dikirim lewat lembar bagikan atau disimpan lalu diunggah.
 - Slide 6 menyebut web karena `apps/web/src/components/makan/day-share.tsx` ada; entri rilis hanya menyebut "perlu deploy web dan OTA native". Pastikan keduanya sudah naik sebelum posting.
-- Jangan tulis "tersedia di Play Store/App Store".
+- Boleh tulis "download di Play Store (versi tes, gabung dulu lewat link)"; jangan tulis "tersedia di Play Store" tanpa keterangan versi tes, dan iPhone tetap TestFlight.

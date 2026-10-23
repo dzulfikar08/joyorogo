@@ -61,7 +61,7 @@ Browser lookup: `CHROMIUM_PATH`, then `PLAYWRIGHT_BROWSERS_PATH` or `~/.cache/ms
 Claim rules live in `docs/marketing/marketing-plan.md` (sections 1.1, 1.6, 3.3). Short version:
 
 - Estimates are labelled "perkiraan". No accuracy percentages, no weight-loss or medical promises, no testimonials.
-- No "tersedia di Play Store/App Store": Android is Google Play closed test, iPhone is TestFlight beta.
+- Availability (owner approved 2026-10-23): "download di Play Store (versi tes, gabung dulu lewat link)", iPhone via TestFlight, or web. Never a bare "tersedia di Play Store/App Store"; Android is still a closed test.
 - JoyoRogo mascot: green, armored, hero pose only. No other brands' logos (Huawei, Honor, WHOOP, Strava).
 - JoyoFit pieces: "tidak berafiliasi dengan Huawei", "Diuji di Huawei Watch Fit 4 Pro, jam lain eksperimen", Strava as "kirim latihan ke Strava".
 - Last slide: one CTA only.

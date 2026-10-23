@@ -16,7 +16,7 @@ Post 2 (balasan, link di sini)
 
 batasnya: mesin bawaan JoyoRogo buat Pro (web dan app), ada batas pertanyaan per hari. di app, siapa pun 18+ bisa pakai kunci API sendiri, gratis, biayanya ke penyedia pilihan lo. TKPI nggak punya kolom gula, jadi soal gula dijawab nggak ada di data. bukan saran medis.
 
-versi tes: Android tes tertutup, iPhone TestFlight, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-joyo-ai
+download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-joyo-ai
 
 ## Instagram
 
@@ -24,7 +24,7 @@ Pepaya, melon, atau semangka: mana yang seratnya paling tinggi? Tanya Joyo AI di
 
 Angkanya dari tabel TKPI 2019 (serat per 100 g): pepaya segar 1,6 g, melon segar 1,0 g, semangka segar 0,4 g. Kalau makanannya tidak ada di tabel, jawabannya "tidak tahu", bukan tebakan. Bisa juga bertanya soal catatan makanmu sendiri.
 
-Mesin JoyoRogo untuk Pro (web dan app). Di app, usia 18 tahun ke atas bisa memakai kunci API sendiri, gratis, biaya ke penyedia pilihanmu. Bukan saran medis. Versi tes: Android tes tertutup, iPhone TestFlight, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-joyo-ai`).
+Mesin JoyoRogo untuk Pro (web dan app). Di app, usia 18 tahun ke atas bisa memakai kunci API sendiri, gratis, biaya ke penyedia pilihanmu. Bukan saran medis. Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-joyo-ai`).
 
 #JoyoRogo #JoyoAI #HitungKalori #DietIndonesia
 
