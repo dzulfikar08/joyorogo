@@ -2,6 +2,7 @@ import type { TemplateInput } from "../../core/schema";
 import { withStickerMark } from "../kit";
 import { CHALLENGE_TEMPLATES } from "./challenge";
 import { DAY_TEMPLATES } from "./day";
+import { DAYFOOD_TEMPLATES } from "./dayfood";
 import { MEAL_TEMPLATES } from "./meal";
 import { MILESTONE_TEMPLATES } from "./milestone";
 import { PERIOD_TEMPLATES } from "./period";
@@ -12,6 +13,7 @@ import { WORKOUT_TEMPLATES } from "./workout";
 
 const AUTHORED: TemplateInput[] = [
   ...DAY_TEMPLATES,
+  ...DAYFOOD_TEMPLATES,
   ...MEAL_TEMPLATES,
   ...STREAK_TEMPLATES,
   ...WEIGHT_TEMPLATES,

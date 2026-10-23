@@ -31,7 +31,7 @@ const weekAdjustSchema = z.object({
 export const coachPlanSchema = z.object({
   id: shortText,
   kind: z.enum(["run", "strength"]),
-  goal: z.enum(["run5k", "run10k", "runHalf", "runRoutine", "strengthFull"]),
+  goal: z.enum(["run5k", "run10k", "runHalf", "runRoutine", "runWalk", "strengthFull"]),
   level: z.enum(["beginner", "intermediate", "advanced"]),
   daysPerWeek: z.number().int().min(1).max(7),
   setting: z.enum(["home", "gym"]).nullable(),

@@ -11,12 +11,12 @@ describe("owner example questions", () => {
   test("id: fiber across pepaya, melon, semangka -> a ranked block from our rows", async () => {
     const block = await foodBlockFor("Mana yang seratnya paling tinggi: pepaya, melon, atau semangka?", data());
     expect(block).toContain("FOOD DATA (ours");
-    expect(block).toContain("Pepaya, segar (ER073): 46 kcal, fiber 1.6 g");
+    expect(block).toContain("Pepaya, segar (ER073): 46 kcal, fiber 1.6 g, protein 0.5 g, carbs 12.2 g, fat 0.1 g");
     expect(block).toContain("Melon, segar (ER067): 37 kcal, fiber 1 g");
     expect(block).toContain("Semangka, segar (ER105): 28 kcal, fiber 0.4 g");
     expect(block).toContain("Ranked by fiber per 100 g (highest first): 1. Pepaya, segar 1.6; 2. Melon, segar 1; 3. Semangka, segar 0.4");
-    // ER073's macros are withheld, not shown
-    expect(block).toContain("protein/carbs/fat withheld");
+    // ER073's printed fat (12.0 g) was a typo: the corrected row keeps its macros and none are withheld
+    expect(block).not.toContain("withheld");
     expect(block).not.toContain("fat 12");
     // no portion of their own: the typical household portion, labelled as an estimate, with what is left after it
     expect(block).toContain("Pepaya, segar, 100 g (1 potong (1 slice), typical estimate): kcal 46");

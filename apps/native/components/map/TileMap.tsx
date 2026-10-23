@@ -53,6 +53,7 @@ import {
   type MapTheme,
 } from './palette';
 import { simplifyFlat, type RenderedTile } from './renderTile';
+import { pickKmPills, type FixedBox, type KmCandidate } from './kmPills';
 import { tileSource } from './tileCache';
 import {
   MAX_VIEW_ZOOM,
@@ -677,10 +678,23 @@ export function TileMap({
     p.x > -marginX - 20 && p.x < width + marginX + 20 && p.y > -marginY - 20 && p.y < height + marginY + 20;
 
   const markerNodes: ReactNode[] = [];
-  (markers ?? []).forEach((m, i) => {
-    const p = project(m.pos);
-    if (!Number.isFinite(p.x) || !inRect(p)) return;
+  const placed = (markers ?? []).map((m) => ({ m, p: project(m.pos) })).filter(({ p }) => Number.isFinite(p.x) && inRect(p));
+  // A ride has a pill per kilometre; which are drawn depends on zoom and overlap (see pickKmPills).
+  const fixedBoxes: FixedBox[] = [];
+  const kmCandidates: KmCandidate[] = [];
+  for (const { m, p } of placed) {
     if (m.kind === 'km') {
+      const km = Number(m.label);
+      if (Number.isInteger(km)) kmCandidates.push({ km, x: p.x, y: p.y, w: 26, h: 18 });
+    } else {
+      const s = m.kind === 'start' ? 16 : 20;
+      fixedBoxes.push({ x: p.x, y: p.y, w: s, h: s });
+    }
+  }
+  const shownKm = new Set(pickKmPills(kmCandidates, fixedBoxes));
+  placed.forEach(({ m, p }, i) => {
+    if (m.kind === 'km') {
+      if (!shownKm.has(Number(m.label))) return;
       markerNodes.push(
         <View
           key={`m${i}`}

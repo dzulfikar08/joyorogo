@@ -9,7 +9,9 @@
     "ring": "Cincin",
     "trend": "Tren",
     "photo": "Foto",
-    "progress": "Progres"
+    "progress": "Progres",
+    "day": "Sehari penuh",
+    "carousel": "Carousel"
   },
   "kind": {
     "day": "Hari ini",
@@ -20,12 +22,14 @@
     "challenge": "Tantangan",
     "workout": "Latihan",
     "milestone": "Pencapaian",
-    "period": "Progres"
+    "period": "Progres",
+    "dayfood": "Makan sehari"
   },
   "canvas": {
     "story": "Story 9:16",
     "square": "Kotak 1:1",
-    "sticker": "Stiker"
+    "sticker": "Stiker",
+    "carousel": "Carousel 4:5"
   },
   "common": {
     "madeWith": "Dicatat dengan JoyoRogo",
@@ -36,6 +40,7 @@
     "protein": "Protein",
     "carbs": "Karbo",
     "fat": "Lemak",
+    "fiber": "Serat",
     "days_other": "{{count}} hari",
     "minutes": "menit"
   },
@@ -189,7 +194,29 @@
     "nameUnavailable": "Gaya ini tidak menampilkan nama",
     "hideWeight": "Sembunyikan berat badan",
     "hideWeightHint": "Hanya perubahan yang tampil. Persen ikut disembunyikan karena bisa dipakai menghitung beratmu.",
-    "hideDeficit": "Sembunyikan perkiraan defisit"
+    "hideDeficit": "Sembunyikan perkiraan defisit",
+    "carouselHint": "{{count}} gambar, geser untuk melihat semuanya. Semuanya ikut terkirim."
+  },
+  "dayfood": {
+    "ofTarget": "/ {{target}} kkal",
+    "coverTitle": "Makanku sehari",
+    "totalTitle": "Total hari ini",
+    "split": "Kkal per waktu makan",
+    "hit": {
+      "kcal": "Pas di target",
+      "protein": "Protein tercapai",
+      "fiber": "Serat tercapai"
+    },
+    "mini": {
+      "protein": "P",
+      "carbs": "K",
+      "fat": "L"
+    },
+    "col": {
+      "food": "Makanan"
+    },
+    "moreMeals_other": "+{{count}} waktu makan lainnya",
+    "moreItems_other": "+{{count}} lainnya"
   },
   "period": {
     "eyebrow": "Progres",

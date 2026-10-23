@@ -8,10 +8,13 @@ import type { Layer, Template } from "../core/schema";
 import type { FontMap } from "../core/text";
 import { rogoBrand } from "./brand";
 import { buildStickerData, type StickerPrefs, type StorySpec } from "./data";
+import { DAYFOOD_SLIDE_TEMPLATE, dayFoodSlides } from "./dayfood";
+import { CAROUSEL_TAG, SLIDE_TAG } from "./selection";
 import { rogoTranslate } from "./translate";
 import { ROGO_TEMPLATE_SOURCES } from "./templates";
 
 export * from "./data";
+export * from "./dayfood";
 export * from "./selection";
 export { rogoBrand } from "./brand";
 export { rogoNativeFonts, rogoWebFonts, NATIVE_FAMILIES, WEB_MONO_FAMILY, WEB_SANS_FAMILY } from "./fonts";
@@ -39,7 +42,10 @@ export function rogoTemplates(): RogoTemplates {
 export function availableTemplates(spec: StorySpec, prefs: StickerPrefs = {}): Template[] {
   const data = buildStickerData(spec, prefs);
   return rogoTemplates().templates.filter(
-    (template) => isAvailable(template, data, rogoBrand) && !(template.meta?.needsPhoto && !data.assets?.photo),
+    (template) =>
+      !template.meta?.tags?.includes(SLIDE_TAG) &&
+      isAvailable(template, data, rogoBrand) &&
+      !(template.meta?.needsPhoto && !data.assets?.photo),
   );
 }
 
@@ -77,5 +83,19 @@ export function renderSticker(req: RenderRequest): Scene {
     t: rogoTranslate(req.locale),
     fonts: req.fonts,
     brand: rogoBrand,
+  });
+}
+
+/**
+ * Every image a template exports: one for a card, and for a carousel template the cover, one page per meal and the
+ * closing totals, each drawn by its own `slide` template from the same day.
+ */
+export function renderSlides(req: RenderRequest): Scene[] {
+  if (req.spec.kind !== "dayfood" || !req.template.meta?.tags?.includes(CAROUSEL_TAG)) return [renderSticker(req)];
+  const spec = req.spec;
+  const all = rogoTemplates().templates;
+  return dayFoodSlides(spec).flatMap((slide) => {
+    const template = all.find((candidate) => candidate.id === DAYFOOD_SLIDE_TEMPLATE[slide.role]);
+    return template ? [renderSticker({ ...req, template, spec: { ...spec, slide } })] : [];
   });
 }

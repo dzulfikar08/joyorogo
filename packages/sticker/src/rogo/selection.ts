@@ -1,10 +1,15 @@
 import type { Template } from "../core/schema";
 
-export type CanvasKind = "story" | "square" | "sticker";
+export type CanvasKind = "story" | "square" | "sticker" | "carousel";
 
-export const CANVAS_ORDER: readonly CanvasKind[] = ["story", "square", "sticker"];
+export const CANVAS_ORDER: readonly CanvasKind[] = ["story", "square", "sticker", "carousel"];
+
+/** Tags on a template: `carousel` = one entry of the "Carousel" format, `slide` = a page only the carousel draws. */
+export const CAROUSEL_TAG = "carousel";
+export const SLIDE_TAG = "slide";
 
 export function canvasOf(template: Template): CanvasKind {
+  if (template.meta?.tags?.includes(CAROUSEL_TAG)) return "carousel";
   if (template.meta?.transparent) return "sticker";
   return template.canvas.aspect === "square" ? "square" : "story";
 }

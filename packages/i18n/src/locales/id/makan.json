@@ -574,11 +574,15 @@
         "recap": "Rekapku {{name}}: {{on}} dari {{logged}} hari sesuai target, rata-rata {{avg}} kkal per hari. Catat makanmu di JoyoRogo.",
         "lost": "Sudah turun {{kg}} kg. Turun berat pakai 3 angka aja di JoyoRogo.",
         "progress": "Turun berat pakai 3 angka aja: makan, bakar, tidur. JoyoRogo.",
-        "period": "Progresku {{days}} hari: makan tercatat {{logged}} dari {{judged}} hari. Catat makanmu di JoyoRogo."
+        "period": "Progresku {{days}} hari: makan tercatat {{logged}} dari {{judged}} hari. Catat makanmu di JoyoRogo.",
+        "dayfood": "Makanku sehari: {{kcal}} kkal. Dicatat di JoyoRogo.",
+        "dayfoodProtein": "Makanku sehari: {{kcal}} kkal, protein {{protein}} g. Dicatat di JoyoRogo."
       }
     },
     "share": {
       "shareToStory": "Bagikan ke Story",
+      "shareDay": "Bagikan makanku sehari",
+      "savedMany_other": "{{count}} gambar tersimpan",
       "makeImageFailed": "Gagal membuat gambar.",
       "targets": "Bagikan lewat",
       "instagram": "Instagram",

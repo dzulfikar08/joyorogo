@@ -43,11 +43,21 @@ export function isShareCancel(error: unknown): boolean {
  * tracked link back to the site. Mirror of defaultShareText on web.
  */
 export function storyShareText(story: StorySpec): string {
-  // The period card is a progress share as far as the tracked link goes.
-  return `${storyShareBody(story)}\n${shareUrl("/", story.kind === "period" ? "progress" : story.kind)}`;
+  // The period card is a progress share and a whole day of food a meal share, as far as the tracked link goes.
+  const medium = story.kind === "period" ? "progress" : story.kind === "dayfood" ? "meal" : story.kind;
+  return `${storyShareBody(story)}\n${shareUrl("/", medium)}`;
 }
 
 function storyShareBody(story: StorySpec): string {
+  if (story.kind === "dayfood") {
+    const kcal = fmtNumber(Math.round(story.kcal), 1);
+    return story.protein != null
+      ? i18n.t("makan:story.card.share.dayfoodProtein", {
+          kcal,
+          protein: fmtNumber(Math.round(story.protein), 1),
+        })
+      : i18n.t("makan:story.card.share.dayfood", { kcal });
+  }
   if (story.kind === "meal") {
     return i18n.t("makan:story.card.share.meal", {
       name: story.name,
@@ -106,6 +116,16 @@ export async function shareImageSystem(fileUri: string, story: StorySpec): Promi
   // (WhatsApp and most chat apps show it under the image).
   await Share.open({
     url: fileUri,
+    type: "image/png",
+    message: storyShareText(story),
+    failOnCancel: false,
+  });
+}
+
+/** Hands every PNG of a carousel to the system share sheet in one call, in order, with the caption. */
+export async function shareImagesSystem(fileUris: string[], story: StorySpec): Promise<void> {
+  await Share.open({
+    urls: fileUris,
     type: "image/png",
     message: storyShareText(story),
     failOnCancel: false,

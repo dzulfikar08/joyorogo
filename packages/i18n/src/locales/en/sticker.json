@@ -9,7 +9,9 @@
     "ring": "Ring",
     "trend": "Trend",
     "photo": "Photo",
-    "progress": "Progress"
+    "progress": "Progress",
+    "day": "Full day",
+    "carousel": "Carousel"
   },
   "kind": {
     "day": "Today",
@@ -20,12 +22,14 @@
     "challenge": "Challenge",
     "workout": "Workout",
     "milestone": "Milestone",
-    "period": "Progress"
+    "period": "Progress",
+    "dayfood": "Day of eating"
   },
   "canvas": {
     "story": "Story 9:16",
     "square": "Square 1:1",
-    "sticker": "Sticker"
+    "sticker": "Sticker",
+    "carousel": "Carousel 4:5"
   },
   "common": {
     "madeWith": "Tracked with JoyoRogo",
@@ -36,6 +40,7 @@
     "protein": "Protein",
     "carbs": "Carbs",
     "fat": "Fat",
+    "fiber": "Fiber",
     "days_one": "{{count}} day",
     "days_other": "{{count}} days",
     "minutes": "min"
@@ -203,7 +208,31 @@
     "nameUnavailable": "This style does not show a name",
     "hideWeight": "Hide body weight",
     "hideWeightHint": "Only the change shows. The percent is hidden too, since it can be used to work out your weight.",
-    "hideDeficit": "Hide estimated deficit"
+    "hideDeficit": "Hide estimated deficit",
+    "carouselHint": "{{count}} images, swipe to see them all. Every one is shared."
+  },
+  "dayfood": {
+    "ofTarget": "/ {{target}} kcal",
+    "coverTitle": "What I eat in a day",
+    "totalTitle": "Today's total",
+    "split": "Kcal per meal",
+    "hit": {
+      "kcal": "On target",
+      "protein": "Protein reached",
+      "fiber": "Fiber reached"
+    },
+    "mini": {
+      "protein": "P",
+      "carbs": "C",
+      "fat": "F"
+    },
+    "col": {
+      "food": "Food"
+    },
+    "moreMeals_one": "+{{count}} more meal",
+    "moreMeals_other": "+{{count}} more meals",
+    "moreItems_one": "+{{count}} more",
+    "moreItems_other": "+{{count}} more"
   },
   "period": {
     "eyebrow": "Progress",

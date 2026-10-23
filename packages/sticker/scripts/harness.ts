@@ -1,7 +1,7 @@
 // Headless render harness: Scene -> PNG through real Chromium (SVG painter and Canvas painter),
 // with the repo's own font files, so goldens do not depend on system fonts.
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import sharp from "sharp";
 import { chromium, type Browser, type Page } from "playwright";
 
@@ -46,7 +46,8 @@ export function fixtureHref(uri: string): string {
   if (!hit) {
     const file = uri.slice(8);
     const mime = file.endsWith(".png") ? "image/png" : "image/jpeg";
-    hit = `data:${mime};base64,${readFileSync(join(ROOT, "fixtures", file)).toString("base64")}`;
+    // `fixture:/abs/path.png` reads any file (the day-share render uses real cutouts saved outside the repo).
+    hit = `data:${mime};base64,${readFileSync(isAbsolute(file) ? file : join(ROOT, "fixtures", file)).toString("base64")}`;
     imageCache.set(uri, hit);
   }
   return hit;

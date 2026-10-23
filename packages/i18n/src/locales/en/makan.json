@@ -593,11 +593,16 @@
         "recap": "My recap {{name}}: {{on}} of {{logged}} days on target, averaging {{avg}} kcal a day. Track your meals on JoyoRogo.",
         "lost": "Down {{kg}} kg already. Lose weight with just 3 numbers on JoyoRogo.",
         "progress": "Lose weight with just 3 numbers: eat, burn, sleep. JoyoRogo.",
-        "period": "My {{days}}-day progress: meals logged on {{logged}} of {{judged}} days. Track yours on JoyoRogo."
+        "period": "My {{days}}-day progress: meals logged on {{logged}} of {{judged}} days. Track yours on JoyoRogo.",
+        "dayfood": "What I ate in a day: {{kcal}} kcal. Tracked on JoyoRogo.",
+        "dayfoodProtein": "What I ate in a day: {{kcal}} kcal, {{protein}} g protein. Tracked on JoyoRogo."
       }
     },
     "share": {
       "shareToStory": "Share to Story",
+      "shareDay": "Share my day of eating",
+      "savedMany_one": "{{count}} image saved",
+      "savedMany_other": "{{count}} images saved",
       "makeImageFailed": "Couldn't create the image.",
       "targets": "Share via",
       "instagram": "Instagram",
