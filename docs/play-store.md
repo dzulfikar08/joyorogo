@@ -173,7 +173,7 @@ Capture from the release build with a demo account (not your real data). Order m
 6. Latihan: active workout with the rest timer.
 7. Grup: colek, catatan, VAR.
 8. Profil: Health Connect sync card and "Hapus semua data saya".
-9. (optional) Feed and the four home-screen widgets (the 1x1 "Scan Makanan" tile opens the camera).
+9. (optional) Feed and the five home-screen widgets: Progres Hari Ini, Kotak Masuk Grup, Ringkasan, Scan Makanan (1x1, opens the camera), and Streak Catat (2x2, new in the 1.1.0 store build; tap opens the scan camera). Capture Streak Catat only after installing the 1.1.0 store build; its states are done, at risk, and broken.
 
 Do not show the Pro/pricing screens or any real name or email.
 
