@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Scan: telur, sate, nugget dan potongan lain dihitung satu per satu; angka "yakin N%" dihapus dari hasil
 shipped: 2026-10-22
-available: code
+available: test-build
 tier: free
 post: todo
 atur:

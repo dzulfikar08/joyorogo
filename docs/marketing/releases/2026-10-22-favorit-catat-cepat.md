@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Favorit disarankan otomatis dan Catat cepat bisa diatur (urut, ubah, hapus, tambah)
 shipped: 2026-10-22
-available: code
+available: test-build
 tier: free
 post: todo
 atur: JRG-392

@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Scan: ubah "Jumlah" dengan satu ketukan dan "Dengan tulang / Tanpa tulang" per makanan
 shipped: 2026-10-22
-available: code
+available: test-build
 tier: free
 post: todo
 atur: JRG-394

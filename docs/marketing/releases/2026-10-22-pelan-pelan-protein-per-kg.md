@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Pelan-pelan dulu (catatan turun berat terlalu cepat) dan protein per kg
 shipped: 2026-10-22
-available: code
+available: test-build
 tier: free
 post: todo
 atur: JRG-391

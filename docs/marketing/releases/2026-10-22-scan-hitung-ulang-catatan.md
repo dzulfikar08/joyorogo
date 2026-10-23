@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Hitung ulang scan dengan catatan ("ini bakwan, telurnya 3") dan alasan penilaian
 shipped: 2026-10-22
-available: code
+available: test-build
 tier: free
 post: todo
 atur: JRG-395

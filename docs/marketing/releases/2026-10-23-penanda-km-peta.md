@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Penanda kilometer di peta latihan lebih rapi
 shipped: 2026-10-23
-available: code
+available: test-build
 tier: free
 post: todo
 atur: JRG-397
