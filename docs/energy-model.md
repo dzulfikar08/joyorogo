@@ -113,6 +113,8 @@ Why pct is below 100 and why activity only raises: wrist devices are not accurat
 none got its energy error below 20% (Shcherbina et al. 2017), so by default 75% of the extra counts, and a low reading
 never lowers a target built on a standard factor.
 
+Decision JRG-200 (owner, 2026-10-23): the add-back default stays 75%. The settings range stays 50 to 100.
+
 ## Recommendations ("lebih akurat")
 
 Shown where the level is chosen (onboarding, Profil > Target & tubuh). They are recommendations: the person taps
