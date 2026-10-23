@@ -37,6 +37,7 @@ import {
   rateLimited,
   varVerdict,
 } from "../lib/group";
+import { D1_MAX_PARAMS, chunk, readChunked } from "../lib/d1";
 import { leaveTeamChallenges } from "../lib/challenge-db";
 import { serverT } from "../lib/messages";
 import { loadPublicGroupPreview, previewAllowed } from "../lib/group-preview";
@@ -107,11 +108,16 @@ export const groupRouter = {
       .from(teamMember)
       .innerJoin(team, eq(teamMember.teamId, team.id))
       .where(eq(teamMember.userId, context.session.user.id));
-    const counts = await context.db
-      .select({ teamId: teamMember.teamId, total: count() })
-      .from(teamMember)
-      .where(inArray(teamMember.teamId, rows.map((row) => row.id)))
-      .groupBy(teamMember.teamId);
+    // join has no cap on how many groups one person is in, so the id list is chunked.
+    const counts = await readChunked(
+      rows.map((row) => row.id),
+      (ids) =>
+        context.db
+          .select({ teamId: teamMember.teamId, total: count() })
+          .from(teamMember)
+          .where(inArray(teamMember.teamId, ids))
+          .groupBy(teamMember.teamId),
+    );
     const countByTeam = new Map(counts.map((c) => [c.teamId, c.total]));
     return rows.map((row) => ({
       id: row.id,
@@ -885,13 +891,20 @@ export const groupRouter = {
   markRead: protectedProcedure
     .input(z.object({ ids: z.array(z.string()).optional() }))
     .handler(async ({ context, input }) => {
-      const filters = input.ids?.length
-        ? and(eq(teamNudge.toUserId, context.session.user.id), inArray(teamNudge.id, input.ids))
-        : eq(teamNudge.toUserId, context.session.user.id);
-      await context.db
-        .update(teamNudge)
-        .set({ readAt: new Date() })
-        .where(filters);
+      const userId = context.session.user.id;
+      const readAt = new Date();
+      if (!input.ids?.length) {
+        await context.db.update(teamNudge).set({ readAt }).where(eq(teamNudge.toUserId, userId));
+        return { ok: true };
+      }
+      // `ids` is caller-sized: one UPDATE per slice (userId and readAt are bound too), all in one atomic batch.
+      const [first, ...rest] = chunk(input.ids, D1_MAX_PARAMS - 2).map((ids) =>
+        context.db
+          .update(teamNudge)
+          .set({ readAt })
+          .where(and(eq(teamNudge.toUserId, userId), inArray(teamNudge.id, ids))),
+      );
+      await context.db.batch([first!, ...rest]);
       return { ok: true };
     }),
 

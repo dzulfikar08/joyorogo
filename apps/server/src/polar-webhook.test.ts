@@ -1,15 +1,9 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
-// @libsql/client is a transitive dep of @joyorogo/db; resolved directly because the server doesn't declare it.
-import { createClient } from "../../../packages/db/node_modules/@libsql/client";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/libsql";
 import { Hono } from "hono";
 import { user } from "@joyorogo/db/schema/auth";
 import { payment } from "@joyorogo/db/schema/billing";
-import type { Database } from "@joyorogo/db";
 
 import { registerBillingRoutes } from "./billing";
 import type { BillingEnv } from "./billing";
@@ -17,14 +11,7 @@ import type { BillingEnv } from "./billing";
 // billing.ts reaches the Workers runtime through ./context; the route needs nothing from it.
 mock.module("cloudflare:workers", () => ({ env: {} }));
 const { registerBillingRoutes } = await import("./billing");
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../packages/db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
-const db = drizzle(client) as unknown as Database;
+const { client, db } = await d1TestDb();
 
 const SECRET = `whsec_${Buffer.from("polar-test-secret-0123456789abcdef").toString("base64")}`;
 const env = {

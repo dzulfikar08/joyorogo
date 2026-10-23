@@ -1,6 +1,7 @@
 import type { SendEmail } from "@cloudflare/workers-types";
 import { and, eq, inArray, notInArray } from "drizzle-orm";
 
+import { readChunked } from "@joyorogo/api/lib/d1";
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
 import type { Database } from "@joyorogo/db";
 import { DEFAULT_REGION, resolveDayZone } from "@joyorogo/i18n";
@@ -160,12 +161,13 @@ async function readState(bucket: StickersBucket, campaignId: string): Promise<Br
 const writeState = (bucket: StickersBucket, state: BroadcastState) =>
   bucket.put(stateKey(state.id), JSON.stringify(state), { httpMetadata: { contentType: "application/json" } });
 
-/** Everyone who could get this campaign, sorted into who is done, opted out, given up on, and still to mail. */
-async function audience(deps: BroadcastDeps, campaign: Pick<Campaign, "id" | "recipients">, state: BroadcastState | null) {
-  const campaignId = campaign.id;
-  const kind = `broadcast:${campaignId}` as const;
-  const [userRows, optedOut, sentRows] = await Promise.all([
-    deps.db
+/**
+ * Verified users minus our own logins, in id order; only `recipients` when given. The id list is caller-sized (up to 500
+ * from the CLI) and D1 binds 100 values per statement, so it is read in slices and put back in id order.
+ */
+async function readAudience(db: Database, recipients: string[] | undefined) {
+  const read = (ids?: string[]) =>
+    db
       .select({ id: user.id, name: user.name, email: user.email, founderUntil: user.founderUntil, timezone: profile.timezone, profileId: profile.userId })
       .from(user)
       .leftJoin(profile, eq(profile.userId, user.id))
@@ -174,10 +176,21 @@ async function audience(deps: BroadcastDeps, campaign: Pick<Campaign, "id" | "re
         and(
           eq(user.emailVerified, true),
           notInArray(user.email, [...INTERNAL_EMAILS]),
-          campaign.recipients ? inArray(user.id, campaign.recipients) : undefined,
+          ids ? inArray(user.id, ids) : undefined,
         ),
       )
-      .orderBy(user.id),
+      .orderBy(user.id);
+  if (!recipients) return read();
+  const rows = await readChunked([...new Set(recipients)], (ids) => read(ids), { reserved: INTERNAL_EMAILS.length + 1 });
+  return rows.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+}
+
+/** Everyone who could get this campaign, sorted into who is done, opted out, given up on, and still to mail. */
+async function audience(deps: BroadcastDeps, campaign: Pick<Campaign, "id" | "recipients">, state: BroadcastState | null) {
+  const campaignId = campaign.id;
+  const kind = `broadcast:${campaignId}` as const;
+  const [userRows, optedOut, sentRows] = await Promise.all([
+    readAudience(deps.db, campaign.recipients),
     listOptedOut(deps.bucket),
     deps.db.select({ ref: emailLog.ref }).from(emailLog).where(eq(emailLog.kind, kind)),
   ]);

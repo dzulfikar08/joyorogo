@@ -7,6 +7,7 @@ import type { Database } from "@joyorogo/db";
 import type { DayZone } from "@joyorogo/i18n";
 
 import { protectedProcedure } from "../index";
+import { readChunked } from "../lib/d1";
 import { jakartaToday, shiftDate } from "../lib/engine";
 import { userZone } from "../lib/user-zone";
 import { normalizePlaceKey, toStoredCoords } from "../lib/places";
@@ -39,18 +40,23 @@ async function nutrientsByPlateId(
 ): Promise<Record<string, PlateNutrients>> {
   const totals: Record<string, PlateNutrients> = {};
   if (ids.length === 0) return totals;
-  const components = await db
-    .select({
-      plateId: foodLog.plateId,
-      kcal: sql<number>`sum(${foodLog.kcal})`,
-      protein: sql<number | null>`sum(${foodLog.protein})`,
-      carbs: sql<number | null>`sum(${foodLog.carbs})`,
-      fat: sql<number | null>`sum(${foodLog.fat})`,
-      fiber: sql<number | null>`sum(${foodLog.fiber})`,
-    })
-    .from(foodLog)
-    .where(and(eq(foodLog.userId, userId), inArray(foodLog.plateId, ids)))
-    .groupBy(foodLog.plateId);
+  const components = await readChunked(
+    ids,
+    (slice) =>
+      db
+        .select({
+          plateId: foodLog.plateId,
+          kcal: sql<number>`sum(${foodLog.kcal})`,
+          protein: sql<number | null>`sum(${foodLog.protein})`,
+          carbs: sql<number | null>`sum(${foodLog.carbs})`,
+          fat: sql<number | null>`sum(${foodLog.fat})`,
+          fiber: sql<number | null>`sum(${foodLog.fiber})`,
+        })
+        .from(foodLog)
+        .where(and(eq(foodLog.userId, userId), inArray(foodLog.plateId, slice)))
+        .groupBy(foodLog.plateId),
+    { reserved: 1 },
+  );
   for (const row of components) {
     if (!row.plateId) continue;
     totals[row.plateId] = aggregateNutrients([

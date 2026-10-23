@@ -1,12 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
-// @libsql/client is a transitive dep of @joyorogo/db; resolved directly because the server doesn't declare it.
-import { createClient } from "../../../packages/db/node_modules/@libsql/client";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { beforeEach, describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
-import type { Database } from "@joyorogo/db";
 
 import type { BroadcastDeps } from "./broadcast";
 import {
@@ -17,14 +11,7 @@ import {
 } from "./testflight-notice";
 import { recordOptOut } from "./unsubscribe";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../packages/db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
-const db = drizzle(client) as unknown as Database;
+const { client, db } = await d1TestDb();
 
 function fakeBucket() {
   const objects = new Map<string, string>();
@@ -134,6 +121,19 @@ describe("pendingTestflightBuyers", () => {
   test("lists each verified Rp0 Apple buyer once, without ours, paid orders or other gateways", async () => {
     const buyers = await pendingTestflightBuyers(db, config);
     expect(buyers.map((b) => b.id)).toEqual(["fajri", "siti"]);
+  });
+});
+
+describe("a long skip list", () => {
+  test("150 sandbox allowlist emails (D1 binds 100 values per statement) still skip exactly the listed buyers", async () => {
+    const big = testflightNoticeConfig({
+      TESTFLIGHT_PURCHASE_EMAIL: "on",
+      ADMIN_EMAILS: "owner@test.id",
+      APPLE_SANDBOX_EMAILS: [...Array.from({ length: 150 }, (_, i) => `tester${i}@test.id`), "siti@test.id", "allowed@test.id"].join(","),
+    });
+    expect((await pendingTestflightBuyers(db, big)).map((b) => b.id)).toEqual(["fajri"]);
+    expect(await sendTestflightNotice(makeDeps(), big, "siti")).toBe("skipped");
+    expect(await sendTestflightNotice(makeDeps(), big, "fajri")).toBe("sent");
   });
 });
 

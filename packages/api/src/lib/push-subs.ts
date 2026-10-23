@@ -4,6 +4,8 @@ import type { Database } from "@joyorogo/db";
 import { pushSubscription } from "@joyorogo/db/schema/plans";
 import { pushDevice } from "@joyorogo/db/schema/push";
 
+import { D1_MAX_PARAMS, chunk } from "./d1";
+
 // Where a person can be reached: browsers (Web Push endpoints) and phones (Expo tokens). Shared by the `push` router and
 // the older `fasting.subscribePush` procedures.
 
@@ -65,7 +67,7 @@ export async function saveDevice(
     .where(and(eq(pushDevice.userId, userId), eq(pushDevice.app, input.app)))
     .orderBy(desc(pushDevice.lastSeenAt));
   const extra = mine.slice(MAX_DEVICES_PER_APP).map((row) => row.id);
-  if (extra.length > 0) await db.delete(pushDevice).where(inArray(pushDevice.id, extra));
+  for (const ids of chunk(extra, D1_MAX_PARAMS)) await db.delete(pushDevice).where(inArray(pushDevice.id, ids));
 }
 
 export async function removeDevice(db: Database, userId: string, expoToken: string): Promise<void> {

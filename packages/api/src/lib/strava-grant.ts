@@ -2,6 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Database } from "@joyorogo/db";
+import { D1_MAX_PARAMS, chunk } from "./d1";
 import { exerciseLog, stravaAccount } from "@joyorogo/db/schema/fitness";
 
 /**
@@ -285,10 +286,13 @@ export async function dropAthlete(db: Database, athleteId: string): Promise<stri
     .where(eq(stravaAccount.athleteId, athleteId));
   if (rows.length === 0) return [];
   const userIds = rows.map((r) => r.userId);
+  // One Strava athlete can be linked from any number of accounts: delete in slices, all in one atomic batch.
+  const [firstSlice = [], ...otherSlices] = chunk(userIds, D1_MAX_PARAMS - 1);
+  const dropImported = (slice: string[]) =>
+    db.delete(exerciseLog).where(and(inArray(exerciseLog.userId, slice), eq(exerciseLog.source, "strava")));
   await db.batch([
-    db
-      .delete(exerciseLog)
-      .where(and(inArray(exerciseLog.userId, userIds), eq(exerciseLog.source, "strava"))),
+    dropImported(firstSlice),
+    ...otherSlices.map(dropImported),
     db.delete(stravaAccount).where(eq(stravaAccount.athleteId, athleteId)),
   ]);
   return userIds;

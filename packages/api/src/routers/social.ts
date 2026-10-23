@@ -30,6 +30,7 @@ import type { DayZone } from "@joyorogo/i18n";
 
 import { publicProcedure, protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
+import { D1_MAX_PARAMS, chunk } from "../lib/d1";
 import { dayBounds } from "../lib/tiers";
 import { base64ToBytes, commentPhotoKey } from "../lib/sticker";
 import {
@@ -2116,13 +2117,20 @@ export const socialRouter = {
   notificationsMarkRead: protectedProcedure
     .input(z.object({ ids: z.array(z.string()).optional() }))
     .handler(async ({ context, input }) => {
-      const filters = input.ids?.length
-        ? and(
-            eq(socialNotification.userId, context.session.user.id),
-            inArray(socialNotification.id, input.ids),
-          )
-        : eq(socialNotification.userId, context.session.user.id);
-      await context.db.update(socialNotification).set({ readAt: new Date() }).where(filters);
+      const userId = context.session.user.id;
+      const readAt = new Date();
+      if (!input.ids?.length) {
+        await context.db.update(socialNotification).set({ readAt }).where(eq(socialNotification.userId, userId));
+        return { ok: true };
+      }
+      // `ids` is caller-sized: one UPDATE per slice (userId and readAt are bound too), all in one atomic batch.
+      const [first, ...rest] = chunk(input.ids, D1_MAX_PARAMS - 2).map((ids) =>
+        context.db
+          .update(socialNotification)
+          .set({ readAt })
+          .where(and(eq(socialNotification.userId, userId), inArray(socialNotification.id, ids))),
+      );
+      await context.db.batch([first!, ...rest]);
       return { ok: true };
     }),
 };

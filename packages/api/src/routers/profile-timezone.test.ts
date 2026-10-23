@@ -1,15 +1,9 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { profile } from "@joyorogo/db/schema/fitness";
-import type { Database } from "@joyorogo/db";
 import type { Region } from "@joyorogo/i18n";
 
 import type { Context } from "../context";
@@ -17,20 +11,13 @@ import { jakartaToday, shiftDate } from "../lib/engine";
 import { userZone, zoneOfUser, zonesOfUsers } from "../lib/user-zone";
 import { profileRouter } from "./profile";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 await client.executeMultiple(`
   INSERT INTO "user" (id, name, email) VALUES ('legacy', 'l', 'l@test.id'), ('my', 'm', 'm@test.my'), ('sg', 's', 's@test.sg'), ('fresh', 'f', 'f@test.my'), ('sea', 'x', 'x@test.id');
   INSERT INTO profile (user_id, birth_year, gender, height_cm, start_weight_kg, target_weight_kg, target_date, activity_level)
     VALUES ('legacy', 1990, 'male', 170, 80, 70, '2027-06-01', 'light');
 `);
 
-const db = drizzle(client) as unknown as Database;
 const as = (userId: string, region?: Region) => ({
   context: { db, env: {}, region, waitUntil: () => {}, session: { user: { id: userId } } } as unknown as Context,
 });

@@ -1,25 +1,13 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import { jakartaToday, shiftDate } from "../lib/engine";
 import { profileRouter } from "./profile";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 
 const today = jakartaToday();
 const lapsedDate = shiftDate(today, -10);
@@ -38,10 +26,10 @@ await client.executeMultiple(`
     ('cal', 1990, 'male', 170, 100, 90, '${shiftDate(today, 120)}', 'sedentary');
 `);
 // 6 days of steps in the last 14 (average 11 000), one old day that must not count
-for (const [offset, steps] of [[1, 10000], [2, 12000], [3, 11000], [4, 10000], [5, 12000], [6, 11000], [30, 500]]) {
+for (const [offset, steps] of [[1, 10000], [2, 12000], [3, 11000], [4, 10000], [5, 12000], [6, 11000], [30, 500]] as const) {
   await client.execute({
     sql: `INSERT INTO daily_activity (id, user_id, date, steps, active_calories, source) VALUES (?, 'steps', ?, ?, 300, 'health_connect')`,
-    args: [`da-${offset}`, shiftDate(today, -(offset as number)), steps],
+    args: [`da-${offset}`, shiftDate(today, -offset), steps],
   });
 }
 // 28 days of 3 000 kcal eaten at a steady 100 kg, weighed every 3 days; a 280 kcal manual workout every day and a
@@ -63,7 +51,6 @@ for (const offset of [1, 2, 3, 4, 5]) {
   });
 }
 
-const db = drizzle(client) as unknown as Database;
 const as = (userId: string) => ({
   context: { db, env: {}, waitUntil: () => {}, session: { user: { id: userId } } } as unknown as Context,
 });

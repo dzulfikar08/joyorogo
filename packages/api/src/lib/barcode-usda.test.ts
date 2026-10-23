@@ -6,11 +6,7 @@ import { lookupBarcode } from "./barcode-lookup";
 import type { BarcodeSource } from "./barcode-lookup";
 import { barcodeSources } from "./barcode-sources";
 import { fetchUsdaProduct, parseUsdaFood, usdaQuery, usdaSource } from "./barcode-usda";
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { drizzle } from "drizzle-orm/libsql";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 // Shaped like FDC /foods/search entries for dataType=Branded (field names per the
 // FDC API guide): values are per 100 g, or per 100 ml when servingSizeUnit is ml.
@@ -173,14 +169,7 @@ describe("source registry", () => {
   });
 });
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
-const db = drizzle(client) as unknown as Database;
+const { client, db } = await d1TestDb();
 
 function counting(id: string, answer: ProductData | null, critical: boolean) {
   const source: BarcodeSource & { calls: number } = {

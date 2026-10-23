@@ -1,13 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
-// @libsql/client is a transitive dep of @joyorogo/db (its D1-shaped driver
-// supports batch); resolved directly because packages/api doesn't declare it.
-import { createClient } from "../../../db/node_modules/@libsql/client";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-import type { Database } from "@joyorogo/db";
 
 import {
   StravaGrantError,
@@ -24,14 +17,7 @@ import {
 const ENV = { STRAVA_CLIENT_ID: "287873", STRAVA_CLIENT_SECRET: "secret" };
 const ATHLETE = 4242;
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
-const db = drizzle(client) as unknown as Database;
+const { client, db } = await d1TestDb();
 
 let counter = 0;
 async function newUser(): Promise<string> {
@@ -283,5 +269,25 @@ describe("dropAthlete (deauthorization on strava.com)", () => {
     const remaining = await client.execute("SELECT id FROM exercise_log ORDER BY id");
     expect((remaining.rows as unknown as { id: string }[]).map((r) => r.id)).toEqual(["e2", "e3"]);
     expect(await dropAthlete(db, "31337")).toEqual([]);
+  });
+
+  test("an athlete linked from more accounts than D1 binds in one statement is dropped whole", async () => {
+    const ids: string[] = [];
+    for (let i = 0; i < 130; i++) {
+      const id = await newUser();
+      ids.push(id);
+      await client.execute({
+        sql: "INSERT INTO strava_account (user_id, athlete_id, access_token, refresh_token, expires_at, scope) VALUES (?, '880088', 'a', 'r', 0, 'read')",
+        args: [id],
+      });
+      await client.execute({
+        sql: "INSERT INTO exercise_log (id, user_id, date, name, kcal, source) VALUES (?, ?, '2026-10-01', 'x', 100, 'strava')",
+        args: [`bulk-${id}`, id],
+      });
+    }
+    expect((await dropAthlete(db, "880088")).sort()).toEqual([...ids].sort());
+    const left = await client.execute("SELECT count(*) AS n FROM exercise_log WHERE id LIKE 'bulk-%'");
+    expect(Number((left.rows[0] as unknown as { n: number }).n)).toBe(0);
+    expect(await dropAthlete(db, "880088")).toEqual([]);
   });
 });

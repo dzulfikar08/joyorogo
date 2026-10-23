@@ -5,6 +5,7 @@ import type { Context, Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 
+import { readChunked } from "@joyorogo/api/lib/d1";
 import { commentPhotoKeysOf } from "@joyorogo/api/lib/comment-attachment";
 import { shiftDate } from "@joyorogo/api/lib/engine";
 import { feedbackPhotoKey } from "@joyorogo/api/lib/feedback-keep";
@@ -74,11 +75,14 @@ function parseQuery<S extends z.ZodType>(c: Context, schema: S): z.output<S> {
 
 const offsetOf = ({ page, pageSize }: { page: number; pageSize: number }) => (page - 1) * pageSize;
 
-/** Case-insensitive substring match over any column; `%`, `_` and `\` in the term are literal. */
+/**
+ * Case-insensitive substring match over any column. instr() takes the term as a plain value: a LIKE pattern is capped
+ * at 50 bytes on D1 (and escaping `%`, `_`, `\\` would grow it), while the search box allows 100 characters.
+ */
 const containsAny = (columns: unknown[], term: string) => {
-  const pattern = `%${term.toLowerCase().replace(/[\\%_]/g, "\\$&")}%`;
+  const needle = term.toLowerCase();
   return sql`(${sql.join(
-    columns.map((column) => sql`lower(${column}) like ${pattern} escape '\\'`),
+    columns.map((column) => sql`instr(lower(${column}), ${needle}) > 0`),
     sql` or `,
   )})`;
 };
@@ -822,19 +826,25 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
     // One batched session lookup for this page (user + photoId).
     const sessions = new Map<string, ScanSession>();
     if (rows.length > 0) {
-      const found = await db
-        .select({ userId: aiUsage.userId, usageJson: aiUsage.usageJson })
-        .from(aiUsage)
-        .where(
-          and(
-            isSessionSql(),
-            inArray(aiUsage.userId, [...new Set(rows.map((r) => r.userId))]),
-            sql`json_extract(${aiUsage.usageJson}, '$.photoId') in (${sql.join(
-              rows.map((r) => sql`${r.photoId}`),
-              sql`, `,
-            )})`,
-          ),
-        );
+      // Each row binds its user id and its photo id: D1 takes 100 values per statement, a page holds up to 100 rows.
+      const found = await readChunked(
+        rows,
+        (slice) =>
+          db
+            .select({ userId: aiUsage.userId, usageJson: aiUsage.usageJson })
+            .from(aiUsage)
+            .where(
+              and(
+                isSessionSql(),
+                inArray(aiUsage.userId, [...new Set(slice.map((r) => r.userId))]),
+                sql`json_extract(${aiUsage.usageJson}, '$.photoId') in (${sql.join(
+                  slice.map((r) => sql`${r.photoId}`),
+                  sql`, `,
+                )})`,
+              ),
+            ),
+        { perKey: 2 },
+      );
       for (const row of found) {
         const session = parseSession(row.usageJson);
         if (session?.photoId && !sessions.has(`${row.userId}/${session.photoId}`)) {

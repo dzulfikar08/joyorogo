@@ -4,6 +4,7 @@ import type { Database } from "@joyorogo/db";
 import { dayBoundsIn, dayZoneOffsetMs, weekdayOfMs } from "@joyorogo/i18n";
 import type { DayZone } from "@joyorogo/i18n";
 
+import { readChunked } from "./d1";
 import { calibrationNotice } from "./calibration";
 import { readCalibrationPrefs } from "./calibration-store";
 import { daysBetween, effectiveRamadan, shiftDate, streakFromDates } from "./engine";
@@ -173,18 +174,23 @@ async function mealCandidates(
 /** Per person: the days (in their zone) they logged food or weighed in during the last 60 days (what the streak counts). */
 async function loggedDates(db: Database, ids: string[], today: string): Promise<Map<string, string[]>> {
   const out = new Map<string, string[]>();
-  for (let i = 0; i < ids.length; i += 40) {
-    const chunk = ids.slice(i, i + 40);
-    const list = sql.join(chunk.map((id) => sql`${id}`), sql`, `);
-    const rows = await db.all<{ user_id: string; date: string }>(sql`
-      SELECT user_id, date FROM food_log WHERE user_id IN (${list}) AND date >= ${shiftDate(today, -60)}
-      UNION
-      SELECT user_id, date FROM weight_log WHERE user_id IN (${list}) AND date >= ${shiftDate(today, -60)}`);
-    for (const row of rows) {
-      const dates = out.get(row.user_id) ?? [];
-      dates.push(row.date);
-      out.set(row.user_id, dates);
-    }
+  const since = shiftDate(today, -60);
+  // The id list is bound in both halves of the UNION, next to the two dates.
+  const rows = await readChunked(
+    ids,
+    (slice) => {
+      const list = sql.join(slice.map((id) => sql`${id}`), sql`, `);
+      return db.all<{ user_id: string; date: string }>(sql`
+        SELECT user_id, date FROM food_log WHERE user_id IN (${list}) AND date >= ${since}
+        UNION
+        SELECT user_id, date FROM weight_log WHERE user_id IN (${list}) AND date >= ${since}`);
+    },
+    { reserved: 2, perKey: 2 },
+  );
+  for (const row of rows) {
+    const dates = out.get(row.user_id) ?? [];
+    dates.push(row.date);
+    out.set(row.user_id, dates);
   }
   return out;
 }

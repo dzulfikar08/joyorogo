@@ -10,6 +10,7 @@ import type { DayZone, Locale } from "@joyorogo/i18n";
 import { formatMinor } from "@joyorogo/api/lib/fx";
 import { userLocale } from "@joyorogo/api/lib/messages";
 import { zoneOfUser } from "@joyorogo/api/lib/user-zone";
+import { readChunked } from "@joyorogo/api/lib/d1";
 import { dayStartMs } from "@joyorogo/api/lib/accuracy-report";
 import type { AccuracyReport, EmailState, ShadowReport } from "@joyorogo/api/lib/accuracy-report";
 
@@ -521,11 +522,13 @@ export async function sendAccuracyDigest(
     return { status: "off", detail: "no ADMIN_EMAILS, EMAIL binding or EMAIL_FROM" };
   }
   // email_log rows belong to a user: the first admin who has an account.
-  const [owner] = await db
-    .select({ id: user.id })
-    .from(user)
-    .where(sql`lower(${user.email}) in (${sql.join(admins.map((email) => sql`${email}`), sql`, `)})`)
-    .limit(1);
+  const [owner] = await readChunked(admins, (slice) =>
+    db
+      .select({ id: user.id })
+      .from(user)
+      .where(sql`lower(${user.email}) in (${sql.join(slice.map((email) => sql`${email}`), sql`, `)})`)
+      .limit(1),
+  );
   if (!owner) return { status: "failed", detail: "no user account for ADMIN_EMAILS" };
   if (!(await claimEmail(db, owner.id, "accuracy_digest", report.date))) {
     return { status: "sent", detail: "already in email_log" };

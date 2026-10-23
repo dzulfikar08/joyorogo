@@ -1,17 +1,11 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { call } from "@orpc/server";
 import type { RouterClient } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { DEFAULT_DAY_ZONE, getT } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 
@@ -26,13 +20,7 @@ import { joyoRouter } from "./joyo";
 // the model, the tool round over a fake Workers AI binding (streamed SSE, whole objects, and the binding's native shape), and
 // what never reaches the model or the database. The procedures the tools read are the real ones, on an in-memory database.
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 
 const today = jakartaToday(undefined, DEFAULT_DAY_ZONE);
 const year = Number(today.slice(0, 4));
@@ -86,7 +74,6 @@ for (const [id, tier] of Object.entries(USERS)) {
     args: [`food-${id}`, id, today],
   });
 }
-const db = drizzle(client) as unknown as Database;
 
 // ---- fake Workers AI binding ----
 

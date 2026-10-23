@@ -1,28 +1,15 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import { activityRouter } from "./activity";
 import { sleepRouter } from "./sleep";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 await client.executeMultiple(`INSERT INTO "user" (id, name, email, tier) VALUES ('u', 'u', 'u@test.id', 'free');`);
 
-const db = drizzle(client) as unknown as Database;
 const ctx = { context: { db, env: {}, waitUntil: () => {}, session: { user: { id: "u" } } } as unknown as Context };
 
 const day = (date: string, steps: number, source: "health_connect" | "apple_health") =>

@@ -8,6 +8,7 @@ import type { PushOutboxRow } from "@joyorogo/db/schema/push";
 import { DEFAULT_DAY_ZONE, DEFAULT_LOCALE, DEFAULT_REGION, dayBoundsIn, getT, isLocale, resolveDayZone } from "@joyorogo/i18n";
 import type { DayZone, Locale } from "@joyorogo/i18n";
 
+import { D1_MAX_PARAMS, chunk, insertChunked } from "./d1";
 import { fetchReceipts, sendExpo } from "./expo-push";
 import type { ExpoMessage, ExpoPushEnv } from "./expo-push";
 import { minutesUntil, parseHHMM, wibDateKey, wibMinutes } from "./fasting";
@@ -45,8 +46,8 @@ export const MAX_ATTEMPTS = 4;
 /** Delivery batch of one cron round, and how many rounds one tick runs. */
 const FLUSH_BATCH = 100;
 const FLUSH_ROUNDS = 4;
-/** Ids per `IN (...)` (D1 allows 100 bound values per statement). */
-const ID_CHUNK = 80;
+/** Ids per `IN (...)`: D1_MAX_PARAMS minus headroom for the few other values those statements bind (at most 2). */
+const ID_CHUNK = D1_MAX_PARAMS - 20;
 const RECEIPT_AFTER_MS = 15 * 60_000;
 const RECEIPT_MAX_AGE_MS = 24 * 3_600_000;
 const KEEP_OUTBOX_MS = 14 * 86_400_000;
@@ -153,16 +154,10 @@ type SubRow = typeof pushSubscription.$inferSelect;
 type DeviceRow = typeof pushDevice.$inferSelect;
 export type Audience = { prefs: PushPrefsValue; subs: SubRow[]; devices: DeviceRow[]; locale: Locale; zone: DayZone };
 
-function chunks<T>(items: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
-  return out;
-}
-
 /** Prefs, browsers, phones and language of every user in `userIds`; one round trip per 80 users. */
 export async function loadAudience(db: Database, userIds: string[]): Promise<Map<string, Audience>> {
   const out = new Map<string, Audience>();
-  for (const ids of chunks([...new Set(userIds)], ID_CHUNK)) {
+  for (const ids of chunk([...new Set(userIds)], ID_CHUNK)) {
     const [prefs, subs, devices, locales] = await db.batch([
       db.select().from(pushPrefs).where(inArray(pushPrefs.userId, ids)),
       db.select().from(pushSubscription).where(inArray(pushSubscription.userId, ids)),
@@ -272,7 +267,7 @@ export async function deliverRows(
   const sentToday = new Map<string, number>();
   for (const [zone, dayStart] of dayStartOf) {
     const ofZone = [...new Set(rows.map((r) => r.userId))].filter((id) => zoneOf(id) === zone);
-    for (const ids of chunks(ofZone, ID_CHUNK)) {
+    for (const ids of chunk(ofZone, ID_CHUNK)) {
       const counted = await db
         .select({ userId: pushOutbox.userId, category: pushOutbox.category, total: sql<number>`count(*)` })
         .from(pushOutbox)
@@ -441,13 +436,13 @@ export async function deliverRows(
   const statements: unknown[] = [...updates.entries()].map(([id, patch]) =>
     db.update(pushOutbox).set(patch).where(eq(pushOutbox.id, id)),
   );
-  for (const ids of chunks([...deadDevices], ID_CHUNK)) {
+  for (const ids of chunk([...deadDevices], ID_CHUNK)) {
     statements.push(db.delete(pushDevice).where(inArray(pushDevice.id, ids)));
   }
-  for (const ids of chunks([...deadSubs], ID_CHUNK)) {
+  for (const ids of chunk([...deadSubs], ID_CHUNK)) {
     statements.push(db.delete(pushSubscription).where(inArray(pushSubscription.id, ids)));
   }
-  for (const group of chunks(statements, 50)) {
+  for (const group of chunk(statements, 50)) {
     await db.batch(group as unknown as Parameters<Database["batch"]>[0]);
   }
   return result;
@@ -526,16 +521,13 @@ export async function enqueueMany(
 ): Promise<number> {
   if (userIds.length === 0) return 0;
   const now = (deps.now ?? (() => new Date()))();
-  let stored = 0;
-  for (const group of chunks(userIds, 10)) {
-    const rows = await deps.db
-      .insert(pushOutbox)
-      .values(group.map((id) => toRow(id, eventFor(id), now)))
-      .onConflictDoNothing()
-      .returning({ id: pushOutbox.id });
-    stored += rows.length;
-  }
-  return stored;
+  const stored = await insertChunked(
+    deps.db,
+    pushOutbox,
+    userIds.map((id) => toRow(id, eventFor(id), now)),
+    (insert) => insert.onConflictDoNothing().returning({ id: pushOutbox.id }),
+  );
+  return stored.reduce((total, rows) => total + rows.length, 0);
 }
 
 // --- Cron: flush, digest, receipts ------------------------------------------------------
@@ -664,12 +656,12 @@ export async function checkReceipts(deps: NotifyDeps): Promise<number> {
   }
   const receipts = await fetchReceipts(deps.env, [...rowOf.keys()]);
   const deadDevices = [...rowOf.keys()].filter((id) => receipts[id]?.dead).map((id) => deviceOf.get(id)!);
-  for (const ids of chunks(deadDevices, ID_CHUNK)) {
+  for (const ids of chunk(deadDevices, ID_CHUNK)) {
     await db.delete(pushDevice).where(inArray(pushDevice.id, ids));
   }
   const settled = new Set<string>([...expired]);
   for (const [ticket, rowId] of rowOf) if (receipts[ticket]) settled.add(rowId);
-  for (const ids of chunks([...settled], ID_CHUNK)) {
+  for (const ids of chunk([...settled], ID_CHUNK)) {
     await db.update(pushOutbox).set({ ticketsJson: null }).where(inArray(pushOutbox.id, ids));
   }
   return settled.size;

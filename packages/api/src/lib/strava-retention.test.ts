@@ -1,13 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { afterEach, beforeEach, describe, expect, setSystemTime, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see strava-grant.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import { stravaRouter } from "../routers/strava";
@@ -17,14 +11,7 @@ import { scrubExpiredStravaRows, stravaRetentionCutoff } from "./strava-retentio
 const ENV = { STRAVA_CLIENT_ID: "287873", STRAVA_CLIENT_SECRET: "secret" };
 const DAY_MS = 86_400_000;
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
-const db = drizzle(client) as unknown as Database;
+const { client, db } = await d1TestDb();
 
 let counter = 0;
 async function newUser(): Promise<string> {
@@ -44,7 +31,7 @@ async function insertRow(userId: string, id: string, source: string, date: strin
 
 async function ids(userId: string): Promise<string[]> {
   const result = await client.execute({ sql: "SELECT id FROM exercise_log WHERE user_id = ? ORDER BY id", args: [userId] });
-  return result.rows.map((r: { id?: unknown }) => String(r.id));
+  return result.rows.map((r) => String(r.id));
 }
 
 describe("scrubExpiredStravaRows", () => {

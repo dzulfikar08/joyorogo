@@ -1,28 +1,17 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { describe, expect, test } from "bun:test";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
+import { d1TestClient, migrationSql } from "@joyorogo/db/test-d1";
 
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-const files = readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort();
 const MIGRATION = "0035_barcode_community.sql";
 
 describe("0035_barcode_community", () => {
   test("rows cached before it keep their meaning: source off, misses were Open Food Facts misses", async () => {
-    const client = createClient({ url: ":memory:" });
-    for (const file of files.filter((f) => f < MIGRATION)) {
-      await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-    }
+    const client = await d1TestClient({ migrations: (file) => file < MIGRATION });
     await client.executeMultiple(`
       INSERT INTO barcode_product (code, status, name, kcal_100) VALUES ('8996001600146', 'found', 'Teh Pucuk', 29);
       INSERT INTO barcode_product (code, status) VALUES ('8997219010406', 'not_found');
     `);
-    await client.executeMultiple(readFileSync(join(migrationsDir, MIGRATION), "utf8"));
+    await client.executeMultiple(migrationSql(MIGRATION));
 
     const rows = await client.execute(
       `SELECT code, source, contributors, sources_checked, sugar_100 FROM barcode_product ORDER BY code`,
@@ -34,8 +23,7 @@ describe("0035_barcode_community", () => {
   });
 
   test("one submission per user per product; a deleted account keeps the values", async () => {
-    const client = createClient({ url: ":memory:" });
-    for (const file of files) await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
+    const client = await d1TestClient();
     await client.executeMultiple(`INSERT INTO "user" (id, name, email) VALUES ('u1','u1','u1@t.id');`);
     const insert = (id: string) =>
       client.execute({

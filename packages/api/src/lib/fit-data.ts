@@ -20,6 +20,7 @@ import { watchWorkout } from "@joyorogo/db/schema/watch-workout";
 import { dayOfMs, isoInZone } from "@joyorogo/i18n";
 import type { DayZone } from "@joyorogo/i18n";
 
+import { readChunked } from "./d1";
 import { ageFromBirthYear, jakartaToday, shiftDate } from "./engine";
 import { budgetKcal, exerciseCredit } from "./exercise-credit";
 import type { AddBackSettings } from "./exercise-credit";
@@ -661,8 +662,10 @@ export async function listWorkouts(
       .orderBy(desc(workoutSession.date), desc(workoutSession.createdAt))
       .limit(limit),
   ]);
-  const sets = sessions.length
-    ? await db
+  const sets = await readChunked(
+    sessions.map((s) => s.id),
+    (slice) =>
+      db
         .select({
           sessionId: workoutSet.sessionId,
           exerciseId: workoutSet.exerciseId,
@@ -671,13 +674,8 @@ export async function listWorkouts(
           setType: workoutSet.setType,
         })
         .from(workoutSet)
-        .where(
-          inArray(
-            workoutSet.sessionId,
-            sessions.map((s) => s.id),
-          ),
-        )
-    : [];
+        .where(inArray(workoutSet.sessionId, slice)),
+  );
   const bySession = new Map<string, typeof sets>();
   for (const set of sets) bySession.set(set.sessionId, [...(bySession.get(set.sessionId) ?? []), set]);
 

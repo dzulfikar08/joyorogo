@@ -1,13 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import { watchWorkoutRouter } from "../routers/watch-workout";
@@ -18,20 +12,13 @@ import type { WatchPoint, WatchWorkoutDoc } from "./watch-workout";
 import { WatchWorkoutRefusal, cloudUnlocked, getBlob, putWorkout } from "./watch-workout-store";
 import type { WorkoutAnalysis } from "./workout-analysis";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 await client.executeMultiple(`
   INSERT INTO "user" (id, name, email, tier) VALUES
     ('pro', 'Pro', 'pro@test.id', 'founder'),
     ('other', 'Other', 'other@test.id', 'founder'),
     ('free', 'Free', 'free@test.id', 'free');
 `);
-const db = drizzle(client) as unknown as Database;
 
 /** In-memory R2: only what the store calls. */
 function fakeBucket() {
@@ -361,7 +348,7 @@ describe("router", () => {
     await deleteAllUserData(db, "other");
     await deleteUserMedia(bucket, "other", []);
     const rows = await client.execute("select count(*) as n from watch_workout where user_id='other'");
-    expect(rows.rows[0].n).toBe(0);
+    expect(rows.rows[0]?.n).toBe(0);
     expect([...objects.keys()].filter((k) => k.includes("/other/"))).toEqual([]);
   });
 });

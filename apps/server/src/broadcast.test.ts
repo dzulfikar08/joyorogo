@@ -1,13 +1,9 @@
-import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-// @libsql/client is a transitive dep of @joyorogo/db; resolved directly because the server doesn't declare it.
-import { createClient } from "../../../packages/db/node_modules/@libsql/client";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { beforeEach, describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 import { Hono } from "hono";
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
-import type { Database } from "@joyorogo/db";
 
 import { BATCH_LIMIT, RecipientCountChanged, broadcastStatus, runBroadcastTick, sendBroadcast, sendBroadcastTest } from "./broadcast";
 import type { BroadcastDeps } from "./broadcast";
@@ -16,14 +12,7 @@ import { firstName, renderBroadcast } from "./broadcast-render";
 import { registerBroadcastRoutes } from "./broadcast-routes";
 import { listOptedOut, recordOptOut, registerUnsubscribeRoutes, signUnsubscribeToken, verifyUnsubscribeToken } from "./unsubscribe";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../packages/db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
-const db = drizzle(client) as unknown as Database;
+const { client, db } = await d1TestDb();
 
 const SECRET = "test-secret-test-secret-test-secret-1234";
 const BASE = "https://api.test";
@@ -263,6 +252,16 @@ describe("sendBroadcast", () => {
     expect(outbox.map((m) => m.to).sort()).toEqual(["u01@test.id", "u03@test.id"]);
     expect(outbox.find((m) => m.to === "u01@test.id")!.text).toContain("Aktif sampai 18 November 2026, Orang.");
     expect((await logRows("broadcast:list-campaign")).map((r) => r.ref)).toEqual(["u01", "u03"]);
+  });
+
+  test("a 300-id recipient list (D1 binds 100 values per statement) reaches every listed user, in id order", async () => {
+    await seedUsers(320);
+    const recipients = Array.from({ length: 300 }, (_, i) => `u${String(i).padStart(2, "0")}`);
+    const { deps } = makeDeps();
+    const campaign = { id: "big-list", subject: "Halo", body: "Halo {nama}", recipients };
+    const { status } = await sendBroadcast(deps, campaign, 300, 5);
+    expect(status).toMatchObject({ eligible: 300, sent: 5, remaining: 295 });
+    expect(outbox.map((m) => m.to).sort()).toEqual(["u00", "u01", "u02", "u03", "u04"].map((id) => `${id}@test.id`));
   });
 
   test("{tanggal} is the recipient's own calendar day: 23:30 WIB on the 17th is already the 18th in Kuala Lumpur", async () => {

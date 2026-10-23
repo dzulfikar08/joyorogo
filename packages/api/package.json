@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsrs -b",
     "check-types": "tsrs -b",
-    "test": "bun test src/lib",
+    "test": "bun test src",
     "dev": "tsrs -b --watch"
   },
   "dependencies": {

@@ -1,13 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see packages/api privacy.test.ts).
-import { createClient } from "../../../packages/db/node_modules/@libsql/client";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { createAuth } from "@joyorogo/auth";
-import type { Database } from "@joyorogo/db";
 
 const BASE = "https://api.joyorogo.com";
 const ANDROID_APP = { "expo-origin": "joyofit://", "user-agent": "okhttp/4.12.0" };
@@ -17,13 +11,7 @@ const BROWSER = {
   "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Mobile Safari/537.36",
 };
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../packages/db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { db } = await d1TestDb();
 
 // The production wiring: the plugin has to be in createAuth's list, not merely exist.
 const auth = createAuth(
@@ -35,7 +23,7 @@ const auth = createAuth(
     GOOGLE_CLIENT_ID: "id.apps.googleusercontent.com",
     GOOGLE_CLIENT_SECRET: "secret",
   },
-  drizzle(client) as unknown as Database,
+  db,
 );
 
 /** The Google authorization URL a sign-in request is answered with. */

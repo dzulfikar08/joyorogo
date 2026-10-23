@@ -1,29 +1,17 @@
 // Moving a plate to another day moves its rows; their "jam makan" (eatenAt) cannot stay on the old day.
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import { jakartaToday, shiftDate } from "../lib/engine";
 import { foodRouter } from "./food";
 import { plateRouter } from "./plate";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 await client.executeMultiple(`INSERT INTO "user" (id, name, email) VALUES ('m1', 'm1', 'm1@test.id');`);
-const db = drizzle(client) as unknown as Database;
 const as = () => ({ context: { db, env: {}, waitUntil: () => {}, session: { user: { id: "m1" } } } as unknown as Context });
 
 const day = shiftDate(jakartaToday(), -3);

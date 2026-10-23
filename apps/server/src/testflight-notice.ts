@@ -127,11 +127,8 @@ async function mailBuyer(
   return "failed";
 }
 
-const skipSql = (config: TestflightNoticeConfig) =>
-  sql.join(
-    config.skipEmails.map((email) => sql`${email}`),
-    sql`, `,
-  );
+/** The skip list is env-sized (ADMIN_EMAILS, APPLE_SANDBOX_EMAILS) and D1 binds 100 values per statement, so it is applied here, not in SQL. */
+const skipped = (config: TestflightNoticeConfig, email: string) => config.skipEmails.includes(email.toLowerCase());
 
 /**
  * Right after a sandbox grant: mails this user when the notice is on and they
@@ -152,11 +149,10 @@ export async function sendTestflightNotice(
         and(
           eq(user.id, userId),
           eq(user.emailVerified, true),
-          sql`lower(${user.email}) not in (${skipSql(config)})`,
         ),
       )
       .limit(1);
-    if (!buyer || !buyer.email.includes("@")) return "skipped";
+    if (!buyer || !buyer.email.includes("@") || skipped(config, buyer.email)) return "skipped";
     return await mailBuyer(deps, buyer, async (id) => (await deps.bucket.get(optOutKey(id))) !== null);
   } catch (error) {
     console.error(`testflight notice ${userId}:`, error);
@@ -172,7 +168,7 @@ export async function pendingTestflightBuyers(
   db: Database,
   config: TestflightNoticeConfig,
 ): Promise<Buyer[]> {
-  return db
+  const rows = await db
     .selectDistinct({ id: user.id, name: user.name, email: user.email })
     .from(payment)
     .innerJoin(user, eq(user.id, payment.userId))
@@ -182,12 +178,12 @@ export async function pendingTestflightBuyers(
         eq(payment.amountIdr, 0),
         eq(payment.status, "paid"),
         eq(user.emailVerified, true),
-        sql`lower(${user.email}) not in (${skipSql(config)})`,
         sql`instr(${user.email}, '@') > 0`,
         sql`not exists (select 1 from ${emailLog} where ${emailLog.kind} = ${TESTFLIGHT_NOTICE_KIND} and ${emailLog.ref} = ${user.id})`,
       ),
     )
     .orderBy(user.id);
+  return rows.filter((row) => !skipped(config, row.email));
 }
 
 export type SweepResult = { pending: number; sent: number; failed: number; optedOut: number };

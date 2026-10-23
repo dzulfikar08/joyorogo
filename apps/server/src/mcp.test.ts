@@ -1,13 +1,10 @@
-import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/libsql";
 import { Hono } from "hono";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see packages/api privacy.test.ts).
-import { createClient } from "../../../packages/db/node_modules/@libsql/client";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { createAuth } from "@joyorogo/auth";
 import { MCP_DATA_SCOPES } from "@joyorogo/auth/mcp-scopes";
 import { deleteUserMcpData, listConnections, recentActivity, revokeConnection, sweepMcp } from "@joyorogo/api/lib/mcp-connections";
@@ -17,7 +14,6 @@ import { WATCH_WORKOUT_DOC_VERSION, encodePoints } from "@joyorogo/api/lib/watch
 import type { WatchWorkoutDoc } from "@joyorogo/api/lib/watch-workout";
 import { putWorkout } from "@joyorogo/api/lib/watch-workout-store";
 import type { WorkoutAnalysis } from "@joyorogo/api/lib/workout-analysis";
-import type { Database } from "@joyorogo/db";
 import { exerciseLog, foodLog, profile, sleepLog, weightLog } from "@joyorogo/db/schema/fitness";
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 import { coachDoc } from "@joyorogo/db/schema/coach";
@@ -37,14 +33,7 @@ const REDIRECT = "http://127.0.0.1:33418/callback";
 const DAY = "2026-10-14";
 const START = Date.parse(`${DAY}T05:00:00Z`) / 1000;
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../packages/db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
-const db = drizzle(client) as unknown as Database;
+const { client, db } = await d1TestDb();
 
 const authEnv = {
   BETTER_AUTH_URL: BASE,

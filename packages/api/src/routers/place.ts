@@ -9,6 +9,7 @@ import { protectedProcedure } from "../index";
 import { userZone } from "../lib/user-zone";
 import { assertEatenAt, eatenAtSchema } from "../lib/eaten-at";
 import { jakartaToday, suggestMealNow } from "../lib/engine";
+import { D1_MAX_PARAMS, chunk } from "../lib/d1";
 import { insertFoodRows } from "../lib/food-rows";
 import { serverT } from "../lib/messages";
 import { aggregatePlaces, dishesOfPlace, normalizePlaceKey, visitsOfPlace } from "../lib/places";
@@ -224,12 +225,12 @@ export const placeRouter = {
       const ids = located
         .filter((row) => key === null || (row.place != null && normalizePlaceKey(row.place) === key))
         .map((row) => row.id);
-      // D1 caps bound parameters per statement; clear in slices.
-      for (let i = 0; i < ids.length; i += 50) {
+      // D1 caps bound parameters per statement; clear in slices (userId + the two nulls ride along).
+      for (const slice of chunk(ids, D1_MAX_PARAMS - 3)) {
         await context.db
           .update(plate)
           .set({ lat: null, lng: null })
-          .where(and(eq(plate.userId, userId), inArray(plate.id, ids.slice(i, i + 50))));
+          .where(and(eq(plate.userId, userId), inArray(plate.id, slice)));
       }
       return { cleared: ids.length };
     }),

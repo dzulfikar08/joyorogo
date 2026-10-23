@@ -6,6 +6,8 @@
 import type { Database } from "@joyorogo/db";
 import { foodLog } from "@joyorogo/db/schema/fitness";
 
+import { insertChunked } from "./d1";
+
 export type FoodRowValues = Omit<
   typeof foodLog.$inferInsert,
   "grams" | "protein" | "carbs" | "fat" | "fiber" | "source" | "createdAt"
@@ -20,26 +22,17 @@ export type FoodRowValues = Omit<
   source: string;
 };
 
-/** D1 binds at most 100 parameters per statement and a row binds up to 19, so a statement carries at most 5 rows. */
-const ROWS_PER_STATEMENT = 5;
-
 /**
  * Inserts rows and answers the stored ones; with `ignoreConflicts` a row whose id exists is skipped (and not answered).
- * More than ROWS_PER_STATEMENT rows go as one batch of statements, which D1 runs as a single transaction.
+ * D1 binds at most 100 parameters per statement, so more rows than fit go as one batch of statements (one transaction).
  */
 export async function insertFoodRows(
   db: Database,
   rows: readonly FoodRowValues[],
   options: { ignoreConflicts?: boolean } = {},
 ): Promise<Array<typeof foodLog.$inferSelect>> {
-  const statement = (part: FoodRowValues[]) => {
-    const insert = db.insert(foodLog).values(part);
-    return (options.ignoreConflicts ? insert.onConflictDoNothing({ target: foodLog.id }) : insert).returning();
-  };
-  if (rows.length <= ROWS_PER_STATEMENT) return statement([...rows]);
-  const chunks: FoodRowValues[][] = [];
-  for (let i = 0; i < rows.length; i += ROWS_PER_STATEMENT) chunks.push(rows.slice(i, i + ROWS_PER_STATEMENT));
-  const [first, ...rest] = chunks.map(statement);
-  const results = await db.batch([first!, ...rest]);
-  return results.flat();
+  const stored = await insertChunked(db, foodLog, rows, (insert) =>
+    (options.ignoreConflicts ? insert.onConflictDoNothing({ target: foodLog.id }) : insert).returning(),
+  );
+  return stored.flat();
 }

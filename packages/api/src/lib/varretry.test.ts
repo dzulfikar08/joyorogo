@@ -1,13 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
-// @libsql/client is a transitive dep of @joyorogo/db (resolved directly, same
-// as privacy.test.ts, because packages/api doesn't declare it).
-import { createClient } from "../../../db/node_modules/@libsql/client";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { beforeEach, describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-import type { Database } from "@joyorogo/db";
 
 import { MAX_SCAN_RETRIES } from "./quota";
 import { varPhotoKey } from "./sticker";
@@ -17,14 +10,7 @@ import { restoreVarVerdict, retryVarScan, varRetriesLeft } from "./varretry";
 const USER = "user-1";
 const OTHER = "user-2";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
-const db = drizzle(client) as unknown as Database;
+const { client, db } = await d1TestDb();
 
 const PHOTO_BYTES = new Uint8Array([1, 2, 3, 4]).buffer;
 

@@ -1,15 +1,9 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
-// @libsql/client is a transitive dep of @joyorogo/db; resolved directly because packages/api doesn't declare it.
-import { createClient } from "../../../db/node_modules/@libsql/client";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { beforeEach, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/libsql";
 
 import { user } from "@joyorogo/db/schema/auth";
 import { payment, polarEvent, polarSubscription } from "@joyorogo/db/schema/billing";
-import type { Database } from "@joyorogo/db";
 
 import { polarConfig, polarLedgerId, verifyWebhook } from "./polar";
 import { processPolarEvent } from "./polar-billing";
@@ -20,14 +14,7 @@ const NOW = new Date(Date.UTC(2026, 9, 18, 3, 0, 0));
 const MONTHLY = "prod-monthly";
 const YEARLY = "prod-yearly";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
-const db = drizzle(client) as unknown as Database;
+const { client, db } = await d1TestDb();
 
 let deps: PolarBillingDeps;
 let clock = NOW;

@@ -1,13 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import { MAX_DISHWARE } from "../lib/dishware";
@@ -16,17 +10,10 @@ import type { StickersBucket } from "../lib/sticker";
 import { aiRouter } from "./ai";
 import { dishwareRouter } from "./dishware";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 await client.executeMultiple(`
   INSERT INTO "user" (id, name, email) VALUES ('own', 'Owner', 'own@t.id'), ('qa', 'QA', 'qa@t.id'), ('bob', 'Bob', 'bob@t.id'), ('eve', 'Eve', 'eve@t.id');
 `);
-const db = drizzle(client) as unknown as Database;
 
 /** In-memory R2: only what dishware and the scan touch. */
 function fakeBucket() {

@@ -1,10 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-// @libsql/client is a transitive dep of @joyorogo/db; resolved directly because the server doesn't declare it.
-import { createClient } from "../../../packages/db/node_modules/@libsql/client";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 import { Hono } from "hono";
 import type { JoyoAuth } from "@joyorogo/auth";
 import { reportKey } from "@joyorogo/api/lib/accuracy-report";
@@ -13,7 +10,6 @@ import { scanDiff } from "@joyorogo/api/lib/scan-outcome";
 import type { CompactItem } from "@joyorogo/api/lib/scan-outcome";
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
 import type { analyzeFoodPhoto } from "@joyorogo/api/lib/vision";
-import type { Database } from "@joyorogo/db";
 
 import { REGRESSION_CAP, dailyAccuracyDue, runDailyAccuracy } from "./accuracy-job";
 import { registerAccuracyRoutes } from "./accuracy-routes";
@@ -21,14 +17,7 @@ import { registerAdminRoutes } from "./admin";
 import type { JobDeps } from "./accuracy-job";
 import { accuracyDigestDraft, sendAccuracyDigest } from "./email";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../packages/db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
-const db = drizzle(client) as unknown as Database;
+const { client, db } = await d1TestDb();
 
 type FakeBucket = {
   bucket: StickersBucket;

@@ -1,14 +1,8 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";
 import { and, eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { aiUsage } from "@joyorogo/db/schema/fitness";
 import { weekReflection } from "@joyorogo/db/schema/recap";
 import type { WeekReflectionRow } from "@joyorogo/db/schema/recap";
@@ -22,13 +16,7 @@ import type { ReflectionDeps } from "./recap-reflection";
 import { loadWeekRecap } from "./recap-store";
 import { statsRouter } from "../routers/stats";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 
 const old = ENERGY_NOTICE_BEFORE_MS - 86_400_000;
 const week = shiftDate(weekStartOf(jakartaToday()), -7);
@@ -66,7 +54,6 @@ await seedWeek("pro");
 await seedWeek("free");
 await seedWeek("strava");
 
-const db = drizzle(client) as unknown as Database;
 
 /** A model that answers like a faithful one: the observations and advice of the facts it was given, around plain filler. */
 function faithfulModel() {

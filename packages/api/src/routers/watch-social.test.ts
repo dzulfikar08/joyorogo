@@ -1,13 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import { jakartaToday } from "../lib/engine";
@@ -18,13 +12,7 @@ import { fitnessRouter } from "./fitness";
 import { groupRouter } from "./group";
 import { socialRouter } from "./social";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 
 // author/mate: free teammates. pro: Founder teammate. out: free, in no team.
 await client.executeMultiple(`
@@ -40,7 +28,6 @@ await client.executeMultiple(`
     ('t1', 'author', 'owner'), ('t1', 'mate', 'member'), ('t1', 'pro', 'member');
 `);
 
-const db = drizzle(client) as unknown as Database;
 const HOSTED = { FREE_DAILY_SCANS: "3", FOUNDER_DAILY_CAP: "100" };
 const as = (userId: string) => ({
   context: {

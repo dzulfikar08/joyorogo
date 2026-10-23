@@ -4,11 +4,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import { insertFoodRows, type FoodRowValues } from "./food-rows";
 
@@ -52,29 +49,9 @@ describe("food_log writers", () => {
   });
 
   test("a scan with many items stays under D1's 100 bound parameters per statement", async () => {
-    const client = createClient({ url: ":memory:" });
-    const migrations = join(ROOT, "packages/db/src/migrations");
-    for (const file of readdirSync(migrations).filter((f) => f.endsWith(".sql")).sort()) {
-      await client.executeMultiple(readFileSync(join(migrations, file), "utf8"));
-    }
+    // d1TestDb refuses what D1 refuses; SQLite alone allows thousands of parameters, which is what broke a 6-item breakfast scan.
+    const { client, db } = await d1TestDb();
     await client.execute(`INSERT INTO "user" (id, name, email) VALUES ('u', 'u', 'u@test.id')`);
-    // SQLite allows thousands of parameters; D1 refuses more than 100, which is what broke a 6-item breakfast scan.
-    const guard = (statement: string | { args?: object }) => {
-      const bound = typeof statement === "string" ? 0 : Object.keys(statement.args ?? []).length;
-      if (bound > 100) throw new Error(`too many SQL variables: ${bound}`);
-    };
-    const limited = new Proxy(client, {
-      get(target, key, receiver) {
-        if (key === "execute") return (statement: Parameters<typeof target.execute>[0]) => (guard(statement), target.execute(statement));
-        if (key === "batch")
-          return (statements: Parameters<typeof target.batch>[0], mode?: Parameters<typeof target.batch>[1]) => {
-            statements.forEach(guard);
-            return target.batch(statements, mode);
-          };
-        return Reflect.get(target, key, receiver);
-      },
-    });
-    const db = drizzle(limited) as unknown as Database;
     const rows: FoodRowValues[] = Array.from({ length: 12 }, (_, i) => ({
       id: `row-${i}`,
       userId: "u",

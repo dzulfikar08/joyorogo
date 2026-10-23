@@ -1,16 +1,11 @@
 // The owner's egg whites (lib/fixtures/owner-putih-telur.json) through every path that shows a scan:
 // photo scan, its stream, "Hitung ulang" and Cerita. The model keeps answering 50 g; each path must start at
 // the 100 g he saved every time, with the model's number kept in the note.
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import { jakartaToday, shiftDate } from "../lib/engine";
@@ -20,15 +15,8 @@ import type { StickersBucket } from "../lib/sticker";
 import { aiRouter } from "./ai";
 import type { AnalyzeFoodResult } from "./ai";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 await client.executeMultiple(`INSERT INTO "user" (id, name, email) VALUES ('owner', 'owner', 'owner@test.id'), ('fresh', 'fresh', 'fresh@test.id');`);
-const db = drizzle(client) as unknown as Database;
 
 // The diary after the owner's last save of 2026-10-22: the rows keep their spacing, the newest one an hour old.
 const rows = ownerPutihTelurRows();

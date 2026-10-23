@@ -1,26 +1,14 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 // Same transitive-dep import as privacy.test.ts: the D1-shaped libsql driver.
-import { createClient } from "../../../db/node_modules/@libsql/client";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { afterAll, describe, expect, setSystemTime, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-import type { Database } from "@joyorogo/db";
 import { aiUsage } from "@joyorogo/db/schema/fitness";
 
 import type { AiBinding } from "../context";
 import { requireAiQuota } from "./quota";
 import { scansUsedToday } from "./tiers";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
-const db = drizzle(client) as unknown as Database;
+const { client, db } = await d1TestDb();
 
 await client.executeMultiple(
   `INSERT INTO "user" (id, name, email) VALUES ('my', 'a', 'a@test.id'), ('id', 'b', 'b@test.id');`,

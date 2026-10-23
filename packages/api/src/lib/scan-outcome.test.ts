@@ -1,13 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/libsql";
 
-import type { Database } from "@joyorogo/db";
 import { aiUsage } from "@joyorogo/db/schema/fitness";
 
 import {
@@ -27,14 +21,7 @@ import {
   scanOutcome,
 } from "./scan-outcome";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
-const db = drizzle(client) as unknown as Database;
+const { client, db } = await d1TestDb();
 
 const USER = "u1";
 await client.execute(`INSERT INTO "user" (id, name, email) VALUES ('${USER}', 'A', 'a@test.id')`);
@@ -183,7 +170,7 @@ describe("retry-tap feedback marking", () => {
     );
     await markRetryTapFeedback(db, USER, "ph");
     const rows = await client.execute(`SELECT id, reasons_json FROM scan_feedback ORDER BY id`);
-    const marked = Object.fromEntries(rows.rows.map((r: { id: unknown; reasons_json: unknown }) => [String(r.id), r.reasons_json]));
+    const marked = Object.fromEntries(rows.rows.map((r) => [String(r.id), r.reasons_json]));
     expect(marked.bare).toBe(JSON.stringify([FEEDBACK_MARK.retryTap]));
     expect(marked.noted).toBeNull();
     expect(marked.old).toBeNull();

@@ -31,3 +31,7 @@ tooling, docs-only and invisible fixes.
 
 Claims follow `docs/marketing/marketing-plan.md` section 1.1 and `docs/marketing/social-playbook.md`. Never call a
 feature available in the Play Store or App Store before it is.
+
+## D1 limits: bounded statements, tests on the guarded database
+
+Cloudflare D1 refuses more than 100 bound parameters per statement (also 100 KB of SQL, 2 MB per value, 50-byte LIKE patterns); local SQLite allows 32766, so a query sized by the caller passes every test and 500s in production. Tests get their database from `d1TestDb()` in `@joyorogo/db/test-d1` (never `createClient`), which throws what D1 throws; caller-sized work goes through `packages/api/src/lib/d1.ts` (`insertChunked`, `readChunked`, `chunk`). Details: `docs/d1-limits.md`.

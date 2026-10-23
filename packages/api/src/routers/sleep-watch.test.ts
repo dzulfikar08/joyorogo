@@ -1,13 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import { jakartaToday, shiftDate } from "../lib/engine";
@@ -19,13 +13,7 @@ import { sleepRouter } from "./sleep";
 // JoyoFit pushes the hours its watch measured for the night that ended today (fitness_score.sleep_hours). The Beranda
 // tile and the Tidur screen read sleep_log only, so a person who sleeps with a watch and never types the number saw "–".
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 await client.executeMultiple(`
   INSERT INTO "user" (id, name, email, tier) VALUES
     ('watch', 'watch', 'watch@test.id', 'free'),
@@ -38,7 +26,6 @@ await client.executeMultiple(`
     SELECT id, 1990, 'male', 170, 80, 70, '2031-01-01', 'mid' FROM "user";
 `);
 
-const db = drizzle(client) as unknown as Database;
 const as = (userId: string) => ({
   context: {
     db,

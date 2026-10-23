@@ -1,26 +1,15 @@
-import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-// @libsql/client is a transitive dep of @joyorogo/db; resolved directly because the server doesn't declare it.
-import { createClient } from "../../../packages/db/node_modules/@libsql/client";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { beforeAll, describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 import { Hono } from "hono";
 import type { JoyoAuth } from "@joyorogo/auth";
-import type { Database } from "@joyorogo/db";
 
 import { RETRY_TAP_CUTOVER_MS } from "@joyorogo/api/lib/scan-outcome";
 
 import { registerAdminRoutes } from "./admin";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../packages/db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
-const db = drizzle(client) as unknown as Database;
+const { client, db } = await d1TestDb();
 
 const ADMIN = "admin@test.id";
 let signedInAs: { email: string; emailVerified: boolean } | null = {
