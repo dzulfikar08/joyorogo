@@ -2,7 +2,7 @@
   "expo": {
     "name": "JoyoRogo",
     "slug": "joyorogo",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "joyorogo",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.joyodigitama.joyorogo",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "appleTeamId": "F6Q6UFUK69",
       "config": {
         "usesNonExemptEncryption": false
@@ -138,7 +138,7 @@
               "maxResizeHeight": "250dp",
               "resizeMode": "horizontal|vertical",
               "previewImage": "./assets/widget-preview/progres-hari-ini.png",
-              "updatePeriodMillis": 1800000
+              "updatePeriodMillis": 3600000
             },
             {
               "name": "KotakMasukGrup",
@@ -152,7 +152,7 @@
               "maxResizeHeight": "250dp",
               "resizeMode": "horizontal|vertical",
               "previewImage": "./assets/widget-preview/kotak-masuk-grup.png",
-              "updatePeriodMillis": 1800000
+              "updatePeriodMillis": 3600000
             },
             {
               "name": "Ringkasan",
@@ -166,7 +166,7 @@
               "maxResizeHeight": "250dp",
               "resizeMode": "horizontal|vertical",
               "previewImage": "./assets/widget-preview/ringkasan.png",
-              "updatePeriodMillis": 1800000
+              "updatePeriodMillis": 3600000
             },
             {
               "name": "FotoMakanan",

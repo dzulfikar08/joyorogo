@@ -85,7 +85,7 @@
     "react-native-view-shot": "5.1.0",
     "react-native-web": "~0.21.0",
     "react-native-webview": "13.16.1",
-    "react-native-worklets": "0.10.1",
+    "react-native-worklets": "0.10.4",
     "sp-react-native-in-app-updates": "2.0.0",
     "varlock": "catalog:",
     "zod": "catalog:"

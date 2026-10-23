@@ -50,7 +50,7 @@ in the background), JS `setInterval`s and Animated/Reanimated loops (React Nativ
 animations on `onHostPause`; a headless run only keeps timers alive while its task runs), WebSocket/SSE (none in the
 app), location (`getLastKnownPositionAsync`/`getCurrentPositionAsync`, one-shot).
 
-## Not changed (needs a native build, which also changes the OTA fingerprint)
+## Native build (done in the 1.1.0 store build; the OTA gate stays on builds before it)
 
 - Bump `react-native-worklets` 0.10.1 to 0.10.4 (Reanimated 4.5.1 peers `0.10.x`), then delete `ui-loop-gate.ts`,
   `ui-loop-gate.test.ts`, `ui-loop-gate-start.ts` and its import in `index.js`. Bumping it before the OTA with the gate ships
