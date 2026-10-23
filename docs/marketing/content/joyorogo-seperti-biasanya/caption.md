@@ -46,6 +46,6 @@ Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFli
 
 - Layar slide 1 dan 2: web app, akun demo "Rina" (fiktif), stack lokal dari kode terbaru (`.tmp/appstore/shoot-d2.mjs usual`). Jawaban scan DITIRU (`analyzeFood` dibuat mengembalikan dua item tetap: putih telur rebus dengan catatan `usualDensity` AI 90 kkal, dan timun). Layar dan barisnya UI asli, angkanya contoh. Jangan sebut sebagai scan sungguhan. Slide 2 memberi keterangan.
 - Contoh 50/52/104 kkal di Threads dari entri rilis ("putih telur, ayam goreng, americano"); itu angka dari catatan tim, bukan hasil ukur yang bisa dikutip lebih jauh. Pemilik: hapus kalau tidak mau memakai angka itu.
-- Entri rilis menandai `available: test-build`, tetapi isinya "butuh deploy server, web, dan OTA native; belum di build mana pun". Pastikan sudah terdeploy sebelum posting.
+- Sudah live: deploy server, web, dan OTA native 22-23 Okt.
 - Aturan: hanya nama yang sama persis; tidak dipakai bila beda lebih dari dua kali lipat dari perkiraan AI. Jangan klaim akurasi.
 - Tidak mencakup "Biasanya" porsi nasi (JRG-348, entri terpisah).

@@ -8,7 +8,7 @@ Slide: 1 cover (kartu "Pelan-pelan dulu"), 2 kartu di Makan dan Beranda, 3 prote
 
 Post 1 (gambar: slide 1 sampai 5)
 
-berat turun cepat itu terasa kayak berhasil, padahal sering yang hilang air dan otot, dan jarang ada yang ngingetin.
+berat turun cepat itu terasa kayak berhasil, padahal bisa jadi sebagian air dan otot, dan jarang ada yang ngingetin.
 
 JoyoRogo sekarang punya satu kartu tenang: kalau tren berat lo turun lebih dari sekitar 1% per minggu, atau makan lo beberapa hari terakhir jauh di bawah kebutuhan dasar tubuh, Makan dan Beranda bilang "Pelan-pelan dulu". bisa ditutup, balik lagi setelah beberapa hari.
 
@@ -46,6 +46,6 @@ Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFli
 
 - Layar asli dari web app, akun demo "Rina" (fiktif), stack lokal dari kode terbaru (`.tmp/appstore/shoot-d2b.mjs safe`). Tidak ada yang ditiru dari server. Catatan berat demo diatur sebagai penurunan stabil (75,0 kg ke 71,6 kg dalam 21 hari, ditambah satu timbangan lebih lama) supaya kartu asli menyala di "sekitar 1,6% per minggu". Protein 0,7 g/kg adalah nilai asli hari demo itu, di bawah panduan; dipakai apa adanya.
 - Slide 3 menampilkan angka yang di bawah panduan, itu disengaja: baris itu hanya perbandingan, bukan penilaian.
-- Entri rilis menandai `available: test-build`, tetapi isinya "belum di build mana pun; jangan diposting sebagai rilis". Pastikan sudah terdeploy sebelum posting.
+- Sudah live: deploy server, web, dan OTA native 22-23 Okt.
 - Topik berat badan: tidak ada klaim hasil, tidak ada angka turun berat milik pengguna. Jangan sebut "tidak sehat" atau "berbahaya"; kartu hanya mengajak melambat dan bertanya.
-- Kata "air dan otot" di Threads dari entri rilis ("sering air dan otot yang hilang"); itu pernyataan umum yang bisa dibantah per kasus. Pemilik: lunakkan atau hapus kalau ragu.
+- "Bisa jadi sebagian air dan otot": dilunakkan dari entri rilis, pernyataan umum, bukan klaim per pengguna.

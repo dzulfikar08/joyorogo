@@ -45,5 +45,5 @@ Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFli
 ## Notes
 
 - Layar slide 1 sampai 3: web app, akun demo "Rina" (fiktif), stack lokal dari kode terbaru (`.tmp/appstore/shoot-d2.mjs count,bone`). Jawaban scan DITIRU (`analyzeFood` mengembalikan item tetap: telur rebus 1 butir 78 kkal, ayam goreng paha 200 g dengan tulang / 130 g bisa dimakan 290 kkal, nasi putih). Ketukan plus dan "Tanpa tulang" dijalankan di browser: 234 kkal dan berat berpindah dihitung aplikasi sendiri. Item awalnya contoh, bukan hasil scan; slide 2 memberi keterangan.
-- Entri rilis menandai `available: test-build`, tetapi isinya "butuh deploy server, web, dan OTA native; belum di build mana pun". Pastikan sudah terdeploy sebelum posting.
+- Sudah live: deploy server, web, dan OTA native 22-23 Okt.
 - Persentase bagian yang bisa dimakan di slide 4 dari entri rilis; itu perkiraan per bagian, jangan disajikan sebagai fakta gizi.

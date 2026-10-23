@@ -12,7 +12,7 @@ lo nyatet putih telur rebus yang sama tiap hari? JoyoRogo sekarang nawarin: maka
 
 dan kartu Catat cepat sekarang bisa diatur: tombol Atur di kartunya buat ngurutin favorit, ngubah nama dan kalorinya, ngehapus, nambah sendiri, atau nyembunyiin makanan di "Terakhir dicatat" yang nggak lo mau.
 
-fitur favorit sebenernya udah lama ada, tapi hampir nggak ada yang nemu. gue cek di produksi, belum ada satu pun yang tersimpan.
+fitur favorit sebenernya udah lama ada, tapi hampir nggak ada yang pakai, tombolnya ketutup di dalam lembar edit.
 
 Post 2 (balasan, link di sini)
 
@@ -43,6 +43,6 @@ Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFli
 ## Notes
 
 - Layar asli dari web app, akun demo "Rina" (fiktif), stack lokal dari kode terbaru (`.tmp/appstore/shoot-d2b.mjs fav`). Tidak ada yang ditiru: "Putih telur rebus" dicatat tiga kali lewat API sehingga kartu tawaran muncul sendiri; tiga favorit di lembar Atur dibuat lewat API di akun demo.
-- Klaim "belum satu pun tersimpan di produksi" di Threads dari entri rilis. Pemilik: cek ulang angkanya di produksi sebelum posting, atau hapus kalimatnya.
-- Entri rilis menandai `available: test-build`, tetapi isinya "butuh deploy server (migrasi 0062), deploy web, dan OTA native; belum di build mana pun". Pastikan sudah terdeploy sebelum posting.
+- Kalimat "hampir nggak ada yang pakai" dicek ke produksi 23 Okt: sebelum update ini praktis nol favorit tersimpan.
+- Sudah live: deploy server (migrasi 0062), web, dan OTA native 22-23 Okt.
 - Makro favorit tambahan: diambil dari TKPI atau perkiraan teks bila ada, kosong bila tidak. Jangan klaim makro selalu terisi.
