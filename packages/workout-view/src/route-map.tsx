@@ -12,9 +12,9 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { type MapTheme, maplibreStyle } from "./map-style";
-
 import { nearestTrackIndex } from "./analysis-math";
+import { type FixedBox, type KmCandidate, pickKmPills } from "./km-pills";
+import { type MapTheme, maplibreStyle } from "./map-style";
 
 const ROUTE_COLOR = "#ff5a1f";
 const ATTRIBUTION =
@@ -65,14 +65,6 @@ function kmElement(km: number, onClick: () => void): HTMLButtonElement {
     onClick();
   });
   return el;
-}
-
-/** Every km pill at close zoom, thinning out as the map zooms away from the route. */
-function kmStep(zoom: number): number {
-  if (zoom >= 14) return 1;
-  if (zoom >= 13) return 2;
-  if (zoom >= 12) return 5;
-  return 10;
 }
 
 function emptyPoint() {
@@ -227,7 +219,7 @@ export default function RouteMap({
     };
     map.on("style.load", addRoute);
 
-    const markers: { marker: maplibregl.Marker; km: number }[] = [];
+    const markers: { marker: maplibregl.Marker; km: number; size: { w: number; h: number } }[] = [];
     const first = flat[0]!;
     const last = flat[flat.length - 1]!;
     const fixed = [
@@ -241,16 +233,37 @@ export default function RouteMap({
         })
           .setLngLat([m.pos[1], m.pos[0]])
           .addTo(map);
-        markers.push({ marker, km: m.km });
+        const r = marker.getElement().getBoundingClientRect();
+        markers.push({ marker, km: m.km, size: { w: r.width || 20, h: r.height || 18 } });
       }
     }
     const thin = () => {
-      const step = kmStep(map.getZoom());
+      const box = (el: HTMLElement) => {
+        const r = el.getBoundingClientRect();
+        return { w: r.width || 20, h: r.height || 18 };
+      };
+      const { clientWidth: cw, clientHeight: ch } = map.getContainer();
+      const pad = 12;
+      const fixedBoxes: FixedBox[] = fixed.map((f) => {
+        const ll = f.getLngLat();
+        const p = map.project(ll);
+        return { x: p.x, y: p.y, ...box(f.getElement()) };
+      });
+      const candidates: KmCandidate[] = [];
+      for (const { marker, km, size } of markers) {
+        const ll = marker.getLngLat();
+        const p = map.project(ll);
+        if (p.x < -pad || p.y < -pad || p.x > cw + pad || p.y > ch + pad) continue;
+        candidates.push({ km, x: p.x, y: p.y, ...size });
+      }
+      const shown = new Set(pickKmPills(candidates, fixedBoxes));
       for (const { marker, km } of markers) {
-        marker.getElement().style.display = km % step === 0 ? "" : "none";
+        marker.getElement().style.display = shown.has(km) ? "" : "none";
       }
     };
-    map.on("zoom", thin);
+    map.on("move", thin);
+    map.on("resize", thin);
+    map.on("load", thin);
     thin();
 
     const pick = (point: maplibregl.Point) => {
