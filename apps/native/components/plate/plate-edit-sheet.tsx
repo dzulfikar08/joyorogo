@@ -4,10 +4,12 @@ import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
 import { MEAL_EDIT_LABELS, jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
+import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/format";
 
 import { DateSheet, DayChips } from "@/components/plate/date-sheet";
+import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { MealSlotField } from "@/components/plate/meal-slot-field";
 import { RecalcSheet, useRecalcPlate } from "@/components/plate/recalc-plate";
 import { SaveLocationToggle } from "@/components/places/location-toggle";
@@ -29,6 +31,8 @@ export type PlateEditTarget = {
   lng: number | null;
   /** Cutout of the first component that has one. */
   scanId: string | null;
+  /** "Jam makan" every component row shares (unix ms); null when none is set or the rows differ. */
+  eatenAt: number | null;
 };
 
 export type PlateEditInput = {
@@ -40,6 +44,8 @@ export type PlateEditInput = {
   meal?: Meal;
   lat?: number | null;
   lng?: number | null;
+  /** New "Jam makan" of every component row; null clears it back to the logged time. */
+  eatenAt?: number | null;
 };
 
 /**
@@ -70,6 +76,7 @@ export function PlateEditSheet({
   const [price, setPrice] = useState(plate.priceIdr !== null ? String(plate.priceIdr) : "");
   const [date, setDate] = useState(plate.date);
   const [meal, setMeal] = useState<Meal>(plate.meal);
+  const [eatenAt, setEatenAt] = useState<number | null>(plate.eatenAt);
   const [pickingDate, setPickingDate] = useState(false);
   const [recalcOpen, setRecalcOpen] = useState(false);
   const recalc = useRecalcPlate(plate.id, () => setRecalcOpen(false));
@@ -88,6 +95,12 @@ export function PlateEditSheet({
   const wantsCoords = locate && placeClean !== "" && location.coords !== null;
   const dateChanged = date !== plate.date;
   const mealChanged = meal !== plate.meal;
+  const eatenAtChanged = eatenAt !== plate.eatenAt;
+  // The picked time belongs to a day: moving the plate carries the clock time over to the new day.
+  const moveToDate = (next: string) => {
+    setDate(next);
+    if (eatenAt !== null) setEatenAt(eatenAtFromClock(next, eatenAtClock(eatenAt)));
+  };
 
   const changed =
     name.trim() !== plate.name ||
@@ -95,6 +108,7 @@ export function PlateEditSheet({
     (priceNum ?? null) !== plate.priceIdr ||
     dateChanged ||
     mealChanged ||
+    eatenAtChanged ||
     wantsCoords ||
     clearLocation;
   const valid = name.trim() !== "" && priceValid;
@@ -116,6 +130,7 @@ export function PlateEditSheet({
       ...((priceNum ?? null) !== plate.priceIdr ? { priceIdr: priceNum } : {}),
       ...(dateChanged ? { date } : {}),
       ...(mealChanged ? { meal } : {}),
+      ...(eatenAtChanged ? { eatenAt } : {}),
       ...coords,
     });
     onClose();
@@ -186,7 +201,7 @@ export function PlateEditSheet({
 
           <Field label={t("plate.edit.loggedOn")}>
             <View style={styles.dateBox}>
-              <DayChips value={date} onChange={setDate} />
+              <DayChips value={date} onChange={moveToDate} />
               <Button
                 variant="ghost"
                 size="sm"
@@ -217,6 +232,8 @@ export function PlateEditSheet({
                 : t("plate.edit.slotHint")
             }
           />
+
+          <EatenAtField date={date} meal={meal} value={eatenAt} onChange={setEatenAt} />
 
           <SaveLocationToggle
             enabled={locate}
@@ -276,7 +293,7 @@ export function PlateEditSheet({
       <DateSheet
         visible={pickingDate}
         value={date}
-        onPick={setDate}
+        onPick={moveToDate}
         onClose={() => setPickingDate(false)}
       />
     </>

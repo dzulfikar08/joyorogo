@@ -40,7 +40,7 @@ export function FoodRow({
   const hasMacros = [item.protein, item.carbs, item.fat, item.fiber].some((g) => (g ?? 0) > 0);
   // Never filled in (null, not 0 g): the day total counts nothing for it, so say so and let a tap open the editor.
   const macrosMissing = item.protein == null && item.carbs == null && item.fat == null && item.kcal > 0;
-  const created = new Date(item.createdAt);
+  const created = new Date(item.eatenAt ?? item.createdAt);
   const meta = [
     Number.isNaN(created.getTime()) ? null : fmtClock(created, undefined, getActiveDayZone()),
     item.grams ? `${fmtInt(item.grams)} g` : null,

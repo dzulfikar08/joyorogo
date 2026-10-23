@@ -1,4 +1,5 @@
 import { kcalUnit } from "@joyorogo/i18n";
+import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { MEALS, jakartaToday, relativeDayLabel, storySlotLabel } from "@joyorogo/api/lib/engine";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
 import { copyChipLabel, copyWantedLabel } from "@joyorogo/api/lib/meal-copy-label";
@@ -22,6 +23,7 @@ import { Chip } from "@/components/chip";
 import { FieldLabel } from "@/components/kit/surface";
 import { FoodSafetyNotes } from "@/components/maternal/food-safety-notes";
 import { MetaLine } from "@/components/meta-line";
+import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { IdrInput } from "@/components/plate/idr-input";
 import { fmtGramsLabel, fmtInt, fmtKcalLabel, parseNum } from "@/lib/format";
 import { OptimisticCache, undoLabel, UNDO_TOAST_MS } from "@/lib/optimistic";
@@ -78,6 +80,7 @@ export type CeritaPhase = "input" | "recording" | "listening" | "thinking" | "re
 export function Cerita({
   meal,
   date,
+  eatenAt: sheetEatenAt = null,
   slots,
   onPhaseChange,
   onSaved,
@@ -85,6 +88,8 @@ export function Cerita({
 }: {
   meal?: Meal;
   date: string;
+  /** "Jam makan" already picked in the add sheet (unix ms): starts the review group of that slot and day. */
+  eatenAt?: number | null;
   slots: Meal[];
   onPhaseChange?: (phase: CeritaPhase) => void;
   onSaved: (dates: string[]) => void;
@@ -117,6 +122,8 @@ export function Cerita({
   const [plates, setPlates] = useState<
     Record<string, { name: string; place: string; price: string }>
   >({});
+  // "Jam makan" per group (unix ms); a missing key = Sekarang, nothing is sent.
+  const [eatenAts, setEatenAts] = useState<Record<string, number | null>>({});
   const [elapsed, setElapsed] = useState(0);
   const [mime] = useState(recorderMime);
 
@@ -168,6 +175,15 @@ export function Cerita({
     setKcals(result.items.map((item) => String(Math.round(item.kcal))));
     // Autofill each group's plate from the last price paid for that name.
     const groupsByKey = [...new Set(result.items.map(groupKey))];
+    setEatenAts(
+      sheetEatenAt === null
+        ? {}
+        : Object.fromEntries(
+            result.items
+              .filter((item) => item.date === date && item.meal === meal)
+              .map((item) => [groupKey(item), sheetEatenAt]),
+          ),
+    );
     setPlates(
       Object.fromEntries(groupsByKey.map((key) => [key, { name: "", place: "", price: "" }])),
     );
@@ -279,6 +295,7 @@ export function Cerita({
 
   const backToInput = () => {
     setItems([]);
+    setEatenAts({});
     setKcals([]);
     setReference(null);
     setPhase("input");
@@ -354,6 +371,7 @@ export function Cerita({
         if (priceNum !== null && priceNum < 0) {
           throw new Error(t("story.error.priceInvalid"));
         }
+        const groupEatenAt = eatenAts[group] ?? null;
         const row = await client.food.add({
           date: item.date,
           meal: item.meal,
@@ -373,6 +391,9 @@ export function Cerita({
             : plateId
               ? { plateId }
               : {}),
+          ...(groupEatenAt !== null
+            ? { eatenAt: eatenAtFromClock(item.date, eatenAtClock(groupEatenAt)) ?? undefined }
+            : {}),
         });
         if (startsGroup) {
           plateGroup = group;
@@ -475,6 +496,7 @@ export function Cerita({
       );
       queryClient.invalidateQueries({ queryKey: orpc.food.key() });
       queryClient.invalidateQueries({ queryKey: orpc.day.key() });
+      queryClient.invalidateQueries({ queryKey: orpc.fasting.key() });
       onSaved(dates);
       // The save landed first, so nothing is lost: now offer Founder to the
       // user who just spent their last free story scan.
@@ -640,6 +662,15 @@ export function Cerita({
                     className="h-11 bg-muted text-right font-bold"
                   />
                 </div>
+              </div>
+              <div className="mt-2 rounded-2xl bg-card px-4 py-3">
+                <EatenAtField
+                  id={`story-eaten-at-${order(first)}`}
+                  date={first.date}
+                  meal={first.meal}
+                  value={eatenAts[order(first)] ?? null}
+                  onChange={(next) => setEatenAts((current) => ({ ...current, [order(first)]: next }))}
+                />
               </div>
             </section>
           );

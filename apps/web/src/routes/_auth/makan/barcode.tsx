@@ -320,6 +320,7 @@ function BarcodeResult({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: orpc.food.key() }),
         queryClient.invalidateQueries({ queryKey: orpc.day.key() }),
+        queryClient.invalidateQueries({ queryKey: orpc.fasting.key() }),
       ]);
       void navigate({ to: "/makan", search: date ? { date } : {} });
     } catch (err) {
@@ -459,7 +460,13 @@ function BarcodeResult({
             />
           </div>
           {mealPicker}
-          <EatenAtField id="barcode-eaten-at" date={date ?? jakartaToday()} value={eatenAt} onChange={setEatenAt} />
+          <EatenAtField
+            id="barcode-eaten-at"
+            date={date ?? jakartaToday()}
+            meal={meal}
+            value={eatenAt}
+            onChange={setEatenAt}
+          />
           <KindPicker value={kind} onChange={setKindOverride} />
           <SnackAdviceCard
             state={advice}
@@ -701,7 +708,13 @@ function BarcodeResult({
       )}
 
       {mealPicker}
-      <EatenAtField id="barcode-eaten-at-manual" date={date ?? jakartaToday()} value={eatenAt} onChange={setEatenAt} />
+      <EatenAtField
+        id="barcode-eaten-at-manual"
+        date={date ?? jakartaToday()}
+        meal={meal}
+        value={eatenAt}
+        onChange={setEatenAt}
+      />
       <KindPicker value={kind} onChange={setKindOverride} />
       <SnackAdviceCard
         state={advice}

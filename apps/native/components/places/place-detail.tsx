@@ -1,20 +1,24 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
-import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
+import { MEAL_LABELS, suggestMealNow } from "@joyorogo/api/lib/engine";
+import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { recentDayLabel } from "@joyorogo/api/lib/format";
 import { formatDistance, visitAgeLabel } from "@joyorogo/api/lib/places";
 import type { PlaceSummary } from "@joyorogo/api/lib/places";
 
+import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { fmtGramsLabel, fmtIdr, fmtInt } from "@/utils/format";
 import { Button, ErrorState, Num, Sheet, Skeleton, Text } from "@/components/ui";
 import { useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
 type RelogResult = { items: Array<{ id: string }>; meal: string };
+type RelogInput = { plateId: string; name: string; eatenAt?: number };
 
 /**
  * One place: how often, what you usually get, the visit history, and a
@@ -44,28 +48,37 @@ export function PlaceDetailSheet({
       orpc.plate.key(),
       orpc.day.key(),
       orpc.diary.key(),
+      orpc.fasting.key(),
     ]) {
       void queryClient.invalidateQueries({ queryKey: key });
     }
   };
 
-  const relog = useOptimisticMutation<{ plateId: string; name: string }, RelogResult>({
-    mutationFn: ({ plateId }) => client.place.relog({ plateId }),
+  // Optional "Jam makan" (unix ms) for the next "Makan lagi"; null = now, nothing is sent.
+  const [eatenAt, setEatenAt] = useState<number | null>(null);
+
+  const relog = useOptimisticMutation<RelogInput, RelogResult>({
+    mutationFn: ({ plateId, eatenAt: at }) =>
+      client.place.relog({ plateId, ...(at !== undefined ? { eatenAt: at } : {}) }),
     invalidate: () => [
       orpc.place.key(),
       orpc.food.key(),
       orpc.plate.key(),
       orpc.day.key(),
       orpc.diary.key(),
+      orpc.fasting.key(),
     ],
-    success: ({ name }, result) => ({
-      message: t("detail.loggedTo", { name, meal: MEAL_LABELS[result.meal as Meal] }),
-      undo: () => {
-        void Promise.all(result.items.map((row) => client.food.remove({ id: row.id }))).finally(
-          refresh,
-        );
-      },
-    }),
+    success: ({ name }, result) => {
+      setEatenAt(null);
+      return {
+        message: t("detail.loggedTo", { name, meal: MEAL_LABELS[result.meal as Meal] }),
+        undo: () => {
+          void Promise.all(result.items.map((row) => client.food.remove({ id: row.id }))).finally(
+            refresh,
+          );
+        },
+      };
+    },
   });
 
   const clearLocation = useOptimisticMutation<void, { cleared: number }>({
@@ -146,6 +159,9 @@ export function PlaceDetailSheet({
       ) : null}
 
       <Text style={styles.heading}>{t("detail.history")}</Text>
+      {detail.data && detail.data.visits.length > 0 ? (
+        <EatenAtField date={today} meal={suggestMealNow(new Date())} value={eatenAt} onChange={setEatenAt} />
+      ) : null}
       {detail.isPending ? (
         <View style={styles.list}>
           <Skeleton width="100%" height={72} />
@@ -194,7 +210,16 @@ export function PlaceDetailSheet({
                 label={t("detail.relog")}
                 icon="refresh"
                 disabled={relog.isPending}
-                onPress={() => relog.mutate({ plateId: visit.id, name: visit.name })}
+                onPress={() =>
+                  relog.mutate({
+                    plateId: visit.id,
+                    name: visit.name,
+                    // Re-based on today: the time may have been picked before midnight.
+                    ...(eatenAt !== null
+                      ? { eatenAt: eatenAtFromClock(today, eatenAtClock(eatenAt)) ?? undefined }
+                      : {}),
+                  })
+                }
                 style={styles.visitRelog}
               />
             </View>

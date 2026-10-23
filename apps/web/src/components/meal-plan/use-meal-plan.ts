@@ -18,13 +18,15 @@ export const overviewOptions = orpc.mealPlan.overview.queryOptions();
 export const shoppingOptions = orpc.mealPlan.shopping.queryOptions();
 
 export type SlotRef = { date: string; slot: Meal };
+/** A slot to log as eaten; `eatenAt` (unix ms) only when it was not just now. */
+export type EatInput = SlotRef & { eatenAt?: number };
 
 /** The mutations behind the plan screen's buttons. */
 export interface MealPlanActions {
   generate: UseMutationResult<MealPlanWeek, Error, boolean>;
   replanDay: UseMutationResult<MealPlanWeek, Error, string>;
   swap: UseMutationResult<MealPlanSwapResult, Error, MealPlanSwapInput>;
-  eat: UseMutationResult<MealPlanEatResult, Error, SlotRef>;
+  eat: UseMutationResult<MealPlanEatResult, Error, EatInput>;
   undo: UseMutationResult<MealPlanWeek, Error, SlotRef>;
   setPrefs: UseMutationResult<MealPlanPrefs, Error, MealPlanPrefs>;
 }
@@ -58,7 +60,7 @@ export function useMealPlanActions(): MealPlanActions {
     void queryClient.invalidateQueries({ queryKey: shoppingOptions.queryKey });
   };
   const refreshDiary = () => {
-    for (const key of [orpc.food.key(), orpc.day.key(), orpc.diary.key()]) {
+    for (const key of [orpc.food.key(), orpc.day.key(), orpc.diary.key(), orpc.fasting.key()]) {
       void queryClient.invalidateQueries({ queryKey: key });
     }
   };
@@ -101,12 +103,12 @@ export function useMealPlanActions(): MealPlanActions {
   });
 
   const eat = useMutation({
-    mutationFn: (input: SlotRef) => client.mealPlan.eat(input),
+    mutationFn: (input: EatInput) => client.mealPlan.eat(input),
     onSuccess: (data, input) => {
       putWeek(data.plan);
       refreshDiary();
       toast.success(t("item.ateDone"), {
-        action: { label: t("item.undo"), onClick: () => undo.mutate(input) },
+        action: { label: t("item.undo"), onClick: () => undo.mutate({ date: input.date, slot: input.slot }) },
       });
     },
     onError: (error) => fail(error, t("item.ateFailed")),

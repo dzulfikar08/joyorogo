@@ -20,6 +20,7 @@ import { removeWebSubscription, saveWebSubscription } from "../lib/push-subs";
 import {
   adherenceWeek,
   countKept,
+  foodMinute,
   fastingDay,
   inactiveFastingDay,
   isFastingPattern,
@@ -93,7 +94,7 @@ export const fastingRouter = {
       const [profRows, latest, weighIns, intake, exercise, prefRows, logRows] = await context.db.batch([
         ...planQueries(context.db, userId, date),
         context.db
-          .select({ meal: foodLog.meal, kcal: foodLog.kcal, createdAt: foodLog.createdAt })
+          .select({ date: foodLog.date, meal: foodLog.meal, kcal: foodLog.kcal, eatenAt: foodLog.eatenAt, createdAt: foodLog.createdAt })
           .from(foodLog)
           .where(and(eq(foodLog.userId, userId), eq(foodLog.date, date))),
       ]);
@@ -117,7 +118,7 @@ export const fastingRouter = {
       const logs: DayLog[] = logRows.map((row) => ({
         kcal: row.kcal,
         meal: row.meal as Meal,
-        min: wibMinutes(row.createdAt, zone),
+        min: foodMinute(row, zone),
       }));
       // Same budget as day.summary: the plan plus the counted exercise.
       const credit = await loadDayCredit(context.db, userId, date, plan.targets.includedKcal);
@@ -155,6 +156,7 @@ export const fastingRouter = {
         date: foodLog.date,
         meal: foodLog.meal,
         kcal: foodLog.kcal,
+        eatenAt: foodLog.eatenAt,
         createdAt: foodLog.createdAt,
       })
       .from(foodLog)
@@ -164,7 +166,7 @@ export const fastingRouter = {
       (byDate[row.date] ??= []).push({
         kcal: row.kcal,
         meal: row.meal as Meal,
-        min: wibMinutes(row.createdAt, zone),
+        min: foodMinute(row, zone),
       });
     }
     const days = Array.from({ length: 7 }, (_, i) => {

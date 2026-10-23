@@ -286,7 +286,7 @@ function MakanPage() {
         meals: 1,
       });
     },
-    invalidate: () => [orpc.food.key(), orpc.day.key(), orpc.diary.key()],
+    invalidate: () => [orpc.food.key(), orpc.day.key(), orpc.diary.key(), orpc.fasting.key()],
     success: (_input, serverRow) => {
       const row = serverRow as FoodItem;
       const tempId = addTempId.current;
@@ -328,7 +328,7 @@ function MakanPage() {
     },
     label: (row) => row.name,
     fallback: t("diary.toast.entryFallback"),
-    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.diary.key()],
+    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.diary.key(), orpc.fasting.key()],
   });
 
   if (view === "daftar" && list.isPending) return <MakanSkeleton />;
@@ -688,6 +688,10 @@ function AddFoodSheet({
     setFullPortion(null);
   };
 
+  /** The picked time re-based on the diary day; nothing when it is "Sekarang". */
+  const eatenAtFields =
+    eatenAt !== null ? { eatenAt: eatenAtFromClock(date, eatenAtClock(eatenAt)) ?? undefined } : {};
+
   const submit = async () => {
     const nameClean = name.trim();
     const kcalNum = parseNum(kcal);
@@ -730,7 +734,7 @@ function AddFoodSheet({
               },
             }
           : {}),
-        ...(eatenAt !== null ? { eatenAt: eatenAtFromClock(date, eatenAtClock(eatenAt)) ?? undefined } : {}),
+        ...eatenAtFields,
       });
       setName("");
       setKcal("");
@@ -765,11 +769,16 @@ function AddFoodSheet({
         <Cerita
           meal={meal}
           date={date}
+          eatenAt={eatenAt}
           slots={slots}
           onPhaseChange={setCeritaPhase}
           onSaved={onClose}
           onShowDate={onShowDate}
         />
+
+        {ceritaPhase === "input" && (
+          <EatenAtField id="food-add-eaten-at" date={date} meal={meal} value={eatenAt} onChange={setEatenAt} />
+        )}
 
         {ceritaPhase === "input" && favorites.items.length > 0 && (
           <div>
@@ -778,7 +787,14 @@ function AddFoodSheet({
               {t("diary.favorites.sheetHint", { meal: label })}
             </p>
             <div className="mt-3">
-              <FavoritChips favorites={favorites} date={date} meal={meal} onManage={onManage} />
+              <FavoritChips
+                favorites={favorites}
+                date={date}
+                meal={meal}
+                onManage={onManage}
+                eatenAt={eatenAt}
+                onLogged={() => setEatenAt(null)}
+              />
             </div>
           </div>
         )}
@@ -796,7 +812,11 @@ function AddFoodSheet({
                   active={false}
                   disabled={addPending}
                   className={food.scanId ? "max-w-full gap-2 pl-1.5" : "max-w-full"}
-                  onClick={() => void onAdd({ date, meal, ...recentAddFields(food) })}
+                  onClick={() =>
+                    void onAdd({ date, meal, ...recentAddFields(food), ...eatenAtFields }).then(() =>
+                      setEatenAt(null),
+                    )
+                  }
                 >
                   {food.scanId ? (
                     <CutoutTile
@@ -936,8 +956,6 @@ function AddFoodSheet({
               status={placeLocation.status}
               onChange={placeLocation.setEnabled}
             />
-            <EatenAtField id="food-add-eaten-at" date={date} value={eatenAt} onChange={setEatenAt} />
-
             {error && <p className="px-1 text-sm text-destructive">{error}</p>}
 
             <Button type="submit" className="w-full" disabled={addPending}>

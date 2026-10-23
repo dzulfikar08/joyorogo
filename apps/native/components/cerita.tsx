@@ -16,6 +16,7 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { MEALS, jakartaToday, storySlotLabel } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
 import { macrosForTypedKcal } from "@joyorogo/api/lib/portion";
 import { copyChipLabel, copyWantedLabel } from "@joyorogo/api/lib/meal-copy-label";
@@ -23,6 +24,7 @@ import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
 import { Button, Chip, Input, ListGroup, ListRow, Text } from "@/components/ui";
 import { MetaLine } from "@/components/meta-line";
+import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { PlateFields } from "@/components/plate/plate-fields";
 import type { PlateValues } from "@/components/plate/plate-fields";
 import { errorMessage, fmtGramsLabel, fmtInt, fmtKcalLabel, kcalUnit, parseNum } from "@/utils/format";
@@ -88,12 +90,15 @@ function errorParts(err: unknown): { message: string; transcript: string | null 
 export function Cerita({
   meal,
   date,
+  eatenAt: sheetEatenAt = null,
   slots,
   onPhaseChange,
   onSaved,
 }: {
   meal?: Meal;
   date: string;
+  /** "Jam makan" already picked in the add sheet (unix ms): starts the review group of that slot and day. */
+  eatenAt?: number | null;
   slots: Meal[];
   onPhaseChange?: (phase: CeritaPhase) => void;
   onSaved: (result: { count: number; dates: string[] }) => void;
@@ -119,6 +124,8 @@ export function Cerita({
   const [kcals, setKcals] = useState<string[]>([]);
   // Per-group plate fields, keyed by `${date}-${meal}` like the review groups.
   const [plates, setPlates] = useState<Record<string, PlateValues>>({});
+  // Per-group "Jam makan" (unix ms), same keys; missing/null = now, nothing is sent.
+  const [eatenAts, setEatenAts] = useState<Record<string, number | null>>({});
   const [saving, setSaving] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   // The working phase shows a different line for a voice note vs typed text.
@@ -143,7 +150,7 @@ export function Cerita({
       if (!row) throw new Error(t("story.error.saveFailed"));
       return { id: row.id, plateId: row.plateId };
     },
-    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key()],
+    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.fasting.key()],
   });
   const logCorrections = useMutation(orpc.ai.logCorrections.mutationOptions());
 
@@ -239,6 +246,15 @@ export function Cerita({
     setItems(result.items);
     setKcals(result.items.map((item) => String(Math.round(item.kcal))));
     setPlates({});
+    setEatenAts(
+      sheetEatenAt === null
+        ? {}
+        : Object.fromEntries(
+            result.items
+              .filter((item) => item.date === date && item.meal === meal)
+              .map((item) => [`${item.date}-${MEALS.indexOf(item.meal)}`, sheetEatenAt]),
+          ),
+    );
     setQuotaReached(result.quotaReached);
     setPhase("review");
   };
@@ -348,6 +364,7 @@ export function Cerita({
     setItems([]);
     setKcals([]);
     setPlates({});
+    setEatenAts({});
     setReference(null);
     setPhase("input");
   };
@@ -413,6 +430,7 @@ export function Cerita({
             }
           }
         }
+        const eatenAt = eatenAts[key];
         const savedRow = await addFood.mutateAsync({
           date: item.date,
           meal: item.meal,
@@ -422,6 +440,8 @@ export function Cerita({
           ...macrosForTypedKcal(item, values[index] ?? 0),
           source: item.copied ? "copy" : "ai",
           ...(existing ? { plateId: existing } : plate ? { plate } : {}),
+          // Re-based on the group's diary day: the time may have been picked while another day was shown.
+          ...(eatenAt != null ? { eatenAt: eatenAtFromClock(item.date, eatenAtClock(eatenAt)) ?? undefined } : {}),
         });
         if (!existing && savedRow?.plateId) plateIds[key] = savedRow.plateId;
         if (savedRow?.id) createdIdsRef.current.push(savedRow.id);
@@ -448,6 +468,7 @@ export function Cerita({
       queryClient.invalidateQueries({ queryKey: orpc.food.key() });
       queryClient.invalidateQueries({ queryKey: orpc.plate.key() });
       queryClient.invalidateQueries({ queryKey: orpc.day.key() });
+      queryClient.invalidateQueries({ queryKey: orpc.fasting.key() });
       const dates: string[] = [];
       for (const item of items) {
         if (!dates.includes(item.date)) dates.push(item.date);
@@ -456,6 +477,7 @@ export function Cerita({
       setItems([]);
       setKcals([]);
       setPlates({});
+      setEatenAts({});
       setPhase("input");
       onSaved({ count: saved, dates });
       // Undo deletes every row this story created; zero server calls skipped.
@@ -604,6 +626,12 @@ export function Cerita({
                   />
                 ))}
               </ListGroup>
+              <EatenAtField
+                date={first.date}
+                meal={first.meal}
+                value={eatenAts[key] ?? null}
+                onChange={(next) => setEatenAts((current) => ({ ...current, [key]: next }))}
+              />
               <PlateFields
                 title={t("story.plateTitle", { label })}
                 priceLabel={t("story.platePriceLabel")}

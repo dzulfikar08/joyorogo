@@ -798,9 +798,14 @@
   "eatenAt": {
     "label": "Jam makan",
     "now": "Sekarang",
-    "clear": "Hapus jam makan",
     "sheetTitle": "Jam makan",
-    "hint": "Opsional. Dipakai untuk melihat pola makan malam dan tidurmu."
+    "pick": "Pilih jam",
+    "pagi": "Tadi pagi",
+    "siang": "Tadi siang",
+    "malam": "Tadi malam",
+    "nudge": "Jam makan sebenarnya?",
+    "future": "Jam itu belum lewat.",
+    "hint": "Dipakai untuk jendela puasa dan pola tidurmu. Kalau mencatat belakangan, atur jam makan sebenarnya."
   },
   "daySummary": {
     "proteinPerKg": "Protein {{perKg}} g/kg · panduan {{min}}-{{max}} g/kg"

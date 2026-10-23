@@ -1,12 +1,18 @@
+import { Button } from "@joyorogo/ui/components/button";
+import { Sheet } from "@joyorogo/ui/components/sheet";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { ChevronDown } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { relativeDayLabel } from "@joyorogo/api/lib/engine";
+import { eatenAtClock, eatenAtFromClock, eatenAtNudge } from "@joyorogo/api/lib/eaten-at";
+import { MEAL_LABELS, relativeDayLabel } from "@joyorogo/api/lib/engine";
+import type { Meal } from "@joyorogo/api/lib/engine";
 import { fmtDate } from "@joyorogo/i18n";
 
 import { DayTotals } from "@/components/meal-plan/day-totals";
 import { MealCard } from "@/components/meal-plan/meal-card";
+import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { isSlotBusy } from "@/components/meal-plan/use-meal-plan";
 import type { MealPlanActions } from "@/components/meal-plan/use-meal-plan";
 import type { MealPlanItem, MealPlanWeek } from "@/lib/api-types";
@@ -90,10 +96,32 @@ export function TodayView({
   onSwap: (date: string, item: MealPlanItem) => void;
   onBuy: (item: MealPlanItem) => void;
 }) {
-  const { t } = useTranslation("mealPlan");
+  const { t } = useTranslation(["mealPlan", "makan"]);
+  // The slot being confirmed when its usual time does not suit the clock; the field picks the real time.
+  const [asking, setAsking] = useState<{ date: string; slot: Meal } | null>(null);
+  const [eatenAt, setEatenAt] = useState<number | null>(null);
   const day = week.days.find((d) => d.date === date) ?? week.days[0];
   if (!day) return null;
   const { eat, undo } = actions;
+
+  const askOrEat = (slot: Meal) => {
+    if (eatenAtNudge(day.date, slot) === null) {
+      eat.mutate({ date: day.date, slot });
+      return;
+    }
+    setEatenAt(null);
+    setAsking({ date: day.date, slot });
+  };
+  const confirmEat = () => {
+    if (!asking) return;
+    eat.mutate({
+      ...asking,
+      ...(eatenAt !== null
+        ? { eatenAt: eatenAtFromClock(asking.date, eatenAtClock(eatenAt)) ?? undefined }
+        : {}),
+    });
+    setAsking(null);
+  };
 
   return (
     <div className="space-y-3">
@@ -124,7 +152,7 @@ export function TodayView({
                     onOpenRecipe,
                     onSwap: (picked) => onSwap(day.date, picked),
                     onBuy,
-                    onEat: (picked) => eat.mutate({ date: day.date, slot: picked.slot }),
+                    onEat: (picked) => askOrEat(picked.slot),
                     onUndo: (picked) => undo.mutate({ date: day.date, slot: picked.slot }),
                   }}
                 />
@@ -156,6 +184,30 @@ export function TodayView({
           </details>
         )}
       </div>
+
+      {asking && (
+        <Sheet
+          open
+          onOpenChange={(open) => {
+            if (!open) setAsking(null);
+          }}
+          title={t("makan:eatenAt.label")}
+          description={MEAL_LABELS[asking.slot]}
+        >
+          <div className="space-y-4">
+            <EatenAtField
+              id="plan-eaten-at"
+              date={asking.date}
+              meal={asking.slot}
+              value={eatenAt}
+              onChange={setEatenAt}
+            />
+            <Button className="w-full" onClick={confirmEat}>
+              {t("mealPlan:item.ate")}
+            </Button>
+          </div>
+        </Sheet>
+      )}
     </div>
   );
 }

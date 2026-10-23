@@ -818,11 +818,16 @@
     }
   },
   "eatenAt": {
-    "label": "Meal time",
+    "label": "Time eaten",
     "now": "Now",
-    "clear": "Clear meal time",
-    "sheetTitle": "Meal time",
-    "hint": "Optional. Used to spot patterns between late dinners and your sleep."
+    "sheetTitle": "Time eaten",
+    "pick": "Pick time",
+    "pagi": "This morning",
+    "siang": "This afternoon",
+    "malam": "This evening",
+    "nudge": "When did you actually eat?",
+    "future": "That time has not come yet.",
+    "hint": "Used for your fasting window and sleep patterns. Logging later? Set the time you actually ate."
   },
   "daySummary": {
     "proteinPerKg": "Protein {{perKg}} g/kg · guide {{min}}-{{max}} g/kg"

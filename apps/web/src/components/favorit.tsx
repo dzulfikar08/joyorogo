@@ -1,3 +1,4 @@
+import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { foodSavedKey, moveId, plateSavedKey } from "@joyorogo/api/lib/saved-foods";
@@ -30,7 +31,7 @@ const dayKey = (date: string) => orpc.food.listByDate.queryOptions({ input: { da
 /** A diary plate as PlateDiary hands it to its action slot. */
 export type FavoritPlate = { id: string; name: string; place: string | null };
 
-type RelogInput = { saved: SavedFood; date: string; meal: Meal };
+type RelogInput = { saved: SavedFood; date: string; meal: Meal; eatenAt?: number };
 type SaveInput = { target: { foodId: string } | { plateId: string }; draft: SavedFood };
 
 /**
@@ -155,8 +156,9 @@ export function useFavorites() {
   });
 
   const relogMutation = useOptimisticMutation<RelogInput, SavedFoodRelog>({
-    mutationFn: ({ saved, date, meal }) => client.savedFood.relog({ id: saved.id, date, meal }),
-    patch: ({ saved, date, meal }, cache) => {
+    mutationFn: ({ saved, date, meal, eatenAt }) =>
+      client.savedFood.relog({ id: saved.id, date, meal, ...(eatenAt !== undefined ? { eatenAt } : {}) }),
+    patch: ({ saved, date, meal, eatenAt }, cache) => {
       for (const item of saved.items) {
         const row = {
           id: crypto.randomUUID(),
@@ -175,7 +177,7 @@ export function useFavorites() {
           scanId: item.scanId,
           photoId: item.photoId,
           plateId: null,
-          eatenAt: null,
+          eatenAt: eatenAt ?? null,
           createdAt: new Date(),
         } as FoodItem;
         insertFoodRow(cache, dayKey(date), row);
@@ -190,13 +192,13 @@ export function useFavorites() {
         });
       }
     },
-    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.savedFood.key()],
+    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.savedFood.key(), orpc.fasting.key()],
     success: ({ saved, meal }, result) => ({
       message: t("favorites.toast.relogged", { name: saved.name, meal: MEAL_LABELS[meal] }),
       undo: () => {
         void Promise.all(result.items.map((row) => client.food.remove({ id: row.id }))).finally(
           () => {
-            for (const key of [orpc.food.key(), orpc.plate.key(), orpc.day.key()]) {
+            for (const key of [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.fasting.key()]) {
               void queryClient.invalidateQueries({ queryKey: key });
             }
           },
@@ -264,7 +266,16 @@ export function useFavorites() {
         draft: draft(plate.name, plate.place, null, key, rows),
       });
     },
-    relog: (saved: SavedFood, date: string, meal: Meal) => relogMutation.mutate({ saved, date, meal }),
+    relog: (saved: SavedFood, date: string, meal: Meal, eatenAt?: number | null, onDone?: () => void) =>
+      relogMutation.mutate(
+        {
+          saved,
+          date,
+          meal,
+          ...(eatenAt != null ? { eatenAt: eatenAtFromClock(date, eatenAtClock(eatenAt)) ?? undefined } : {}),
+        },
+        { onSuccess: onDone },
+      ),
     relogPending: relogMutation.isPending,
     remove: removeMutation,
     move: (id: string, step: -1 | 1) => arrange.mutate({ ids: moveId(items.map((row) => row.id), id, step) }),
@@ -294,8 +305,8 @@ export interface Favorites {
   isPlateSaved: (plate: FavoritPlate, rows: ReadonlyArray<FoodItem>) => boolean;
   toggleFood: (row: FoodItem) => void;
   togglePlate: (plate: FavoritPlate, rows: ReadonlyArray<FoodItem>) => void;
-  /** Logs a favorite to `date` + `meal` in one tap. */
-  relog: (saved: SavedFood, date: string, meal: Meal) => void;
+  /** Logs a favorite to `date` + `meal` in one tap; `eatenAt` (unix ms, picked "Jam makan") is optional. */
+  relog: (saved: SavedFood, date: string, meal: Meal, eatenAt?: number | null, onDone?: () => void) => void;
   relogPending: boolean;
   /** Delayed delete with an undo toast. */
   remove: (saved: SavedFood) => void;
@@ -328,6 +339,8 @@ export function FavoritChips({
   meal,
   onManage,
   showManage = true,
+  eatenAt,
+  onLogged,
 }: {
   favorites: Favorites;
   date: string;
@@ -335,6 +348,10 @@ export function FavoritChips({
   onManage: () => void;
   /** The "Atur" chip at the end; Catat cepat has its own button in the card header. */
   showManage?: boolean;
+  /** Picked "Jam makan" (unix ms); null/absent = now. */
+  eatenAt?: number | null;
+  /** Runs once a relog succeeded (the add sheet resets its time to "Sekarang"). */
+  onLogged?: () => void;
 }) {
   const { t } = useTranslation("makan");
   if (favorites.items.length === 0) return null;
@@ -345,7 +362,7 @@ export function FavoritChips({
           key={saved.id}
           className={`max-w-full ${saved.items[0]?.scanId ? "gap-1.5 pl-1.5" : ""}`}
           disabled={favorites.relogPending || saved.id.startsWith("tmp-")}
-          onClick={() => favorites.relog(saved, date, meal)}
+          onClick={() => favorites.relog(saved, date, meal, eatenAt, onLogged)}
         >
           {saved.items[0]?.scanId ? (
             <CutoutTile

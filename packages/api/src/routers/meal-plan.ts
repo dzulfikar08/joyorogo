@@ -14,6 +14,7 @@ import { dateSchema, mealSchema } from "../lib/schemas";
 import { zoneOfUser } from "../lib/user-zone";
 import { cloudUnlocked } from "../lib/watch-workout-store";
 import { computePortion, ingredientSource, INGREDIENTS, recipeAllergens, recipeById, recipeTags } from "../lib/meal/catalog";
+import { assertEatenAt, eatenAtSchema } from "../lib/eaten-at";
 import { insertFoodRows } from "../lib/food-rows";
 import { normalizeCookPref } from "../lib/meal/planner";
 import { planWeek } from "../lib/meal/week";
@@ -265,8 +266,9 @@ export const mealPlanRouter = {
     }),
 
   /** "Sudah makan": logs the planned meal into food_log with its TKPI-computed nutrition. */
-  eat: protectedProcedure.input(z.object({ date: dateSchema, slot: mealSchema })).handler(async ({ context, input }) => {
+  eat: protectedProcedure.input(z.object({ date: dateSchema, slot: mealSchema, eatenAt: eatenAtSchema.optional() })).handler(async ({ context, input }) => {
     const ctx = await requireContext(context, context.session.user.id);
+    assertEatenAt(input.eatenAt, input.date, ctx.zone);
     const plan = await requirePlan(context, ctx);
     const t = serverT(context.locale, "mealPlan");
     if (input.date > ctx.today) throw new ORPCError("BAD_REQUEST", { message: t("errors.futureEat") });
@@ -297,6 +299,7 @@ export const mealPlanRouter = {
           fiber: nutrition.fiberG,
           grams,
           source: "manual",
+          eatenAt: input.eatenAt,
           itemsJson: JSON.stringify({
             from: "meal-plan",
             ref: item.ref,

@@ -8,6 +8,7 @@ import type { DayZone } from "@joyorogo/i18n";
 
 import { protectedProcedure } from "../index";
 import { readChunked } from "../lib/d1";
+import { assertEatenAt, eatenAtSchema } from "../lib/eaten-at";
 import { jakartaToday, shiftDate } from "../lib/engine";
 import { userZone } from "../lib/user-zone";
 import { normalizePlaceKey, toStoredCoords } from "../lib/places";
@@ -119,18 +120,32 @@ export const plateRouter = {
         date: pastDateSchema.optional(),
         // Moves the plate and every component row to another meal slot.
         meal: mealSchema.optional(),
+        // "Jam makan" of every component row; null clears it. Must fit the plate's (new) day.
+        eatenAt: eatenAtSchema.nullable().optional(),
         // Opt-in location of the place; null clears it. Rounded to ~100 m on write.
         lat: z.number().min(-90).max(90).nullable().optional(),
         lng: z.number().min(-180).max(180).nullable().optional(),
       }),
     )
     .handler(async ({ context, input }) => {
-      const { id, lat, lng, ...fields } = input;
+      const { id, lat, lng, eatenAt, ...fields } = input;
+      const userId = context.session.user.id;
+      if (typeof eatenAt === "number") {
+        const zone = await userZone(context);
+        const [first] = await context.db
+          .select({ date: foodLog.date })
+          .from(foodLog)
+          .where(and(eq(foodLog.plateId, id), eq(foodLog.userId, userId)))
+          .limit(1);
+        const day = fields.date ?? first?.date;
+        if (day) assertEatenAt(eatenAt, day, zone);
+      }
       const moveRows = {
         // A "jam makan" belongs to the day it was set on: rows that change day lose it, rows already on that day keep it.
         ...(fields.date
           ? { date: fields.date, eatenAt: sql`case when ${foodLog.date} = ${fields.date} then ${foodLog.eatenAt} else null end` }
           : {}),
+        ...(eatenAt !== undefined ? { eatenAt } : {}),
         ...(fields.meal ? { meal: fields.meal } : {}),
       };
       if (Object.keys(moveRows).length > 0) {
@@ -153,19 +168,20 @@ export const plateRouter = {
       }
       const coords = lat === undefined && lng === undefined ? undefined : toStoredCoords(lat, lng);
       const patch = moved ? { ...fields, lat: null, lng: null } : fields;
-      const [row] = await context.db
-        .update(plate)
-        .set(
-          coords === undefined
-            ? patch
-            : {
-                ...patch,
-                lat: fields.place === null ? null : (coords?.lat ?? null),
-                lng: fields.place === null ? null : (coords?.lng ?? null),
-              },
-        )
-        .where(and(eq(plate.id, id), eq(plate.userId, context.session.user.id)))
-        .returning();
+      const values =
+        coords === undefined
+          ? patch
+          : {
+              ...patch,
+              lat: fields.place === null ? null : (coords?.lat ?? null),
+              lng: fields.place === null ? null : (coords?.lng ?? null),
+            };
+      const owned = and(eq(plate.id, id), eq(plate.userId, userId));
+      // Only the rows' time (or slot) changed: nothing to write on the plate itself.
+      const [row] =
+        Object.keys(values).length === 0
+          ? await context.db.select().from(plate).where(owned).limit(1)
+          : await context.db.update(plate).set(values).where(owned).returning();
       return row ?? null;
     }),
 

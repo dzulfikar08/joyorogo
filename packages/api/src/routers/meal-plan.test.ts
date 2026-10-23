@@ -4,6 +4,7 @@ import { describe, expect, test } from "bun:test";
 import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
+import { eatenAtFromClock } from "../lib/eaten-at";
 import { jakartaToday, shiftDate } from "../lib/engine";
 import { computePortion, INGREDIENTS, recipeById, RECIPES } from "../lib/meal/catalog";
 import { mealPlanRouter } from "./meal-plan";
@@ -193,6 +194,18 @@ describe("mealPlan: Sudah makan", () => {
     // after the undo it can be logged again, once more with the same id
     const again = await call(mealPlanRouter.eat, { date: today, slot: item.slot }, as("pro"));
     expect(again.logId).toBe(`meal-plan:pro:${today}:${item.slot}`);
+    await call(mealPlanRouter.undoEat, { date: today, slot: item.slot }, as("pro"));
+  });
+
+  test("Sudah makan can carry the time it was eaten; a time on another day is refused", async () => {
+    const item = (await ready("pro")).plan?.days[0]?.items.find((i) => !i.eaten && !i.covered);
+    if (!item) return;
+    const early = eatenAtFromClock(today, "00:01")!;
+    const wrongDay = eatenAtFromClock(shiftDate(today, -2), "12:00")!;
+    await expect(call(mealPlanRouter.eat, { date: today, slot: item.slot, eatenAt: wrongDay }, as("pro"))).rejects.toThrow("invalid_eaten_at:wrong_day");
+    expect((await sql(`SELECT count(*) AS n FROM food_log WHERE user_id = 'pro' AND date = ? AND meal = ?`, [today, item.slot])).rows[0]?.n).toBe(0);
+    const res = await call(mealPlanRouter.eat, { date: today, slot: item.slot, eatenAt: early }, as("pro"));
+    expect(res.row.eatenAt).toBe(early);
     await call(mealPlanRouter.undoEat, { date: today, slot: item.slot }, as("pro"));
   });
 

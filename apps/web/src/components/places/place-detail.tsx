@@ -1,16 +1,19 @@
 import { Button } from "@joyorogo/ui/components/button";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { relativeDayLabel } from "@joyorogo/i18n";
 import { MapPinOff, RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
+import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
+import { MEAL_LABELS, suggestMealNow } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { formatDistance, visitAgeLabel } from "@joyorogo/api/lib/places";
 import type { PlaceSummary } from "@joyorogo/api/lib/places";
 
 import { ErrorNote } from "@/components/kit/error-note";
+import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { fmtRupiah } from "@/lib/app-config";
 import { fmtInt } from "@/lib/format";
 import { useOptimisticMutation } from "@/lib/optimistic";
@@ -37,17 +40,26 @@ export function PlaceDetailSheet({
   const queryClient = useQueryClient();
   const detail = useQuery(orpc.place.detail.queryOptions({ input: { key: place.key } }));
 
+  // "Jam makan" for the relog (unix ms); null = now, nothing is sent.
+  const [eatenAt, setEatenAt] = useState<number | null>(null);
+  const suggestedMeal = suggestMealNow(new Date(), false);
+
   const relog = useOptimisticMutation<
-    { plateId: string; name: string },
+    { plateId: string; name: string; eatenAt: number | null },
     { items: Array<{ id: string }>; meal: string }
   >({
-    mutationFn: ({ plateId }) => client.place.relog({ plateId }),
+    mutationFn: ({ plateId, eatenAt: picked }) =>
+      client.place.relog({
+        plateId,
+        ...(picked !== null ? { eatenAt: eatenAtFromClock(today, eatenAtClock(picked)) ?? undefined } : {}),
+      }),
     invalidate: () => [
       orpc.place.key(),
       orpc.food.key(),
       orpc.plate.key(),
       orpc.day.key(),
       orpc.diary.key(),
+      orpc.fasting.key(),
     ],
     success: ({ name }, result) => ({
       message: t("detail.loggedTo", { name, meal: MEAL_LABELS[result.meal as Meal] }),
@@ -60,6 +72,7 @@ export function PlaceDetailSheet({
               orpc.plate.key(),
               orpc.day.key(),
               orpc.diary.key(),
+              orpc.fasting.key(),
             ]) {
               void queryClient.invalidateQueries({ queryKey: key });
             }
@@ -161,66 +174,82 @@ export function PlaceDetailSheet({
           ) : detail.isError ? (
             <ErrorNote message={t("detail.historyError")} onRetry={() => void detail.refetch()} />
           ) : (
-            <ul className="space-y-2">
-              {detail.data?.visits.map((visit) => {
-                const items = visit.itemNames.join(", ");
-                return (
-                  <li key={visit.id} className="space-y-2 rounded-2xl bg-muted/60 p-3">
-                    <button
-                      type="button"
-                      disabled={!onOpenDate}
-                      aria-label={t("detail.viewInLog", { name: visit.name })}
-                      onClick={() => {
-                        onClose();
-                        onOpenDate?.(visit.date);
-                      }}
-                      className="flex w-full items-start gap-3 rounded-xl text-left focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-default"
-                    >
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-xs text-muted-foreground">
-                          {relativeDayLabel(visit.date, today)} · {MEAL_LABELS[visit.meal as Meal] ?? visit.meal}
+            <>
+              <div className="mb-3 rounded-2xl bg-muted/60 p-3">
+                <EatenAtField
+                  id="place-relog-eaten-at"
+                  date={today}
+                  meal={suggestedMeal}
+                  value={eatenAt}
+                  onChange={setEatenAt}
+                />
+              </div>
+              <ul className="space-y-2">
+                {detail.data?.visits.map((visit) => {
+                  const items = visit.itemNames.join(", ");
+                  return (
+                    <li key={visit.id} className="space-y-2 rounded-2xl bg-muted/60 p-3">
+                      <button
+                        type="button"
+                        disabled={!onOpenDate}
+                        aria-label={t("detail.viewInLog", { name: visit.name })}
+                        onClick={() => {
+                          onClose();
+                          onOpenDate?.(visit.date);
+                        }}
+                        className="flex w-full items-start gap-3 rounded-xl text-left focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-default"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {relativeDayLabel(visit.date, today)} · {MEAL_LABELS[visit.meal as Meal] ?? visit.meal}
+                          </span>
+                          <span className="block truncate text-[0.9375rem] font-semibold">{visit.name}</span>
+                          {items !== "" && items !== visit.name && (
+                            <span className="block truncate text-[0.8125rem] text-muted-foreground">
+                              {items}
+                            </span>
+                          )}
                         </span>
-                        <span className="block truncate text-[0.9375rem] font-semibold">{visit.name}</span>
-                        {items !== "" && items !== visit.name && (
-                          <span className="block truncate text-[0.8125rem] text-muted-foreground">
-                            {items}
+                        <span className="shrink-0 text-right tabular-nums">
+                          <span className="block text-base leading-tight font-extrabold text-kcal">
+                            {fmtInt(visit.kcal)}
+                            <span className="ml-1 text-[0.6875rem] font-semibold text-muted-foreground">
+                              {t("makan:diary.summary.unit")}
+                            </span>
                           </span>
-                        )}
-                      </span>
-                      <span className="shrink-0 text-right tabular-nums">
-                        <span className="block text-base leading-tight font-extrabold text-kcal">
-                          {fmtInt(visit.kcal)}
-                          <span className="ml-1 text-[0.6875rem] font-semibold text-muted-foreground">
-                            {t("makan:diary.summary.unit")}
-                          </span>
+                          {visit.proteinG != null && (
+                            <span className="block text-xs text-muted-foreground">
+                              {t("card.protein", { g: fmtInt(visit.proteinG) })}
+                            </span>
+                          )}
+                          {visit.priceIdr != null && (
+                            <span className="block text-xs text-muted-foreground">
+                              {fmtRupiah(visit.priceIdr)}
+                            </span>
+                          )}
                         </span>
-                        {visit.proteinG != null && (
-                          <span className="block text-xs text-muted-foreground">
-                            {t("card.protein", { g: fmtInt(visit.proteinG) })}
-                          </span>
-                        )}
-                        {visit.priceIdr != null && (
-                          <span className="block text-xs text-muted-foreground">
-                            {fmtRupiah(visit.priceIdr)}
-                          </span>
-                        )}
-                      </span>
-                    </button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="w-full"
-                      disabled={relog.isPending}
-                      aria-label={t("detail.relogAria", { name: visit.name })}
-                      onClick={() => relog.mutate({ plateId: visit.id, name: visit.name })}
-                    >
-                      <RotateCcw className="size-4" aria-hidden />
-                      {t("detail.relog")}
-                    </Button>
-                  </li>
-                );
-              })}
-            </ul>
+                      </button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="w-full"
+                        disabled={relog.isPending}
+                        aria-label={t("detail.relogAria", { name: visit.name })}
+                        onClick={() =>
+                          relog.mutate(
+                            { plateId: visit.id, name: visit.name, eatenAt },
+                            { onSuccess: () => setEatenAt(null) },
+                          )
+                        }
+                      >
+                        <RotateCcw className="size-4" aria-hidden />
+                        {t("detail.relog")}
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
           )}
           {detail.data && detail.data.total > detail.data.visits.length && (
             <p className="mt-2 text-xs text-muted-foreground">

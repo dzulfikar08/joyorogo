@@ -7,6 +7,7 @@
 
 import { dayIn, dayZoneOffsetMs, fmtInt, getActiveLocale, getT } from "@joyorogo/i18n";
 import type { DayZone, Locale } from "@joyorogo/i18n";
+import { eatenAtFitsDay } from "./eaten-at";
 import { localizedLabels } from "./engine";
 import type { Meal } from "./engine";
 
@@ -182,7 +183,22 @@ export function buildSchedule(pattern: FastingPattern, windowStart: string): Pla
 
 // --- Today's state -------------------------------------------------------------
 
-export type DayLog = { kcal: number; meal: Meal; min: number };
+/** `min` is the minute of the local day the food counts at; null when no time is known (it still counts toward the budget, never as in or out of the window). */
+export type DayLog = { kcal: number; meal: Meal; min: number | null };
+
+/**
+ * The minute of the local day a food row counts at for the eating window: the "jam makan" the person set, else when
+ * it was logged. A row logged for another day with no time set (a back-filled meal) has no known time: the minute it
+ * was typed in says nothing about when it was eaten.
+ */
+export function foodMinute(
+  row: { date: string; eatenAt: number | null; createdAt: Date },
+  zone?: DayZone,
+): number | null {
+  const at = row.eatenAt ?? row.createdAt.getTime();
+  if (row.eatenAt === null && !eatenAtFitsDay(at, row.date, zone)) return null;
+  return wibMinutes(new Date(at), zone);
+}
 
 export type ScheduleEntry = {
   meal: Meal;
@@ -241,8 +257,8 @@ const EMPTY_DAY: FastingDay = {
 
 /**
  * One IF day: schedule rebalanced by what's already eaten, current state,
- * countdown target, out-of-window flags. `logs` must be the WIB day's
- * food_log rows with their WIB minute-of-day (`wibMinutes(createdAt)`).
+ * countdown target, out-of-window flags. `logs` must be the day's food_log rows
+ * with their minute-of-day in the person's zone (`foodMinute`: eatenAt, else createdAt).
  */
 export function fastingDay(input: {
   pattern: FastingPattern;
@@ -263,10 +279,11 @@ export function fastingDay(input: {
   const outsideWindow: OutsideLog[] = [];
   let lastLog: DayLog | null = null;
   for (const log of input.logs) {
+    if (log.min === null) continue;
     if (!insideWindow(log.min, window)) {
       outsideWindow.push({ meal: log.meal, kcal: log.kcal, time: fmtHHMM(log.min) });
     }
-    if (!lastLog || log.min > lastLog.min) lastLog = log;
+    if (!lastLog || log.min > (lastLog.min ?? 0)) lastLog = log;
   }
 
   // Future meals split whatever is left of the budget by their share; past
@@ -293,7 +310,7 @@ export function fastingDay(input: {
 
   const nextEvent = pickNextEvent(plan, window, input.nowMin);
   const lastMeal =
-    lastLog && lastLog.kcal > 0
+    lastLog && lastLog.min !== null && lastLog.kcal > 0
       ? { time: fmtHHMM(lastLog.min), meal: lastLog.meal, kcal: lastLog.kcal }
       : null;
 
@@ -377,8 +394,8 @@ export type AdherenceDay = {
 };
 
 /**
- * A day "keeps" the schedule when food was logged and none of it fell
- * outside the window. Days without logs are null and don't count either way.
+ * A day "keeps" the schedule when food with a known time was logged and none of
+ * it fell outside the window. Days without such logs are null and don't count either way.
  */
 export function adherenceWeek(
   days: Array<{ date: string; logs: DayLog[] }>,
@@ -386,10 +403,10 @@ export function adherenceWeek(
   pattern: FastingPattern,
 ): AdherenceDay[] {
   const window = windowTimes(windowStart, windowHoursFor(pattern));
-  return days.map(({ date, logs }) => ({
-    date,
-    kept: logs.length === 0 ? null : logs.every((log) => insideWindow(log.min, window)),
-  }));
+  return days.map(({ date, logs }) => {
+    const timed = logs.flatMap((log) => (log.min === null ? [] : [log.min]));
+    return { date, kept: timed.length === 0 ? null : timed.every((min) => insideWindow(min, window)) };
+  });
 }
 
 export function countKept(days: AdherenceDay[]): number {

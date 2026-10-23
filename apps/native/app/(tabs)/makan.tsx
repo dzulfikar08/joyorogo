@@ -166,6 +166,11 @@ export default function Makan() {
     ...(input.lat !== undefined ? { lat: input.lat } : {}),
     ...(input.lng !== undefined ? { lng: input.lng } : {}),
   });
+  /** The "Jam makan" every row of a plate shares; null when none is set or the rows differ. */
+  const sharedEatenAt = (rows: ReadonlyArray<{ eatenAt: number | null }>) => {
+    const first = rows[0]?.eatenAt ?? null;
+    return first !== null && rows.every((row) => row.eatenAt === first) ? first : null;
+  };
   const foodListKey = orpc.food.listByDate.queryOptions({ input: { date } }).queryKey;
   const plateDayKey = orpc.plate.byDate.queryOptions({ input: { date } }).queryKey;
 
@@ -277,6 +282,8 @@ export default function Makan() {
         setMacrosOpen(false);
       }
       quickAddRef.current = false;
+      // "Jam makan" is per add: the next log starts at Sekarang again.
+      setEatenAt(null);
       setFormError(null);
       return {
         message: t("diary.toast.logged", { name: input.name }),
@@ -286,11 +293,12 @@ export default function Makan() {
             void queryClient.invalidateQueries({ queryKey: orpc.food.key() });
             void queryClient.invalidateQueries({ queryKey: orpc.plate.key() });
             void queryClient.invalidateQueries({ queryKey: orpc.day.key() });
+            void queryClient.invalidateQueries({ queryKey: orpc.fasting.key() });
           });
         },
       };
     },
-    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.diary.key()],
+    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.diary.key(), orpc.fasting.key()],
   });
 
   const deleteFood = useDelayedDelete<FoodRow>({
@@ -311,20 +319,24 @@ export default function Makan() {
     },
     label: (row) => row.name,
     fallback: t("diary.toast.entryFallback"),
-    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.diary.key()],
+    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.diary.key(), orpc.fasting.key()],
   });
 
   const updatePlate = useOptimisticMutation<
     Parameters<typeof client.plate.update>[0],
     unknown,
-    PlateRow | null
+    (PlateRow & { eatenAt: number | null }) | null
   >({
     mutationFn: (input) => client.plate.update(input),
     patch: (input, cache) => {
-      const previous =
+      const plateRows = (queryClient.getQueryData<{ items: FoodRow[] }>(foodListKey)?.items ?? []).filter(
+        (item) => item.plateId === input.id,
+      );
+      const found =
         (queryClient.getQueryData<PlateRow[]>(plateDayKey) ?? []).find(
           (plate) => plate.id === input.id,
         ) ?? null;
+      const previous = found ? { ...found, eatenAt: sharedEatenAt(plateRows) } : null;
       if (input.date && previous && input.date !== previous.date) {
         // Date move: relocate the plate row and every component row between
         // the two day caches, with matching summary deltas on both days.
@@ -342,7 +354,12 @@ export default function Makan() {
           queryClient.getQueryData<{ items: FoodRow[] }>(foodListKey)?.items ?? []
         ).filter((item) => item.plateId === input.id);
         for (const row of rows) {
-          const moved = { ...row, date: moveDate, ...(input.meal ? { meal: input.meal } : {}) };
+          const moved = {
+            ...row,
+            date: moveDate,
+            ...(input.meal ? { meal: input.meal } : {}),
+            ...(input.eatenAt !== undefined ? { eatenAt: input.eatenAt } : {}),
+          };
           stripFoodRow(cache, foodListKey, row);
           insertFoodRow(
             cache,
@@ -374,6 +391,19 @@ export default function Makan() {
           cache.summary(foodSummaryDelta({ ...row, meal: newMeal }, 1));
         }
       }
+      const nextEatenAt = input.eatenAt;
+      if (nextEatenAt !== undefined) {
+        cache.value<{ items: FoodRow[]; totals: Totals }>(foodListKey, (old) =>
+          old
+            ? {
+                ...old,
+                items: old.items.map((item) =>
+                  item.plateId === input.id ? { ...item, eatenAt: nextEatenAt } : item,
+                ),
+              }
+            : old,
+        );
+      }
       cache.value<PlateRow[]>(plateDayKey, (plates) =>
         (plates ?? []).map((plate) =>
           plate.id === input.id ? { ...plate, ...plateFieldPatch(input) } : plate,
@@ -392,6 +422,7 @@ export default function Makan() {
             priceIdr: previous.priceIdr,
             lat: previous.lat,
             lng: previous.lng,
+            ...(input.eatenAt !== undefined ? { eatenAt: previous.eatenAt } : {}),
           }
         : null;
       if (input.date && previous && input.date !== previous.date) {
@@ -411,7 +442,7 @@ export default function Makan() {
         undo: restore === null ? undefined : () => void client.plate.update(restore),
       };
     },
-    invalidate: () => [orpc.plate.key(), orpc.food.key(), orpc.day.key(), orpc.diary.key()],
+    invalidate: () => [orpc.plate.key(), orpc.food.key(), orpc.day.key(), orpc.diary.key(), orpc.fasting.key()],
   });
 
   const [sheetMeal, setSheetMeal] = useState<Meal | null>(null);
@@ -438,8 +469,9 @@ export default function Makan() {
   // Manual form's optional plate price, and the diary's inline plate editor.
   const [platePriceManual, setPlatePriceManual] = useState("");
   const [manualPlace, setManualPlace] = useState("");
-  // Optional "Jam makan" (unix ms) of the manual entry; null = now, nothing is sent.
-  const [manualEatenAt, setManualEatenAt] = useState<number | null>(null);
+  // Optional "Jam makan" (unix ms) of the add sheet: manual form, favorites and recent chips share it.
+  // null = now, nothing is sent.
+  const [eatenAt, setEatenAt] = useState<number | null>(null);
   const placeLocation = usePlaceLocation();
   // Caret inside the manual price input, so backspacing a separator drops the
   // digit instead of letting the separator snap back.
@@ -527,6 +559,10 @@ export default function Makan() {
     setFullPortion(null);
   };
 
+  /** `eatenAt` of the add sheet for `date`, only when it is not "Sekarang". Re-based: it may have been picked on another day. */
+  const eatenAtInput = () =>
+    eatenAt === null ? {} : { eatenAt: eatenAtFromClock(date, eatenAtClock(eatenAt)) ?? undefined };
+
   const submit = () => {
     const meal = sheetMeal;
     if (meal === null) return;
@@ -570,9 +606,7 @@ export default function Makan() {
       carbs: carbsNum ?? undefined,
       fat: fatNum ?? undefined,
       ...(plate ? { plate } : {}),
-      ...(manualEatenAt !== null
-        ? { eatenAt: eatenAtFromClock(date, eatenAtClock(manualEatenAt)) ?? undefined }
-        : {}),
+      ...eatenAtInput(),
     });
   };
 
@@ -624,7 +658,7 @@ export default function Makan() {
     setFat("");
     setPlatePriceManual("");
     setManualPlace("");
-    setManualEatenAt(null);
+    setEatenAt(null);
     setMacrosOpen(false);
     setManualOpen(false);
     setCeritaPhase("input");
@@ -734,7 +768,7 @@ export default function Makan() {
                     fiber={sumMacro((item) => item.fiber)}
                     scanId={cutout?.scanId ?? null}
                     plateScanId={plateScanId}
-                    eatenAt={new Date(segment.rows[0]!.createdAt)}
+                    eatenAt={new Date(segment.rows[0]!.eatenAt ?? segment.rows[0]!.createdAt)}
                     onEdit={() => setPlateEditId(plateRow.id)}
                     onViewSticker={viewAnchor ? () => viewSticker(viewAnchor) : undefined}
                     disabled={updatePlate.isPending}
@@ -909,6 +943,7 @@ export default function Makan() {
           <Cerita
             meal={sheetMeal}
             date={date}
+            eatenAt={eatenAt}
             slots={MEAL_KEYS}
             onPhaseChange={setCeritaPhase}
             onSaved={(result) => {
@@ -924,6 +959,9 @@ export default function Makan() {
             onChange={(value) => setSheetMeal(value)}
           />
         ) : null}
+        {sheetMeal !== null && ceritaPhase === "input" ? (
+          <EatenAtField date={date} meal={sheetMeal} value={eatenAt} onChange={setEatenAt} />
+        ) : null}
         {ceritaPhase === "input" && sheetMeal !== null && favorites.items.length > 0 ? (
           <View style={styles.recentBox}>
             <Text style={styles.recentLabel}>
@@ -933,6 +971,7 @@ export default function Makan() {
               favorites={favorites}
               date={date}
               meal={sheetMeal}
+              eatenAt={eatenAt}
               onManage={() => {
                 closeSheet();
                 setManageOpen(true);
@@ -959,6 +998,7 @@ export default function Makan() {
                     addFood.mutate({
                       date,
                       meal: sheetMeal ?? "sarapan",
+                      ...eatenAtInput(),
                       ...recentAddFields(food),
                     });
                   }}
@@ -1081,12 +1121,6 @@ export default function Makan() {
               status={placeLocation.status}
               onChange={placeLocation.setEnabled}
             />
-            <EatenAtField
-              date={date}
-              meal={sheetMeal ?? "sarapan"}
-              value={manualEatenAt}
-              onChange={setManualEatenAt}
-            />
             {macrosOpen ? (
               <View style={styles.macroRow}>
                 <Input
@@ -1174,6 +1208,7 @@ export default function Makan() {
             lat: editPlate.lat,
             lng: editPlate.lng,
             scanId: editPlateRows.find((row) => row.scanId)?.scanId ?? null,
+            eatenAt: sharedEatenAt(editPlateRows),
           }}
           saving={updatePlate.isPending}
           favorite={favorites.isPlateSaved(editPlate, editPlateRows)}

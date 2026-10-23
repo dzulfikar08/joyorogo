@@ -43,7 +43,7 @@ export function PlateHeader({
   scanId: string | null;
   /** Whole-plate sticker of the scan; the thumbnail shows it, falling back to `scanId`. */
   plateScanId: string | null;
-  /** When the plate was logged (its first component). */
+  /** When the plate was eaten ("Jam makan" of its first component, else when it was logged). */
   eatenAt: Date | null;
   onEdit: () => void;
   onViewSticker?: () => void;

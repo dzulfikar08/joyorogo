@@ -7,8 +7,11 @@ import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
+import { eatenAtClock, eatenAtFromClock, eatenAtNudge } from "@joyorogo/api/lib/eaten-at";
+import type { Meal } from "@joyorogo/api/lib/engine";
 import type { ItemView } from "@joyorogo/api/lib/meal/view";
 
+import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { LockedView } from "@/components/meal-plan/locked-view";
 import { PrefsSheet } from "@/components/meal-plan/prefs-sheet";
 import { BuySheet } from "@/components/meal-plan/buy-sheet";
@@ -29,6 +32,7 @@ import {
   PageHeader,
   Screen,
   Segmented,
+  Sheet,
   Skeleton,
   Text,
 } from "@/components/ui";
@@ -37,7 +41,7 @@ import { useSessionGate } from "@/lib/use-session-gate";
 type Tab = "today" | "week" | "shopping";
 
 export default function RencanaMakan() {
-  const { t } = useTranslation("mealPlan");
+  const { t } = useTranslation(["mealPlan", "common"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const overview = useQuery({ ...overviewOptions(), enabled: gate === "authed" });
@@ -50,6 +54,9 @@ export default function RencanaMakan() {
   const [recipeTarget, setRecipeTarget] = useState<RecipeTarget | null>(null);
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [regenOpen, setRegenOpen] = useState(false);
+  // Sudah makan on a slot that does not suit the clock asks "Jam makan" first.
+  const [eatTarget, setEatTarget] = useState<{ date: string; slot: Meal } | null>(null);
+  const [eatenAt, setEatenAt] = useState<number | null>(null);
 
   if (gate === "loading") return <BootLoader />;
   if (gate === "anon") return <Redirect href="/login" />;
@@ -132,8 +139,31 @@ export default function RencanaMakan() {
   const toggleEaten = (itemDate: string, item: ItemView) => {
     if (pendingEat !== null) return;
     const input = { date: itemDate, slot: item.slot };
-    if (item.eaten) undoEat.mutate(input);
-    else eat.mutate(input);
+    if (item.eaten) {
+      undoEat.mutate(input);
+    } else if (eatenAtNudge(itemDate, item.slot) !== null) {
+      setEatenAt(null);
+      setEatTarget(input);
+    } else {
+      eat.mutate(input);
+    }
+  };
+
+  const closeEat = () => {
+    setEatTarget(null);
+    setEatenAt(null);
+  };
+
+  const confirmEat = () => {
+    if (!eatTarget) return;
+    eat.mutate({
+      ...eatTarget,
+      // Re-based on the plan day: the time may have been picked while another day was shown.
+      ...(eatenAt !== null
+        ? { eatenAt: eatenAtFromClock(eatTarget.date, eatenAtClock(eatenAt)) ?? undefined }
+        : {}),
+    });
+    closeEat();
   };
 
   const actions = (
@@ -205,6 +235,16 @@ export default function RencanaMakan() {
       <RecipeSheet target={recipeTarget} onClose={() => setRecipeTarget(null)} />
       <PrefsSheet open={prefsOpen} prefs={data.prefs} onClose={() => setPrefsOpen(false)} />
       <RegenSheet open={regenOpen} day={day.isPast ? null : day} onClose={() => setRegenOpen(false)} />
+      <Sheet
+        visible={eatTarget !== null}
+        onClose={closeEat}
+        title={t("item.ate")}
+        footer={<Button label={t("common:actions.save")} onPress={confirmEat} />}
+      >
+        {eatTarget ? (
+          <EatenAtField date={eatTarget.date} meal={eatTarget.slot} value={eatenAt} onChange={setEatenAt} />
+        ) : null}
+      </Sheet>
     </>
   );
 }

@@ -285,7 +285,7 @@ export function FoodPortionSheet({
         eatenAt: input.eatenAt === undefined ? row.eatenAt : input.eatenAt,
       });
     },
-    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key()],
+    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.fasting.key()],
     success: (input) => {
       const moved = input.date && input.date !== row.date;
       const slotMoved = input.meal !== undefined && input.meal !== row.meal;
@@ -319,7 +319,7 @@ export function FoodPortionSheet({
               }),
             )
             .finally(() => {
-              for (const key of [orpc.food.key(), orpc.plate.key(), orpc.day.key()]) {
+              for (const key of [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.fasting.key()]) {
                 void queryClient.invalidateQueries({ queryKey: key });
               }
             });
@@ -544,7 +544,7 @@ export function FoodPortionSheet({
             }
           />
 
-          <EatenAtField id="food-eaten-at" date={date} value={eatenAt} onChange={setEatenAt} />
+          <EatenAtField id="food-eaten-at" date={date} meal={meal} value={eatenAt} onChange={setEatenAt} />
 
           <Button
             type="submit"

@@ -1076,6 +1076,7 @@ function AiFoodPage() {
       toast.success(t("toast.saved", { count: saved.items.length }));
       queryClient.invalidateQueries({ queryKey: orpc.food.key() });
       queryClient.invalidateQueries({ queryKey: orpc.day.key() });
+      queryClient.invalidateQueries({ queryKey: orpc.fasting.key() });
       // The save already landed: results are safe in the diary. Only then
       // offer Founder to the user who just spent their last free scan.
       navigate(
@@ -1654,7 +1655,13 @@ function AiFoodPage() {
         </section>
 
         <div className="mt-4">
-          <EatenAtField id="scan-eaten-at" date={scanDate ?? jakartaToday()} value={eatenAt} onChange={setEatenAt} />
+          <EatenAtField
+            id="scan-eaten-at"
+            date={scanDate ?? jakartaToday()}
+            meal={meal}
+            value={eatenAt}
+            onChange={setEatenAt}
+          />
         </div>
 
         <div className="mt-4 space-y-2">

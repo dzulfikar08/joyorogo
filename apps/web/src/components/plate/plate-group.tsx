@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
+import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { MEAL_EDIT_LABELS, jakartaToday, relativeDayLabel, shiftDate } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { dateKeyToUtcDate, parseIdrInput } from "@joyorogo/api/lib/format";
@@ -18,6 +19,7 @@ import type { AppRouterClient } from "@joyorogo/api/routers/index";
 import { Chip } from "@/components/chip";
 import { FieldLabel, ListGroup } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
+import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { IdrInput } from "@/components/plate/idr-input";
 import { MealSlotField } from "@/components/plate/meal-slot-field";
 import { RecalcPlateAction } from "@/components/plate/recalc-plate";
@@ -43,6 +45,7 @@ type FoodRowFields = {
   plateScanId?: string | null;
   photoId?: string | null;
   createdAt?: Date | string;
+  eatenAt?: number | null;
 };
 type PlateRow = {
   id: string;
@@ -165,7 +168,9 @@ export function PlateDiary<T extends Item & FoodRowFields>({
         const totalFiber = group.items.reduce((sum, row) => sum + (row.fiber ?? 0), 0);
         const photo = group.items.find((row) => row.scanId || row.plateScanId || row.photoId);
         const firstAt = group.items
-          .map((row) => (row.createdAt ? new Date(row.createdAt) : null))
+          .map((row) =>
+            row.eatenAt != null ? new Date(row.eatenAt) : row.createdAt ? new Date(row.createdAt) : null,
+          )
           .filter((at): at is Date => at !== null && !Number.isNaN(at.getTime()))
           .sort((a, b) => a.getTime() - b.getTime())[0];
         const meta = [
@@ -265,9 +270,20 @@ function PlateEditSheet({
   const [price, setPrice] = useState(plate.priceIdr != null ? String(plate.priceIdr) : "");
   const [date, setDate] = useState(plate.date);
   const [meal, setMeal] = useState<Meal>(plate.meal as Meal);
+  // Shared "Jam makan" of the plate's rows; null when unset or when the rows differ.
+  const initialEatenAt = rows.every((row) => row.eatenAt != null && row.eatenAt === rows[0]?.eatenAt)
+    ? (rows[0]?.eatenAt ?? null)
+    : null;
+  const [eatenAt, setEatenAt] = useState<number | null>(initialEatenAt);
   const [pickingDate, setPickingDate] = useState(false);
   const dateChanged = date !== plate.date;
   const mealChanged = meal !== plate.meal;
+  const eatenAtChanged = eatenAt !== initialEatenAt;
+  // A time picked for another day is carried onto the new day.
+  const pickDate = (next: string) => {
+    setDate(next);
+    if (eatenAt !== null) setEatenAt(eatenAtFromClock(next, eatenAtClock(eatenAt)));
+  };
 
   const listOptions = (day: string) => orpc.food.listByDate.queryOptions({ input: { date: day } });
   const plateOptions = (day: string) => orpc.plate.byDate.queryOptions({ input: { date: day } });
@@ -322,6 +338,19 @@ function PlateEditSheet({
             });
           }
         }
+        if (input.eatenAt !== undefined) {
+          const picked = input.eatenAt;
+          cache.value<FoodListData<Item & FoodRowFields>>(listOptions(plate.date).queryKey, (data) =>
+            data
+              ? {
+                  ...data,
+                  items: data.items.map((item) =>
+                    item.plateId === plate.id ? { ...item, eatenAt: picked } : item,
+                  ),
+                }
+              : data,
+          );
+        }
         return;
       }
       const movedPlate = { ...plate, ...fields, date: to };
@@ -330,7 +359,7 @@ function PlateEditSheet({
       );
       cache.value<PlateRow[]>(plateOptions(to).queryKey, (data) => [...(data ?? []), movedPlate]);
       for (const row of rows) {
-        const movedRow = { ...row, date: to, meal: toMeal };
+        const movedRow = { ...row, date: to, meal: toMeal, eatenAt: input.eatenAt ?? null };
         stripFoodRow(cache, listOptions(plate.date).queryKey, row);
         insertFoodRow(cache, listOptions(to).queryKey, movedRow);
         cache.summary({
@@ -353,7 +382,7 @@ function PlateEditSheet({
         });
       }
     },
-    invalidate: () => [orpc.plate.key(), orpc.food.key(), orpc.day.key()],
+    invalidate: () => [orpc.plate.key(), orpc.food.key(), orpc.day.key(), orpc.fasting.key()],
     success: (input) => {
       onClose();
       const restore = {
@@ -362,6 +391,7 @@ function PlateEditSheet({
         place: plate.place,
         priceIdr: plate.priceIdr,
         meal: plate.meal as Meal,
+        ...(input.eatenAt !== undefined ? { eatenAt: initialEatenAt } : {}),
       };
       if (input.date && input.date !== plate.date) {
         return {
@@ -395,6 +425,9 @@ function PlateEditSheet({
       priceIdr: priceNum === null ? null : Math.round(priceNum),
       ...(dateChanged ? { date } : {}),
       ...(mealChanged ? { meal } : {}),
+      ...(eatenAtChanged
+        ? { eatenAt: eatenAt === null ? null : (eatenAtFromClock(date, eatenAtClock(eatenAt)) ?? undefined) }
+        : {}),
     });
   };
 
@@ -444,7 +477,7 @@ function PlateEditSheet({
           <div>
             <FieldLabel htmlFor="plate-date">{t("plate.edit.loggedOn")}</FieldLabel>
             <div className="mt-1.5 space-y-2">
-              <DayChips value={date} onChange={setDate} />
+              <DayChips value={date} onChange={pickDate} />
               <Button
                 type="button"
                 variant={dateChanged ? "secondary" : "outline"}
@@ -479,6 +512,7 @@ function PlateEditSheet({
                 : t("plate.edit.slotHint")
             }
           />
+          <EatenAtField id="plate-eaten-at" date={date} meal={meal} value={eatenAt} onChange={setEatenAt} />
           <Button type="submit" className="w-full" disabled={update.isPending}>
             {update.isPending
               ? t("plate.edit.saving")
@@ -491,7 +525,7 @@ function PlateEditSheet({
         </form>
       </Sheet>
       {pickingDate && (
-        <CalendarSheet value={date} onPick={setDate} onClose={() => setPickingDate(false)} />
+        <CalendarSheet value={date} onPick={pickDate} onClose={() => setPickingDate(false)} />
       )}
     </>
   );

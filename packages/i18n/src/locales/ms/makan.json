@@ -796,11 +796,16 @@
     }
   },
   "eatenAt": {
-    "label": "Waktu makan",
+    "label": "Jam makan",
     "now": "Sekarang",
-    "clear": "Padam waktu makan",
-    "sheetTitle": "Waktu makan",
-    "hint": "Pilihan. Digunakan untuk melihat corak makan malam dan tidur anda."
+    "sheetTitle": "Jam makan",
+    "pick": "Pilih masa",
+    "pagi": "Tadi pagi",
+    "siang": "Tadi tengah hari",
+    "malam": "Tadi malam",
+    "nudge": "Bila anda sebenarnya makan?",
+    "future": "Masa itu belum tiba.",
+    "hint": "Digunakan untuk tetingkap puasa dan corak tidur anda. Mencatat kemudian? Tetapkan waktu anda sebenarnya makan."
   },
   "daySummary": {
     "proteinPerKg": "Protein {{perKg}} g/kg · panduan {{min}}-{{max}} g/kg"

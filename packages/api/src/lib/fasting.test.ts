@@ -10,6 +10,7 @@ import {
   fastingDay,
   fmtCountdown,
   fmtHHMM,
+  foodMinute,
   insideWindow,
   minutesUntil,
   parseHHMM,
@@ -285,5 +286,63 @@ describe("reminders", () => {
     expect(dueReminders({ ...input, nowMin: 719 })).toEqual([]);
     expect(dueReminders({ ...input, nowMin: 725 })).toEqual([]);
     expect(dueReminders({ ...input, nowMin: 933 }).map((d) => d.key)).toEqual(["2026-10-13:m1"]);
+  });
+});
+
+describe("eaten time", () => {
+  const BASE = { pattern: "16:8" as const, windowStart: "12:00", eatKcal: 1600 };
+  const wib = (iso: string) => Date.parse(`${iso}+07:00`);
+  const row = (eatenAt: number | null, created: string, date = "2026-10-20") => ({
+    date,
+    eatenAt,
+    createdAt: new Date(wib(created)),
+  });
+
+  test("foodMinute reads eatenAt, else the minute it was logged", () => {
+    expect(foodMinute(row(wib("2026-10-20T12:30:00"), "2026-10-20T21:00:00"))).toBe(750);
+    expect(foodMinute(row(null, "2026-10-20T21:00:00"))).toBe(1260);
+  });
+
+  test("a back-filled row without a time has no known minute; late-night after the diary day still counts", () => {
+    expect(foodMinute(row(null, "2026-10-23T09:00:00"))).toBeNull();
+    expect(foodMinute(row(null, "2026-10-21T01:30:00"))).toBe(90);
+    expect(foodMinute(row(wib("2026-10-20T12:30:00"), "2026-10-23T09:00:00"))).toBe(750);
+  });
+
+  test("logged at 21:00 with eatenAt 12:30 is not outside the window; without it, it is", () => {
+    const created = "2026-10-20T21:00:00";
+    const withTime = fastingDay({
+      ...BASE,
+      logs: [{ kcal: 600, meal: "makan_siang", min: foodMinute(row(wib("2026-10-20T12:30:00"), created)) }],
+      nowMin: 1290,
+    });
+    expect(withTime.outsideWindow).toEqual([]);
+    expect(withTime.lastMeal).toEqual({ time: "12:30", meal: "makan_siang", kcal: 600 });
+    const without = fastingDay({
+      ...BASE,
+      logs: [{ kcal: 600, meal: "makan_siang", min: foodMinute(row(null, created)) }],
+      nowMin: 1290,
+    });
+    expect(without.outsideWindow).toEqual([{ meal: "makan_siang", kcal: 600, time: "21:00" }]);
+  });
+
+  test("a log with an unknown minute still spends the budget but is neither in nor out of the window", () => {
+    const day = fastingDay({ ...BASE, logs: [{ kcal: 500, meal: "snack", min: null }], nowMin: 900 });
+    expect(day.remainingKcal).toBe(1100);
+    expect(day.outsideWindow).toEqual([]);
+    expect(day.lastMeal).toBeNull();
+  });
+
+  test("adherence ignores untimed logs", () => {
+    const week = adherenceWeek(
+      [
+        { date: "2026-10-18", logs: [{ kcal: 500, meal: "snack", min: null }] },
+        { date: "2026-10-19", logs: [{ kcal: 500, meal: "snack", min: null }, { kcal: 300, meal: "makan_siang", min: 780 }] },
+        { date: "2026-10-20", logs: [{ kcal: 300, meal: "makan_malam", min: 1300 }] },
+      ],
+      "12:00",
+      "16:8",
+    );
+    expect(week.map((d) => d.kept)).toEqual([null, true, false]);
   });
 });
