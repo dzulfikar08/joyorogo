@@ -49,6 +49,7 @@ import {
   Field,
   Input,
   Screen,
+  Sheet,
   StatTile,
   Text,
 } from "@/components/ui";
@@ -72,6 +73,7 @@ import {
 import { useStageText } from "@/components/maternal/use-maternal";
 import { ManualTdeeForm } from "@/components/manual-tdee";
 import { errorMessage, fmtDateMedium, fmtInt, fmtKg, parseNum } from "@/utils/format";
+import { Calendar } from "@/components/calendar";
 import { client, orpc } from "@/utils/orpc";
 
 type Gender = "male" | "female";
@@ -472,6 +474,7 @@ export default function Onboarding() {
   const [weightKg, setWeightKg] = useState("");
   const [targetWeightKg, setTargetWeightKg] = useState("");
   const [targetDate, setTargetDate] = useState(defaultTargetDate);
+  const [dateOpen, setDateOpen] = useState(false);
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>("light");
   const [formError, setFormError] = useState<string | null>(null);
   const [maternalChoice, setMaternalChoice] = useState<MaternalChoice>("none");
@@ -911,12 +914,34 @@ export default function Onboarding() {
                         </Text>
                       ) : null}
                       <Field label={t("question.date.label")} hint={t("question.date.hint")}>
-                        <Input
-                          value={targetDate}
-                          onChangeText={setTargetDate}
-                          placeholder="2026-12-15"
-                        />
+                        <PressableScale
+                          accessibilityRole="button"
+                          accessibilityLabel={`${t("question.date.label")}: ${fmtDateMedium(targetDate)}`}
+                          onPress={() => setDateOpen(true)}
+                          style={styles.dateField}
+                        >
+                          <Text style={styles.dateValue}>{fmtDateMedium(targetDate)}</Text>
+                          <Ionicons name="calendar-outline" size={20} color={theme.colors.mutedForeground} />
+                        </PressableScale>
                       </Field>
+                      <Sheet
+                        visible={dateOpen}
+                        onClose={() => setDateOpen(false)}
+                        title={t("settings:plan.targetDate.title")}
+                      >
+                        <Calendar
+                          value={targetDate}
+                          onChange={(iso) => {
+                            setTargetDate(iso);
+                            setFormError(null);
+                            setDateOpen(false);
+                          }}
+                          minDate={jakartaToday()}
+                          maxDate={shiftDate(jakartaToday(), MAX_TARGET_DAYS)}
+                          prevLabel={t("settings:plan.targetDate.prevMonth")}
+                          nextLabel={t("settings:plan.targetDate.nextMonth")}
+                        />
+                      </Sheet>
                       {gainCheck ? (
                         <GainDateNote check={gainCheck} onUseDate={setTargetDate} />
                       ) : null}
@@ -1042,6 +1067,20 @@ const styles = StyleSheet.create((theme) => ({
   planTiles: {
     flexDirection: "row",
     gap: theme.spacing.md,
+  },
+  dateField: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: 48,
+    paddingHorizontal: 16,
+    borderRadius: theme.radius.input,
+    backgroundColor: theme.colors.muted,
+  },
+  dateValue: {
+    fontSize: theme.fontSize.base,
+    fontWeight: "700",
+    color: theme.colors.foreground,
   },
   hint: {
     fontSize: theme.fontSize.sm,
