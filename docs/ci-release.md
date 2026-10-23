@@ -1,12 +1,13 @@
 # CI: checks and release builds
 
-Written 2026-10-17. Three workflows in `.github/workflows/`. The repo is public, so GitHub-hosted runners (macOS included) cost nothing.
+Written 2026-10-17. Workflows in `.github/workflows/`: `ci.yml`, the release workflows and `ios-widget.yml` (macOS compile check of the iPhone widget, below). The repo is public, so GitHub-hosted runners (macOS included) cost nothing.
 
 | Workflow | Runs on | Needs secrets | Does |
 | --- | --- | --- | --- |
 | `ci.yml` | pull requests, pushes to `main`, manual | none (safe for forks, read-only token) | `Typecheck and build` (`tsrs` for `packages/*` and `apps/{server,web,admin,native}`, web and admin `vite build` with a dummy `VITE_SERVER_URL`) and `Tests and i18n check` (`bun test` for api, auth, i18n, server, native; `bun run i18n:check`) |
 | `release-android.yml` | **manual only** (`workflow_dispatch`) | yes, environment `release` | ubuntu, JDK 17, Bun, Gradle cache: `scripts/build-release-apk.sh --play` (AAB + manifest permission guard) and/or `scripts/build-release-apk.sh` (site APK + update manifest, signing-key guard); artifacts; optional Play upload and R2 publish |
 | `release-ios.yml` | **manual only** | yes, environment `release` | `scripts/ios/mac-build.sh` on `macos-latest`: expo prebuild, pods, `xcodebuild archive` + export, IPA checks, optional TestFlight upload |
+| `ios-widget.yml` | pull requests and pushes to `main` that touch the widget (`apps/native/targets`, `app.json`, `package.json`, the i18n `misc.json` files, `scripts/ios`, ...), manual | none | `macos-latest`: Swift model check against the TypeScript vectors, `expo prebuild` + `pod install`, unsigned Release build of the `JoyoRogoWidget` target, checks of the built `.appex` (docs/ios-widget.md) |
 
 The release workflows are ready but never fire by themselves. Tag triggers (`v*`) are commented out at the top of each file; uncomment them to build on tags (the `release` approval below still applies).
 
@@ -77,10 +78,12 @@ base64 -w0 ~/Downloads/AuthKey_BUU2CPKLGM.p8 | gh secret set ASC_KEY_BASE64 --en
 
 ## iOS signing
 
+The app embeds a WidgetKit extension (`com.joyodigitama.joyorogo.widget`, docs/ios-widget.md), so the archive and the export sign two bundle ids. Both need the App Groups capability with `group.com.joyodigitama.joyorogo`: the group itself is a one-time portal step (docs/ios-widget.md, "Signing and the Apple Developer portal"). The job fetches an App Store profile for each bundle id (`EXPORT_PROFILE`, `EXPORT_WIDGET_PROFILE`).
+
 Same split as `scripts/build-ios-mac.sh` (`docs/ios-mac.md`), because a fresh runner has no keychain identity and the API key cannot create a cloud-managed distribution certificate (`Cloud signing permission error`; the team also already holds the maximum of three Apple Distribution certificates):
 
 1. The archive is signed automatically with the API key (`xcodebuild -allowProvisioningUpdates`, Apple Development profile).
-2. The export is signed manually. The job imports `IOS_DIST_CERT_P12_BASE64` into a temporary keychain, `scripts/ios/asc-ci-profile.py` finds that certificate on App Store Connect by serial and reuses or creates the App Store profile `joyo-ci <bundle id> <cert id>` (separate from the `joyo-mac` and Linux profiles, so no flow invalidates another's), and `mac-build.sh` exports with `EXPORT_PROFILE`. The script then checks the IPA (Apple Distribution authority, no device list, `get-task-allow` false, entitlements, bundle contents).
+2. The export is signed manually. The job imports `IOS_DIST_CERT_P12_BASE64` into a temporary keychain, `scripts/ios/asc-ci-profile.py` finds that certificate on App Store Connect by serial and reuses or creates the App Store profile `joyo-ci <bundle id> <cert id>` for the app and for the widget (separate from the `joyo-mac` and Linux profiles, so no flow invalidates another's), and `mac-build.sh` exports with `EXPORT_PROFILE` and `EXPORT_WIDGET_PROFILE`. The script then checks the IPA (Apple Distribution authority, no device list, `get-task-allow` false, entitlements, bundle contents).
 
 No owner step is needed: the `.p12` was made from the certificate and key the Linux pipeline already uses. To rebuild it (new certificate, new password):
 

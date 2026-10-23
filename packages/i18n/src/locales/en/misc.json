@@ -288,7 +288,8 @@
       "fresh": "Log one meal and your streak begins.",
       "freshGain": "Reach your eating target today to start a streak.",
       "off": "Tap to scan your meal.",
-      "signInLine": "Open JoyoRogo to sign in."
+      "signInLine": "Open JoyoRogo to sign in.",
+      "gallery": "Your logging streak, with Joyo cheering you on. Tap to scan your food."
     }
   }
 }

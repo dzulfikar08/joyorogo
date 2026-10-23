@@ -1,0 +1,124 @@
+# Compiles the iPhone widget (the WidgetKit extension in apps/native/targets/widget) on a GitHub macOS runner.
+# No secrets, no signing, nothing uploaded: it proves that Swift and the asset catalog build against the real iOS SDK
+# and that expo prebuild + pod install still produce a project with the extension, which ci.yml (Linux) cannot.
+# The signed store build is release-ios.yml. Setup and owner steps: docs/ios-widget.md.
+#
+# Runs when something the widget depends on changes, and by hand.
+name: iOS widget
+
+on:
+  pull_request:
+    paths:
+      - "apps/native/targets/**"
+      - "apps/native/widget-ios-check/**"
+      - "apps/native/app.json"
+      - "apps/native/app.config.ts"
+      - "apps/native/package.json"
+      - "apps/native/plugins/**"
+      - "apps/native/src/lib/widgets/ios-*"
+      - "packages/i18n/src/locales/*/misc.json"
+      - "scripts/ios/**"
+      - "bun.lock"
+      - ".github/workflows/ios-widget.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/native/targets/**"
+      - "apps/native/widget-ios-check/**"
+      - "apps/native/app.json"
+      - "apps/native/app.config.ts"
+      - "apps/native/package.json"
+      - "apps/native/plugins/**"
+      - "apps/native/src/lib/widgets/ios-*"
+      - "packages/i18n/src/locales/*/misc.json"
+      - "scripts/ios/**"
+      - "bun.lock"
+      - ".github/workflows/ios-widget.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-widget-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  widget:
+    name: Compile the iOS widget
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: latest-stable
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Cache bun and CocoaPods downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.bun/install/cache
+            ~/Library/Caches/CocoaPods
+          key: ios-widget-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: ios-widget-${{ runner.os }}-
+
+      - run: bun install --frozen-lockfile
+
+      # The Swift port of the streak model answers like streak-model.ts on every vector (written by the bun test).
+      - name: Swift model check
+        run: |
+          swiftc -O apps/native/targets/widget/StreakModel.swift apps/native/targets/widget/StreakStore.swift \
+            apps/native/widget-ios-check/main.swift -o "$RUNNER_TEMP/streak-check"
+          "$RUNNER_TEMP/streak-check" apps/native/widget-ios-check/streak-vectors.json
+
+      - name: Expo prebuild (iOS)
+        working-directory: apps/native
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_SERVER_URL: https://api.joyorogo.com
+          EXPO_PUBLIC_DEV_LOGIN: "0"
+        run: |
+          bunx expo prebuild --platform ios --clean --no-install
+          grep -q 'JoyoRogoWidget.appex' ios/JoyoRogo.xcodeproj/project.pbxproj
+          grep -q 'group.com.joyodigitama.joyorogo' ios/.targets/JoyoRogoWidget/generated.entitlements
+          grep -q 'group.com.joyodigitama.joyorogo' ios/JoyoRogo/JoyoRogo.entitlements
+
+      - name: Pod install
+        working-directory: apps/native/ios
+        env:
+          EXPO_PRECOMPILED_FLAVOR: release
+        run: pod install
+
+      # Release, unsigned: the extension has no pod, so this builds Swift, the asset catalog, the fonts and the plist as
+      # the archive of release-ios.yml does, without a certificate.
+      - name: Build the widget extension
+        working-directory: apps/native/ios
+        run: |
+          xcodebuild build -project JoyoRogo.xcodeproj -target JoyoRogoWidget -configuration Release -sdk iphoneos \
+            -arch arm64 CODE_SIGNING_ALLOWED=NO CURRENT_PROJECT_VERSION=1 \
+            SYMROOT="$RUNNER_TEMP/widget-build" | tail -n 25
+          exit "${PIPESTATUS[0]}"
+
+      - name: Check the built extension
+        run: |
+          appex="$RUNNER_TEMP/widget-build/Release-iphoneos/JoyoRogoWidget.appex"
+          plist() { /usr/libexec/PlistBuddy -c "Print :$1" "$appex/Info.plist"; }
+          test "$(plist CFBundleIdentifier)" = com.joyodigitama.joyorogo.widget
+          test "$(plist NSExtension:NSExtensionPointIdentifier)" = com.apple.widgetkit-extension
+          test "$(plist MinimumOSVersion)" = 16.4
+          test "$(plist CFBundleShortVersionString)" = "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' apps/native/ios/JoyoRogo/Info.plist)"
+          for f in streak-copy.json PlusJakartaSans-Bold.ttf PlusJakartaSans-ExtraBold.ttf PrivacyInfo.xcprivacy Assets.car; do
+            test -s "$appex/$f" || { echo "missing $f in the extension"; ls -l "$appex"; exit 1; }
+          done
+          plist UIAppFonts | grep -q PlusJakartaSans-ExtraBold.ttf
+          ls -l "$appex"

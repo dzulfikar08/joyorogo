@@ -1,8 +1,9 @@
 import { requestWidgetUpdate } from "react-native-android-widget";
 
+import { mirrorStreakToIosWidget } from "./ios-streak-store";
 import { buildWidgetElement } from "./ui";
 import type { WidgetName } from "./ui";
-import { writeSnapshot } from "./snapshot";
+import { readSnapshot, writeSnapshot } from "./snapshot";
 import type { WidgetInboxItem, WidgetSnapshot } from "./snapshot";
 
 /** Widgets that show day data: progress (the combined one too) and the streak, which the day summary also carries. */
@@ -36,7 +37,25 @@ export async function pushDaySnapshot(
   // Screens only render behind the session gate, so a push implies signed in.
   const patch: Partial<Omit<WidgetSnapshot, "updatedAt">> = { signedIn: true, day };
   if (fasting !== undefined) patch.fasting = fasting;
-  await refreshWidgets(PROGRESS_WIDGETS, await writeSnapshot(patch));
+  const snapshot = await writeSnapshot(patch);
+  // The iPhone streak widget cannot render JS: it reads the same facts from the App Group (ios-streak-store.ts).
+  mirrorStreakToIosWidget(snapshot);
+  await refreshWidgets(PROGRESS_WIDGETS, snapshot);
+}
+
+/**
+ * The session is gone (sign out, deleted account, expired session): every widget flips to its signed-out tile now instead
+ * of keeping the last person's numbers on the home screen. The iPhone widget has no headless refresh to notice it later,
+ * and the Android widgets would otherwise wait for their next launcher update. Cheap when nothing changes, so a screen
+ * may call it on every anonymous render.
+ */
+export async function pushSignedOutSnapshot(): Promise<void> {
+  const current = await readSnapshot();
+  const snapshot = current.signedIn ? await writeSnapshot({ signedIn: false, day: null, fasting: null, inbox: null }) : current;
+  mirrorStreakToIosWidget(snapshot);
+  if (!current.signedIn) return;
+  // Sign-out must go on if a launcher refuses the update.
+  await refreshWidgets([...new Set([...PROGRESS_WIDGETS, ...INBOX_WIDGETS])], snapshot).catch(() => {});
 }
 
 /** Widgets only show unread rows; pass the full (read + unread) inbox list. */

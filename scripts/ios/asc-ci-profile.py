@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """App Store provisioning profile for a CI runner, from the App Store Connect API. Standard library and openssl only.
 
-    asc-ci-profile.py <bundle id> <Apple Distribution certificate serial, hex> <out .mobileprovision>
+    asc-ci-profile.py <bundle id> <Apple Distribution certificate serial, hex> <out .mobileprovision> [CAPABILITY ...]
 
-Finds the certificate on App Store Connect by serial, reuses the ACTIVE IOS_APP_STORE profile "joyo-ci <bundle id>
+Registers the bundle id when it is missing and enables each CAPABILITY (APP_GROUPS, ...) it does not have yet. Then
+finds the certificate on App Store Connect by serial, reuses the ACTIVE IOS_APP_STORE profile "joyo-ci <bundle id>
 <cert id>" or creates it (an INVALID one is deleted first: enabling a capability invalidates profiles), writes the
 profile and prints "<uuid>", a tab, "<profile name>". Needs ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_PATH (.p8 key with
 access to Certificates, Identifiers & Profiles). The profile is separate from the ones scripts/build-ios-mac.sh
@@ -65,9 +66,10 @@ def call(method, path, body=None):
     return json.loads(raw) if raw else {}
 
 
-if len(sys.argv) != 4:
+if len(sys.argv) < 4:
     sys.exit(__doc__)
 bundle, serial, out = sys.argv[1], sys.argv[2].upper().lstrip("0"), Path(sys.argv[3])
+wanted_capabilities = sys.argv[4:]
 
 certs = call("GET", "/v1/certificates?filter[certificateType]=DISTRIBUTION&limit=200")["data"]
 found = [c for c in certs if c["attributes"].get("serialNumber", "").upper().lstrip("0") == serial]
@@ -78,7 +80,23 @@ cert_id = found[0]["id"]
 bundle_ids = call("GET", f"/v1/bundleIds?filter[identifier]={urllib.parse.quote(bundle)}&limit=200")["data"]
 bundle_ids = [b for b in bundle_ids if b["attributes"]["identifier"] == bundle]
 if not bundle_ids:
-    sys.exit(f"bundle id {bundle} is not registered")
+    print(f"registering bundle id {bundle}", file=sys.stderr)
+    bundle_ids = [call("POST", "/v1/bundleIds", {"data": {"type": "bundleIds", "attributes": {
+        "identifier": bundle, "name": bundle.replace(".", " "), "platform": "IOS",
+    }}})["data"]]
+bundle_pk = bundle_ids[0]["id"]
+
+# Enabling a capability invalidates the bundle id's profiles; the INVALID ones are deleted below and made again.
+have = {c["attributes"]["capabilityType"] for c in call("GET", f"/v1/bundleIds/{bundle_pk}/bundleIdCapabilities")["data"]}
+for capability in wanted_capabilities:
+    if capability in have:
+        continue
+    call("POST", "/v1/bundleIdCapabilities", {"data": {
+        "type": "bundleIdCapabilities",
+        "attributes": {"capabilityType": capability},
+        "relationships": {"bundleId": {"data": {"type": "bundleIds", "id": bundle_pk}}},
+    }})
+    print(f"{bundle}: enabled {capability}", file=sys.stderr)
 
 name = f"joyo-ci {bundle} {cert_id}"
 listed = call("GET", f"/v1/profiles?filter[name]={urllib.parse.quote(name)}&filter[profileType]=IOS_APP_STORE&limit=200")["data"]
@@ -93,7 +111,7 @@ else:
         "type": "profiles",
         "attributes": {"name": name, "profileType": "IOS_APP_STORE"},
         "relationships": {
-            "bundleId": {"data": {"type": "bundleIds", "id": bundle_ids[0]["id"]}},
+            "bundleId": {"data": {"type": "bundleIds", "id": bundle_pk}},
             "certificates": {"data": [{"type": "certificates", "id": cert_id}]},
         },
     }})["data"]

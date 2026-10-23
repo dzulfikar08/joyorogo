@@ -7,6 +7,8 @@
 #
 # Needs on PATH: node, bun, pod (CocoaPods 1.17), Xcode (xcodebuild, xcrun altool).
 # Env:
+#   EXPORT_PROFILE / EXPORT_WIDGET_PROFILE   names of the installed App Store profiles of the app and of the
+#                  widget extension; set both for a manual export, neither for an automatic one
 #   BUILD_NUMBER   CFBundleVersion, YYYYMMDDHHMM (UTC) by default, as the Linux pipeline
 #   ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_PATH   App Store Connect API key; default path is
 #                  ~/.appstoreconnect/private_keys/AuthKey_<id>.p8 (mode 600, never in git)
@@ -15,7 +17,8 @@
 #
 # Signing: automatic, through the API key (xcodebuild -allowProvisioningUpdates). The archive is
 # signed with the Apple Distribution identity in the login keychain; the export gets an App Store
-# profile from App Store Connect. Run it in the logged-in GUI session (the Linux driver does), an
+# profile from App Store Connect. The app embeds the widget extension (apps/native/targets/widget,
+# docs/ios-widget.md), a second bundle id: a manual export (EXPORT_PROFILE) needs EXPORT_WIDGET_PROFILE too. Run it in the logged-in GUI session (the Linux driver does), an
 # SSH session cannot use the keychain's private keys (errSecInternalComponent).
 set -euo pipefail
 REPO=${REPO_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}
@@ -25,6 +28,9 @@ OUT=${MAC_BUILD_OUT:-$REPO/build/ios-mac}
 
 APP=JoyoRogo
 BUNDLE_ID=com.joyodigitama.joyorogo
+WIDGET=JoyoRogoWidget
+WIDGET_BUNDLE_ID=$BUNDLE_ID.widget
+APP_GROUP=group.com.joyodigitama.joyorogo
 TEAM_ID=F6Q6UFUK69
 JS_DIR=$REPO/apps/native
 IOS_DIR=$JS_DIR/ios
@@ -112,8 +118,13 @@ step "5. xcodebuild -exportArchive (app-store-connect)"
 # Distribution identity in the keychain. Automatic export needs a cloud-managed distribution certificate, which
 # the API key on the MacBook may not create ("Cloud signing permission error").
 if [ -n "${EXPORT_PROFILE:-}" ]; then
+  [ -n "${EXPORT_WIDGET_PROFILE:-}" ] ||
+    { echo "EXPORT_PROFILE is set but EXPORT_WIDGET_PROFILE is not: the widget extension ($WIDGET_BUNDLE_ID) needs its own App Store profile" >&2; exit 1; }
   SIGNING="<key>signingStyle</key><string>manual</string>
-  <key>provisioningProfiles</key><dict><key>$BUNDLE_ID</key><string>$EXPORT_PROFILE</string></dict>"
+  <key>provisioningProfiles</key><dict>
+    <key>$BUNDLE_ID</key><string>$EXPORT_PROFILE</string>
+    <key>$WIDGET_BUNDLE_ID</key><string>$EXPORT_WIDGET_PROFILE</string>
+  </dict>"
 else
   SIGNING="<key>signingStyle</key><string>automatic</string>"
 fi
@@ -164,6 +175,28 @@ codesign --verify --deep --strict "$APPDIR" || fail "code signature does not ver
 authority=$(codesign -dvv "$APPDIR" 2>&1 | sed -n 's/^Authority=\(Apple Distribution.*\)/\1/p')
 [ -n "$authority" ] || fail "not signed with an Apple Distribution identity"
 echo "   $BUNDLE_ID $(plist "$APPDIR/Info.plist" CFBundleShortVersionString) ($BUILD_NUMBER), $sdk, $authority"
+
+# The widget extension (WidgetKit, apps/native/targets/widget): same version, same signer, App Store profile, and the
+# App Group it shares the streak with in the entitlements of both, or the widget would show the signed-out tile forever.
+APPEX=$APPDIR/PlugIns/$WIDGET.appex
+[ -d "$APPEX" ] || fail "no PlugIns/$WIDGET.appex in the app: the widget extension was not embedded"
+[ "$(plist "$APPEX/Info.plist" CFBundleIdentifier)" = "$WIDGET_BUNDLE_ID" ] || fail "widget bundle id is not $WIDGET_BUNDLE_ID"
+[ "$(plist "$APPEX/Info.plist" CFBundleVersion)" = "$BUILD_NUMBER" ] || fail "widget CFBundleVersion is not $BUILD_NUMBER"
+[ "$(plist "$APPEX/Info.plist" CFBundleShortVersionString)" = "$(plist "$APPDIR/Info.plist" CFBundleShortVersionString)" ] ||
+  fail "widget and app versions differ"
+[ "$(plist "$APPEX/Info.plist" NSExtension:NSExtensionPointIdentifier)" = com.apple.widgetkit-extension ] || fail "widget extension point is not WidgetKit"
+[ -s "$APPEX/streak-copy.json" ] && [ -s "$APPEX/Assets.car" ] || fail "the widget lacks its copy or its images"
+security cms -D -i "$APPEX/embedded.mobileprovision" > "$OUT/widget-profile.plist"
+[ -z "$(plist "$OUT/widget-profile.plist" ProvisionedDevices)" ] || fail "widget profile lists devices (not an App Store profile)"
+codesign -d --entitlements :- "$APPEX" > "$OUT/widget-entitlements.plist" 2> /dev/null
+[ "$(plist "$OUT/widget-entitlements.plist" get-task-allow)" = false ] || fail "widget get-task-allow is not false"
+codesign --verify --strict "$APPEX" || fail "widget code signature does not verify"
+codesign -dvv "$APPEX" 2>&1 | grep -q '^Authority=Apple Distribution' || fail "widget is not signed with an Apple Distribution identity"
+for entitlements in "$OUT/entitlements.plist" "$OUT/widget-entitlements.plist"; do
+  [ "$(plist "$entitlements" com.apple.security.application-groups:0)" = "$APP_GROUP" ] ||
+    fail "$(basename "$entitlements") does not carry the App Group $APP_GROUP (portal: docs/ios-widget.md)"
+done
+echo "   $WIDGET_BUNDLE_ID ($BUILD_NUMBER), App Group $APP_GROUP on both"
 
 # app.config freshness: Constants.expoConfig reads the embedded app.config at run time (cloud URLs in `extra`).
 (cd "$JS_DIR" && bunx expo config --type public --json) > "$OUT/expo-config.json"

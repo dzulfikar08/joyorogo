@@ -12,6 +12,7 @@ import { authClient } from "@/lib/auth-client";
 import { forgetPush, unregisterPush } from "@/src/lib/push";
 import { teardownReminders } from "@/src/lib/notifications";
 import { flushPrefsSync, forgetPrefsSync } from "@/src/lib/prefs-sync";
+import { pushSignedOutSnapshot } from "@/src/lib/widgets/push";
 import { errorMessage } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
@@ -57,6 +58,7 @@ export function useAccountActions(): AccountActions {
         forgetPrefsSync();
         await forgetPush();
         await teardownReminders();
+        await pushSignedOutSnapshot();
         router.replace("/login");
       },
       onError: (e) => toast.error(t("account.delete.failedTitle"), errorMessage(e)),
@@ -84,6 +86,7 @@ export function useAccountActions(): AccountActions {
       queryClient.clear();
       forgetPrefsSync();
       await teardownReminders();
+      await pushSignedOutSnapshot();
       router.replace("/login");
     } finally {
       setSigningOut(false);

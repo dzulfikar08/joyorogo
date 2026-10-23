@@ -22,8 +22,12 @@ REPO=joyorogo
 GITHUB_URL=https://github.com/dzulfikar08/joyorogo.git
 APP=JoyoRogo
 BUNDLE_ID=com.joyodigitama.joyorogo
+# The home-screen widget (apps/native/targets/widget, docs/ios-widget.md) is an extension with its own bundle id,
+# signed and profiled like the app; the app and the widget share an App Group.
+WIDGET_BUNDLE_ID=$BUNDLE_ID.widget
 # Portal capabilities the app's entitlements need: enable them on the bundle id before the profile is made.
-CAPABILITIES=(HEALTHKIT PUSH_NOTIFICATIONS APPLE_ID_AUTH IN_APP_PURCHASE)
+CAPABILITIES=(HEALTHKIT PUSH_NOTIFICATIONS APPLE_ID_AUTH IN_APP_PURCHASE APP_GROUPS)
+WIDGET_CAPABILITIES=(APP_GROUPS)
 
 HOST=${MAC_HOST:-allicias-macbook-air}
 PY=${ASC_PYTHON:-$HOME/.local/share/joyorogo-ios/venv/bin/python}
@@ -68,6 +72,7 @@ else
 
   step "App Store Connect: bundle id capabilities, API key on the Mac"
   "$PY" "$ROOT/scripts/ios/enable-capabilities.py" "$BUNDLE_ID" "${CAPABILITIES[@]}"
+  "$PY" "$ROOT/scripts/ios/enable-capabilities.py" "$WIDGET_BUNDLE_ID" "${WIDGET_CAPABILITIES[@]}"
   [ "$upload" = 0 ] || "$PY" "$ROOT/scripts/ios/asc-wait-valid.py" --check "$BUNDLE_ID" "$BUILD_NUMBER"
   KEY_REMOTE=$MAC_HOME/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
   local_sum=$(sha256sum "$ASC_KEY_PATH" | cut -d' ' -f1)
@@ -89,10 +94,12 @@ else
   remote "security find-identity -v -p codesigning" | grep -q "$cert_sha1" ||
     { echo "$IDENTITY is not a valid signing identity in the Mac's keychain (no private key, or expired)" >&2; exit 1; }
   IFS=$'\t' read -r PROFILE_UUID PROFILE_NAME < <("$PY" "$ROOT/scripts/ios/asc-mac-profile.py" "$BUNDLE_ID" "$cert_serial" "$tmp/app.mobileprovision")
+  IFS=$'\t' read -r WIDGET_PROFILE_UUID WIDGET_PROFILE_NAME < <("$PY" "$ROOT/scripts/ios/asc-mac-profile.py" "$WIDGET_BUNDLE_ID" "$cert_serial" "$tmp/widget.mobileprovision")
   PROFILE_DIR="$MAC_HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
   remote "mkdir -p '$PROFILE_DIR'"
   remote "cat > '$PROFILE_DIR/$PROFILE_UUID.mobileprovision'" < "$tmp/app.mobileprovision"
-  echo "$IDENTITY, profile '$PROFILE_NAME' ($PROFILE_UUID) installed"
+  remote "cat > '$PROFILE_DIR/$WIDGET_PROFILE_UUID.mobileprovision'" < "$tmp/widget.mobileprovision"
+  echo "$IDENTITY, profiles '$PROFILE_NAME' ($PROFILE_UUID) and '$WIDGET_PROFILE_NAME' ($WIDGET_PROFILE_UUID) installed"
 
   step "Mac: clean checkout of $SHA"
   remote "set -e
@@ -117,7 +124,7 @@ else
 # launchd runs this in the GUI session. PATH: the tools docs/ios-mac.md installs.
 export PATH=$MAC_HOME/build/tools/bin:$MAC_HOME/build/tools/node/bin:$MAC_HOME/.bun/bin:/usr/bin:/bin:/usr/sbin:/sbin
 export REPO_DIR=$MAC_HOME/build/$REPO BUILD_NUMBER=$BUILD_NUMBER ASC_KEY_ID=$ASC_KEY_ID ASC_ISSUER_ID=$ASC_ISSUER_ID
-export EXPORT_PROFILE='$PROFILE_NAME'
+export EXPORT_PROFILE='$PROFILE_NAME' EXPORT_WIDGET_PROFILE='$WIDGET_PROFILE_NAME'
 caffeinate -i bash $JOB/mac-build.sh $([ $upload = 1 ] && echo --upload)
 echo \$? > $JOB/rc.tmp && mv $JOB/rc.tmp $JOB/rc
 JOB_SH

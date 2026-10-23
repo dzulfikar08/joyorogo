@@ -21,7 +21,8 @@
       },
       "entitlements": {
         "com.apple.developer.healthkit": true,
-        "com.apple.developer.healthkit.access": []
+        "com.apple.developer.healthkit.access": [],
+        "com.apple.security.application-groups": ["group.com.joyodigitama.joyorogo"]
       }
     },
     "android": {
@@ -205,6 +206,7 @@
           "ios": ["instagram", "instagram-stories"]
         }
       ],
+      "@bacons/apple-targets",
       "./plugins/with-widget-headless-fix",
       "./plugins/with-no-location-service"
     ],

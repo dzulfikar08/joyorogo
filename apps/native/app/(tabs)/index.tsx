@@ -82,7 +82,7 @@ import { WeighInSheet } from "@/components/weigh-in-sheet";
 import { JoyoFitCard } from "@/components/workout/joyofit-card";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
-import { pushDaySnapshot } from "@/src/lib/widgets/push";
+import { pushDaySnapshot, pushSignedOutSnapshot } from "@/src/lib/widgets/push";
 import { useJakartaClock } from "@/src/lib/use-jakarta-clock";
 import { useHealthAutoSync } from "@/src/lib/use-health-sync";
 import { TargetPaceNotice } from "@/components/target-pace-notice";
@@ -243,6 +243,8 @@ export default function Dashboard() {
   const summaryData = summary.data;
   const fastingData = fastingToday.data;
   useEffect(() => {
+    // An expired session leaves the last person's numbers on the home screen: flip the widgets to signed out.
+    if (gate === "anon") void pushSignedOutSnapshot();
     // Widgets describe the live day; skip while a past day is on screen.
     if (gate !== "authed" || !summaryData?.hasProfile || !summaryData.targets) return;
     if (summaryData.date !== today) return;

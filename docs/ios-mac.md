@@ -29,6 +29,9 @@ On Linux (`build-ios-mac.sh`):
 4. `asc-mac-profile.py` finds the Mac's Apple Distribution certificate on App Store Connect (by serial), reuses or creates the App
    Store profile `joyo-mac com.joyodigitama.joyorogo <cert id>` and installs it on the Mac
    (`~/Library/Developer/Xcode/UserData/Provisioning Profiles/<uuid>.mobileprovision`).
+   The home-screen widget extension (`com.joyodigitama.joyorogo.widget`, [ios-widget.md](ios-widget.md)) gets the same treatment: APP_GROUPS is
+   enabled on both bundle ids in step 2, and a second profile `joyo-mac com.joyodigitama.joyorogo.widget <cert id>` is installed and passed to
+   the job as `EXPORT_WIDGET_PROFILE`.
 5. On the Mac: `git clone`/`git fetch` of GitHub into `~/build/joyorogo`, `git checkout --detach <sha>`, `git clean -ffdx -e node_modules`;
    fails when the tree is not clean.
 6. Streams `scripts/ios/mac-build.sh` (from this checkout, so it need not be pushed) to the Mac and starts it as a launchd agent in
