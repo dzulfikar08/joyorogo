@@ -45,7 +45,7 @@
     "date": {
       "title": "Bila anda mahu mencapainya?",
       "label": "Tarikh sasaran",
-      "hint": "Format TAHUN-BULAN-TARIKH, contoh 2026-12-15",
+      "hint": "Ketik untuk memilih tarikh.",
       "why": "Penurunan berat yang selamat ialah kira-kira 0,5 hingga 1 kg seminggu."
     },
     "goal": {

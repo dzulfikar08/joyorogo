@@ -45,7 +45,7 @@
     "date": {
       "title": "Kapan mau mencapainya?",
       "label": "Tanggal target",
-      "hint": "Format TAHUN-BULAN-TANGGAL, contoh 2026-12-15",
+      "hint": "Ketuk untuk memilih tanggal.",
       "why": "Turun berat yang aman itu sekitar 0,5 sampai 1 kg per minggu."
     },
     "goal": {
