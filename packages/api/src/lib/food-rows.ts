@@ -20,12 +20,26 @@ export type FoodRowValues = Omit<
   source: string;
 };
 
-/** Inserts rows and answers the stored ones; with `ignoreConflicts` a row whose id exists is skipped (and not answered). */
-export function insertFoodRows(
+/** D1 binds at most 100 parameters per statement and a row binds up to 19, so a statement carries at most 5 rows. */
+const ROWS_PER_STATEMENT = 5;
+
+/**
+ * Inserts rows and answers the stored ones; with `ignoreConflicts` a row whose id exists is skipped (and not answered).
+ * More than ROWS_PER_STATEMENT rows go as one batch of statements, which D1 runs as a single transaction.
+ */
+export async function insertFoodRows(
   db: Database,
   rows: readonly FoodRowValues[],
   options: { ignoreConflicts?: boolean } = {},
 ): Promise<Array<typeof foodLog.$inferSelect>> {
-  const insert = db.insert(foodLog).values([...rows]);
-  return (options.ignoreConflicts ? insert.onConflictDoNothing({ target: foodLog.id }) : insert).returning();
+  const statement = (part: FoodRowValues[]) => {
+    const insert = db.insert(foodLog).values(part);
+    return (options.ignoreConflicts ? insert.onConflictDoNothing({ target: foodLog.id }) : insert).returning();
+  };
+  if (rows.length <= ROWS_PER_STATEMENT) return statement([...rows]);
+  const chunks: FoodRowValues[][] = [];
+  for (let i = 0; i < rows.length; i += ROWS_PER_STATEMENT) chunks.push(rows.slice(i, i + ROWS_PER_STATEMENT));
+  const [first, ...rest] = chunks.map(statement);
+  const results = await db.batch([first!, ...rest]);
+  return results.flat();
 }
