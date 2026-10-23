@@ -63,7 +63,9 @@ const background: Promise<unknown>[] = [];
 const ctx = (userId: string | null, text = DESCRIBE, allowlist = "own,qa") =>
   ({
     db,
-    env: { AI: fakeAi(text), STICKERS: store.bucket, DISHWARE_USER_IDS: allowlist },
+    // The shadow test (lib/shadow-scan.ts) re-asks a random 20% of first scans in waitUntil, which would push an
+    // unrelated prompt into `requests` after a test reset it. Not under test here, so off.
+    env: { AI: fakeAi(text), STICKERS: store.bucket, DISHWARE_USER_IDS: allowlist, SHADOW_SAMPLE_RATE: "0" },
     locale: "id",
     waitUntil: (promise: Promise<unknown>) => background.push(promise),
     session: userId === null ? null : { user: { id: userId } },

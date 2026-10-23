@@ -86,7 +86,8 @@ const background: Promise<unknown>[] = [];
 const ctx = (userId: string) =>
   ({
     db,
-    env: { AI: fakeAi, STICKERS: bucket },
+    // No random shadow re-scan (lib/shadow-scan.ts, 20% of first scans) running unawaited behind these tests.
+    env: { AI: fakeAi, STICKERS: bucket, SHADOW_SAMPLE_RATE: "0" },
     locale: "id",
     waitUntil: (promise: Promise<unknown>) => background.push(promise),
     session: { user: { id: userId } },
