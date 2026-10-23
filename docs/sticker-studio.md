@@ -406,6 +406,10 @@ get the shared dark chip mark appended by `withStickerMark`.
 | `milestone.badge.sticker` | milestone | badge | sticker 1080x980 | transparent | milestone.kind |
 | `milestone.poster.story` | milestone | poster | story 1080x1920 | color | milestone.kind |
 | `milestone.bold.square` | milestone | bold | square 1080x1080 | gradient | milestone.kind |
+| `dayfood.full.story` | dayfood | day | story 1080x1920 | gradient | dayfood.kcal |
+| `dayfood.cover.carousel` | dayfood | carousel | portrait 1080x1350 | gradient | dayfood.kcal |
+| `dayfood.meal.carousel` | dayfood | carousel | portrait 1080x1350 | gradient | slide page (tag `slide`) |
+| `dayfood.total.carousel` | dayfood | carousel | portrait 1080x1350 | gradient | slide page (tag `slide`) |
 
 Data builders (`rogo/data.ts`, `buildStickerData(spec, prefs)`):
 
@@ -424,6 +428,15 @@ Data builders (`rogo/data.ts`, `buildStickerData(spec, prefs)`):
   upcoming or alone), `participants`, `upcoming`.
 - `workout.*`: `name`, `durationMin`, `volumeKg`, `sets`, `prCount`, `pr0..pr2` (`exercise`, `label`, `value`).
 - `milestone.*`: `kind` (`streak|pr|week|podium`), `value`, `detail`.
+- `dayfood.*` (`rogo/dayfood.ts`, `DayFoodStory`): `kcal`, `target`, `ratio`, `onTarget`, `protein|carbs|fat|fiber` with
+  `<macro>Target`, `<macro>Ratio` (absent when the macro or its target is unknown), `proteinHit`, `fiberHit`, `anyHit` (only
+  protein and fibre can be "reached"), `mealCount`, `moreMeals` (meals past the 4 the story draws), `foodCount`, `collage`
+  (cutout count of the cover), `meals.N` (`label`, `kcal`, `share`, `protein|carbs|fat`, `names`, `itemCount`, `stickers`);
+  assets `m<N>s<k>` (story card N, cutout k), `c<k>` (cover collage), `p<k>` (a meal page). `slide.*` (only when
+  `DayFoodStory.slide` is set): `label`, `kcal`, `protein|carbs|fat`, `position`, `of`, `stickers`, `items.N`
+  (`name`, `grams`, `kcal`, `protein|carbs|fat`, or `more` + the rest's sums on the last row of a long meal).
+  A carousel template (tag `carousel`, canvas kind `carousel`) is rendered with `renderSlides`, which draws one scene per
+  `dayFoodSlides(spec)` page with the page's own `slide` template; every other template yields one scene.
 
 ### Inventory: what the engine replaced
 

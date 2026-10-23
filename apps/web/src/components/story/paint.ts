@@ -37,10 +37,11 @@ export async function loadBitmap(src: string): Promise<ImageBitmap> {
 
 export type SceneImages = Map<string, ImageBitmap>;
 
-/** Loads every image the scene draws; one failing image rejects (the sheet shows a retry). */
-export async function loadSceneImages(scene: Scene, cache: SceneImages): Promise<SceneImages> {
+/** Loads every image any of the scenes draws, each URL once (a carousel's slides share their cutouts). */
+export async function loadScenesImages(scenes: readonly Scene[], cache: SceneImages): Promise<SceneImages> {
+  const uris = new Set(scenes.flatMap((scene) => scene.needsImages));
   await Promise.all(
-    scene.needsImages.map(async (uri) => {
+    [...uris].map(async (uri) => {
       if (!cache.has(uri)) cache.set(uri, await loadBitmap(uri));
     }),
   );

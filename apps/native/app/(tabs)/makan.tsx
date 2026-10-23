@@ -67,6 +67,7 @@ import { proteinPerKg } from "@joyorogo/api/lib/safety";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
 import type { MakanView } from "@joyorogo/api/lib/diary-view";
 import { DaySummary } from "@/components/makan/day-summary";
+import { DayShareButton } from "@/components/makan/day-share";
 import { FastLossNote } from "@/components/makan/fast-loss-note";
 import { KalenderView } from "@/components/makan/kalender-view";
 import { KindFilter } from "@/components/makan/kind-filter";
@@ -784,6 +785,26 @@ export default function Makan() {
               fiberG: macroBudgets?.fiberG ?? null,
             }}
           />
+
+          {/* Placeholder data is the previous day's rows while the new day loads: share only a settled day. */}
+          {items.length > 0 && !listQuery.isPlaceholderData && !summaryQuery.isPlaceholderData ? (
+            <DayShareButton
+              date={date}
+              rows={items}
+              plateNames={Object.fromEntries((plateDayQuery.data ?? []).map((row) => [row.id, row.name]))}
+              slots={MEAL_KEYS}
+              eatenKcal={eatenKcal}
+              targets={{
+                kcal: targets?.eatKcal ?? null,
+                proteinG: summaryQuery.data?.protein?.targetG ?? null,
+                carbsG: macroBudgets?.carbsG ?? null,
+                fatG: macroBudgets?.fatG ?? null,
+                fiberG: macroBudgets?.fiberG ?? null,
+              }}
+              maternal={maternal}
+              gain={gainPlan}
+            />
+          ) : null}
 
           {isToday && summaryQuery.data ? (
             <FastLossNote note={summaryQuery.data.fastLoss} today={summaryQuery.data.date} />

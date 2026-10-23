@@ -101,3 +101,41 @@ has, so the summary, the chart and the card never disagree.
   target (axis 0 to the top value, per week beyond 45 days, unlogged days as short bars).
 
 Contact sheet and goldens: `bun run stickers:goldens` in `packages/sticker`; fixtures `period-*` in `rogo/fixtures.ts`.
+
+## Makan sehari (a whole day of food: story and carousel)
+
+"Bagikan makanku sehari" sits under the day summary on Makan (Daftar, today or any past day with at least one food). It opens
+this sheet on the `dayfood` kind with two formats: **Story** 9:16 (`dayfood.full.story`: date, kcal against the target as
+"1.760 / 1.850 kkal", protein/karbo/lemak/serat against their targets, and a card per meal with its cutouts, kcal, macros
+and what was eaten) and **Carousel** 4:5, 1080x1350 per image (`dayfood.cover.carousel` is the one entry in the style row;
+its pages are `dayfood.meal.carousel` per meal and `dayfood.total.carousel`, tagged `slide`, never offered on their own).
+A carousel is a cover, one page per meal in diary order (cutouts, then a table: food, grams, kcal, P, K, L; a meal of more
+than 8 foods ends with one "+N lainnya" row that carries the rest's sums) and the closing totals.
+
+Data: `buildDayShare` (`packages/api/src/lib/day-share.ts`, pure, tested) turns what Makan already loaded (`food.listByDate`
+rows, `plate.byDate` names, `day.summary` targets, the diary's kcal) into the engine's `DayFoodStory`
+(`packages/sticker/src/rogo/dayfood.ts`); there is no server call and no new route. Targets: kcal and protein from the plan
+(`summary.targets.eatKcal`, `summary.protein.targetG`), carbs/fat/fibre from `macroTargets(eatKcal, 70)` exactly as the
+Makan summary bars. Pregnancy plans draw no kcal target.
+
+- **Cutouts**: per meal, the whole-plate cutout of each scan when it has one (the scan's component cutouts are then not
+  drawn, [plate-sticker.md](plate-sticker.md)), else that scan's component cutouts by kcal, biggest first; two per story
+  card, up to four on a carousel page and on the cover collage (one per meal). Before the sheet opens the screen checks
+  that each cutout loads (native `Image.prefetch`, web an image probe, 8 s); one that does not (a plate cutout still being
+  cut) is left out and the meal falls back to the next best, or to text. A meal with no cutout at all (typed in, a barcode
+  without a photo) shows text only; on a carousel page its macros are drawn large where the picture would be.
+- **Pride, no shaming**: only reached targets are called out (a check and a chip for protein, fibre and "pas di target";
+  protein and fibre are the two targets that are things to reach, carbs and fat are budgets and never get a check). A day
+  past the target draws a full bar in the normal colour and no wording about it; there is no warning colour anywhere on
+  these cards. "On target" means within 90% to 105% of the kcal target (Naikin BB: 90% and above).
+- **Honest numbers**: a macro nobody logged is a dash (never 0); a day with no macro at all hides the macro block; grams only
+  when the row has them; a meal's macro sums count the foods that have them.
+- **Privacy**: no body weight anywhere and no weight option for this kind. The first name shows only with "Tampilkan namaku".
+- **Targets of the sheet**: the story behaves like every other story. A carousel is several images, so Instagram's Story
+  composer (one image) and Copy are hidden: **Bagikan/Lainnya** hands all images to the system share sheet in one call
+  (native `Share.open({ urls })`, web `navigator.share({ files })`; this is where Instagram feed, Threads and WhatsApp
+  appear), **Simpan** saves every image (gallery on native, one download per image on web).
+
+Catalog and bindings: [sticker-studio.md](sticker-studio.md). Contact sheet and goldens: fixtures `dayfood-*` in
+`rogo/fixtures.ts`. A real day can be rendered with `bun scripts/render-day-share.ts` in `packages/sticker` (rows from
+`wrangler d1 execute --json`, cutouts downloaded from `/sticker/<id>`; see the header of the script).

@@ -56,6 +56,9 @@ Engine: `MealStory.cutoutUri` (`packages/sticker/src/rogo/data.ts`) fills the `c
 
 The Foto grid opens a row's own cutout when a kind filter is on (the plate's total would include rows the filter hides).
 
+The whole-day share ("Makan sehari", [story-sharing.md](story-sharing.md)) uses the same rule per meal: a scan's plate cutout
+stands alone, its component cutouts only when it has none or the plate cutout fails a load check before the sheet opens.
+
 ## Barcode meals show the product
 
 A meal logged by barcode (`food.add`, `source: "barcode"`) gets the product's front photo as its sticker, so the diary row, the

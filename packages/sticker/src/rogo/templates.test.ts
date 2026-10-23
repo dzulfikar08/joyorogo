@@ -7,6 +7,7 @@ import {
   buildStickerData,
   canvasOf,
   rogoTemplates,
+  renderSlides,
   renderSticker,
   rogoWebFonts,
   selectTemplates,
@@ -15,6 +16,7 @@ import {
   type StorySpec,
 } from "./index";
 import { FIXTURES, fixtureFor, type FixtureId } from "./fixtures";
+import { ROGO_DARK } from "./kit";
 import { ROGO_TEMPLATE_SOURCES } from "./templates";
 
 const { templates, issues } = rogoTemplates();
@@ -480,6 +482,140 @@ describe("period progress (Progres)", () => {
     expect(text).toContain("2,500");
     expect(text).toMatch(/\| 0 \|/);
     expect(text).toContain("Dashed line: target 1,900 kcal");
+  });
+});
+
+describe("a whole day of food (Makan sehari)", () => {
+  const day = (fid: FixtureId) => (FIXTURES[fid] as { spec: Extract<StorySpec, { kind: "dayfood" }> }).spec;
+  const story = templates.find((t) => t.id === "dayfood.full.story")!;
+  const cover = templates.find((t) => t.id === "dayfood.cover.carousel")!;
+  const pages = (fid: FixtureId, locale: "id" | "en" = "id", mode: "dark" | "light" = "dark", template: Template = cover) =>
+    renderSlides({ template, spec: day(fid), prefs: {}, locale, mode, fonts: rogoWebFonts });
+  const storyText = (fid: FixtureId, locale: "id" | "en" = "id") => textsOf(render(story, fid, {}, "dark", locale)).join(" | ");
+
+  test("is offered as one story and one carousel entry; the carousel's own pages are never styles", () => {
+    const offered = availableTemplates(day("dayfood-full"), {});
+    expect(offered.map((t) => t.id)).toEqual(["dayfood.full.story", "dayfood.cover.carousel"]);
+    const sel = selectTemplates(offered, { kind: "dayfood" });
+    expect(sel.kinds).toEqual(["dayfood"]);
+    expect(sel.canvases).toEqual(["story", "carousel"]);
+    expect(canvasOf(cover)).toBe("carousel");
+    expect(canvasOf(story)).toBe("story");
+    for (const fid of ["progress-full", "meal-photo", "recap"] as const) {
+      expect(availableTemplates((FIXTURES[fid] as { spec: StorySpec }).spec, {}).some((t) => t.kind === "dayfood")).toBe(false);
+    }
+  });
+
+  test("the story reads kcal against the target, the four macros against theirs, and every meal with its numbers", () => {
+    const text = storyText("dayfood-full");
+    expect(text).toContain("1.760");
+    expect(text).toContain("/ 1.850 kkal");
+    expect(text).toContain("Kamis, 22 Okt 2026");
+    for (const part of ["122 / 110 g", "164 / 242 g", "72 / 51 g", "27 / 26 g"]) expect(text).toContain(part);
+    for (const meal of ["Sarapan", "217 kkal", "Makan siang", "690 kkal", "Makan malam", "681 kkal", "Snack", "172 kkal"]) expect(text).toContain(meal);
+    expect(text).toContain("Pepaya, Putih telur, Americano ice");
+    expect(storyText("dayfood-full", "en")).toContain("/ 1,850 kcal");
+  });
+
+  test("reached targets are called out and nothing else is", () => {
+    const text = storyText("dayfood-full");
+    expect(text).toContain("Pas di target");
+    expect(text).toContain("Protein tercapai");
+    expect(text).toContain("Serat tercapai");
+    const over = storyText("dayfood-over");
+    expect(over).toContain("2.320");
+    expect(over).not.toMatch(/tercapai|Pas di target/);
+  });
+
+  test("past the target is never shamed: no over wording, no warning colour, a full bar is just full", () => {
+    for (const fid of ["dayfood-over", "dayfood-full"] as const) {
+      for (const locale of ["id", "en"] as const) {
+        const scenes = [render(story, fid, {}, "dark", locale), ...pages(fid, locale)];
+        for (const scene of scenes) {
+          expect(textsOf(scene).join(" ")).not.toMatch(/lewat|lebih|kelebihan|over|exceed|too much|kurang/i);
+          const fills = JSON.stringify(scene.nodes);
+          for (const warn of [ROGO_DARK.warn!, ROGO_DARK.bad!]) expect(fills).not.toContain(warn);
+        }
+      }
+    }
+  });
+
+  test("a macro nobody logged shows as a dash, never as 0, and a day with none hides the macro block", () => {
+    const text = storyText("dayfood-over");
+    expect(text).toContain("71 / 110 g");
+    expect(text).toMatch(/Lemak \| - \| Serat \| -|Lemak.*\| - \|/);
+    const bare = storyText("dayfood-bare");
+    expect(bare).toContain("480");
+    expect(bare).not.toMatch(/Protein|Karbo|Lemak|Serat|\//);
+  });
+
+  test("without a kcal target the figure stands alone: no 'of', no bar", () => {
+    const scene = render(story, "dayfood-bare");
+    expect(textsOf(scene).join(" ")).not.toContain("/ ");
+    const withTarget = render(story, "dayfood-full");
+    expect(flat(withTarget.nodes).filter((n) => n.k === "rect").length).toBeGreaterThan(flat(scene.nodes).filter((n) => n.k === "rect").length);
+  });
+
+  test("weight never appears on any page", () => {
+    for (const fid of ["dayfood-full", "dayfood-over", "dayfood-bare"] as const) {
+      const text = [storyText(fid), ...pages(fid).flatMap(textsOf)].join(" ");
+      expect(text).not.toMatch(/\bkg\b|berat/i);
+    }
+  });
+
+  test("the carousel is a cover, one page per meal in order, and the closing totals, all 4:5", () => {
+    const scenes = pages("dayfood-full");
+    expect(scenes).toHaveLength(6);
+    for (const scene of scenes) {
+      expect(scene.width).toBe(1080);
+      expect(scene.height).toBe(1350);
+      expect(scene.issues).toEqual([]);
+    }
+    expect(textsOf(scenes[0]!).join(" | ")).toContain("Makanku sehari");
+    expect(textsOf(scenes[1]!)).toContain("Sarapan");
+    expect(textsOf(scenes[2]!)).toContain("Makan siang");
+    expect(textsOf(scenes[3]!)).toContain("Makan malam");
+    expect(textsOf(scenes[4]!)).toContain("Snack");
+    expect(textsOf(scenes[5]!).join(" | ")).toContain("Total hari ini");
+    expect(textsOf(scenes[1]!)).toContain("2 / 6");
+    expect(textsOf(scenes[5]!)).toContain("6 / 6");
+    expect(pages("dayfood-full", "en").flatMap(textsOf).join(" | ")).toContain("What I eat in a day");
+  });
+
+  test("a meal page lists every food with grams, kcal and P/K/L", () => {
+    const lunch = textsOf(pages("dayfood-full")[2]!);
+    for (const part of ["nasi liwet", "ayam bakar", "sambal", "sayur urap", "Putih Telur", "200", "300", "168", "690"]) expect(lunch).toContain(part);
+    const snack = textsOf(pages("dayfood-full")[4]!);
+    expect(snack.filter((s) => s === "Fibe mini")).toHaveLength(2);
+  });
+
+  test("a meal of more than 8 foods ends with one row that carries the rest", () => {
+    const [, meal] = pages("dayfood-long");
+    const texts = textsOf(meal!);
+    expect(texts).toContain("Lauk 7");
+    expect(texts).not.toContain("Lauk 8");
+    expect(texts).toContain("+3 lainnya");
+  });
+
+  test("cutouts: the layout adapts to how many a meal has, and a meal without any still reads", () => {
+    const full = render(story, "dayfood-full");
+    expect(full.needsImages).toEqual(["fixture:cutout.png"]);
+    const none = render(story, "dayfood-bare");
+    expect(none.needsImages).toEqual([]);
+    const text = textsOf(none).join(" | ");
+    expect(text).toContain("Makan siang");
+    expect(text).toContain("Soto ayam");
+    const noStickerPage = pages("dayfood-full")[4]!;
+    expect(noStickerPage.needsImages).toEqual([]);
+    expect(textsOf(noStickerPage).join(" ")).toContain("Protein");
+  });
+
+  test("extra meals past the fourth are counted, not drawn", () => {
+    const spec = { ...day("dayfood-full"), meals: [...day("dayfood-full").meals, { ...day("dayfood-full").meals[3]!, label: "Sahur" }] };
+    const text = textsOf(renderSticker({ template: story, spec, prefs: {}, locale: "id", mode: "dark", fonts: rogoWebFonts })).join(" | ");
+    expect(text).toContain("+1 waktu makan lainnya");
+    expect(text).not.toContain("Sahur");
+    expect(renderSlides({ template: cover, spec, prefs: {}, locale: "id", mode: "dark", fonts: rogoWebFonts })).toHaveLength(7);
   });
 });
 

@@ -42,6 +42,7 @@ import {
   instagramInstalled,
   isShareCancel,
   requestPhotoAccess,
+  shareImagesSystem,
   shareImageSystem,
   shareToInstagram,
   type PhotoAccessLevel,
@@ -50,11 +51,12 @@ import { authClient } from "@/lib/auth-client";
 import { orpc } from "@/utils/orpc";
 import {
   availableTemplates,
-  renderSticker,
+  renderSlides,
   rogoNativeFonts,
   selectTemplates,
   templateShowsName,
   type CanvasKind,
+  type Scene,
   type StickerPrefs,
 } from "@joyorogo/sticker";
 
@@ -158,6 +160,101 @@ function TargetTile({
   );
 }
 
+/**
+ * The carousel preview: every slide as its own scaled 1080x1350 frame in a swipeable row that snaps
+ * page by page, with a live "2 / 6" count. The frames are the real mounted scenes, so view-shot captures
+ * each one through `slideRefs`; they are never unmounted while the pager is open (and the scroll view
+ * keeps offscreen children, `removeClippedSubviews` off) so every slide stays capturable.
+ */
+function CarouselPager({
+  scenes,
+  sceneW,
+  sceneH,
+  scale,
+  frameW,
+  frameH,
+  stageH,
+  slideRefs,
+  onImages,
+  loading,
+  hint,
+}: {
+  scenes: Scene[];
+  sceneW: number;
+  sceneH: number;
+  scale: number;
+  frameW: number;
+  frameH: number;
+  stageH: number;
+  slideRefs: { current: Array<View | null> };
+  onImages: Array<(uri: string, status: ImageStatus) => void>;
+  /** One entry per slide: the spinner shows over a slide whose fonts or images are still loading. */
+  loading: boolean[];
+  hint: string;
+}) {
+  const { theme } = useUnistyles();
+  const screen = useWindowDimensions();
+  const [stageW, setStageW] = useState(screen.width - theme.spacing.lg * 2);
+  const [page, setPage] = useState(0);
+  const gap = theme.spacing.md;
+  const step = frameW + gap;
+  // Side padding that centres the current frame; the neighbours peek in to show there is more to swipe.
+  const inset = Math.max((stageW - frameW) / 2, gap);
+  return (
+    <View style={styles.pager}>
+      <View
+        style={[styles.pagerStage, { height: stageH }]}
+        onLayout={(event) => setStageW(event.nativeEvent.layout.width)}
+      >
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          removeClippedSubviews={false}
+          snapToInterval={step}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          disableIntervalMomentum
+          scrollEventThrottle={16}
+          onScroll={(event) =>
+            setPage(Math.min(Math.max(Math.round(event.nativeEvent.contentOffset.x / step), 0), scenes.length - 1))
+          }
+          style={styles.pagerScroll}
+          contentContainerStyle={[styles.pagerContent, { paddingHorizontal: inset, gap }]}
+        >
+          {scenes.map((slide, index) => (
+            // The pager remounts (keyed by the scene key) whenever the slides change, so the index is a stable key.
+            <View key={`slide-${index}`} style={[styles.frame, { width: frameW, height: frameH }]}>
+              <View
+                pointerEvents="none"
+                style={[styles.scaler, { width: sceneW, height: sceneH, transform: [{ scale }] }]}
+              >
+                <View
+                  ref={(node) => {
+                    slideRefs.current[index] = node;
+                  }}
+                  collapsable={false}
+                  style={{ width: sceneW, height: sceneH }}
+                >
+                  <SceneView scene={slide} onImage={onImages[index]} />
+                </View>
+              </View>
+              {loading[index] ? (
+                <View style={styles.frameOverlay}>
+                  <ActivityIndicator size="large" color="#ffffff" />
+                </View>
+              ) : null}
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+      <View style={styles.pagerMeta}>
+        <Text style={styles.pagerCount}>{`${page + 1} / ${scenes.length}`}</Text>
+        <Text style={styles.pagerHint}>{hint}</Text>
+      </View>
+    </View>
+  );
+}
+
 function OptionRow({
   label,
   hint,
@@ -205,6 +302,8 @@ function OptionRow({
  *   background when a Facebook App ID is configured; otherwise the PNG goes to
  *   Instagram's own target (see share.ts). Hidden when Instagram is not installed.
  * - Copy, Save (behind the styled "Lanjut" pre-prompt) and More (system share sheet).
+ * - A carousel template (the day of food) renders several scenes: the preview is a swipeable pager, Save
+ *   and More send every slide in order, and Instagram and Copy (one image only) are hidden.
  *
  * The sheet is a Modal, which covers the toast layer: successful copy/save close it
  * first and then toast, failures stay inline in the sheet.
@@ -226,6 +325,8 @@ export function StoryShareSheet({
 }) {
   const { t, i18n } = useTranslation(["makan", "common", "sticker"]);
   const cardRef = useRef<View>(null);
+  // The carousel's own slide views, by slide index (cardRef serves the one-scene stage).
+  const slideRefs = useRef<Array<View | null>>([]);
   const promptDecision = useRef<PromiseWithResolvers<boolean> | null>(null);
   const [pickedPhoto, setPickedPhoto] = useState<string | null>(null);
   const [kind, setKind] = useState<string | null>(initialKind ?? null);
@@ -292,10 +393,10 @@ export function StoryShareSheet({
   const { kinds, activeKind, canvases, activeCanvas, styles: inCanvas } = selection;
   const activeTemplate = selection.active;
 
-  const scene = useMemo(
+  const scenes = useMemo(
     () =>
       activeTemplate
-        ? renderSticker({
+        ? renderSlides({
             template: activeTemplate,
             spec: card,
             prefs: stickerPrefs,
@@ -303,39 +404,52 @@ export function StoryShareSheet({
             mode,
             fonts: rogoNativeFonts,
           })
-        : null,
+        : [],
     [activeTemplate, card, stickerPrefs, locale, mode],
   );
+  const scene = scenes[0] ?? null;
+  // A carousel exports one image per slide; every other template exports exactly one.
+  const multi = scenes.length > 1;
 
-  const sceneKey = scene && activeTemplate ? `${activeTemplate.id}|${attempt}|${mode}|${scene.needsImages.join(",")}` : "";
-  const imageState = (uri: string): ImageStatus | "loading" => imageStatus[`${sceneKey}|${uri}`] ?? "loading";
-  const imagesLoading = scene?.needsImages.some((uri) => imageState(uri) === "loading") ?? false;
-  const imagesFailed = scene?.needsImages.some((uri) => imageState(uri) === "error") ?? false;
+  const sceneKey =
+    activeTemplate && scene
+      ? `${activeTemplate.id}|${attempt}|${mode}|${scenes.map((s) => s.needsImages.join(",")).join(";")}`
+      : "";
+  const imageKey = (index: number, uri: string) => `${sceneKey}|${index}|${uri}`;
+  const imageState = (index: number, uri: string): ImageStatus | "loading" =>
+    imageStatus[imageKey(index, uri)] ?? "loading";
+  const slideLoading = (index: number) =>
+    scenes[index]?.needsImages.some((uri) => imageState(index, uri) === "loading") ?? false;
+  const imagesLoading = scenes.some((_, index) => slideLoading(index));
+  const imagesFailed = scenes.some((s, index) => s.needsImages.some((uri) => imageState(index, uri) === "error"));
   const ready = scene !== null && fontsReady && !imagesLoading && !imagesFailed && !shrinking;
   const targetsDisabled = !ready || busyTarget != null;
 
-  const onImage = useCallback(
-    (uri: string, status: ImageStatus) =>
-      setImageStatus((prev) => {
-        const key = `${sceneKey}|${uri}`;
-        return prev[key] === "error" ? prev : { ...prev, [key]: status };
-      }),
-    [sceneKey],
+  const slideCount = scenes.length;
+  const onImages = useMemo(
+    () =>
+      Array.from({ length: slideCount }, (_, index) => (uri: string, status: ImageStatus) =>
+        setImageStatus((prev) => {
+          const key = `${sceneKey}|${index}|${uri}`;
+          return prev[key] === "error" ? prev : { ...prev, [key]: status };
+        }),
+      ),
+    [slideCount, sceneKey],
   );
 
   // A load that never reports (a hung connection) must not leave the sheet spinning forever.
-  const needsImages = scene?.needsImages.join("\n") ?? "";
+  const imageKeys = scenes.flatMap((s, index) => s.needsImages.map((uri) => imageKey(index, uri))).join("\n");
   useEffect(() => {
-    if (!open || !needsImages) return;
+    if (!open || !imageKeys) return;
     const timer = setTimeout(() => {
       setImageStatus((prev) => {
         const next = { ...prev };
-        for (const uri of needsImages.split("\n")) next[`${sceneKey}|${uri}`] ??= "error";
+        for (const key of imageKeys.split("\n")) next[key] ??= "error";
         return next;
       });
     }, 20_000);
     return () => clearTimeout(timer);
-  }, [open, needsImages, sceneKey]);
+  }, [open, imageKeys]);
 
   // The meal's private original photo: fetched with the session, then handed to the renderer as a file.
   const photoId = story.kind === "meal" ? (story.photoId ?? null) : null;
@@ -411,24 +525,32 @@ export function StoryShareSheet({
   };
 
   /**
-   * Captures the mounted scene at a fixed 1080 px width: a PNG file URI, or raw base64
-   * for the clipboard. Throws CaptureError when the view is gone or view-shot fails.
+   * Captures every mounted slide (one for a card) at a fixed 1080 px width, one after the other:
+   * PNG file URIs, or raw base64 for the clipboard (a single card only). Throws CaptureError when a
+   * view is gone or view-shot fails on any slide.
    */
-  const captureCard = async (result: "tmpfile" | "base64"): Promise<string> => {
+  const captureCards = async (result: "tmpfile" | "base64"): Promise<string[]> => {
     try {
       // Targets are gated on fonts and image loads; two more frames let Android draw the
       // decoded bitmaps before view.draw().
       await nextFrame();
       await nextFrame();
-      const view = cardRef.current;
-      if (!view || !scene) throw new Error("sticker is not mounted");
-      return await captureRef(view, {
-        format: "png",
-        result,
-        quality: 1,
-        width: EXPORT_WIDTH,
-        height: scene.height,
-      });
+      const captured: string[] = [];
+      for (const [index, slide] of scenes.entries()) {
+        const view = multi ? slideRefs.current[index] : cardRef.current;
+        if (!view) throw new Error("sticker is not mounted");
+        captured.push(
+          await captureRef(view, {
+            format: "png",
+            result,
+            quality: 1,
+            width: EXPORT_WIDTH,
+            height: slide.height,
+          }),
+        );
+      }
+      if (captured.length === 0) throw new Error("sticker is not mounted");
+      return captured;
     } catch (error) {
       console.warn("sticker capture failed", error);
       throw new CaptureError("capture failed", { cause: error });
@@ -478,19 +600,24 @@ export function StoryShareSheet({
 
   const runTarget = async (target: Target) => {
     if (!scene || busyTarget) return;
+    // Instagram's composer and the clipboard take one image; a carousel offers neither.
+    if (multi && (target === "copy" || target === "instagram")) return;
     const transparent = scene.transparent;
     setBusyTarget(target);
     setActionFailure(null);
     try {
       if (target === "copy") {
-        await Clipboard.setImageAsync(await captureCard("base64"));
+        const [base64] = await captureCards("base64");
+        await Clipboard.setImageAsync(base64 ?? "");
         onClose();
         toast.success(t("story.share.copied"));
         return;
       }
-      const fileUri = await captureCard("tmpfile");
+      const fileUris = await captureCards("tmpfile");
+      const fileUri = fileUris[0] ?? "";
       if (target === "more") {
-        await shareImageSystem(fileUri, story);
+        if (multi) await shareImagesSystem(fileUris, story);
+        else await shareImageSystem(fileUri, story);
         onClose();
       } else if (target === "instagram") {
         const appId = instagramFbAppId();
@@ -505,10 +632,14 @@ export function StoryShareSheet({
         else await shareToInstagram(fileUri, transparent, appId, story);
         onClose();
       } else {
+        // One pre-prompt for the whole batch.
         if ((await ensurePhotoAccess("add", "save")) !== "granted") return;
-        await Asset.create(fileUri);
+        for (const savedUri of fileUris) await Asset.create(savedUri);
         onClose();
-        toast.success(t("story.share.saved"), t("story.share.savedNativeBody"));
+        toast.success(
+          multi ? t("story.share.savedMany", { count: fileUris.length }) : t("story.share.saved"),
+          t("story.share.savedNativeBody"),
+        );
       }
     } catch (error) {
       if (isShareCancel(error)) return;
@@ -665,34 +796,51 @@ export function StoryShareSheet({
             />
           ) : null}
 
-          <View style={[styles.stage, { height: maxFrameH + stagePad * 2 }]}>
-            <View style={[styles.frame, { width: frameW, height: frameH }]}>
-              {scene?.transparent ? (
-                <StickerBackdrop key={`${frameW}x${frameH}`} light={mode === "light"} width={frameW} height={frameH} />
-              ) : null}
-              {scene ? (
-                <View pointerEvents="none" style={[styles.scaler, { width: sceneW, height: sceneH, transform: [{ scale: frameScale }] }]}>
-                  <View
-                    key={sceneKey}
-                    ref={cardRef}
-                    collapsable={false}
-                    style={{ width: sceneW, height: sceneH }}
-                  >
-                    <SceneView scene={scene} onImage={onImage} />
+          {multi ? (
+            <CarouselPager
+              key={sceneKey}
+              scenes={scenes}
+              sceneW={sceneW}
+              sceneH={sceneH}
+              scale={frameScale}
+              frameW={frameW}
+              frameH={frameH}
+              stageH={maxFrameH + stagePad * 2}
+              slideRefs={slideRefs}
+              onImages={onImages}
+              loading={scenes.map((_, index) => !fontsReady || slideLoading(index) || shrinking)}
+              hint={t("sticker:sheet.carouselHint", { count: scenes.length })}
+            />
+          ) : (
+            <View style={[styles.stage, { height: maxFrameH + stagePad * 2 }]}>
+              <View style={[styles.frame, { width: frameW, height: frameH }]}>
+                {scene?.transparent ? (
+                  <StickerBackdrop key={`${frameW}x${frameH}`} light={mode === "light"} width={frameW} height={frameH} />
+                ) : null}
+                {scene ? (
+                  <View pointerEvents="none" style={[styles.scaler, { width: sceneW, height: sceneH, transform: [{ scale: frameScale }] }]}>
+                    <View
+                      key={sceneKey}
+                      ref={cardRef}
+                      collapsable={false}
+                      style={{ width: sceneW, height: sceneH }}
+                    >
+                      <SceneView scene={scene} onImage={onImages[0]} />
+                    </View>
                   </View>
-                </View>
-              ) : (
-                <View style={styles.frameOverlay}>
-                  <Text style={styles.hint}>{t("sticker:sheet.empty")}</Text>
-                </View>
-              )}
-              {scene && (!fontsReady || imagesLoading || shrinking) ? (
-                <View style={styles.frameOverlay}>
-                  <ActivityIndicator size="large" color="#ffffff" />
-                </View>
-              ) : null}
+                ) : (
+                  <View style={styles.frameOverlay}>
+                    <Text style={styles.hint}>{t("sticker:sheet.empty")}</Text>
+                  </View>
+                )}
+                {scene && (!fontsReady || imagesLoading || shrinking) ? (
+                  <View style={styles.frameOverlay}>
+                    <ActivityIndicator size="large" color="#ffffff" />
+                  </View>
+                ) : null}
+              </View>
             </View>
-          </View>
+          )}
 
           {inCanvas.length > 0 ? (
             <ScrollView
@@ -785,19 +933,21 @@ export function StoryShareSheet({
             />
           </View>
 
-          <View style={styles.photoRow}>
-            <Button
-              variant="ghost"
-              size="sm"
-              label={pickedPhoto ? t("story.share.changePhoto") : t("story.share.usePhoto")}
-              icon="images-outline"
-              onPress={() => void pickPhoto()}
-            />
-          </View>
+          {story.kind === "dayfood" ? null : (
+            <View style={styles.photoRow}>
+              <Button
+                variant="ghost"
+                size="sm"
+                label={pickedPhoto ? t("story.share.changePhoto") : t("story.share.usePhoto")}
+                icon="images-outline"
+                onPress={() => void pickPhoto()}
+              />
+            </View>
+          )}
 
           <Text style={styles.targetsLabel}>{t("story.share.targets")}</Text>
           <View style={styles.targets}>
-            {igInstalled ? (
+            {igInstalled && !multi ? (
               <TargetTile
                 label={t("story.share.instagram")}
                 busy={busyTarget === "instagram"}
@@ -807,14 +957,16 @@ export function StoryShareSheet({
                 <InstagramGlyph size={26} color={theme.colors.foreground} />
               </TargetTile>
             ) : null}
-            <TargetTile
-              label={t("story.share.copy")}
-              busy={busyTarget === "copy"}
-              disabled={targetsDisabled}
-              onPress={() => void runTarget("copy")}
-            >
-              <Ionicons name="copy-outline" size={26} color={theme.colors.foreground} />
-            </TargetTile>
+            {multi ? null : (
+              <TargetTile
+                label={t("story.share.copy")}
+                busy={busyTarget === "copy"}
+                disabled={targetsDisabled}
+                onPress={() => void runTarget("copy")}
+              >
+                <Ionicons name="copy-outline" size={26} color={theme.colors.foreground} />
+              </TargetTile>
+            )}
             <TargetTile
               label={t("story.share.save")}
               busy={busyTarget === "save"}
@@ -940,6 +1092,26 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.mutedForeground,
   },
   targets: { flexDirection: "row", gap: theme.spacing.sm },
+  pager: { gap: theme.spacing.sm },
+  pagerStage: {
+    borderRadius: theme.radius.tile,
+    overflow: "hidden",
+    backgroundColor: theme.colors.muted,
+  },
+  pagerScroll: { flex: 1 },
+  pagerContent: { alignItems: "center" },
+  pagerMeta: { alignItems: "center", gap: 2 },
+  pagerCount: {
+    fontFamily: theme.fonts.bold,
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.foreground,
+  },
+  pagerHint: {
+    textAlign: "center",
+    fontFamily: theme.fonts.regular,
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+  },
   tile: {
     flex: 1,
     alignItems: "center",

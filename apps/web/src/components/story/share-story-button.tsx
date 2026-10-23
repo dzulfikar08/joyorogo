@@ -9,13 +9,15 @@ import { DEFAULT_LOCALE, matchLocale } from "@joyorogo/i18n";
 
 import { notePrefChanged } from "@joyorogo/api/lib/rogo-prefs-sync";
 import { Button } from "@joyorogo/ui/components/button";
+import { cn } from "@joyorogo/ui/lib/utils";
 import {
   availableTemplates,
-  renderSticker,
+  renderSlides,
   rogoWebFonts,
   selectTemplates,
   templateShowsName,
   type CanvasKind,
+  type Scene,
   type StickerPrefs,
 } from "@joyorogo/sticker";
 
@@ -26,7 +28,7 @@ import {
   drawScene,
   ensureStickerFonts,
   loadBitmap,
-  loadSceneImages,
+  loadScenesImages,
   type SceneImages,
 } from "@/components/story/paint";
 import { defaultShareText, toRogoSpec, type StorySpec } from "@/components/story/story-spec";
@@ -83,13 +85,15 @@ const STICKER_STAGE_DARK =
 const STICKER_STAGE_LIGHT =
   "bg-[conic-gradient(#d9d6cf_25%,#eceae4_0_50%,#d9d6cf_0_75%,#eceae4_0)] bg-[length:20px_20px]";
 
-/** Whether this browser can hand a PNG to the OS share sheet (Web Share API level 2). */
-function canShareImageFile(): boolean {
+/** Whether this browser can hand `count` PNGs to the OS share sheet (Web Share API level 2). */
+function canShareImageFile(count = 1): boolean {
   try {
     return (
       typeof navigator.share === "function" &&
       typeof navigator.canShare === "function" &&
-      navigator.canShare({ files: [new File([""], "story.png", { type: "image/png" })] })
+      navigator.canShare({
+        files: Array.from({ length: count }, (_, i) => new File([""], `story-${i + 1}.png`, { type: "image/png" })),
+      })
     );
   } catch {
     return false;
@@ -142,11 +146,13 @@ function TargetTile({
  *   the caption out; it is hidden on desktop, and both hide where the browser cannot
  *   share files.
  * - Copy writes the PNG to the clipboard (a fallback message where the browser cannot),
- *   Save downloads it. Both are always shown.
+ *   Save downloads it. Both are always shown, except that a carousel (several images, one
+ *   per slide) has no Copy: the clipboard takes one image. Its Save downloads every slide
+ *   as <name>-<n>.png, and Instagram / More hand all slides to one share call.
  *
- * Renders are cached per template, photo and options, and the active one is prepared
- * while the sheet is open, so a tap reaches navigator.share / clipboard.write while the
- * user gesture is still alive (Safari is strict about that).
+ * Renders are cached per slide, template, photo and options, and the active ones are
+ * prepared while the sheet is open, so a tap reaches navigator.share / clipboard.write
+ * while the user gesture is still alive (Safari is strict about that).
  */
 export function ShareStoryButton({
   story,
@@ -177,6 +183,7 @@ export function ShareStoryButton({
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [attempt, setAttempt] = useState(0);
   const previewRef = useRef<HTMLCanvasElement>(null);
+  const pageRefs = useRef<Array<HTMLCanvasElement | null>>([]);
   const images = useRef<SceneImages>(new Map());
   const blobs = useRef(new Map<string, Promise<Blob>>());
 
@@ -214,13 +221,16 @@ export function ShareStoryButton({
   );
   const { kinds, activeKind, canvases, activeCanvas, styles: inCanvas, active } = selection;
 
-  const scene = useMemo(
+  // One scene per image: a carousel template draws one per page, every other template exactly one.
+  const scenes = useMemo(
     () =>
       active
-        ? renderSticker({ template: active, spec, prefs: stickerPrefs, locale, mode, fonts: rogoWebFonts })
-        : null,
+        ? renderSlides({ template: active, spec, prefs: stickerPrefs, locale, mode, fonts: rogoWebFonts })
+        : [],
     [active, spec, stickerPrefs, locale, mode],
   );
+  const scene = scenes[0] ?? null;
+  const isCarousel = scenes.length > 1;
 
   const showMore = canShareFiles;
   const showInstagram = canShareFiles && os !== "desktop";
@@ -229,47 +239,58 @@ export function ShareStoryButton({
   const periodHasWeight = story.kind === "period" && story.weight != null;
   const periodHasEnergy = story.kind === "period" && (story.energy?.countedDays ?? 0) > 0;
 
-  const cacheKey = scene && active ? `${active.id}|${mode}|${locale}|${JSON.stringify(stickerPrefs)}` : "";
+  // A day share's content changes with the diary and its failed cutouts, so it is part of the key.
+  const cacheKey = scene && active
+    ? `${active.id}|${mode}|${locale}|${JSON.stringify(stickerPrefs)}${spec.kind === "dayfood" ? `|${JSON.stringify(spec)}` : ""}`
+    : "";
 
-  /** The finished PNG, rendered once per template, photo and options. */
-  const renderBlob = useCallback((): Promise<Blob> => {
-    const cached = blobs.current.get(cacheKey);
-    if (cached) return cached;
-    const pending = (async () => {
-      if (!scene) throw new Error(t("story.share.makeImageFailed"));
-      await ensureStickerFonts();
-      await loadSceneImages(scene, images.current);
-      const canvas = document.createElement("canvas");
-      drawScene(canvas, scene, images.current);
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), "image/png"));
-      if (!blob) throw new Error(t("story.share.makeImageFailed"));
-      return blob;
-    })();
-    blobs.current.set(cacheKey, pending);
-    pending.catch(() => blobs.current.delete(cacheKey));
-    return pending;
-  }, [cacheKey, scene, t]);
+  /** One finished PNG, rendered once per slide, template, photo and options. */
+  const renderBlob = useCallback(
+    (index = 0): Promise<Blob> => {
+      const key = `${cacheKey}#${index}`;
+      const cached = blobs.current.get(key);
+      if (cached) return cached;
+      const pending = (async () => {
+        const slide = scenes[index];
+        if (!slide) throw new Error(t("story.share.makeImageFailed"));
+        await ensureStickerFonts();
+        await loadScenesImages([slide], images.current);
+        const canvas = document.createElement("canvas");
+        drawScene(canvas, slide, images.current);
+        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), "image/png"));
+        if (!blob) throw new Error(t("story.share.makeImageFailed"));
+        return blob;
+      })();
+      blobs.current.set(key, pending);
+      pending.catch(() => blobs.current.delete(key));
+      return pending;
+    },
+    [cacheKey, scenes, t],
+  );
+
+  /** Every slide's PNG in swipe order (a single-image template yields one). */
+  const renderAll = () => Promise.all(scenes.map((_, index) => renderBlob(index)));
 
   useEffect(() => {
     if (!open) return;
-    setCanShareFiles(canShareImageFile());
+    setCanShareFiles(canShareImageFile(Math.max(scenes.length, 1)));
     setPrefs(loadPrefs());
-  }, [open]);
+  }, [open, scenes.length]);
 
-  // Draw the live preview (same painter as the export) once fonts and images are ready.
+  // Draw the live preview (same painter as the export) once fonts and every slide's images are ready.
   useEffect(() => {
-    if (!open || !scene) return;
+    if (!open || scenes.length === 0) return;
     let cancelled = false;
     setStatus("loading");
     (async () => {
       await ensureStickerFonts();
-      await loadSceneImages(scene, images.current);
-      const canvas = previewRef.current;
-      if (cancelled || !canvas) return;
-      drawScene(canvas, scene, images.current);
+      await loadScenesImages(scenes, images.current);
+      const canvases = scenes.length > 1 ? pageRefs.current.slice(0, scenes.length) : [previewRef.current];
+      if (cancelled || canvases.length !== scenes.length || canvases.some((canvas) => !canvas)) return;
+      scenes.forEach((slide, index) => drawScene(canvases[index]!, slide, images.current));
       setStatus("ready");
-      // Warm the PNG so the first tap does not wait on rendering.
-      renderBlob().catch(() => {});
+      // Warm the PNGs so the first tap does not wait on rendering.
+      scenes.forEach((_, index) => renderBlob(index).catch(() => {}));
     })().catch((err: unknown) => {
       console.warn("sticker preview failed", err);
       if (!cancelled) setStatus("error");
@@ -277,7 +298,7 @@ export function ShareStoryButton({
     return () => {
       cancelled = true;
     };
-  }, [open, scene, renderBlob, attempt]);
+  }, [open, scenes, renderBlob, attempt]);
 
   useEffect(() => {
     if (!open) return;
@@ -300,7 +321,10 @@ export function ShareStoryButton({
   };
 
   const imageName = fileName ?? `joyorogo-${spec.kind}-${active?.id ?? "sticker"}.png`;
-  const ready = status === "ready" && scene !== null;
+  // A carousel's files are numbered in swipe order: <name>-1.png, <name>-2.png, ...
+  const slideFileName = (index: number) =>
+    isCarousel ? `${imageName.replace(/\.png$/i, "")}-${index + 1}.png` : imageName;
+  const ready = status === "ready" && scenes.length > 0;
 
   const runTarget = async (target: Target) => {
     if (busyTarget || !ready) return;
@@ -321,17 +345,30 @@ export function ShareStoryButton({
         }
         toast.success(t("story.share.copied"));
       } else if (target === "save") {
-        const url = URL.createObjectURL(await renderBlob());
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = imageName;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 10_000);
-        toast.success(t("story.share.saved"), { description: t("story.share.savedWebBody") });
+        const all = await renderAll();
+        for (const [index, blob] of all.entries()) {
+          // Browsers treat a burst of downloads as one gesture only when they are spaced a little.
+          if (index > 0) await new Promise<void>((resolve) => setTimeout(resolve, 250));
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = slideFileName(index);
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 10_000);
+        }
+        toast.success(isCarousel ? t("story.share.savedMany", { count: all.length }) : t("story.share.saved"), {
+          description: t("story.share.savedWebBody"),
+        });
       } else {
-        const file = new File([await renderBlob()], imageName, { type: "image/png" });
+        const files = (await renderAll()).map(
+          (blob, index) => new File([blob], slideFileName(index), { type: "image/png" }),
+        );
+        if (isCarousel && !navigator.canShare?.({ files })) {
+          toast.error(t("story.share.shareFailed"));
+          return;
+        }
         await navigator.share({
-          files: [file],
+          files,
           ...(target === "more" ? { text: text ?? defaultShareText(story) } : {}),
         });
         setOpen(false);
@@ -371,7 +408,30 @@ export function ShareStoryButton({
     setOpen(true);
   };
 
-  const stage = scene?.transparent ? (mode === "light" ? STICKER_STAGE_LIGHT : STICKER_STAGE_DARK) : "bg-card";
+  const stageOf = (slide: Scene) =>
+    slide.transparent ? (mode === "light" ? STICKER_STAGE_LIGHT : STICKER_STAGE_DARK) : "bg-card";
+  const stage = scene ? stageOf(scene) : "bg-card";
+  const previewLabel = t("story.share.preview", {
+    name: active ? t(`sticker:style.${active.style}`, { defaultValue: active.name }) : "",
+  });
+  // Loading veil and retry, drawn over each preview frame.
+  const previewOverlay = (
+    <>
+      {status === "loading" && (
+        <div className="absolute inset-0 grid place-items-center bg-black/40">
+          <Loader2 className="size-7 animate-spin text-white motion-reduce:animate-none" aria-hidden />
+        </div>
+      )}
+      {status === "error" && (
+        <div role="alert" className="absolute inset-0 grid place-items-center gap-2 bg-black/60 p-4 text-center text-sm text-white">
+          <p>{t("story.share.photoFailedBody")}</p>
+          <Button variant="secondary" size="sm" onClick={() => setAttempt((n) => n + 1)}>
+            {t("common:actions.retry")}
+          </Button>
+        </div>
+      )}
+    </>
+  );
 
   return (
     <>
@@ -440,37 +500,30 @@ export function ShareStoryButton({
                 />
               )}
 
-              <div className="flex h-[calc(min(38dvh,360px)+1.5rem)] shrink-0 items-center justify-center rounded-2xl bg-muted">
-                {scene ? (
-                  <div
-                    className={`relative max-h-full max-w-full overflow-hidden rounded-xl ${stage}`}
-                    style={{ aspectRatio: `${scene.width} / ${scene.height}`, height: "min(38dvh, 360px)" }}
-                  >
-                    <canvas
-                      ref={previewRef}
-                      className="size-full object-contain"
-                      aria-label={t("story.share.preview", {
-                        name: active ? t(`sticker:style.${active.style}`, { defaultValue: active.name }) : "",
-                      })}
-                    />
-                    {status === "loading" && (
-                      <div className="absolute inset-0 grid place-items-center bg-black/40">
-                        <Loader2 className="size-7 animate-spin text-white motion-reduce:animate-none" aria-hidden />
-                      </div>
-                    )}
-                    {status === "error" && (
-                      <div role="alert" className="absolute inset-0 grid place-items-center gap-2 bg-black/60 p-4 text-center text-sm text-white">
-                        <p>{t("story.share.photoFailedBody")}</p>
-                        <Button variant="secondary" size="sm" onClick={() => setAttempt((n) => n + 1)}>
-                          {t("common:actions.retry")}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="px-4 py-10 text-center text-sm text-muted-foreground">{t("sticker:sheet.empty")}</p>
-                )}
-              </div>
+              {isCarousel ? (
+                <CarouselPager
+                  key={active?.id}
+                  scenes={scenes}
+                  stageOf={stageOf}
+                  canvasRefs={pageRefs}
+                  label={(index) => `${previewLabel} ${index + 1} / ${scenes.length}`}
+                  overlay={previewOverlay}
+                />
+              ) : (
+                <div className="flex h-[calc(min(38dvh,360px)+1.5rem)] shrink-0 items-center justify-center rounded-2xl bg-muted">
+                  {scene ? (
+                    <div
+                      className={`relative max-h-full max-w-full overflow-hidden rounded-xl ${stage}`}
+                      style={{ aspectRatio: `${scene.width} / ${scene.height}`, height: "min(38dvh, 360px)" }}
+                    >
+                      <canvas ref={previewRef} className="size-full object-contain" aria-label={previewLabel} />
+                      {previewOverlay}
+                    </div>
+                  ) : (
+                    <p className="px-4 py-10 text-center text-sm text-muted-foreground">{t("sticker:sheet.empty")}</p>
+                  )}
+                </div>
+              )}
 
               {inCanvas.length > 0 && (
                 <Segmented
@@ -544,19 +597,21 @@ export function ShareStoryButton({
                 </OptionRow>
               </div>
 
-              <label className="mx-auto inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted focus-within:ring-[3px] focus-within:ring-ring/40">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={(event) => {
-                    void pickPhoto(event.target.files?.[0]);
-                    event.target.value = "";
-                  }}
-                />
-                <ImagePlus className="size-4" aria-hidden />
-                {photoSrc ? t("story.share.changePhoto") : t("story.share.usePhoto")}
-              </label>
+              {spec.kind !== "dayfood" && (
+                <label className="mx-auto inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted focus-within:ring-[3px] focus-within:ring-ring/40">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(event) => {
+                      void pickPhoto(event.target.files?.[0]);
+                      event.target.value = "";
+                    }}
+                  />
+                  <ImagePlus className="size-4" aria-hidden />
+                  {photoSrc ? t("story.share.changePhoto") : t("story.share.usePhoto")}
+                </label>
+              )}
             </div>
 
             <div role="group" aria-label={t("story.share.targets")} className="mt-3 flex justify-center gap-1">
@@ -570,14 +625,16 @@ export function ShareStoryButton({
                   <InstagramGlyph className="size-6" />
                 </TargetTile>
               )}
-              <TargetTile
-                label={t("story.share.copy")}
-                busy={busyTarget === "copy"}
-                disabled={busyTarget != null || !ready}
-                onClick={() => void runTarget("copy")}
-              >
-                <Copy className="size-6" aria-hidden />
-              </TargetTile>
+              {!isCarousel && (
+                <TargetTile
+                  label={t("story.share.copy")}
+                  busy={busyTarget === "copy"}
+                  disabled={busyTarget != null || !ready}
+                  onClick={() => void runTarget("copy")}
+                >
+                  <Copy className="size-6" aria-hidden />
+                </TargetTile>
+              )}
               <TargetTile
                 label={t("story.share.save")}
                 busy={busyTarget === "save"}
@@ -600,6 +657,99 @@ export function ShareStoryButton({
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+/**
+ * The carousel preview: every slide as a frame in a scroll-snap row, swiped (or scrolled, or picked by its dot) one
+ * page at a time. The dots mirror the page in view, so they are state, not decoration. Native scrolling needs no
+ * animation, and the dot jump skips its smooth scroll under reduced motion.
+ */
+function CarouselPager({
+  scenes,
+  stageOf,
+  canvasRefs,
+  label,
+  overlay,
+}: {
+  scenes: readonly Scene[];
+  stageOf: (scene: Scene) => string;
+  canvasRefs: { current: Array<HTMLCanvasElement | null> };
+  label: (index: number) => string;
+  overlay: ReactNode;
+}) {
+  const { t } = useTranslation(["sticker"]);
+  const scroller = useRef<HTMLDivElement>(null);
+  const [page, setPage] = useState(0);
+  const goTo = (index: number) => {
+    const el = scroller.current;
+    if (!el) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollTo({ left: index * el.clientWidth, behavior: reduced ? "auto" : "smooth" });
+  };
+  return (
+    <>
+      <div className="h-[calc(min(38dvh,360px)+1.5rem)] shrink-0 overflow-hidden rounded-2xl bg-muted">
+        <div
+          ref={scroller}
+          role="group"
+          aria-roledescription="carousel"
+          aria-label={`${page + 1} / ${scenes.length}`}
+          tabIndex={0}
+          onScroll={(event) => {
+            const el = event.currentTarget;
+            setPage(Math.min(scenes.length - 1, Math.max(0, Math.round(el.scrollLeft / el.clientWidth))));
+          }}
+          className="flex size-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain outline-none [scrollbar-width:none] focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:ring-inset [&::-webkit-scrollbar]:hidden"
+        >
+          {scenes.map((slide, index) => (
+            <div
+              key={index}
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`${index + 1} / ${scenes.length}`}
+              className="flex h-full w-full shrink-0 snap-center snap-always items-center justify-center"
+            >
+              <div
+                className={`relative max-h-full max-w-full overflow-hidden rounded-xl ${stageOf(slide)}`}
+                style={{ aspectRatio: `${slide.width} / ${slide.height}`, height: "min(38dvh, 360px)" }}
+              >
+                <canvas
+                  ref={(el) => {
+                    canvasRefs.current[index] = el;
+                  }}
+                  className="size-full object-contain"
+                  aria-label={label(index)}
+                />
+                {overlay}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="-my-1 flex shrink-0 justify-center">
+        {scenes.map((_, index) => (
+          <button
+            key={index}
+            type="button"
+            aria-label={`${index + 1} / ${scenes.length}`}
+            aria-current={index === page ? "true" : undefined}
+            onClick={() => goTo(index)}
+            className="group grid h-6 w-5 place-items-center rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40"
+          >
+            <span
+              className={cn(
+                "block h-1.5 rounded-full transition-[width,background-color] duration-150 motion-reduce:transition-none",
+                index === page ? "w-4 bg-foreground" : "w-1.5 bg-foreground/25 group-hover:bg-foreground/50",
+              )}
+            />
+          </button>
+        ))}
+      </div>
+      <p className="-mt-1 shrink-0 text-center text-xs text-muted-foreground">
+        {t("sticker:sheet.carouselHint", { count: scenes.length })}
+      </p>
     </>
   );
 }

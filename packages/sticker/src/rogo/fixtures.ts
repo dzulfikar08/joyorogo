@@ -1,4 +1,5 @@
 import type { StorySpec } from "./data";
+import type { DayFoodMeal, DayFoodStory } from "./dayfood";
 
 /**
  * Fixture data for goldens, the contact sheet and unit tests. `photo` names a file
@@ -8,6 +9,90 @@ import type { StorySpec } from "./data";
 export type Fixture = { spec: StorySpec; photo?: "meal.jpg" | "portrait.jpg"; note: string };
 
 const DAY = new Date(2026, 9, 18, 12);
+
+const CUT = "fixture:cutout.png";
+
+/** A day of food (the owner's 22 Oct diary, names and numbers as logged): 4 meals, protein reached, kcal on target. */
+const FOOD_MEALS: DayFoodMeal[] = [
+  {
+    label: "Sarapan",
+    kcal: 217,
+    protein: 23,
+    carbs: 30,
+    fat: 0,
+    names: "Pepaya, Putih telur, Americano ice",
+    stickers: [CUT, CUT, CUT],
+    items: [
+      { name: "Americano Ice", grams: 350, kcal: 5, protein: 0, carbs: 1, fat: 0 },
+      { name: "Putih Telur", grams: 200, kcal: 104, protein: 22, carbs: 2, fat: 0 },
+      { name: "Pepaya", grams: 258, kcal: 108, protein: 1, carbs: 27, fat: 0 },
+    ],
+  },
+  {
+    label: "Makan siang",
+    kcal: 690,
+    protein: 43,
+    carbs: 75,
+    fat: 25,
+    names: "Nasi Liwet Ayam Bakar, Putih Telur",
+    stickers: [CUT],
+    items: [
+      { name: "nasi liwet", grams: 200, kcal: 300, protein: 6, carbs: 60, fat: 4 },
+      { name: "ayam bakar", grams: 80, kcal: 168, protein: 20, carbs: 4, fat: 8 },
+      { name: "tahu goreng", grams: 40, kcal: 60, protein: 4, carbs: 2, fat: 5 },
+      { name: "sambal", grams: 20, kcal: 50, protein: 0, carbs: 2, fat: 5 },
+      { name: "sayur urap", grams: 40, kcal: 60, protein: 2, carbs: 6, fat: 3 },
+      { name: "Putih Telur", grams: 100, kcal: 52, protein: 11, carbs: 1, fat: 0 },
+    ],
+  },
+  {
+    label: "Makan malam",
+    kcal: 681,
+    protein: 45,
+    carbs: 20,
+    fat: 47,
+    names: "Putih telur, Ayam Goreng",
+    stickers: [CUT, CUT],
+    items: [
+      { name: "Putih Telur", grams: 100, kcal: 52, protein: 11, carbs: 1, fat: 0 },
+      { name: "ayam goreng", grams: 120, kcal: 274, protein: 22, carbs: 2, fat: 20 },
+      { name: "tempe goreng", grams: 40, kcal: 110, protein: 6, carbs: 5, fat: 9 },
+      { name: "tahu goreng", grams: 50, kcal: 75, protein: 4, carbs: 3, fat: 6 },
+      { name: "timun", grams: 20, kcal: 20, protein: 0, carbs: 1, fat: 0 },
+      { name: "serundeng", grams: 30, kcal: 150, protein: 2, carbs: 8, fat: 12 },
+    ],
+  },
+  {
+    label: "Snack",
+    kcal: 172,
+    protein: 11,
+    carbs: 39,
+    fat: 0,
+    names: "Putih Telur, Fibe mini",
+    stickers: [],
+    items: [
+      { name: "Putih Telur", grams: 100, kcal: 52, protein: 11, carbs: 1, fat: 0 },
+      { name: "Fibe mini", grams: 100, kcal: 60, protein: 0, carbs: 19, fat: 0 },
+      { name: "Fibe mini", grams: 100, kcal: 60, protein: 0, carbs: 19, fat: 0 },
+    ],
+  },
+];
+
+const FOOD_DAY: DayFoodStory = {
+  kind: "dayfood",
+  kcal: 1760,
+  targetKcal: 1850,
+  protein: 122,
+  carbs: 164,
+  fat: 72,
+  fiber: 27,
+  proteinTargetG: 110,
+  carbsTargetG: 242,
+  fatTargetG: 51,
+  fiberTargetG: 26,
+  meals: FOOD_MEALS,
+  date: new Date(2026, 9, 22, 12),
+};
 
 const isoDay = (offset: number) => new Date(Date.UTC(2026, 8, 19 + offset)).toISOString().slice(0, 10);
 
@@ -389,6 +474,57 @@ export const FIXTURES = {
     note: "name only",
     spec: { kind: "workout", name: "Jalan sore", date: DAY },
   },
+  "dayfood-full": {
+    note: "whole day: 4 meals (3 cutouts, a plate, 2 cutouts, text only), protein and fibre reached, on target",
+    spec: FOOD_DAY,
+  },
+  "dayfood-over": {
+    note: "past the target, protein not reached, a macro nobody logged: no warning colour, no 'over' wording",
+    spec: {
+      ...FOOD_DAY,
+      kcal: 2320,
+      protein: 71,
+      fiber: null,
+      fat: null,
+      meals: FOOD_MEALS.slice(0, 3).map((m) => ({ ...m, stickers: m.stickers.slice(0, 1), fat: null })),
+    },
+  },
+  "dayfood-bare": {
+    note: "no target (pregnancy mode), one meal, no cutouts, macros unknown",
+    spec: {
+      kind: "dayfood",
+      kcal: 480,
+      targetKcal: null,
+      meals: [{ label: "Makan siang", kcal: 480, names: "Soto ayam", stickers: [], items: [{ name: "Soto ayam", kcal: 480 }] }],
+      date: new Date(2026, 9, 22, 12),
+    },
+  },
+  "dayfood-meal": {
+    note: "carousel page of the 6-food lunch",
+    spec: { ...FOOD_DAY, slide: { role: "meal", meal: 1 } },
+  },
+  "dayfood-long": {
+    note: "carousel page of a 10-food meal: the rows past the cap fold into one '+N more' row",
+    spec: {
+      ...FOOD_DAY,
+      meals: [
+        {
+          ...FOOD_MEALS[1]!,
+          stickers: [CUT, CUT, CUT, CUT],
+          items: Array.from({ length: 10 }, (_, i) => ({ name: `Lauk ${i + 1}`, grams: 50 + i * 10, kcal: 90 + i * 12, protein: 4 + i, carbs: i % 3 === 0 ? null : 6, fat: 3 })),
+        },
+      ],
+      slide: { role: "meal", meal: 0 },
+    },
+  },
+  "dayfood-cover": {
+    note: "carousel cover",
+    spec: { ...FOOD_DAY, slide: { role: "cover" } },
+  },
+  "dayfood-total": {
+    note: "carousel closing page",
+    spec: { ...FOOD_DAY, slide: { role: "total" } },
+  },
 } satisfies Record<string, Fixture>;
 
 export type FixtureId = keyof typeof FIXTURES;
@@ -404,10 +540,14 @@ export const PRIMARY_FIXTURE: Record<string, FixtureId> = {
   challenge: "challenge",
   workout: "workout",
   milestone: "progress-full",
+  dayfood: "dayfood-full",
 };
 
 /** The fixture a template is shown with (contact sheet and goldens). */
 export function fixtureFor(template: { id: string; kind: string }): FixtureId {
   if (template.id.startsWith("meal.cutout")) return "meal-cutout";
+  if (template.id === "dayfood.meal.carousel") return "dayfood-meal";
+  if (template.id === "dayfood.total.carousel") return "dayfood-total";
+  if (template.id === "dayfood.cover.carousel") return "dayfood-cover";
   return PRIMARY_FIXTURE[template.kind] ?? "progress-full";
 }

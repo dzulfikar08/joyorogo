@@ -39,6 +39,7 @@ import { IdrInput } from "@/components/plate/idr-input";
 import { ScreenError } from "@/components/screen-state";
 import { CutoutTile } from "@/components/sticker";
 import { FoodRow } from "@/components/makan/food-row";
+import { DayShareButton } from "@/components/makan/day-share";
 import { FitnessCard } from "@/components/makan/fitness-card";
 import { FastLossNote } from "@/components/makan/fast-loss-note";
 import { MealPlanEntry } from "@/components/meal-plan/entry-card";
@@ -374,6 +375,21 @@ function MakanPage() {
                 proteinGuide={proteinGuide}
                 totals={totals}
                 neutral={(daySummary.data.targets?.maternal ?? null) !== null}
+              />
+            </div>
+          )}
+
+          {items.length > 0 && (
+            <div className="mt-1 flex justify-end">
+              <DayShareButton
+                date={date}
+                rows={items}
+                eatenKcal={totals.kcal}
+                eatKcal={daySummary.data?.targets?.eatKcal ?? null}
+                proteinTargetG={daySummary.data?.protein?.targetG ?? null}
+                maternal={(daySummary.data?.targets?.maternal ?? null) !== null}
+                gain={(daySummary.data?.targets?.maternal ?? null) === null && (daySummary.data?.targets?.gain ?? null) !== null}
+                slots={slots}
               />
             </div>
           )}

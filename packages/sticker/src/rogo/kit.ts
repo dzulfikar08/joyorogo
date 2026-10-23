@@ -45,10 +45,12 @@ export const ROGO_LIGHT: ThemeColors = {
   data3: "#5c69bc",
 };
 
-export type CanvasSpec = "story" | "square" | { sticker: number };
+export type CanvasSpec = "story" | "square" | "portrait" | { sticker: number };
 
 export const STORY_SAFE = { top: 250, right: 72, bottom: 340, left: 72 } as const;
 export const SQUARE_SAFE = { top: 72, right: 72, bottom: 72, left: 72 } as const;
+/** Feed 4:5 (1080x1350): no app chrome over it, so the margin is the square one. */
+export const PORTRAIT_SAFE = SQUARE_SAFE;
 
 type Def = {
   id: string;
@@ -64,14 +66,20 @@ type Def = {
   requires?: string[];
   needsPhoto?: boolean;
   tags?: string[];
+  /** Raise the layer budget (default 60) for cards that spell out many rows. */
+  maxLayers?: number;
+  /** Own safe area, for a card that has to use the room under the default story bottom inset. */
+  safe?: { top: number; right: number; bottom: number; left: number };
 };
 
 const TRANSPARENT = { kind: "transparent" } as const;
 
 export function defineTemplate(def: Def): TemplateInput {
   const sticker = typeof def.canvas === "object";
-  const height = def.canvas === "story" ? 1920 : def.canvas === "square" ? 1080 : def.canvas.sticker;
-  const aspect = def.canvas === "story" ? "story" : def.canvas === "square" ? "square" : "free";
+  const height =
+    def.canvas === "story" ? 1920 : def.canvas === "square" ? 1080 : def.canvas === "portrait" ? 1350 : def.canvas.sticker;
+  const aspect =
+    def.canvas === "story" ? "story" : def.canvas === "square" ? "square" : def.canvas === "portrait" ? "portrait" : "free";
   return {
     schemaVersion: 1,
     id: def.id,
@@ -80,7 +88,15 @@ export function defineTemplate(def: Def): TemplateInput {
     kind: def.kind,
     style: def.style,
     canvas: { width: 1080, height, aspect },
-    safe: def.canvas === "story" ? STORY_SAFE : def.canvas === "square" ? SQUARE_SAFE : undefined,
+    safe:
+      def.safe ??
+      (def.canvas === "story"
+        ? STORY_SAFE
+        : def.canvas === "square"
+          ? SQUARE_SAFE
+          : def.canvas === "portrait"
+            ? PORTRAIT_SAFE
+            : undefined),
     background: def.background ?? (sticker ? TRANSPARENT : { kind: "color", color: "$bg" }),
     themes: {
       dark: { colors: { ...ROGO_DARK, ...def.dark } },
@@ -88,6 +104,7 @@ export function defineTemplate(def: Def): TemplateInput {
     },
     layers: def.layers,
     requires: def.requires,
+    ...(def.maxLayers ? { constraints: { minFontSize: 22, maxTextChars: 140, maxLayers: def.maxLayers } } : {}),
     meta: { transparent: sticker || undefined, needsPhoto: def.needsPhoto || undefined, tags: def.tags },
   };
 }

@@ -1,4 +1,5 @@
 import type { ImageRef, StickerData, StickerOptions } from "../core/resolve";
+import { dayFoodData, type DayFoodStory } from "./dayfood";
 
 /**
  * The app-facing contract: screens hand a `StorySpec` to the share sheet, and
@@ -151,7 +152,7 @@ export type PeriodStory = {
   date?: Date;
 };
 
-export type StorySpec = MealStory | WorkoutStory | ProgressStory | RecapStory | PeriodStory | ChallengeStory;
+export type StorySpec = MealStory | WorkoutStory | ProgressStory | RecapStory | PeriodStory | ChallengeStory | DayFoodStory;
 
 export type StickerPrefs = {
   /** First name, only when the user opted in; otherwise omit. */
@@ -391,6 +392,7 @@ export function buildStickerData(spec: StorySpec, prefs: StickerPrefs = {}): Sti
   const hideNumbers = options?.hideNumbers ?? true;
   const data: Record<string, unknown> = { kind: spec.kind };
   if (prefs.userName) data.user = { name: prefs.userName };
+  let dayFoodAssets: Record<string, ImageRef> = {};
   switch (spec.kind) {
     case "meal":
       data.meal = {
@@ -439,9 +441,16 @@ export function buildStickerData(spec: StorySpec, prefs: StickerPrefs = {}): Sti
         upcoming: spec.status === "upcoming",
       };
       break;
+    case "dayfood": {
+      const food = dayFoodData(spec);
+      data.dayfood = food.day;
+      data.slide = food.slide;
+      dayFoodAssets = food.assets;
+      break;
+    }
   }
   data.milestone = milestoneData(spec);
-  const assets: Record<string, ImageRef | undefined> = {};
+  const assets: Record<string, ImageRef | undefined> = { ...dayFoodAssets };
   // A cutout (transparent PNG of the food) is never a full-bleed background: it has its own slot.
   if (prefs.cutout) assets.cutout = prefs.cutout;
   else if (spec.kind === "meal" && spec.cutoutUri) assets.cutout = { uri: spec.cutoutUri };
