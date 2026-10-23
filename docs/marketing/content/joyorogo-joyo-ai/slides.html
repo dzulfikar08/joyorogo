@@ -1,0 +1,89 @@
+<!doctype html>
+<!-- JRG-384, Joyo AI (JoyoRogo). Slides 1 and 2: the real /joyo screen of the web app with the demo account "Rina" (_shots/rogo-joyo-ask.webp, local stack).
+     joyo.status is mocked as a Pro account (unlocked, 0 of 20 today); the consent card was accepted; the composer holds the question as the "Tanya Joyo AI"
+     entry point puts it there (never sent). No answer is shown: the chat stream was not mocked.
+     Slide 3 numbers: packages/api/src/lib/tkpi2019-data.ts, fiber g per 100 g: ER073 Pepaya segar 1.6, ER067 Melon segar 1.0, ER105 Semangka segar 0.4. -->
+<html lang="id"><head><meta charset="utf-8"><link rel="stylesheet" href="@content/_base.css">
+<style>
+  .fib { display: flex; flex-direction: column; gap: 34px; }
+  .fib .lab { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; font-size: 48px; font-weight: 800; letter-spacing: -0.02em; }
+  .fib .lab span { color: var(--primary); }
+  .fib .bar { height: 64px; border-radius: 20px; background: var(--primary); }
+</style></head>
+<body>
+
+<!-- 1 Cover: the question -->
+<section class="slide rogo deep">
+  <div class="k">Joyo AI di JoyoRogo</div>
+  <div class="gap-s"></div>
+  <h1 class="h" style="font-size:100px">Pepaya, melon, atau semangka? Tanya sebelum makan.</h1>
+  <div data-bleed class="phone" style="left:190px;top:700px;width:700px"><div class="scr"><img src="@content/_shots/rogo-joyo-ask.webp" alt=""></div></div>
+</section>
+
+<!-- 2 The screen -->
+<section class="slide rogo" style="padding-top:84px">
+  <div class="k">Tanya Joyo AI</div>
+  <div class="gap-s"></div>
+  <h1 class="h s" style="font-size:70px">Tanya catatan makanmu, atau bandingkan makanan.</h1>
+  <div class="gap-m"></div>
+  <div class="snap" style="--s:.697;--cx:0;--cy:250;--cw:1320;--ch:900"><img src="@content/_shots/rogo-joyo-ask.webp" alt="">
+    <span class="callout" style="--rx:45;--ry:615;--rw:1230;--rh:195"></span></div>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 3 The numbers come from a table -->
+<section class="slide rogo soft">
+  <div class="k">Serat per 100 g</div>
+  <div class="gap-s"></div>
+  <h1 class="h s">Angkanya dari tabel TKPI 2019, bukan karangan.</h1>
+  <div class="gap-m"></div>
+  <div class="fib">
+    <div><div class="lab"><b>Pepaya, segar</b><span>1,6 g</span></div><div class="bar" style="width:100%"></div></div>
+    <div><div class="lab"><b>Melon, segar</b><span>1,0 g</span></div><div class="bar" style="width:62.5%"></div></div>
+    <div><div class="lab"><b>Semangka, segar</b><span>0,4 g</span></div><div class="bar" style="width:25%"></div></div>
+  </div>
+  <div class="grow"></div>
+  <p class="note">Ini angka tabelnya. Joyo AI menjawab dengan kalimat dan menghitung muat atau tidaknya di sisa kkal, protein, dan serat hari ini.</p>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 4 Honest about unknowns -->
+<section class="slide rogo">
+  <div class="k">Kalau datanya tidak ada</div>
+  <div class="gap-s"></div>
+  <h1 class="h m">Jawabannya “tidak tahu”, bukan tebakan.</h1>
+  <div class="gap-m"></div>
+  <div class="rows">
+    <div class="row"><b>Makanan di luar tabel</b><span>Tidak dikarang. Dibilang tidak ada di data kami.</span></div>
+    <div class="row"><b>Gula</b><span>TKPI tidak punya kolom gula, jadi pertanyaan soal gula dijawab tidak ada di data.</span></div>
+    <div class="row"><b>Bukan saran medis</b><span>Bukan pengganti ahli gizi atau dokter.</span></div>
+  </div>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 5 Who can use it -->
+<section class="slide rogo soft">
+  <div class="k">Siapa yang bisa pakai</div>
+  <div class="gap-s"></div>
+  <h1 class="h m">Dua mesin, pilih satu.</h1>
+  <div class="gap-m"></div>
+  <div class="rows">
+    <div class="row"><b>Mesin JoyoRogo: Pro</b><span>Di web dan di app, ada batas pertanyaan per hari. Usia 18 tahun ke atas.</span></div>
+    <div class="row"><b>Kunci API sendiri: gratis</b><span>Hanya di app, usia 18 tahun ke atas. Biaya pemakaian ke penyedia pilihanmu, kunci disimpan di HP.</span></div>
+  </div>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<!-- 6 CTA -->
+<section class="slide rogo deep">
+  <img data-bleed class="mascot" src="@joyorogo/apps/web/public/mascot/hero.webp" alt="" style="width:340px;right:56px;top:70px">
+  <div class="grow"></div>
+  <h1 class="h">Tanya dulu, makan kemudian.</h1>
+  <div class="gap-m"></div>
+  <span class="cta">joyorogo.com</span>
+  <div class="gap-m"></div>
+  <p class="lead" style="font-size:38px">Android tes tertutup, iPhone TestFlight, atau langsung di web. Semua angka perkiraan, bukan saran medis.</p>
+  <footer class="foot"><span class="brand">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+</body></html>

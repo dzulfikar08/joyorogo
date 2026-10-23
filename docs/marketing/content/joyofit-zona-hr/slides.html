@@ -1,0 +1,106 @@
+<!doctype html>
+<!-- JRG-371, Zona HR (JoyoFit) + the strain correction (watch-fit 48cf38f). No screenshot: native-only screen, no device capture exists yet, so nothing is a UI mock.
+     Numbers: docs/hr-zones.md. Example person is made up and labelled: age 35, max HR 220 - 35 = 185, limits at 50/60/70/80/90 % rounded up to the next whole bpm
+     (ceil, "A limit is the lowest whole bpm at or above the exact value"): 92.5 -> 93, 111, 129.5 -> 130, 148, 166.5 -> 167. -->
+<html lang="id"><head><meta charset="utf-8"><link rel="stylesheet" href="@content/_base.css">
+<style>
+  .zt { display: flex; flex-direction: column; gap: 0; }
+  .zr { display: flex; align-items: center; gap: 24px; padding: 26px 0; border-top: 2px solid var(--line); }
+  .zr:last-child { border-bottom: 2px solid var(--line); }
+  .zr i { width: 22px; height: 70px; border-radius: 10px; flex: none; }
+  .zr .t { font-size: 44px; font-weight: 800; letter-spacing: -0.02em; flex: 1; }
+  .zr .t small { display: block; font-size: 30px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+  .zr .b { font-size: 56px; font-weight: 800; letter-spacing: -0.03em; color: var(--ink); }
+  .zr .b small { font-size: 30px; font-weight: 600; color: var(--muted); }
+  .two { display: flex; flex-direction: column; gap: 30px; }
+  .two .card b { display: block; font-size: 44px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .two .card span { font-size: 34px; line-height: 1.3; font-weight: 500; color: var(--muted); }
+  .two .card.on { background: var(--primary); } .two .card.on b, .two .card.on span { color: #fff; }
+</style></head>
+<body>
+
+<!-- 1 Cover -->
+<section class="slide fit deep">
+  <div class="k">JoyoFit · Zona HR</div>
+  <div class="gap-m"></div>
+  <h1 class="h" style="font-size:100px">Zona detak jantungmu bukan cuma 220 dikurangi usia.</h1>
+  <div class="gap-m"></div>
+  <p class="lead">Atur sendiri di JoyoFit: 3 cara hitung, 5 batas dalam bpm.</p>
+  <footer class="foot"><span class="brand">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+<!-- 2 Methods -->
+<section class="slide fit soft">
+  <div class="k">Lainnya › Target & tubuh › Zona HR</div>
+  <div class="gap-s"></div>
+  <h1 class="h m">Pilih cara menghitung zonamu.</h1>
+  <div class="gap-m"></div>
+  <div class="rows">
+    <div class="row"><b>Persen HR maks</b><span>Bawaan. Lima zona dari 50, 60, 70, 80, dan 90 persen HR maks.</span></div>
+    <div class="row"><b>Cadangan HR (HRR)</b><span>Enam zona dihitung dari HR maks dan HR istirahatmu.</span></div>
+    <div class="row"><b>LTHR</b><span>Zona dari detak jantung ambang laktat. Ada layar tes 30 menit untuk mencarinya.</span></div>
+  </div>
+  <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+<!-- 3 Example -->
+<section class="slide fit">
+  <div class="k">Contoh hitungan</div>
+  <div class="gap-s"></div>
+  <h1 class="h s">Umur 35, HR maks 185. Batas zonanya:</h1>
+  <div class="gap-m"></div>
+  <div class="zt">
+    <div class="zr"><i style="background:oklch(0.82 0.05 217)"></i><span class="t">Pemanasan<small>mulai dari 50%</small></span><span class="b">93 <small>bpm</small></span></div>
+    <div class="zr"><i style="background:oklch(0.75 0.08 200)"></i><span class="t">Bakar lemak<small>mulai dari 60%</small></span><span class="b">111 <small>bpm</small></span></div>
+    <div class="zr"><i style="background:oklch(0.68 0.12 170)"></i><span class="t">Aerobik<small>mulai dari 70%</small></span><span class="b">130 <small>bpm</small></span></div>
+    <div class="zr"><i style="background:oklch(0.65 0.16 70)"></i><span class="t">Anaerobik<small>mulai dari 80%</small></span><span class="b">148 <small>bpm</small></span></div>
+    <div class="zr"><i style="background:oklch(0.6 0.2 30)"></i><span class="t">Ekstrem<small>mulai dari 90%</small></span><span class="b">167 <small>bpm</small></span></div>
+  </div>
+  <div class="gap-s"></div>
+  <p class="note">Orang dan angkanya contoh, bukan angkamu. Tiap batas bisa kamu ubah dalam bpm.</p>
+  <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+<!-- 4 Suggest -->
+<section class="slide fit soft">
+  <div class="k">Hitung dari data</div>
+  <div class="gap-s"></div>
+  <h1 class="h m">Saran dari datamu. Kamu yang menyetujui.</h1>
+  <div class="gap-m"></div>
+  <div class="rows">
+    <div class="row"><b>HR maks</b><span>Dari detak tertinggi di latihanmu, hanya kalau di atas rumus usia. Lonjakan sensor dibuang.</span></div>
+    <div class="row"><b>HR istirahat</b><span>Median HR istirahat dari jam, 14 hari terakhir.</span></div>
+  </div>
+  <div class="gap-s"></div>
+  <p class="note">Saran tidak dipakai sebelum kamu setuju. Ini bukan tes lapangan HR maks atau VO2 maks.</p>
+  <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+<!-- 5 Strain -->
+<section class="slide fit">
+  <div class="k">Satu koreksi</div>
+  <div class="gap-s"></div>
+  <h1 class="h s">Ganti zona tidak lagi menggeser strain.</h1>
+  <div class="gap-m"></div>
+  <div class="two">
+    <div class="card on"><b>Pakai zonamu</b><span>Waktu per zona di analisis latihan, grafik detak jantung harian, dan Coach.</span></div>
+    <div class="card"><b>Persen tetap dari HR maks</b><span>Strain, beban latihan, dan menit intensitas. 50, 60, 70, 80, 90 persen, bobot 1 sampai 5 (metode Edwards).</span></div>
+  </div>
+  <div class="gap-s"></div>
+  <p class="note">Sempat strain ikut metode zona, jadi ganti metode menggeser angkanya. Sekarang yang mengubahnya hanya HR maks.</p>
+  <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+<!-- 6 CTA -->
+<section class="slide fit deep">
+  <img data-bleed class="mascot" src="@watch-fit/site/public/mascot/relax.webp" alt="" style="width:400px;right:60px;top:90px">
+  <div class="grow"></div>
+  <h1 class="h">Atur zonamu sekali.</h1>
+  <div class="gap-m"></div>
+  <span class="cta">fit.joyorogo.com</span>
+  <div class="gap-m"></div>
+  <p class="note" style="font-size:28px;color:oklch(0.85 0.01 200)">Strain dan semua skor = perkiraan, bukan alat medis. Dites di Watch Fit 4 Pro, jam lain eksperimen. Tidak berafiliasi dengan Huawei.</p>
+  <footer class="foot"><span class="brand">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+</body></html>

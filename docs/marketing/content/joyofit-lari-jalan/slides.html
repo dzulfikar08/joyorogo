@@ -1,0 +1,119 @@
+<!doctype html>
+<!-- JRG-399, Lari-jalan (JoyoFit Coach). No screenshot: this is a native-only screen and no device capture of it exists yet, so every number here is drawn from
+     watch-fit/src/features/coach/plans/runWalk.ts (RUNWALK_STEPS, RUNWALK_CONTINUOUS, RETEST_WEEKS, zones 3/4/2) and docs/coach.md. Nothing is a UI mock. -->
+<html lang="id"><head><meta charset="utf-8"><link rel="stylesheet" href="@content/_base.css">
+<style>
+  .tl { display: flex; height: 110px; border-radius: 22px; overflow: hidden; gap: 3px; }
+  .tl i { display: block; }
+  .jog { background: var(--primary); } .walk { background: oklch(0.82 0.05 217); } .wu { background: oklch(0.88 0.03 217); }
+  .key { display: flex; gap: 36px; margin-top: 26px; font-size: 32px; font-weight: 600; color: var(--muted); }
+  .key b { display: inline-block; width: 28px; height: 28px; border-radius: 8px; margin-right: 12px; vertical-align: -3px; }
+  .wk { display: flex; align-items: baseline; padding: 21px 0; border-top: 2px solid var(--line); gap: 28px; }
+  .wk:last-child { border-bottom: 2px solid var(--line); }
+  .wk .n { width: 190px; flex: none; font-size: 34px; font-weight: 700; color: var(--muted); }
+  .wk .v { font-size: 44px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+  .wk .v small { font-size: 32px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+  .zc { display: inline-block; border-radius: 22px; padding: 14px 28px; font-size: 40px; font-weight: 800; background: var(--card); margin-right: 8px; }
+  .zc.g { background: var(--primary); color: #fff; } .zc.w { background: oklch(0.55 0.17 40); color: #fff; }
+</style></head>
+<body>
+
+<!-- 1 Cover -->
+<section class="slide fit deep">
+  <div class="k">JoyoFit · Coach</div>
+  <div class="gap-m"></div>
+  <h1 class="h" style="font-size:100px">Detak jantung langsung zona 4 di kilometer pertama?</h1>
+  <div class="gap-m"></div>
+  <p class="lead">Jangan paksa pace. Jogging 1 menit, jalan 2 menit.</p>
+  <div class="grow"></div>
+  <p class="lead" style="font-size:40px">Rencana Lari-jalan: 8 minggu, 3 sesi seminggu, untuk mulai lari lagi dari nol.</p>
+  <footer class="foot"><span class="brand">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+<!-- 2 Week 1 -->
+<section class="slide fit">
+  <div class="k">Minggu 1</div>
+  <div class="gap-s"></div>
+  <h1 class="h s">Delapan kali: jogging 1 menit, jalan 2 menit.</h1>
+  <div class="gap-m"></div>
+  <div class="tl">
+    <i class="wu" style="flex:5"></i>
+    <i class="jog" style="flex:1"></i><i class="walk" style="flex:2"></i>
+    <i class="jog" style="flex:1"></i><i class="walk" style="flex:2"></i>
+    <i class="jog" style="flex:1"></i><i class="walk" style="flex:2"></i>
+    <i class="jog" style="flex:1"></i><i class="walk" style="flex:2"></i>
+    <i class="jog" style="flex:1"></i><i class="walk" style="flex:2"></i>
+    <i class="jog" style="flex:1"></i><i class="walk" style="flex:2"></i>
+    <i class="jog" style="flex:1"></i><i class="walk" style="flex:2"></i>
+    <i class="jog" style="flex:1"></i><i class="walk" style="flex:2"></i>
+    <i class="wu" style="flex:5"></i>
+  </div>
+  <div class="key"><span><b style="background:oklch(0.88 0.03 217)"></b>jalan 5 menit</span><span><b class="jog"></b>jogging</span><span><b class="walk"></b>jalan</span></div>
+  <div class="gap-m"></div>
+  <p class="p">Total 34 menit, tiga kali seminggu. Jalan itu bagian dari rencana, bukan tanda gagal.</p>
+  <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+<!-- 3 8 weeks -->
+<section class="slide fit soft">
+  <div class="k">8 minggu</div>
+  <div class="gap-s"></div>
+  <h1 class="h s">Joggingnya naik, jalannya tetap 2 menit.</h1>
+  <div class="gap-m"></div>
+  <div>
+    <div class="wk"><span class="n">Minggu 1</span><span class="v">1 menit <small>× 8</small></span></div>
+    <div class="wk"><span class="n">Minggu 2</span><span class="v">1,5 menit <small>× 7</small></span></div>
+    <div class="wk"><span class="n">Minggu 3</span><span class="v">2 menit <small>× 6</small></span></div>
+    <div class="wk"><span class="n">Minggu 4</span><span class="v">3 menit <small>× 5</small></span></div>
+    <div class="wk"><span class="n">Minggu 5</span><span class="v">5 menit <small>× 4</small></span></div>
+    <div class="wk"><span class="n">Minggu 6</span><span class="v">8 menit <small>× 3</small></span></div>
+    <div class="wk"><span class="n">Minggu 7</span><span class="v">jogging terus <small>15 / 20 / 20 menit</small></span></div>
+    <div class="wk"><span class="n">Minggu 8</span><span class="v">jogging terus <small>25 / 30 menit</small></span></div>
+  </div>
+  <div class="gap-s"></div>
+  <p class="note">Tiap sesi diawali dan diakhiri jalan 5 menit. Minggu ke-4 diringankan (80 persen), dan Coach menyesuaikan dari latihanmu.</p>
+  <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+<!-- 4 Heart rate leads -->
+<section class="slide fit">
+  <div class="k">Yang memimpin: detak jantung</div>
+  <div class="gap-s"></div>
+  <h1 class="h s">Zona milikmu sendiri, lengkap dengan bpm-nya.</h1>
+  <div class="gap-m"></div>
+  <div class="rows">
+    <div class="row"><b><span class="zc g">Zona 2 sampai 3</span></b><span style="margin-top:18px">Jaga jogging di sini.</span></div>
+    <div class="row"><b><span class="zc w">Zona 4</span></b><span style="margin-top:18px">HP bergetar dan bilang “jalan sekarang”.</span></div>
+    <div class="row"><b><span class="zc">Turun ke zona 2</span></b><span style="margin-top:18px">“Boleh jogging lagi.”</span></div>
+  </div>
+  <div class="gap-s"></div>
+  <p class="note">Petunjuk datang dari HP, bukan dari jam. Butuh latihan Lari yang berjalan di jam dan mengirim detak jantung langsung.</p>
+  <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+<!-- 5 Re-test -->
+<section class="slide fit soft">
+  <div class="k">Tes ulang 1 km</div>
+  <div class="gap-s"></div>
+  <h1 class="h m">Kemajuan dilihat dari pace di detak jantung yang sama.</h1>
+  <div class="gap-m"></div>
+  <div class="rows">
+    <div class="row"><b>Minggu 1, 5, dan 8</b><span>Pengganti sesi terakhir minggu itu: 1 km di detak jantung zona 3.</span></div>
+    <div class="row"><b>Dibandingkan hanya kalau cocok</b><span>Rata-rata detak jantung kedua tes selisih paling banyak 5 bpm. Tes pertama jadi patokan.</span></div>
+  </div>
+  <footer class="foot"><span class="brand"><img src="@watch-fit/site/public/brand/logo-mark.svg" alt="">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+<!-- 6 CTA -->
+<section class="slide fit deep">
+  <img data-bleed class="mascot" src="@watch-fit/site/public/mascot/relax.webp" alt="" style="width:400px;right:60px;top:90px">
+  <div class="grow"></div>
+  <h1 class="h">Mulai lagi dari nol, pelan-pelan.</h1>
+  <div class="gap-m"></div>
+  <span class="cta">fit.joyorogo.com</span>
+  <div class="gap-m"></div>
+  <p class="note" style="font-size:28px;color:oklch(0.85 0.01 200)">Coach butuh JoyoRogo Pro. Rencana buatan JoyoFit sendiri, bukan saran medis. Dites di Watch Fit 4 Pro. Tidak berafiliasi dengan Huawei.</p>
+  <footer class="foot"><span class="brand">JoyoFit</span><span class="pg"></span></footer>
+</section>
+
+</body></html>
