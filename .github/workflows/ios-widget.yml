@@ -47,7 +47,7 @@ jobs:
   widget:
     name: Compile the iOS widget
     runs-on: macos-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -122,3 +122,25 @@ jobs:
           done
           plist UIAppFonts | grep -q PlusJakartaSans-ExtraBold.ttf
           ls -l "$appex"
+
+      # The whole app, unsigned, with the extension in `PlugIns/`: the target dependency, the "Embed Foundation Extensions"
+      # phase and the Pods build phases must not form a cycle, and the ExtensionStorage pod the app writes the App Group
+      # through must compile. Same environment as scripts/ios/mac-build.sh.
+      - name: Build the app with the extension embedded
+        working-directory: apps/native/ios
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_SERVER_URL: https://api.joyorogo.com
+          EXPO_PUBLIC_DEV_LOGIN: "0"
+          EXPO_PUBLIC_FB_APP_ID: "1016598258111944"
+        run: |
+          xcodebuild build -workspace JoyoRogo.xcworkspace -scheme JoyoRogo -configuration Release -sdk iphoneos \
+            -arch arm64 CODE_SIGNING_ALLOWED=NO CURRENT_PROJECT_VERSION=1 \
+            SYMROOT="$RUNNER_TEMP/app-build" > "$RUNNER_TEMP/app-build.log" 2>&1 \
+            || { grep -E "error:|\*\* BUILD FAILED" "$RUNNER_TEMP/app-build.log" | head -n 30; tail -n 40 "$RUNNER_TEMP/app-build.log"; exit 1; }
+          tail -n 3 "$RUNNER_TEMP/app-build.log"
+          app="$RUNNER_TEMP/app-build/Release-iphoneos/JoyoRogo.app"
+          test -d "$app/PlugIns/JoyoRogoWidget.appex"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/PlugIns/JoyoRogoWidget.appex/Info.plist")" = com.joyodigitama.joyorogo.widget
+          test -s "$app/PlugIns/JoyoRogoWidget.appex/streak-copy.json"
+          ls -l "$app/PlugIns"
