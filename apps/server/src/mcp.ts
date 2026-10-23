@@ -348,7 +348,7 @@ function createMcpServer(
     {
       title: "Training plan and adherence",
       description:
-        "The person's JoyoFit coach plan, when they have one: kind (run or strength), goal (run5k, run10k, runHalf, runRoutine, strengthFull), level, sessions per week, training weekdays (0 = Sunday), start day, length in weeks, the current week and the coach's load adjustment for it (scalePct of the planned load and why), plus how many sessions were done or skipped in the last 14 days. Does not list individual sessions; use list_workouts and get_workout for what was actually done. hasPlan is false when there is none.",
+        "The person's JoyoFit coach plan, when they have one: kind (run or strength), goal (run5k, run10k, runHalf, runRoutine, runWalk = the 8-week run/walk restart, strengthFull), level, sessions per week, training weekdays (0 = Sunday), start day, length in weeks, the current week and the coach's load adjustment for it (scalePct of the planned load and why), plus how many sessions were done or skipped in the last 14 days. Does not list individual sessions; use list_workouts and get_workout for what was actually done. hasPlan is false when there is none.",
       inputSchema: {},
       annotations: readOnly,
     },

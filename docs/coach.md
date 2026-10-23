@@ -22,6 +22,10 @@ stripped. Caps: `done` 5000 keys, `logs` 2000 keys, 40 exercises x 20 sets per l
 concurrency: one conditional statement stores the doc only when `baseRev` equals the stored rev (0 = no row); first
 write is an INSERT that does nothing on conflict, later ones `UPDATE ... WHERE rev = baseRev`.
 
+`plan.goal` is one of `run5k`, `run10k`, `runHalf`, `runRoutine`, `runWalk` (JoyoFit's 8-week "Lari-jalan" run/walk restart, added
+2026-10-23) and `strengthFull`. A new JoyoFit goal must be added to `coachPlanSchema` and deployed here before the app update,
+or `coach.putDoc` rejects the plan and a Pro account cannot sync it.
+
 `coach.chat` input: `messages` 1..12 (`role` user/assistant, 1..2000 chars, last is user), `snapshot` (see
 `coachSnapshotSchema`; every string and array capped, unknown keys stripped; times are unix seconds), `locale` `id`/`en`
 (default: the request locale).

@@ -66,6 +66,12 @@ describe("coach doc schema", () => {
     expect("extra" in parsed).toBe(false);
   });
 
+  test("accepts the Lari-jalan run/walk restart goal and still rejects an unknown goal", () => {
+    const runWalk = { ...plan, kind: "run" as const, goal: "runWalk" as const, setting: null, daysPerWeek: 3, weekdays: [1, 3, 5], weeks: 8 };
+    expect(coachDocSchema.safeParse({ ...empty, plan: runWalk }).success).toBe(true);
+    expect(coachDocSchema.safeParse({ ...empty, plan: { ...runWalk, goal: "runSprint" } }).success).toBe(false);
+  });
+
   test("caps: weeks, done, logs, sets", () => {
     expect(coachDocSchema.safeParse({ ...empty, plan: { ...plan, weeks: COACH_DOC_LIMITS.maxWeeks + 1 } }).success).toBe(false);
     const done = Object.fromEntries(Array.from({ length: COACH_DOC_LIMITS.maxDone + 1 }, (_, i) => [`k${i}`, { workoutStart: null, at: 1, manual: true, skipped: false }]));
