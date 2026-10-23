@@ -1,4 +1,4 @@
-import { ExtensionStorage } from "@bacons/apple-targets";
+import type { ExtensionStorage as ExtensionStorageClass } from "@bacons/apple-targets";
 import { Platform } from "react-native";
 
 import { DEFAULT_LOCALE, i18n, isLocale } from "@joyorogo/i18n";
@@ -20,23 +20,35 @@ import type { WidgetSnapshot } from "./snapshot";
  * The widget ages the stored stamp itself at each midnight (StreakModel.swift), so a write is only needed when the facts
  * change: the day summary loads, the person signs out, or the app language changes.
  */
-const store = new ExtensionStorage(IOS_APP_GROUP);
+
+/**
+ * The package reads `expo.modules.ExtensionStorage` the moment it is evaluated, and only the iOS build links that module,
+ * so it is required here, on iOS only: the Android app and its headless widget task never evaluate it.
+ */
+let storage: { ExtensionStorage: typeof ExtensionStorageClass; store: ExtensionStorageClass } | null = null;
+function native() {
+  if (!storage) {
+    const { ExtensionStorage } = require("@bacons/apple-targets") as typeof import("@bacons/apple-targets");
+    storage = { ExtensionStorage, store: new ExtensionStorage(IOS_APP_GROUP) };
+  }
+  return storage;
+}
 
 function language(): string {
   return isLocale(i18n.language) ? i18n.language : DEFAULT_LOCALE;
 }
 
 function writeLanguage(): void {
-  store.set(IOS_STREAK_LANG_KEY, language());
+  native().store.set(IOS_STREAK_LANG_KEY, language());
 }
 
 /** Mirrors `snapshot` (what push.ts just stored for the Android widgets) to the iPhone widget. */
 export function mirrorStreakToIosWidget(snapshot: WidgetSnapshot): void {
   if (Platform.OS !== "ios") return;
   try {
-    store.set(IOS_STREAK_KEY, JSON.stringify(iosStreakPayload(snapshot)));
+    native().store.set(IOS_STREAK_KEY, JSON.stringify(iosStreakPayload(snapshot)));
     writeLanguage();
-    ExtensionStorage.reloadWidget(IOS_WIDGET_KIND);
+    native().ExtensionStorage.reloadWidget(IOS_WIDGET_KIND);
   } catch {
     // A failed write leaves the widget on what it already shows.
   }
@@ -47,7 +59,7 @@ if (Platform.OS === "ios") {
   i18n.on("languageChanged", () => {
     try {
       writeLanguage();
-      ExtensionStorage.reloadWidget(IOS_WIDGET_KIND);
+      native().ExtensionStorage.reloadWidget(IOS_WIDGET_KIND);
     } catch {
       // Same as above.
     }
