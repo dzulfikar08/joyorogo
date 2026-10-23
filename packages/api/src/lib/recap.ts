@@ -6,7 +6,7 @@ import { getActiveLocale } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 
 import type { TrendPoint } from "./engine";
-import { shiftDate, streakFromDates } from "./engine";
+import { shiftDate } from "./engine";
 import { shortDateRange } from "./format";
 import { gainDayHit } from "./gain";
 
@@ -92,10 +92,10 @@ export type WeekRecapInput = {
   exercise: RecapExerciseDay[];
   /** Weight-trend points, oldest first, up to the end of the week. */
   trendPoints: TrendPoint[];
-  /** Distinct days with a food or weight log, for the streak. */
-  loggedDates: string[];
-  /** A Naikin BB plan: day status and the streak follow the gain rules (lib/gain). */
-  gain?: { streakDays: number };
+  /** The logging streak as of the week's end (or today, mid-week), from lib/streak-store. 0 in Hamil / Menyusui. */
+  streakDays: number;
+  /** A Naikin BB plan: the day status follows the gain rules (lib/gain). */
+  gain?: boolean;
 };
 
 export function dayStatus(eatenKcal: number, targetKcal: number, gain = false): DayStatus {
@@ -121,7 +121,7 @@ export function buildWeekRecap(input: WeekRecapInput): WeekRecap {
     const dayTarget = Math.round(input.dayTargets?.[date] ?? input.targetKcal);
     days.push({
       date,
-      status: date < today ? dayStatus(eatenKcal, dayTarget, input.gain !== undefined) : "pending",
+      status: date < today ? dayStatus(eatenKcal, dayTarget, input.gain === true) : "pending",
       eatenKcal,
       exerciseKcal: Math.round(exerciseByDate.get(date)?.kcal ?? 0),
       targetKcal: dayTarget,
@@ -177,29 +177,20 @@ export function buildWeekRecap(input: WeekRecapInput): WeekRecap {
         }
       : null;
 
-  const streakRef = weekEnd < today ? weekEnd : today;
-  const streakDays =
-    input.gain?.streakDays ??
-    streakFromDates(
-      input.loggedDates.filter((date) => date <= streakRef),
-      streakRef,
-    );
-
   return {
     weekStart,
     weekEnd,
     complete: weekEnd < today,
     evaluatedDays: judged.length,
     loggedDays: logged.length,
-    empty:
-      input.food.length === 0 && exercise.sessions === 0 && inWeek.length === 0,
+    empty: input.food.length === 0 && exercise.sessions === 0 && inWeek.length === 0,
     targetKcal,
     avgKcal,
     daysOnTarget: onTarget.length,
     exercise,
     weight,
-    streakDays,
-    gain: input.gain !== undefined,
+    streakDays: input.streakDays,
+    gain: input.gain === true,
     bestDay: bestDay
       ? {
           date: bestDay.date,

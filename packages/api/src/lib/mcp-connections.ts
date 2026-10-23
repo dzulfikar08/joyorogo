@@ -15,6 +15,8 @@ import {
 } from "@joyorogo/db/schema/oauth";
 import { isMcpDataScope } from "@joyorogo/auth/mcp-scopes";
 
+import { D1_MAX_PARAMS, chunk } from "./d1";
+
 /** Audit rows are kept this long. */
 export const MCP_AUDIT_RETENTION_DAYS = 90;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -208,13 +210,11 @@ export async function writeAudit(db: Database, entry: AuditEntry, now = Date.now
 export async function sweepMcp(db: Database, now = Date.now()): Promise<{ audit: number; clients: number }> {
   const auditCut = now - MCP_AUDIT_RETENTION_DAYS * DAY_MS;
   const stale = await db.select({ id: mcpAudit.id }).from(mcpAudit).where(lt(mcpAudit.createdAt, auditCut)).limit(200);
-  if (stale.length > 0) {
-    await db.delete(mcpAudit).where(
-      inArray(
-        mcpAudit.id,
-        stale.map((row) => row.id),
-      ),
-    );
+  for (const ids of chunk(
+    stale.map((row) => row.id),
+    D1_MAX_PARAMS,
+  )) {
+    await db.delete(mcpAudit).where(inArray(mcpAudit.id, ids));
   }
   // A client with no consent that is more than two days old and holds no token.
   const abandoned = await db
@@ -230,11 +230,14 @@ export async function sweepMcp(db: Database, now = Date.now()): Promise<{ audit:
     )
     .limit(100);
   if (abandoned.length > 0) {
-    const ids = abandoned.map((row) => row.clientId);
-    await db.batch([
+    const [first, ...rest] = chunk(
+      abandoned.map((row) => row.clientId),
+      D1_MAX_PARAMS,
+    ).flatMap((ids) => [
       db.delete(oauthClientResource).where(inArray(oauthClientResource.clientId, ids)),
       db.delete(oauthClient).where(inArray(oauthClient.clientId, ids)),
     ]);
+    await db.batch([first!, ...rest]);
   }
   return { audit: stale.length, clients: abandoned.length };
 }

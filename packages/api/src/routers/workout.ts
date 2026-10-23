@@ -2,6 +2,7 @@ import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { chunk, readChunked, rowsPerStatement } from "../lib/d1";
 import { exerciseLog, profile, weightLog } from "@joyorogo/db/schema/fitness";
 import {
   workoutCustomExercise,
@@ -165,13 +166,15 @@ async function listSessionsWithSets(
     .orderBy(desc(workoutSession.date), desc(workoutSession.createdAt))
     .limit(opts.limit);
   const ids = sessions.map((s) => s.id);
-  const sets = ids.length
-    ? await db
+  const sets = await readChunked(
+    ids,
+    (slice) =>
+      db
         .select()
         .from(workoutSet)
-        .where(inArray(workoutSet.sessionId, ids))
-        .orderBy(asc(workoutSet.sessionId), asc(workoutSet.position))
-    : [];
+        .where(inArray(workoutSet.sessionId, slice))
+        .orderBy(asc(workoutSet.sessionId), asc(workoutSet.position)),
+  );
   const bySession = new Map<string, typeof sets>();
   for (const set of sets) {
     const group = bySession.get(set.sessionId) ?? [];
@@ -480,7 +483,9 @@ export const workoutRouter = {
         context.db
           .delete(workoutSet)
           .where(eq(workoutSet.sessionId, sessionId)),
-        context.db.insert(workoutSet).values(setRows),
+        ...chunk(setRows, rowsPerStatement(workoutSet)).map((part) =>
+          context.db.insert(workoutSet).values(part),
+        ),
       ]);
 
       // session+sets keep old clients working; id+prs are the v2 contract.
@@ -562,30 +567,36 @@ export const workoutRouter = {
     )
     .handler(async ({ context, input }) => {
       const uniqueIds = [...new Set(input.exerciseIds)];
-      const rows = await context.db
-        .select({
-          sessionId: workoutSet.sessionId,
-          exerciseId: workoutSet.exerciseId,
-          setType: workoutSet.setType,
-          reps: workoutSet.reps,
-          weightKg: workoutSet.weightKg,
-          durationSec: workoutSet.durationSec,
-        })
-        .from(workoutSet)
-        .innerJoin(workoutSession, eq(workoutSet.sessionId, workoutSession.id))
-        .where(
-          and(
-            eq(workoutSet.userId, context.session.user.id),
-            inArray(workoutSet.exerciseId, uniqueIds),
-          ),
-        )
-        // newest session first, sets within a session in logged order
-        .orderBy(
-          desc(workoutSession.date),
-          desc(workoutSession.createdAt),
-          asc(workoutSet.position),
-        )
-        .limit(4000);
+      const rows = await readChunked(
+        uniqueIds,
+        (slice) =>
+          context.db
+            .select({
+              sessionId: workoutSet.sessionId,
+              exerciseId: workoutSet.exerciseId,
+              setType: workoutSet.setType,
+              reps: workoutSet.reps,
+              weightKg: workoutSet.weightKg,
+              durationSec: workoutSet.durationSec,
+            })
+            .from(workoutSet)
+            .innerJoin(workoutSession, eq(workoutSet.sessionId, workoutSession.id))
+            .where(
+              and(
+                eq(workoutSet.userId, context.session.user.id),
+                inArray(workoutSet.exerciseId, slice),
+              ),
+            )
+            // newest session first, sets within a session in logged order
+            .orderBy(
+              desc(workoutSession.date),
+              desc(workoutSession.createdAt),
+              asc(workoutSet.position),
+            )
+            .limit(4000),
+        // userId and the LIMIT are bound too
+        { reserved: 2 },
+      );
       const takenSession = new Map<string, string>();
       const result: Record<
         string,

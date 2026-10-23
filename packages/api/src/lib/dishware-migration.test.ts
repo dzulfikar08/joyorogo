@@ -3,13 +3,10 @@ import { join } from "node:path";
 
 import { describe, expect, test } from "bun:test";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
+import { d1TestClient, migrationFiles, migrationSql } from "@joyorogo/db/test-d1";
 
 const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-const files = readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort();
+const files = migrationFiles();
 const MIGRATION = "0057_dishware.sql";
 
 describe("0057_dishware", () => {
@@ -23,13 +20,10 @@ describe("0057_dishware", () => {
   });
 
   test("applies on top of a database that already holds users, and adds only the dishware table", async () => {
-    const client = createClient({ url: ":memory:" });
-    for (const file of files.filter((f) => f < MIGRATION)) {
-      await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-    }
+    const client = await d1TestClient({ migrations: (file) => file < MIGRATION });
     await client.executeMultiple(`INSERT INTO "user" (id, name, email) VALUES ('u1','u1','u1@t.id');`);
     const before = await client.execute(`SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`);
-    await client.executeMultiple(readFileSync(join(migrationsDir, MIGRATION), "utf8"));
+    await client.executeMultiple(migrationSql(MIGRATION));
     const after = await client.execute(`SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`);
     const names = (rows: Array<Record<string, unknown>>) => rows.map((r) => r.name);
     const known = names(before.rows);
@@ -39,8 +33,7 @@ describe("0057_dishware", () => {
   });
 
   test("a plate defaults to a typed diameter and an empty description, and goes with its account", async () => {
-    const client = createClient({ url: ":memory:" });
-    for (const file of files) await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
+    const client = await d1TestClient();
     await client.executeMultiple(`
       PRAGMA foreign_keys = ON;
       INSERT INTO "user" (id, name, email) VALUES ('u1','u1','u1@t.id');

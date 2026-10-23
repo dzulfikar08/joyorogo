@@ -15,6 +15,7 @@ import { dayOfMs } from "@joyorogo/i18n";
 import type { DayZone, Locale } from "@joyorogo/i18n";
 
 import type { AiBinding } from "../context";
+import { insertChunked } from "./d1";
 import { ageFromBirthYear, shiftDate } from "./engine";
 import { generateRecapText, recapModel } from "./recap-ai";
 import { reflectionFacts, selectionSignature, sleepFactorOfSignature } from "./recap-facts";
@@ -445,26 +446,25 @@ export async function generateWeekReflection(
     .where(and(eq(weekReflection.userId, userId), eq(weekReflection.weekStart, computed.weekStart), eq(weekReflection.locale, locale)));
   // Every call that reached the model is counted, answer or not. Only counts, outcomes and token usage are kept.
   deps.waitUntil(
-    db
-      .insert(aiUsage)
-      .values(
-        run.attempts.map((attempt, index) => ({
-          id: crypto.randomUUID(),
-          userId,
-          model,
-          scanType: "recap" as const,
-          latencyMs: attempt.latencyMs,
-          usageJson: JSON.stringify({
-            kind: "recap",
-            week: computed.weekStart,
-            attempt: index + 1,
-            outcome: attempt.outcome,
-            ...(attempt.reason ? { reason: attempt.reason } : {}),
-            ...(attempt.usage ? { usage: attempt.usage } : {}),
-          }),
-        })),
-      )
-      .then(
+    insertChunked(
+      db,
+      aiUsage,
+      run.attempts.map((attempt, index) => ({
+        id: crypto.randomUUID(),
+        userId,
+        model,
+        scanType: "recap" as const,
+        latencyMs: attempt.latencyMs,
+        usageJson: JSON.stringify({
+          kind: "recap",
+          week: computed.weekStart,
+          attempt: index + 1,
+          outcome: attempt.outcome,
+          ...(attempt.reason ? { reason: attempt.reason } : {}),
+          ...(attempt.usage ? { usage: attempt.usage } : {}),
+        }),
+      })),
+    ).then(
         () => undefined,
         (error: unknown) => console.error("[recap] ledger insert failed", error),
       ),

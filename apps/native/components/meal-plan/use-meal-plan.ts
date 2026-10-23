@@ -33,6 +33,7 @@ function refreshDiary(): void {
   void queryClient.invalidateQueries({ queryKey: orpc.plate.key() });
   void queryClient.invalidateQueries({ queryKey: orpc.day.key() });
   void queryClient.invalidateQueries({ queryKey: orpc.diary.key() });
+  void queryClient.invalidateQueries({ queryKey: orpc.fasting.key() });
 }
 
 /**

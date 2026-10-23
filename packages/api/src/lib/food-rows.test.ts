@@ -5,7 +5,9 @@ import { join, relative } from "node:path";
 
 import { describe, expect, test } from "bun:test";
 
-import type { FoodRowValues } from "./food-rows";
+import { d1TestDb } from "@joyorogo/db/test-d1";
+
+import { insertFoodRows, type FoodRowValues } from "./food-rows";
 
 const ROOT = join(import.meta.dir, "../../../..");
 
@@ -44,5 +46,35 @@ describe("food_log writers", () => {
     // @ts-expect-error undefined is not an explicit null
     const undef: FoodRowValues = { ...full, protein: undefined };
     expect([full, noProtein, noFiber, undef]).toHaveLength(4);
+  });
+
+  test("a scan with many items stays under D1's 100 bound parameters per statement", async () => {
+    // d1TestDb refuses what D1 refuses; SQLite alone allows thousands of parameters, which is what broke a 6-item breakfast scan.
+    const { client, db } = await d1TestDb();
+    await client.execute(`INSERT INTO "user" (id, name, email) VALUES ('u', 'u', 'u@test.id')`);
+    const rows: FoodRowValues[] = Array.from({ length: 12 }, (_, i) => ({
+      id: `row-${i}`,
+      userId: "u",
+      date: "2026-10-23",
+      meal: "sarapan",
+      name: `item ${i}`,
+      kcal: 100 + i,
+      grams: 50,
+      protein: 1,
+      carbs: 2,
+      fat: 3,
+      fiber: 0,
+      source: "ai",
+      scanId: "s".repeat(32),
+      photoId: "p".repeat(32),
+      plateScanId: "q".repeat(32),
+      plateId: "plate",
+      itemsJson: "[]",
+      eatenAt: 1792718148514,
+    }));
+    const stored = await insertFoodRows(db, rows);
+    expect(stored.map((row) => row.id)).toEqual(rows.map((row) => row.id));
+    const again = await insertFoodRows(db, rows, { ignoreConflicts: true });
+    expect(again).toEqual([]);
   });
 });

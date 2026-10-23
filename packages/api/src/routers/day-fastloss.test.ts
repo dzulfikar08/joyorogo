@@ -1,25 +1,13 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import { jakartaToday, shiftDate } from "../lib/engine";
 import { dayRouter } from "./day";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 
 const today = jakartaToday();
 
@@ -72,7 +60,6 @@ for (const id of ["low", "bf"]) {
   await client.execute(`INSERT INTO food_log (id, user_id, date, meal, name, kcal) VALUES ${rows.join(",")}`);
 }
 
-const db = drizzle(client) as unknown as Database;
 const as = (userId: string) => ({
   context: {
     db,

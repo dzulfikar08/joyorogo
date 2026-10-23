@@ -14,7 +14,11 @@
     "profile": "Profil",
     "openProfile": "Buka profil {{name}}",
     "fallbackName": "Kamu",
-    "share": "Bagikan progres"
+    "share": "Bagikan progres",
+    "streakAtRiskLabel_other": "Streak {{count}} hari beruntun. Catat hari ini untuk menjaga apinya",
+    "streakAtRiskGainLabel_other": "Streak {{count}} hari beruntun. Capai target makan hari ini untuk menjaga apinya",
+    "streakLapseLabel_other": "{{count}} hari tanpa catat. Ketuk untuk scan makanan",
+    "streakLapseGainLabel_other": "{{count}} hari belum capai target makan. Ketuk untuk scan makanan"
   },
   "banner": {
     "scans": "Scan AI {{n}}x/hari",

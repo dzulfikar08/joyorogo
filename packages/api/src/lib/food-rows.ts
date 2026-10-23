@@ -6,6 +6,8 @@
 import type { Database } from "@joyorogo/db";
 import { foodLog } from "@joyorogo/db/schema/fitness";
 
+import { insertChunked } from "./d1";
+
 export type FoodRowValues = Omit<
   typeof foodLog.$inferInsert,
   "grams" | "protein" | "carbs" | "fat" | "fiber" | "source" | "createdAt"
@@ -20,12 +22,17 @@ export type FoodRowValues = Omit<
   source: string;
 };
 
-/** Inserts rows and answers the stored ones; with `ignoreConflicts` a row whose id exists is skipped (and not answered). */
-export function insertFoodRows(
+/**
+ * Inserts rows and answers the stored ones; with `ignoreConflicts` a row whose id exists is skipped (and not answered).
+ * D1 binds at most 100 parameters per statement, so more rows than fit go as one batch of statements (one transaction).
+ */
+export async function insertFoodRows(
   db: Database,
   rows: readonly FoodRowValues[],
   options: { ignoreConflicts?: boolean } = {},
 ): Promise<Array<typeof foodLog.$inferSelect>> {
-  const insert = db.insert(foodLog).values([...rows]);
-  return (options.ignoreConflicts ? insert.onConflictDoNothing({ target: foodLog.id }) : insert).returning();
+  const stored = await insertChunked(db, foodLog, rows, (insert) =>
+    (options.ignoreConflicts ? insert.onConflictDoNothing({ target: foodLog.id }) : insert).returning(),
+  );
+  return stored.flat();
 }

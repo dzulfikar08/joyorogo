@@ -1,13 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import { deleteAllUserData } from "../lib/privacy";
@@ -15,13 +9,7 @@ import { STRENGTH_LIMITS } from "../lib/strength-record";
 import type { StrengthRecordInput } from "../lib/strength-record";
 import { strengthRouter } from "./strength";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 await client.executeMultiple(`
   INSERT INTO "user" (id, name, email, tier, founder_until) VALUES
     ('free', 'free', 'free@test.id', 'free', NULL),
@@ -29,7 +17,6 @@ await client.executeMultiple(`
     ('pro2', 'pro2', 'pro2@test.id', 'founder', NULL);
 `);
 
-const db = drizzle(client) as unknown as Database;
 const as = (userId: string, env: Context["env"] = { FREE_DAILY_SCANS: "3" }) => ({
   context: { db, env, waitUntil: () => {}, session: { user: { id: userId } } } as unknown as Context,
 });
@@ -193,6 +180,29 @@ describe("account cap", () => {
     const again = await push("capped", [pref("new4", 5), pref("fill2", 60, 10)]);
     expect(again).toMatchObject({ stored: 1 });
     expect(again.status === "ok" && again.rejected).toEqual([{ kind: "pref", id: "new4", reason: "full" }]);
+  });
+});
+
+describe("account cap with a full batch", () => {
+  test("100 records into an account with room for 50: the key lookup spans several statements, 60 stored, 40 full", async () => {
+    await client.executeMultiple(`INSERT INTO "user" (id, name, email, tier) VALUES ('capped100', 'c', 'c100@test.id', 'founder');`);
+    await client.execute({
+      sql: `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < ?)
+            INSERT INTO strength_record (user_id, kind, id, json, updated_at, deleted_at, server_at)
+            SELECT 'capped100', 'pref', 'fill' || i, '{"id":"fill' || i || '","restSec":90,"updatedAt":1,"deletedAt":null}', 1, NULL, i FROM n`,
+      args: [STRENGTH_LIMITS.perUser - 50],
+    });
+    // Ten of the hundred already exist (they always fit); of the ninety new ones only fifty fit.
+    const records = [
+      ...Array.from({ length: 10 }, (_, i) => pref(`fill${i + 1}`, 50, 20)),
+      ...Array.from({ length: 90 }, (_, i) => pref(`new${String(i).padStart(2, "0")}`, 5)),
+    ];
+    const result = await push("capped100", records);
+    if (result.status !== "ok") throw new Error("locked");
+    expect(result.stored).toBe(60);
+    expect(result.rejected).toHaveLength(40);
+    expect(result.rejected.every((r) => r.reason === "full")).toBe(true);
+    expect((await call(strengthRouter.status, undefined, as("capped100"))).records).toBe(STRENGTH_LIMITS.perUser);
   });
 });
 

@@ -1,25 +1,13 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import { FIT_WEB_LIMITS } from "../lib/fit-web";
 import { fitWebRouter } from "./fit-web";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 
 // 2026-10-10 06:00 WIB and 2026-10-10 23:30 WIB are the same WIB day; 2026-10-11 00:10 WIB is the next one.
 const wib = (iso: string) => Math.floor(Date.parse(`${iso}+07:00`) / 1000);
@@ -96,7 +84,6 @@ for (const row of [
   await client.execute(row);
 }
 
-const db = drizzle(client) as unknown as Database;
 // FREE_DAILY_SCANS turns the paywall on; without it every account counts as Pro.
 const as = (userId: string, env: Record<string, string> = { FREE_DAILY_SCANS: "3" }) => ({
   context: {

@@ -2,14 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { DEFAULT_CALIBRATION_PREFS } from "./calibration-store";
 
-import {
-  checkTargetDate,
-  computeTargets,
-  gainStreak,
-  needsBreakdown,
-  shiftDate,
-  weightTrend,
-} from "./engine";
+import { checkTargetDate, computeTargets, needsBreakdown, shiftDate, weightTrend } from "./engine";
 import type { ProfileInput } from "./engine";
 import {
   CONSULT_BMI,
@@ -68,7 +61,12 @@ describe("goalOf", () => {
 });
 
 describe("resolveGoal", () => {
-  const base = { stored: "lose", weightNowKg: 69.5, currentTargetKg: 70, nextTargetKg: 70 } as const;
+  const base = {
+    stored: "lose",
+    weightNowKg: 69.5,
+    currentTargetKg: 70,
+    nextTargetKg: 70,
+  } as const;
 
   test("an explicit choice wins", () => {
     expect(resolveGoal({ ...base, explicit: "maintain" })).toBe("maintain");
@@ -126,7 +124,13 @@ describe("planGoal: Hamil and Menyusui take precedence", () => {
     babyBirthDate: null,
     maternalConditions: null,
   };
-  const history = { latestWeightKg: 50, weighIns: [], intake: [], exercise: [], prefs: DEFAULT_CALIBRATION_PREFS };
+  const history = {
+    latestWeightKg: 50,
+    weighIns: [],
+    intake: [],
+    exercise: [],
+    prefs: DEFAULT_CALIBRATION_PREFS,
+  };
 
   test("buildPlan: gain row gives a surplus plan", () => {
     const plan = buildPlan(row({}), history, TODAY);
@@ -151,10 +155,14 @@ describe("planGoal: Hamil and Menyusui take precedence", () => {
   });
 
   test("buildPlan: a loss row (the default) never becomes a gain after overshooting its target", () => {
-    const plan = buildPlan(row({ goal: "lose", startWeightKg: 80, targetWeightKg: 70 }), {
-      ...history,
-      latestWeightKg: 69,
-    }, TODAY);
+    const plan = buildPlan(
+      row({ goal: "lose", startWeightKg: 80, targetWeightKg: 70 }),
+      {
+        ...history,
+        latestWeightKg: 69,
+      },
+      TODAY,
+    );
     expect(plan.targets.gain).toBeNull();
     expect(plan.targets.notes).toContain("MAINTENANCE");
   });
@@ -221,7 +229,10 @@ describe("computeTargets in gain mode", () => {
   });
 
   test("a far date clamps at +200: the plan holds the floor and finishes earlier", () => {
-    const t = computeTargets({ ...lean, targetWeightKg: 61, targetDate: shiftDate(TODAY, 700) }, { today: TODAY });
+    const t = computeTargets(
+      { ...lean, targetWeightKg: 61, targetDate: shiftDate(TODAY, 700) },
+      { today: TODAY },
+    );
     expect(t.gain!.rawSurplusKcal).toBe(11);
     expect(t.gain!.surplusKcal).toBe(200);
     expect(t.gain!.daysToTarget).toBe(39);
@@ -287,7 +298,10 @@ describe("computeTargets in gain mode", () => {
   });
 
   test("a hold goal never cuts, even above the stored target", () => {
-    const t = computeTargets({ ...lean, goal: "maintain", weightKg: 75, targetWeightKg: 70 }, { today: TODAY });
+    const t = computeTargets(
+      { ...lean, goal: "maintain", weightKg: 75, targetWeightKg: 70 },
+      { today: TODAY },
+    );
     expect(t.gain).toBeNull();
     expect(t.deficitKcal).toBe(0);
     expect(t.notes).toContain("MAINTENANCE");
@@ -423,7 +437,11 @@ describe("checkTargetDate in reverse", () => {
   });
 
   test("under +200 kcal is gainSlow and offers the days the floor needs", () => {
-    const check = checkTargetDate({ ...base, targetWeightKg: 61, targetDate: shiftDate(TODAY, 700) });
+    const check = checkTargetDate({
+      ...base,
+      targetWeightKg: 61,
+      targetDate: shiftDate(TODAY, 700),
+    });
     if (check.status !== "gainSlow") throw new Error(`expected gainSlow, got ${check.status}`);
     expect(check.surplusKcal).toBe(200);
     expect(check.feasibleDays).toBe(39);
@@ -434,7 +452,12 @@ describe("checkTargetDate in reverse", () => {
     expect(checkTargetDate({ ...base, targetDate: "2032-12-01" }).status).toBe("tooFar");
     expect(checkTargetDate({ ...base, targetDate: "besok" }).status).toBe("invalid");
     expect(
-      checkTargetDate({ ...base, weightNowKg: 80, targetWeightKg: 70, targetDate: shiftDate(TODAY, 90) }).status,
+      checkTargetDate({
+        ...base,
+        weightNowKg: 80,
+        targetWeightKg: 70,
+        targetDate: shiftDate(TODAY, 90),
+      }).status,
     ).toBe("ok");
   });
 
@@ -474,26 +497,12 @@ describe("the Sisa flip", () => {
 
 describe("the streak rule: days at 90% of the target", () => {
   const target = 2000;
-  const day = (offset: number, kcal: number) => ({ date: shiftDate(TODAY, offset), kcal });
 
   test("exactly 90% counts, just under does not", () => {
     expect(gainDayHit(1800, target)).toBe(true);
     expect(gainDayHit(1799, target)).toBe(false);
     expect(gainDayHit(5000, target)).toBe(true);
     expect(gainDayHit(500, 0)).toBe(false);
-  });
-
-  test("counts consecutive hitting days ending today", () => {
-    expect(gainStreak([day(0, 2000), day(-1, 1850), day(-2, 2300)], target, TODAY)).toBe(3);
-  });
-
-  test("today not there yet keeps the streak through yesterday", () => {
-    expect(gainStreak([day(0, 600), day(-1, 1900), day(-2, 1900)], target, TODAY)).toBe(2);
-  });
-
-  test("a day under 90% breaks it, a day with any log but too little does not count", () => {
-    expect(gainStreak([day(0, 2000), day(-1, 1700), day(-2, 2000)], target, TODAY)).toBe(1);
-    expect(gainStreak([day(0, 1000)], target, TODAY)).toBe(0);
   });
 });
 
@@ -523,8 +532,8 @@ describe("recap in gain mode", () => {
       food: days,
       exercise: [],
       trendPoints: [],
-      loggedDates: [],
-      gain: { streakDays: 4 },
+      streakDays: 4,
+      gain: true,
     });
     expect(recap.gain).toBe(true);
     expect(recap.daysOnTarget).toBe(4);
@@ -542,7 +551,7 @@ describe("recap in gain mode", () => {
       food: days,
       exercise: [],
       trendPoints: [],
-      loggedDates: [],
+      streakDays: 0,
     });
     expect(recap.gain).toBe(false);
   });
@@ -553,13 +562,23 @@ describe("weight trend toward a higher target", () => {
     Array.from({ length: n }, (_, i) => ({ date: shiftDate(TODAY, i - (n - 1)), weightKg: at(i) }));
 
   test("a steady gain projects the date it reaches the target", () => {
-    const trend = weightTrend(series(28, (i) => 60 + 0.05 * i), 66, TODAY)!;
+    const trend = weightTrend(
+      series(28, (i) => 60 + 0.05 * i),
+      66,
+      TODAY,
+    )!;
     expect(trend.weeklyRateKg).toBeCloseTo(0.35, 2);
     expect(trend.projectedDate).not.toBeNull();
   });
 
   test("a gain trend toward a lower target does not project", () => {
-    expect(weightTrend(series(20, (i) => 80 + 0.05 * i), 70, TODAY)!.projectedDate).toBeNull();
+    expect(
+      weightTrend(
+        series(20, (i) => 80 + 0.05 * i),
+        70,
+        TODAY,
+      )!.projectedDate,
+    ).toBeNull();
   });
 });
 
@@ -606,7 +625,13 @@ describe("the AI note", () => {
 
 describe("gainNumbers", () => {
   test("reports BMI of the weight and the target", () => {
-    const n = gainNumbers({ weightNowKg: 60, targetKg: 66, heightCm: 170, days: 180, idealMaxKg: 72 });
+    const n = gainNumbers({
+      weightNowKg: 60,
+      targetKg: 66,
+      heightCm: 170,
+      days: 180,
+      idealMaxKg: 72,
+    });
     expect(n.bmi).toBe(20.8);
     expect(n.targetBmi).toBe(22.8);
   });

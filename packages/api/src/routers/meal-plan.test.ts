@@ -1,26 +1,15 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
+import { eatenAtFromClock } from "../lib/eaten-at";
 import { jakartaToday, shiftDate } from "../lib/engine";
 import { computePortion, INGREDIENTS, recipeById, RECIPES } from "../lib/meal/catalog";
 import { mealPlanRouter } from "./meal-plan";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 
 const today = jakartaToday();
 const old = 1_700_000_000_000;
@@ -36,7 +25,6 @@ await client.executeMultiple(`
     SELECT id, 1988, 'male', 172, 80, 72, '2031-01-01', 'light' FROM "user" WHERE id IN ('pro', 'free', 'other');
 `);
 
-const db = drizzle(client) as unknown as Database;
 // A server WITH a paywall: FREE_DAILY_SCANS set, so only founders are Pro.
 const as = (userId: string) =>
   ({
@@ -206,6 +194,18 @@ describe("mealPlan: Sudah makan", () => {
     // after the undo it can be logged again, once more with the same id
     const again = await call(mealPlanRouter.eat, { date: today, slot: item.slot }, as("pro"));
     expect(again.logId).toBe(`meal-plan:pro:${today}:${item.slot}`);
+    await call(mealPlanRouter.undoEat, { date: today, slot: item.slot }, as("pro"));
+  });
+
+  test("Sudah makan can carry the time it was eaten; a time on another day is refused", async () => {
+    const item = (await ready("pro")).plan?.days[0]?.items.find((i) => !i.eaten && !i.covered);
+    if (!item) return;
+    const early = eatenAtFromClock(today, "00:01")!;
+    const wrongDay = eatenAtFromClock(shiftDate(today, -2), "12:00")!;
+    await expect(call(mealPlanRouter.eat, { date: today, slot: item.slot, eatenAt: wrongDay }, as("pro"))).rejects.toThrow("invalid_eaten_at:wrong_day");
+    expect((await sql(`SELECT count(*) AS n FROM food_log WHERE user_id = 'pro' AND date = ? AND meal = ?`, [today, item.slot])).rows[0]?.n).toBe(0);
+    const res = await call(mealPlanRouter.eat, { date: today, slot: item.slot, eatenAt: early }, as("pro"));
+    expect(res.row.eatenAt).toBe(early);
     await call(mealPlanRouter.undoEat, { date: today, slot: item.slot }, as("pro"));
   });
 

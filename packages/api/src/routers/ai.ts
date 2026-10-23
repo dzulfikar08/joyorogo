@@ -31,6 +31,7 @@ import type {
 } from "../lib/sticker";
 
 import { protectedProcedure } from "../index";
+import { insertChunked } from "../lib/d1";
 import { serverT } from "../lib/messages";
 import { scanFailMessage } from "../lib/scan-fail-message";
 import { MEALS, jakartaToday, shiftDate } from "../lib/engine";
@@ -1341,7 +1342,9 @@ export const aiRouter = {
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
-      await context.db.insert(scanCorrection).values(
+      await insertChunked(
+        context.db,
+        scanCorrection,
         input.items.map((item) => ({
           id: crypto.randomUUID(),
           userId,

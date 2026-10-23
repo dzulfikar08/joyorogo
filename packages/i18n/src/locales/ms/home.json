@@ -14,7 +14,11 @@
     "profile": "Profil",
     "openProfile": "Buka profil {{name}}",
     "fallbackName": "Anda",
-    "share": "Kongsi kemajuan"
+    "share": "Kongsi kemajuan",
+    "streakAtRiskLabel_other": "Streak {{count}} hari berturut-turut. Catat hari ini untuk menjaga api",
+    "streakAtRiskGainLabel_other": "Streak {{count}} hari berturut-turut. Capai sasaran makan hari ini untuk menjaga api",
+    "streakLapseLabel_other": "{{count}} hari tanpa catat. Ketik untuk imbas makanan",
+    "streakLapseGainLabel_other": "{{count}} hari belum capai sasaran makan. Ketik untuk imbas makanan"
   },
   "banner": {
     "scans": "Imbas AI {{n}}x/hari",

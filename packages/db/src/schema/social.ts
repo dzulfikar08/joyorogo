@@ -277,6 +277,10 @@ export const socialReport = sqliteTable(
       .references(() => user.id, { onDelete: "cascade" }),
     postId: text("post_id").references(() => post.id, { onDelete: "cascade" }),
     commentId: text("comment_id").references(() => postComment.id, { onDelete: "cascade" }),
+    // A profile report: exactly one of post_id / comment_id / user_id is set.
+    userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+    // The app the report was sent from, so the admin can tell JoyoFit reports apart.
+    source: text("source", { enum: ["joyorogo", "joyofit"] }).notNull().default("joyorogo"),
     // 'spam' | 'kasar' | 'salah_info' | 'lainnya'
     reason: text("reason", { enum: ["spam", "kasar", "salah_info", "lainnya"] }).notNull(),
     note: text("note"),

@@ -16,7 +16,7 @@ const base = {
   food: [],
   exercise: [],
   trendPoints: [],
-  loggedDates: [],
+  streakDays: 0,
 };
 
 describe("weekStartOf", () => {
@@ -157,14 +157,6 @@ describe("buildWeekRecap", () => {
     const one = buildWeekRecap({ ...base, trendPoints: [point("2026-10-13", 80)] });
     expect(one.weight).toBeNull();
     expect(one.empty).toBe(false);
-  });
-
-  test("streak is counted as of the week's end, not today", () => {
-    const loggedDates = ["2026-10-14", "2026-10-15", "2026-10-16", "2026-10-17", "2026-10-18", "2026-10-19"];
-    const past = buildWeekRecap({ ...base, loggedDates });
-    expect(past.streakDays).toBe(5);
-    const now = buildWeekRecap({ ...base, weekStart: "2026-10-19", loggedDates });
-    expect(now.streakDays).toBe(6);
   });
 
   test("share fields for the story card", () => {

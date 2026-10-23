@@ -30,6 +30,7 @@ import type { DayZone } from "@joyorogo/i18n";
 
 import { publicProcedure, protectedProcedure } from "../index";
 import { jakartaToday } from "../lib/engine";
+import { D1_MAX_PARAMS, chunk } from "../lib/d1";
 import { dayBounds } from "../lib/tiers";
 import { base64ToBytes, commentPhotoKey } from "../lib/sticker";
 import {
@@ -2014,16 +2015,23 @@ export const socialRouter = {
       z.object({
         postId: z.string().optional(),
         commentId: z.string().optional(),
+        /** A profile report (a member, not one of their posts). */
+        userId: z.string().optional(),
+        /** The app the report comes from; the admin Reports page tags it. */
+        source: z.enum(["joyorogo", "joyofit"]).default("joyorogo"),
         reason: z.enum(["spam", "kasar", "salah_info", "lainnya"]),
         note: z.string().trim().max(NOTE_MAX).optional(),
       }),
     )
     .handler(async ({ context, input }) => {
       const t = serverT(context.locale, "feed");
-      if (Boolean(input.postId) === Boolean(input.commentId)) {
+      if ([input.postId, input.commentId, input.userId].filter(Boolean).length !== 1) {
         throw new ORPCError("BAD_REQUEST", { message: t("server.error.reportOne") });
       }
       const me = context.session.user.id;
+      if (input.userId === me) {
+        throw new ORPCError("BAD_REQUEST", { message: t("server.error.reportSelf") });
+      }
       const dayCount = await countRow(
         context.db
           .select({ total: count() })
@@ -2047,12 +2055,21 @@ export const socialRouter = {
           .where(eq(postComment.id, input.commentId))
           .limit(1);
         if (!comment) throw new ORPCError("NOT_FOUND", { message: t("server.error.commentNotFound") });
+      } else if (input.userId) {
+        const [member] = await context.db
+          .select({ id: user.id })
+          .from(user)
+          .where(eq(user.id, input.userId))
+          .limit(1);
+        if (!member) throw new ORPCError("NOT_FOUND", { message: t("server.error.profileNotFound") });
       }
       await context.db.insert(socialReport).values({
         id: crypto.randomUUID(),
         reporterId: me,
         postId: input.postId ?? null,
         commentId: input.commentId ?? null,
+        userId: input.userId ?? null,
+        source: input.source,
         reason: input.reason,
         note: input.note?.length ? input.note : null,
       });
@@ -2116,13 +2133,20 @@ export const socialRouter = {
   notificationsMarkRead: protectedProcedure
     .input(z.object({ ids: z.array(z.string()).optional() }))
     .handler(async ({ context, input }) => {
-      const filters = input.ids?.length
-        ? and(
-            eq(socialNotification.userId, context.session.user.id),
-            inArray(socialNotification.id, input.ids),
-          )
-        : eq(socialNotification.userId, context.session.user.id);
-      await context.db.update(socialNotification).set({ readAt: new Date() }).where(filters);
+      const userId = context.session.user.id;
+      const readAt = new Date();
+      if (!input.ids?.length) {
+        await context.db.update(socialNotification).set({ readAt }).where(eq(socialNotification.userId, userId));
+        return { ok: true };
+      }
+      // `ids` is caller-sized: one UPDATE per slice (userId and readAt are bound too), all in one atomic batch.
+      const [first, ...rest] = chunk(input.ids, D1_MAX_PARAMS - 2).map((ids) =>
+        context.db
+          .update(socialNotification)
+          .set({ readAt })
+          .where(and(eq(socialNotification.userId, userId), inArray(socialNotification.id, ids))),
+      );
+      await context.db.batch([first!, ...rest]);
       return { ok: true };
     }),
 };

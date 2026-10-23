@@ -1,13 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { afterEach, describe, expect, setSystemTime, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import { deleteAllUserData } from "../lib/privacy";
@@ -24,13 +18,7 @@ import {
 } from "../lib/sync-engine";
 import { syncRouter } from "./sync";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 await client.executeMultiple(`
   INSERT INTO "user" (id, name, email, tier, founder_until) VALUES
     ('free', 'free', 'free@test.id', 'free', NULL),
@@ -38,7 +26,6 @@ await client.executeMultiple(`
     ('pro2', 'pro2', 'pro2@test.id', 'founder', NULL);
 `);
 
-const db = drizzle(client) as unknown as Database;
 const as = (userId: string, env: Context["env"] = { FREE_DAILY_SCANS: "3" }) => ({
   context: { db, env, waitUntil: () => {}, session: { user: { id: userId } } } as unknown as Context,
 });
@@ -496,6 +483,30 @@ describe("account size quota", () => {
     expect(a.adapters.pref!.rows.get("tiny")?.dirty).toBe(false);
     // Filling a 50 MB account through the in-memory D1 takes far longer than bun's 5 s default on a loaded machine.
   }, 120_000);
+});
+
+describe("record cap with a full batch", () => {
+  test("100 records into an account with room for 50: the key lookup spans several statements, 60 stored, 40 full", async () => {
+    await client.execute({ sql: 'INSERT INTO "user" (id, name, email, tier, founder_until) VALUES (?, ?, ?, \'founder\', NULL)', args: ["cap100", "cap100", "cap100@test.id"] });
+    await client.execute({
+      sql: `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < ?)
+            INSERT INTO sync_record (user_id, ns, kind, id, json, updated_at, deleted_at, rank, server_at)
+            SELECT 'cap100', 'fit', 'pref', 'fill' || i, '{"value":1}', 1, NULL, 0, i FROM n`,
+      args: [SYNC_LIMITS.perUser - 50],
+    });
+    clock(at(4000));
+    const record = (id: string) => ({ kind: "pref", id, json: JSON.stringify({ value: 2 }), updatedAt: at(4000), deletedAt: null, rank: 0 });
+    // Ten of the hundred already exist (they always fit); of the ninety new ones only fifty fit.
+    const records = [
+      ...Array.from({ length: 10 }, (_, i) => record(`fill${i + 1}`)),
+      ...Array.from({ length: 90 }, (_, i) => record(`new${String(i).padStart(2, "0")}`)),
+    ];
+    const result = await call(syncRouter.push, { ns: "fit", clientNow: at(4000), records }, as("cap100"));
+    if (result.status !== "ok") throw new Error("locked");
+    expect(result.stored).toBe(60);
+    expect(result.rejected).toHaveLength(40);
+    expect(result.rejected.every((r) => r.reason === "full")).toBe(true);
+  });
 });
 
 describe("wipe and account deletion", () => {

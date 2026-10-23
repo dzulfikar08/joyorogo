@@ -11,6 +11,7 @@ import { mealPlan, mealPlanSwap, mealPrefs, mealShoppingCheck } from "@joyorogo/
 import type { MealPlanRow } from "@joyorogo/db/schema/meal";
 import { plate } from "@joyorogo/db/schema/plans";
 
+import { readChunked } from "../d1";
 import { effectiveRamadan, jakartaClockHour, jakartaToday, shiftDate } from "../engine";
 import type { Meal } from "../engine";
 import { isFastingPattern } from "../fasting";
@@ -233,12 +234,15 @@ export async function loadEaten(db: Database, userId: string, from: string, to: 
     byDate.set(r.date, day);
   }
   const existing =
-    logIds.length === 0
-      ? []
-      : await db
+    await readChunked(
+      logIds,
+      (slice) =>
+        db
           .select({ id: foodLog.id })
           .from(foodLog)
-          .where(and(eq(foodLog.userId, userId), inArray(foodLog.id, logIds)));
+          .where(and(eq(foodLog.userId, userId), inArray(foodLog.id, slice))),
+      { reserved: 1 },
+    );
   return { byDate, existingLogIds: new Set(existing.map((r) => r.id)) };
 }
 

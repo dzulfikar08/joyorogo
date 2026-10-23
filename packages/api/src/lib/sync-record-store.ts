@@ -14,6 +14,7 @@ import { and, asc, eq, gt, inArray, sql } from "drizzle-orm";
 import type { Database } from "@joyorogo/db";
 import { syncRecord } from "@joyorogo/db/schema/sync";
 
+import { insertChunked, readChunked } from "./d1";
 import {
   SYNC_LIMITS,
   buildSyncPage,
@@ -25,11 +26,6 @@ import {
   type SyncPullPage,
   type SyncRecordInput,
 } from "./sync-record";
-
-/** D1 allows 100 bound parameters per statement; a row binds 9. */
-const ROWS_PER_STATEMENT = 10;
-/** `(kind, id)` pairs per lookup statement: two parameters each plus user and ns. */
-const KEYS_PER_LOOKUP = 40;
 
 export interface SyncRejected {
   kind: string;
@@ -100,26 +96,28 @@ async function existingSizes(
   ns: SyncNs,
   records: readonly SyncRecordInput[],
 ): Promise<Map<string, number>> {
-  const found = new Map<string, number>();
-  for (let i = 0; i < records.length; i += KEYS_PER_LOOKUP) {
-    const pairs = records.slice(i, i + KEYS_PER_LOOKUP).map((r) => sql`(${r.kind}, ${r.id})`);
-    const rows = await db
-      .select({
-        kind: syncRecord.kind,
-        id: syncRecord.id,
-        bytes: sql<number>`length(cast(${syncRecord.json} as blob))`,
-      })
-      .from(syncRecord)
-      .where(
-        and(
-          eq(syncRecord.userId, userId),
-          eq(syncRecord.ns, ns),
-          sql`(${syncRecord.kind}, ${syncRecord.id}) in (values ${sql.join(pairs, sql`, `)})`,
-        ),
-      );
-    for (const row of rows) found.set(`${row.kind}\u0000${row.id}`, row.bytes);
-  }
-  return found;
+  const rows = await readChunked(
+    records,
+    (slice) => {
+      const pairs = slice.map((r) => sql`(${r.kind}, ${r.id})`);
+      return db
+        .select({
+          kind: syncRecord.kind,
+          id: syncRecord.id,
+          bytes: sql<number>`length(cast(${syncRecord.json} as blob))`,
+        })
+        .from(syncRecord)
+        .where(
+          and(
+            eq(syncRecord.userId, userId),
+            eq(syncRecord.ns, ns),
+            sql`(${syncRecord.kind}, ${syncRecord.id}) in (values ${sql.join(pairs, sql`, `)})`,
+          ),
+        );
+    },
+    { reserved: 2, perKey: 2 },
+  );
+  return new Map(rows.map((row) => [`${row.kind}\u0000${row.id}`, row.bytes]));
 }
 
 /** Stores a batch (the caller has checked the Pro gate, `SYNC_LIMITS.batch` and `pushBytes`). */
@@ -179,42 +177,36 @@ export async function pushSyncRecords(
   }
 
   const base = firstSyncServerAt(now, totals.maxServerAt);
-  const statements = [];
-  for (let i = 0; i < accepted.length; i += ROWS_PER_STATEMENT) {
-    const values = accepted.slice(i, i + ROWS_PER_STATEMENT).map((record, offset) => ({
-      userId,
-      ns,
-      kind: record.kind,
-      id: record.id,
-      json: record.json,
-      ...normalizeTimes(record, clientNow, now),
-      rank: record.rank,
-      serverAt: base + i + offset,
-    }));
-    statements.push(
-      db
-        .insert(syncRecord)
-        .values(values)
-        .onConflictDoUpdate({
-          target: [syncRecord.userId, syncRecord.ns, syncRecord.kind, syncRecord.id],
-          set: {
-            json: sql`excluded.json`,
-            updatedAt: sql`excluded.updated_at`,
-            deletedAt: sql`excluded.deleted_at`,
-            rank: sql`excluded.rank`,
-            serverAt: sql`excluded.server_at`,
-          },
-          setWhere: sql`CASE
-            WHEN excluded.deleted_at IS NOT NULL OR ${syncRecord.deletedAt} IS NOT NULL
-              THEN excluded.updated_at >= ${syncRecord.updatedAt}
-            ELSE excluded.rank > ${syncRecord.rank}
-              OR (excluded.rank = ${syncRecord.rank} AND excluded.updated_at >= ${syncRecord.updatedAt})
-            END`,
-        })
-        .returning({ id: syncRecord.id }),
-    );
-  }
-  const results = await db.batch(statements as [(typeof statements)[number], ...(typeof statements)[number][]]);
+  const rows = accepted.map((record, index) => ({
+    userId,
+    ns,
+    kind: record.kind,
+    id: record.id,
+    json: record.json,
+    ...normalizeTimes(record, clientNow, now),
+    rank: record.rank,
+    serverAt: base + index,
+  }));
+  const results = await insertChunked(db, syncRecord, rows, (insert) =>
+    insert
+      .onConflictDoUpdate({
+        target: [syncRecord.userId, syncRecord.ns, syncRecord.kind, syncRecord.id],
+        set: {
+          json: sql`excluded.json`,
+          updatedAt: sql`excluded.updated_at`,
+          deletedAt: sql`excluded.deleted_at`,
+          rank: sql`excluded.rank`,
+          serverAt: sql`excluded.server_at`,
+        },
+        setWhere: sql`CASE
+          WHEN excluded.deleted_at IS NOT NULL OR ${syncRecord.deletedAt} IS NOT NULL
+            THEN excluded.updated_at >= ${syncRecord.updatedAt}
+          ELSE excluded.rank > ${syncRecord.rank}
+            OR (excluded.rank = ${syncRecord.rank} AND excluded.updated_at >= ${syncRecord.updatedAt})
+          END`,
+      })
+      .returning({ id: syncRecord.id }),
+  );
   const stored = results.reduce((total, rows) => total + rows.length, 0);
   return { stored, skipped: accepted.length - stored, rejected };
 }

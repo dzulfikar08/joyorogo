@@ -259,6 +259,33 @@
     "fasting": {
       "window": "Makan sehingga {{close}}",
       "next": "Makan lagi {{open}}"
+    },
+    "streak": {
+      "title": "Streak catatan",
+      "days": "hari berturut-turut",
+      "lapse": "hari tanpa catat",
+      "lapseGain": "hari belum capai sasaran",
+      "done": {
+        "1": "Api menyala. Jumpa esok!",
+        "2": "Bagus, hari ini sudah siap."
+      },
+      "atRisk": {
+        "1": "Jaga api: catat hari ini",
+        "2": "Satu gambar cukup untuk jaga api.",
+        "gain": "Jaga api: capai sasaran hari ini"
+      },
+      "broken": {
+        "1": "Joyo tunggu ni. Satu gambar?",
+        "2": "Tak apa, jom mula semula.",
+        "3": "Catat satu hidangan. Api nyala!"
+      },
+      "asleep": "Joyo tertidur menunggu.",
+      "freshTitle": "Nyalakan api",
+      "fresh": "Catat satu hidangan, streak anda bermula.",
+      "freshGain": "Capai sasaran makan hari ini untuk mula streak.",
+      "off": "Ketik untuk imbas makanan anda.",
+      "signInLine": "Buka JoyoRogo untuk log masuk.",
+      "gallery": "Hari berturut-turut anda mencatat makanan, ditemani Joyo. Ketik untuk imbas makanan."
     }
   }
 }

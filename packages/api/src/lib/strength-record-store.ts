@@ -10,6 +10,7 @@ import { and, asc, eq, gt, sql } from "drizzle-orm";
 import type { Database } from "@joyorogo/db";
 import { strengthRecord } from "@joyorogo/db/schema/strength";
 
+import { insertChunked, readChunked } from "./d1";
 import {
   STRENGTH_LIMITS,
   buildPullPage,
@@ -19,11 +20,6 @@ import {
   type StrengthInvalidReason,
   type StrengthRecordInput,
 } from "./strength-record";
-
-/** D1 allows 100 bound parameters per statement; a row binds 7. */
-const ROWS_PER_STATEMENT = 14;
-/** `(kind, id)` pairs per lookup statement: two parameters each plus the user. */
-const KEYS_PER_LOOKUP = 40;
 
 export interface StrengthRejected {
   kind: string;
@@ -66,16 +62,18 @@ export async function readStrengthPage(db: Database, userId: string, since: numb
 }
 
 async function existingKeys(db: Database, userId: string, records: readonly StrengthRecordInput[]): Promise<Set<string>> {
-  const found = new Set<string>();
-  for (let i = 0; i < records.length; i += KEYS_PER_LOOKUP) {
-    const pairs = records.slice(i, i + KEYS_PER_LOOKUP).map((r) => sql`(${r.kind}, ${r.id})`);
-    const rows = await db
-      .select({ kind: strengthRecord.kind, id: strengthRecord.id })
-      .from(strengthRecord)
-      .where(and(eq(strengthRecord.userId, userId), sql`(${strengthRecord.kind}, ${strengthRecord.id}) in (values ${sql.join(pairs, sql`, `)})`));
-    for (const row of rows) found.add(`${row.kind}\u0000${row.id}`);
-  }
-  return found;
+  const rows = await readChunked(
+    records,
+    (slice) => {
+      const pairs = slice.map((r) => sql`(${r.kind}, ${r.id})`);
+      return db
+        .select({ kind: strengthRecord.kind, id: strengthRecord.id })
+        .from(strengthRecord)
+        .where(and(eq(strengthRecord.userId, userId), sql`(${strengthRecord.kind}, ${strengthRecord.id}) in (values ${sql.join(pairs, sql`, `)})`));
+    },
+    { reserved: 1, perKey: 2 },
+  );
+  return new Set(rows.map((row) => `${row.kind}\u0000${row.id}`));
 }
 
 /** Stores a batch (the caller has checked the Pro gate and `STRENGTH_LIMITS.batch`). */
@@ -120,35 +118,29 @@ export async function pushStrengthRecords(
   }
 
   const base = firstServerAt(now, totals.maxServerAt);
-  const statements = [];
-  for (let i = 0; i < accepted.length; i += ROWS_PER_STATEMENT) {
-    const values = accepted.slice(i, i + ROWS_PER_STATEMENT).map((record, offset) => ({
-      userId,
-      kind: record.kind,
-      id: record.id,
-      json: record.json,
-      updatedAt: record.updatedAt,
-      deletedAt: record.deletedAt,
-      serverAt: base + i + offset,
-    }));
-    statements.push(
-      db
-        .insert(strengthRecord)
-        .values(values)
-        .onConflictDoUpdate({
-          target: [strengthRecord.userId, strengthRecord.kind, strengthRecord.id],
-          set: {
-            json: sql`excluded.json`,
-            updatedAt: sql`excluded.updated_at`,
-            deletedAt: sql`excluded.deleted_at`,
-            serverAt: sql`excluded.server_at`,
-          },
-          setWhere: sql`excluded.updated_at >= ${strengthRecord.updatedAt}`,
-        })
-        .returning({ id: strengthRecord.id }),
-    );
-  }
-  const results = await db.batch(statements as [(typeof statements)[number], ...(typeof statements)[number][]]);
+  const rows = accepted.map((record, index) => ({
+    userId,
+    kind: record.kind,
+    id: record.id,
+    json: record.json,
+    updatedAt: record.updatedAt,
+    deletedAt: record.deletedAt,
+    serverAt: base + index,
+  }));
+  const results = await insertChunked(db, strengthRecord, rows, (insert) =>
+    insert
+      .onConflictDoUpdate({
+        target: [strengthRecord.userId, strengthRecord.kind, strengthRecord.id],
+        set: {
+          json: sql`excluded.json`,
+          updatedAt: sql`excluded.updated_at`,
+          deletedAt: sql`excluded.deleted_at`,
+          serverAt: sql`excluded.server_at`,
+        },
+        setWhere: sql`excluded.updated_at >= ${strengthRecord.updatedAt}`,
+      })
+      .returning({ id: strengthRecord.id }),
+  );
   const stored = results.reduce((total, rows) => total + rows.length, 0);
   return { stored, skipped: accepted.length - stored, rejected };
 }

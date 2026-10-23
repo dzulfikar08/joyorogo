@@ -5,6 +5,8 @@ import type { Database } from "@joyorogo/db";
 import { DEFAULT_REGION, resolveDayZone } from "@joyorogo/i18n";
 import type { DayZone, Region } from "@joyorogo/i18n";
 
+import { readChunked } from "./d1";
+
 /**
  * The zone a person's calendar days are cut in (profile.timezone). A profile without one predates zones and keeps
  * Asia/Jakarta, which is what all its stored days were cut with; someone not onboarded yet gets their region's zone.
@@ -24,14 +26,13 @@ export async function zoneOfUser(db: Database, userId: string, region: Region = 
 /** Zones of many users in one query (cron jobs); a user without a profile row is absent, so callers use `zones.get(id) ?? DEFAULT_DAY_ZONE`. */
 export async function zonesOfUsers(db: Database, userIds: readonly string[]): Promise<Map<string, DayZone>> {
   const zones = new Map<string, DayZone>();
-  const CHUNK = 90;
-  for (let i = 0; i < userIds.length; i += CHUNK) {
-    const rows = await db
+  const rows = await readChunked(userIds, (slice) =>
+    db
       .select({ userId: profile.userId, timezone: profile.timezone })
       .from(profile)
-      .where(inArray(profile.userId, userIds.slice(i, i + CHUNK)));
-    for (const row of rows) zones.set(row.userId, resolveDayZone({ stored: row.timezone, hasProfile: true, region: DEFAULT_REGION }));
-  }
+      .where(inArray(profile.userId, slice)),
+  );
+  for (const row of rows) zones.set(row.userId, resolveDayZone({ stored: row.timezone, hasProfile: true, region: DEFAULT_REGION }));
   return zones;
 }
 

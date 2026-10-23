@@ -1,13 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import { MAX_DISHWARE } from "../lib/dishware";
@@ -16,17 +10,10 @@ import type { StickersBucket } from "../lib/sticker";
 import { aiRouter } from "./ai";
 import { dishwareRouter } from "./dishware";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 await client.executeMultiple(`
   INSERT INTO "user" (id, name, email) VALUES ('own', 'Owner', 'own@t.id'), ('qa', 'QA', 'qa@t.id'), ('bob', 'Bob', 'bob@t.id'), ('eve', 'Eve', 'eve@t.id');
 `);
-const db = drizzle(client) as unknown as Database;
 
 /** In-memory R2: only what dishware and the scan touch. */
 function fakeBucket() {
@@ -76,7 +63,9 @@ const background: Promise<unknown>[] = [];
 const ctx = (userId: string | null, text = DESCRIBE, allowlist = "own,qa") =>
   ({
     db,
-    env: { AI: fakeAi(text), STICKERS: store.bucket, DISHWARE_USER_IDS: allowlist },
+    // The shadow test (lib/shadow-scan.ts) re-asks a random 20% of first scans in waitUntil, which would push an
+    // unrelated prompt into `requests` after a test reset it. Not under test here, so off.
+    env: { AI: fakeAi(text), STICKERS: store.bucket, DISHWARE_USER_IDS: allowlist, SHADOW_SAMPLE_RATE: "0" },
     locale: "id",
     waitUntil: (promise: Promise<unknown>) => background.push(promise),
     session: userId === null ? null : { user: { id: userId } },

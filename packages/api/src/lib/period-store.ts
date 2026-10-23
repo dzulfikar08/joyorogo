@@ -7,19 +7,18 @@ import { dailyActivity, exerciseLog, foodLog, weightLog } from "@joyorogo/db/sch
 import { fitnessScore } from "@joyorogo/db/schema/joyofit";
 import type { DayZone } from "@joyorogo/i18n";
 
-import { gainStreak, jakartaToday, shiftDate, streakFromDates } from "./engine";
+import { jakartaToday, shiftDate } from "./engine";
 import { readCalibrationPrefs } from "./calibration-store";
 import { exerciseCredit } from "./exercise-credit";
 import { addBackPrefQuery, dayReadings, readAddBackPrefs } from "./exercise-credit-store";
 import { buildPlan, planQueries } from "./plan";
 import { buildPeriodProgress } from "./period-progress";
 import type { PeriodProgress } from "./period-progress";
+import { loadUserStreak } from "./streak-store";
 
 /** The API's calendar cap on a period, and the weigh-in history the Berat screen reads. */
 export const PERIOD_MAX_DAYS = 400;
 const WEIGH_IN_HISTORY = 365;
-/** Same look-back the Beranda streak uses. */
-const STREAK_WINDOW_DAYS = 45;
 
 /**
  * Progress over [from, to] (days in the person's zone; `to` defaults to today and never passes it, `from` defaults to the first weigh-in
@@ -39,22 +38,34 @@ export async function loadPeriodProgress(
   const today = jakartaToday(undefined, zone);
   const to = requested.to !== undefined && requested.to < today ? requested.to : today;
 
-  const [profileRows, latestRows, planWeighIns, planIntake, planExercise, calibrationRows, historyRows, firstFoodRows] =
-    await db.batch([
-      ...planQueries(db, userId, to),
-      db
-        .select({ date: weightLog.date, weightKg: weightLog.weightKg })
-        .from(weightLog)
-        .where(and(eq(weightLog.userId, userId), lte(weightLog.date, to)))
-        .orderBy(desc(weightLog.date))
-        .limit(WEIGH_IN_HISTORY),
-      db.select({ date: min(foodLog.date) }).from(foodLog).where(eq(foodLog.userId, userId)),
-    ]);
+  const [
+    profileRows,
+    latestRows,
+    planWeighIns,
+    planIntake,
+    planExercise,
+    calibrationRows,
+    historyRows,
+    firstFoodRows,
+  ] = await db.batch([
+    ...planQueries(db, userId, to),
+    db
+      .select({ date: weightLog.date, weightKg: weightLog.weightKg })
+      .from(weightLog)
+      .where(and(eq(weightLog.userId, userId), lte(weightLog.date, to)))
+      .orderBy(desc(weightLog.date))
+      .limit(WEIGH_IN_HISTORY),
+    db
+      .select({ date: min(foodLog.date) })
+      .from(foodLog)
+      .where(eq(foodLog.userId, userId)),
+  ]);
   const prof = profileRows[0];
   if (!prof || prof.maternalMode !== "none") return null;
 
   const weighIns = historyRows.toReversed();
-  const earliest = [weighIns[0]?.date, firstFoodRows[0]?.date].filter((d): d is string => !!d).toSorted()[0] ?? to;
+  const earliest =
+    [weighIns[0]?.date, firstFoodRows[0]?.date].filter((d): d is string => !!d).toSorted()[0] ?? to;
   const floor = shiftDate(to, -(PERIOD_MAX_DAYS - 1));
   const wanted = requested.from ?? earliest;
   const from = wanted > floor ? wanted : floor;
@@ -72,8 +83,7 @@ export async function loadPeriodProgress(
     to,
   );
 
-  const streakStart = shiftDate(today, -STREAK_WINDOW_DAYS);
-  const [foodRows, exerciseRows, activityRows, scoreRows, prefRows, foodDates, weightDates] = await db.batch([
+  const [foodRows, exerciseRows, activityRows, scoreRows, prefRows] = await db.batch([
     db
       .select({ date: foodLog.date, kcal: sql<number>`sum(${foodLog.kcal})` })
       .from(foodLog)
@@ -81,9 +91,16 @@ export async function loadPeriodProgress(
       .groupBy(foodLog.date)
       .orderBy(asc(foodLog.date)),
     db
-      .select({ date: exerciseLog.date, kcal: exerciseLog.kcal, source: exerciseLog.source, externalId: exerciseLog.externalId })
+      .select({
+        date: exerciseLog.date,
+        kcal: exerciseLog.kcal,
+        source: exerciseLog.source,
+        externalId: exerciseLog.externalId,
+      })
       .from(exerciseLog)
-      .where(and(eq(exerciseLog.userId, userId), gte(exerciseLog.date, from), lte(exerciseLog.date, to))),
+      .where(
+        and(eq(exerciseLog.userId, userId), gte(exerciseLog.date, from), lte(exerciseLog.date, to)),
+      ),
     db
       .select({
         date: dailyActivity.date,
@@ -92,26 +109,30 @@ export async function loadPeriodProgress(
         source: dailyActivity.source,
       })
       .from(dailyActivity)
-      .where(and(eq(dailyActivity.userId, userId), gte(dailyActivity.date, from), lte(dailyActivity.date, to))),
+      .where(
+        and(
+          eq(dailyActivity.userId, userId),
+          gte(dailyActivity.date, from),
+          lte(dailyActivity.date, to),
+        ),
+      ),
     db
       .select({ date: fitnessScore.date, activeKcal: fitnessScore.activeKcal })
       .from(fitnessScore)
-      .where(and(eq(fitnessScore.userId, userId), gte(fitnessScore.date, from), lte(fitnessScore.date, to))),
+      .where(
+        and(
+          eq(fitnessScore.userId, userId),
+          gte(fitnessScore.date, from),
+          lte(fitnessScore.date, to),
+        ),
+      ),
     addBackPrefQuery(db, userId),
-    db
-      .select({ date: foodLog.date, kcal: sql<number>`sum(${foodLog.kcal})` })
-      .from(foodLog)
-      .where(and(eq(foodLog.userId, userId), gte(foodLog.date, streakStart)))
-      .groupBy(foodLog.date),
-    db
-      .selectDistinct({ date: weightLog.date })
-      .from(weightLog)
-      .where(and(eq(weightLog.userId, userId), gte(weightLog.date, streakStart))),
   ]);
 
   const { settings } = readAddBackPrefs(prefRows);
   const rowsByDate = new Map<string, typeof exerciseRows>();
-  for (const row of exerciseRows) rowsByDate.set(row.date, [...(rowsByDate.get(row.date) ?? []), row]);
+  for (const row of exerciseRows)
+    rowsByDate.set(row.date, [...(rowsByDate.get(row.date) ?? []), row]);
   const activityByDate = new Map(activityRows.map((row) => [row.date, row]));
   const scoreByDate = new Map(scoreRows.map((row) => [row.date, row]));
   // Only days with food enter the deficit, so only those need a burn estimate.
@@ -129,9 +150,13 @@ export async function loadPeriodProgress(
   }
 
   const gain = plan.targets.gain !== null;
-  const streakDays = gain
-    ? gainStreak(foodDates, plan.targets.eatKcal, today)
-    : streakFromDates([...foodDates.map((r) => r.date), ...weightDates.map((r) => r.date)], today);
+  // The one streak (lib/streak-store); Hamil / Menyusui returned null above.
+  const { days: streakDays } = await loadUserStreak(
+    db,
+    userId,
+    today,
+    gain ? plan.targets.eatKcal : null,
+  );
   return buildPeriodProgress({
     from,
     to,

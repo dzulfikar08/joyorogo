@@ -1,25 +1,13 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import { jakartaToday, shiftDate } from "../lib/engine";
 import { fitnessRouter } from "./fitness";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 await client.executeMultiple(`
   INSERT INTO "user" (id, name, email) VALUES ('u1', 'u1', 'u1@test.id'), ('u2', 'u2', 'u2@test.id');
   INSERT INTO "user" (id, name, email, tier, founder_until) VALUES
@@ -28,7 +16,6 @@ await client.executeMultiple(`
     ('lapsed', 'lapsed', 'lapsed@test.id', 'free', ${Date.now() - 86_400_000});
 `);
 
-const db = drizzle(client) as unknown as Database;
 const ctx = (userId: string, env: Context["env"] = {}) =>
   ({
     db,

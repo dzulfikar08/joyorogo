@@ -1,10 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
-import { drizzle } from "drizzle-orm/libsql";
-
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import type { Database } from "@joyorogo/db";
 
 /** The slice of the libsql client the push tests use. */
@@ -15,14 +9,8 @@ export interface TestClient {
 
 /** Fresh in-memory database with every migration applied, for the push tests. */
 export async function pushTestDb(): Promise<{ client: TestClient; db: Database }> {
-  const client = createClient({ url: ":memory:" });
-  const dir = join(import.meta.dir, "../../../db/src/migrations");
-  for (const file of readdirSync(dir)
-    .filter((f) => f.endsWith(".sql"))
-    .sort()) {
-    await client.executeMultiple(readFileSync(join(dir, file), "utf8"));
-  }
-  return { client, db: drizzle(client) as unknown as Database };
+  const { client, db } = await d1TestDb();
+  return { client, db };
 }
 
 /** `YYYY-MM-DD` and `HH:MM` of WIB (UTC+7) as the instant they name. */

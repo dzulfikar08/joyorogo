@@ -1,24 +1,12 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
-import { createClient } from "../../../db/node_modules/@libsql/client";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-import type { Database } from "@joyorogo/db";
 
 import { COACH_DOC_LIMITS, coachDocSchema, readCoachDoc, writeCoachDoc } from "./coach-doc";
 import type { CoachDoc } from "./coach-doc";
 import { coachDailyCap } from "./coach-limit";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
-const db = drizzle(client) as unknown as Database;
+const { client, db } = await d1TestDb();
 await client.executeMultiple(`INSERT INTO "user" (id, name, email) VALUES ('u1', 'a', 'a@test.id'), ('u2', 'b', 'b@test.id');`);
 
 const empty: CoachDoc = { version: 1, plan: null, planUpdatedAt: 0, done: {}, logs: {} };

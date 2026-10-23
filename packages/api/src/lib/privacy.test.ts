@@ -1,30 +1,14 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
-// @libsql/client is a transitive dep of @joyorogo/db (its D1-shaped driver
-// supports batch); resolved directly because packages/api doesn't declare it.
-import { createClient } from "../../../db/node_modules/@libsql/client";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import { deleteAllUserData } from "./privacy";
 
 const U1 = "user-1";
 const U2 = "user-2";
 
-const client = createClient({ url: ":memory:" });
-
 // Real migrations, applied in filename order — keeps the test honest about schema.
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
-
-const db = drizzle(client) as unknown as Database;
+const { client, db } = await d1TestDb();
 
 // Fitness rows every user gets; the auth account row must survive deletion.
 async function seedUserData(userId: string, tag: string) {

@@ -41,7 +41,8 @@ export function FoodRow({
 }) {
   const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
-  const created = new Date(item.createdAt);
+  // When it was eaten ("Jam makan"), else when it was logged.
+  const created = new Date(item.eatenAt ?? item.createdAt);
   const hasMacros = [item.protein, item.carbs, item.fat, item.fiber].some((g) => (g ?? 0) > 0);
   // Never filled in (null, not 0 g): the day total counts nothing for it, so say so and let a tap open the editor.
   const macrosMissing = item.protein == null && item.carbs == null && item.fat == null && item.kcal > 0;

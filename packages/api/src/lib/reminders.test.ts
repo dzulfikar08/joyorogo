@@ -16,11 +16,14 @@ import {
   wibWeekday,
 } from "./reminders";
 import type { ReminderDeps } from "./reminders";
+import { shiftDate } from "./engine";
+import { streakState } from "./streak";
 
 const MONDAY = "2026-10-19";
 const TUESDAY = "2026-10-20";
 
-const kinds = (at: Date, zone: DayZone = "Asia/Jakarta") => activeSlots(at, zone).map((s) => s.kind);
+const kinds = (at: Date, zone: DayZone = "Asia/Jakarta") =>
+  activeSlots(at, zone).map((s) => s.kind);
 
 describe("reminder windows (WIB)", () => {
   test("weekday is read on the WIB calendar", () => {
@@ -54,7 +57,13 @@ describe("reminder windows (WIB)", () => {
   test("morning reminders: weekly ones only on Monday", () => {
     expect(kinds(wib(TUESDAY, "08:10")).sort()).toEqual(["challenge_end", "weigh"]);
     expect(kinds(wib(TUESDAY, "08:40")).sort()).toEqual(["calibration", "challenge_end", "weigh"]);
-    expect(kinds(wib(MONDAY, "08:40")).sort()).toEqual(["calibration", "challenge_end", "plan", "recap", "weigh"]);
+    expect(kinds(wib(MONDAY, "08:40")).sort()).toEqual([
+      "calibration",
+      "challenge_end",
+      "plan",
+      "recap",
+      "weigh",
+    ]);
     expect(kinds(wib(MONDAY, "07:00"))).toEqual([]);
     expect(kinds(wib(MONDAY, "07:30"))).toEqual(["weigh", "plan"]);
   });
@@ -88,26 +97,52 @@ describe("rules", () => {
 
   test("Ramadan: no lunch reminder, the evening one stays", () => {
     expect(skipMealReminder({ ...base, ramadanMode: "on", kind: "meal_noon" })).toBe(true);
-    expect(skipMealReminder({ ...base, ramadanMode: "on", kind: "meal_evening", nowMin: 20 * 60 })).toBe(false);
+    expect(
+      skipMealReminder({ ...base, ramadanMode: "on", kind: "meal_evening", nowMin: 20 * 60 }),
+    ).toBe(false);
   });
 
   test("pregnant and breastfeeding accounts never fast: a leftover pattern or Ramadan setting is ignored", () => {
-    expect(skipMealReminder({ ...base, maternalMode: "pregnant", pattern: "omad", windowStart: "18:00", kind: "meal_noon" })).toBe(false);
-    expect(skipMealReminder({ ...base, maternalMode: "breastfeeding", ramadanMode: "on", kind: "meal_noon" })).toBe(false);
+    expect(
+      skipMealReminder({
+        ...base,
+        maternalMode: "pregnant",
+        pattern: "omad",
+        windowStart: "18:00",
+        kind: "meal_noon",
+      }),
+    ).toBe(false);
+    expect(
+      skipMealReminder({
+        ...base,
+        maternalMode: "breastfeeding",
+        ramadanMode: "on",
+        kind: "meal_noon",
+      }),
+    ).toBe(false);
   });
 
   test("weigh-in gap: a week without one, counted from the account when never weighed", () => {
-    expect(weighGapDays({ lastWeighDate: "2026-10-12", createdDate: "2026-01-01", today: MONDAY })).toBe(7);
-    expect(weighGapDays({ lastWeighDate: "2026-10-13", createdDate: "2026-01-01", today: MONDAY })).toBeNull();
-    expect(weighGapDays({ lastWeighDate: null, createdDate: "2026-10-14", today: MONDAY })).toBeNull();
-    expect(weighGapDays({ lastWeighDate: null, createdDate: "2026-10-01", today: MONDAY })).toBe(18);
+    expect(
+      weighGapDays({ lastWeighDate: "2026-10-12", createdDate: "2026-01-01", today: MONDAY }),
+    ).toBe(7);
+    expect(
+      weighGapDays({ lastWeighDate: "2026-10-13", createdDate: "2026-01-01", today: MONDAY }),
+    ).toBeNull();
+    expect(
+      weighGapDays({ lastWeighDate: null, createdDate: "2026-10-14", today: MONDAY }),
+    ).toBeNull();
+    expect(weighGapDays({ lastWeighDate: null, createdDate: "2026-10-01", today: MONDAY })).toBe(
+      18,
+    );
   });
 
   test("streak at risk: today missing and three or more days before it", () => {
-    expect(streakAtRisk(["2026-10-18", "2026-10-17", "2026-10-16"], MONDAY)).toBe(3);
-    expect(streakAtRisk(["2026-10-18", "2026-10-17"], MONDAY)).toBe(0);
-    expect(streakAtRisk([MONDAY, "2026-10-18", "2026-10-17", "2026-10-16"], MONDAY)).toBe(0);
-    expect(streakAtRisk(["2026-10-18", "2026-10-17", "2026-10-15"], MONDAY)).toBe(0);
+    const risk = (dates: string[]) => streakAtRisk(streakState(dates, MONDAY));
+    expect(risk(["2026-10-18", "2026-10-17", "2026-10-16"])).toBe(3);
+    expect(risk(["2026-10-18", "2026-10-17"])).toBe(0);
+    expect(risk([MONDAY, "2026-10-18", "2026-10-17", "2026-10-16"])).toBe(0);
+    expect(risk(["2026-10-18", "2026-10-17", "2026-10-15"])).toBe(0);
   });
 
   test("userSlot is stable and inside the range", () => {
@@ -142,11 +177,19 @@ async function world() {
   const { client, db } = await pushTestDb();
   const deps = (at: Date): ReminderDeps => ({ db, env: ENV, now: () => at });
   const outbox = async (kind?: string) =>
-    (await client.execute(`SELECT user_id, kind, status, payload_json FROM push_outbox${kind ? ` WHERE kind = '${kind}'` : ""} ORDER BY user_id`)).rows;
+    (
+      await client.execute(
+        `SELECT user_id, kind, status, payload_json FROM push_outbox${kind ? ` WHERE kind = '${kind}'` : ""} ORDER BY user_id`,
+      )
+    ).rows;
   return { client, db, deps, outbox };
 }
 
-async function person(client: TestClient, id: string, opts: Parameters<typeof seedUser>[2] & { device?: boolean; foodOn?: string[] } = {}) {
+async function person(
+  client: TestClient,
+  id: string,
+  opts: Parameters<typeof seedUser>[2] & { device?: boolean; foodOn?: string[] } = {},
+) {
   await seedUser(client, id, opts);
   if (opts.device !== false) await seedDevice(client, id, `tok-${id}`);
   for (const date of opts.foodOn ?? ["2026-10-17"]) await seedFood(client, id, date);
@@ -164,9 +207,14 @@ describe("lunch reminder", () => {
     // the phone's own lunch reminder is on: the server one would double it
     await client.execute({
       sql: `INSERT INTO sync_record (user_id, ns, kind, id, json, updated_at, server_at) VALUES ('local', 'rogo', 'pref', 'reminders', ?, 1, 1)`,
-      args: [JSON.stringify({ value: { meals: { makan_siang: { enabled: true, time: "12:30" } } } })],
+      args: [
+        JSON.stringify({ value: { meals: { makan_siang: { enabled: true, time: "12:30" } } } }),
+      ],
     });
-    await person(client, "gone", { foodOn: ["2026-09-01"], createdAtMs: Date.parse("2026-01-01T00:00:00Z") });
+    await person(client, "gone", {
+      foodOn: ["2026-09-01"],
+      createdAtMs: Date.parse("2026-01-01T00:00:00Z"),
+    });
     await person(client, "fresh", { foodOn: [], createdAtMs: Date.parse("2026-10-18T00:00:00Z") });
     await person(client, "omad", { pattern: "omad", windowStart: "18:00" });
 
@@ -177,7 +225,10 @@ describe("lunch reminder", () => {
     expect(await runReminders(deps(wib(TUESDAY, "13:15")))).toBe(0);
 
     await flushOutbox(deps(at));
-    expect(expo.map((m) => m.to).sort()).toEqual(["ExponentPushToken[tok-due]", "ExponentPushToken[tok-fresh]"]);
+    expect(expo.map((m) => m.to).sort()).toEqual([
+      "ExponentPushToken[tok-due]",
+      "ExponentPushToken[tok-fresh]",
+    ]);
     expect(expo[0]).toMatchObject({
       title: "Belum ada makanan tercatat",
       data: { kind: "meal_noon", link: { t: "makan" } },
@@ -228,10 +279,16 @@ describe("lunch reminder", () => {
 describe("evening reminder and streak", () => {
   test("a streak of four becomes the streak copy; others get the plain one; someone who weighed in today is safe", async () => {
     const { client, deps, outbox } = await world();
-    await person(client, "streak", { foodOn: ["2026-10-16", "2026-10-17", "2026-10-18", "2026-10-19"] });
+    await person(client, "streak", {
+      foodOn: ["2026-10-16", "2026-10-17", "2026-10-18", "2026-10-19"],
+    });
     await person(client, "plain", { foodOn: ["2026-10-15"] });
-    await person(client, "weighed", { foodOn: ["2026-10-16", "2026-10-17", "2026-10-18", "2026-10-19"] });
-    await client.execute(`INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES ('w1', 'weighed', '${TUESDAY}', 70)`);
+    await person(client, "weighed", {
+      foodOn: ["2026-10-16", "2026-10-17", "2026-10-18", "2026-10-19"],
+    });
+    await client.execute(
+      `INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES ('w1', 'weighed', '${TUESDAY}', 70)`,
+    );
 
     const at = wib(TUESDAY, "20:05");
     expect(await runReminders(deps(at))).toBe(3);
@@ -242,7 +299,41 @@ describe("evening reminder and streak", () => {
     await flushOutbox(deps(at));
     const streak = expo.find((m) => m.to.endsWith("[tok-streak]"));
     expect(streak?.title).toBe("Streak 4 hari bisa putus");
-    expect(expo.find((m) => m.to.endsWith("[tok-plain]"))?.title).toBe("Hari ini belum ada catatan makan");
+    expect(expo.find((m) => m.to.endsWith("[tok-plain]"))?.title).toBe(
+      "Hari ini belum ada catatan makan",
+    );
+  });
+
+  test("a 124-day run reads 124 in the streak copy, past the old 45-day scan; a run broken yesterday gets the plain copy", async () => {
+    const { client, deps } = await world();
+    const run = Array.from({ length: 124 }, (_, i) => shiftDate(MONDAY, -i));
+    await person(client, "long", { foodOn: run });
+    await person(client, "broke", { foodOn: run.slice(2) });
+
+    const at = wib(TUESDAY, "20:05");
+    expect(await runReminders(deps(at))).toBe(2);
+    await flushOutbox(deps(at));
+    expect(expo.find((m) => m.to.endsWith("[tok-long]"))?.title).toBe("Streak 124 hari bisa putus");
+    expect(expo.find((m) => m.to.endsWith("[tok-broke]"))?.title).toBe(
+      "Hari ini belum ada catatan makan",
+    );
+  });
+
+  test("the run is cut in the person's zone: the same logs are alive in Jakarta and broken in Kuala Lumpur", async () => {
+    const { client, deps, outbox } = await world();
+    const run = Array.from({ length: 5 }, (_, i) => shiftDate(MONDAY, -i));
+    await person(client, "id", { foodOn: run });
+    await person(client, "my", { timezone: "Asia/Kuala_Lumpur", foodOn: run });
+
+    // Tuesday 20:05 in Jakarta: the 19th was yesterday, five days at risk.
+    expect(await runReminders(deps(wib(TUESDAY, "20:05")))).toBe(1);
+    // Wednesday 20:05 in Kuala Lumpur: the same logs end two days back, nothing left to protect.
+    expect(await runReminders(deps(myt("2026-10-21", "20:05")))).toBe(1);
+    const byUser = Object.fromEntries(
+      (await outbox()).map((r) => [String(r.user_id), String(r.kind)]),
+    );
+    expect(byUser.id).toBe("streak");
+    expect(byUser.my).toBe("meal_evening");
   });
 
   test("Intermittent fasting whose window closed at 20:00 is left alone", async () => {
@@ -266,11 +357,17 @@ describe("weigh-in reminder", () => {
   test("after a week without one, then only weekly; never for pregnant accounts", async () => {
     const { client, deps, outbox } = await world();
     await person(client, "late");
-    await client.execute(`INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES ('w-late', 'late', '2026-10-11', 70)`);
+    await client.execute(
+      `INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES ('w-late', 'late', '2026-10-11', 70)`,
+    );
     await person(client, "recent");
-    await client.execute(`INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES ('w-recent', 'recent', '2026-10-16', 70)`);
+    await client.execute(
+      `INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES ('w-recent', 'recent', '2026-10-16', 70)`,
+    );
     await person(client, "mum", { maternal: "pregnant" });
-    await client.execute(`INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES ('w-mum', 'mum', '2026-10-01', 70)`);
+    await client.execute(
+      `INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES ('w-mum', 'mum', '2026-10-01', 70)`,
+    );
 
     expect(await runReminders(deps(wib(TUESDAY, "07:45")))).toBe(1);
     const [row] = await outbox("weigh");
@@ -284,7 +381,9 @@ describe("weigh-in reminder", () => {
     // the next Tuesday it is "late" again (a week since the first one), "recent" was told on Friday
     expect(await runReminders(deps(wib("2026-10-27", "07:45")))).toBe(1);
     await flushOutbox(deps(wib("2026-10-27", "07:45")));
-    expect(expo.find((m) => m.to.endsWith("[tok-late]") && m.title.includes("16"))?.title).toBe("Sudah 16 hari belum timbang");
+    expect(expo.find((m) => m.to.endsWith("[tok-late]") && m.title.includes("16"))?.title).toBe(
+      "Sudah 16 hari belum timbang",
+    );
   });
 
   test("the phone's own weigh-in reminder takes over", async () => {
@@ -335,7 +434,9 @@ describe("challenge end", () => {
   test("members hear the morning after a challenge ends, once", async () => {
     const { client, deps, outbox } = await world();
     await person(client, "ann");
-    await client.execute(`INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES ('w-ann', 'ann', '2026-10-19', 70)`);
+    await client.execute(
+      `INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES ('w-ann', 'ann', '2026-10-19', 70)`,
+    );
     await person(client, "bob", { device: false });
     await client.executeMultiple(`
       INSERT INTO team (id, name, owner_id, invite_code) VALUES ('t1', 'Tim', 'ann', 'ABCD2345');
@@ -369,7 +470,9 @@ describe("runPushCron", () => {
   test("calibration look-ups for people without an active calibration store nothing", async () => {
     const { client, deps } = await world();
     await person(client, "due");
-    await client.execute(`INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES ('w1', 'due', '2026-10-18', 70)`);
+    await client.execute(
+      `INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES ('w1', 'due', '2026-10-18', 70)`,
+    );
     let stored = 0;
     for (let minute = 30; minute < 60; minute += 5) {
       stored += await runReminders(deps(wib(TUESDAY, `08:${String(minute).padStart(2, "0")}`)));

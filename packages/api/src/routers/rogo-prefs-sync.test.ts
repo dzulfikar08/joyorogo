@@ -1,13 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { call } from "@orpc/server";
 import { afterEach, describe, expect, setSystemTime, test, vi } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import { DEFAULT_REMINDER_CONFIG, type ReminderConfig } from "../lib/reminder-config";
@@ -22,13 +16,7 @@ import {
 import type { PullAnswer } from "../lib/sync-engine";
 import { syncRouter } from "./sync";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 await client.executeMultiple(`
   INSERT INTO "user" (id, name, email, tier, founder_until) VALUES
     ('p1', 'p1', 'p1@test.id', 'free', NULL),
@@ -45,7 +33,6 @@ await client.executeMultiple(`
     ('p12', 'p12', 'p12@test.id', 'free', NULL);
 `);
 
-const db = drizzle(client) as unknown as Database;
 const as = (userId: string) => ({
   context: { db, env: {}, waitUntil: () => {}, session: { user: { id: userId } } } as unknown as Context,
 });

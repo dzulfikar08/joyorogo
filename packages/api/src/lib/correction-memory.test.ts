@@ -1,11 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
-import { createClient } from "../../../db/node_modules/@libsql/client";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 import { DEFAULT_DAY_ZONE } from "@joyorogo/i18n";
 import { aiUsage } from "@joyorogo/db/schema/fitness";
 
@@ -123,12 +118,7 @@ describe("memory", () => {
 
 describe("loadCorrectionMemory", () => {
   test("reads the user's saved scan sessions from the ledger, nobody else's", async () => {
-    const client = createClient({ url: ":memory:" });
-    const dir = join(import.meta.dir, "../../../db/src/migrations");
-    for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
-      await client.executeMultiple(readFileSync(join(dir, file), "utf8"));
-    }
-    const db = drizzle(client) as unknown as Database;
+    const { client, db } = await d1TestDb();
     await client.executeMultiple(`INSERT INTO "user" (id, name, email) VALUES ('u1','a','a@t.id'),('u2','b','b@t.id');`);
     const put = (userId: string, ai: CompactItem[], saved: CompactItem[]) =>
       db.insert(aiUsage).values({

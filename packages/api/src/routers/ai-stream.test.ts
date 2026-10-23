@@ -1,34 +1,21 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { createORPCClient, ORPCError } from "@orpc/client";
 import type { RouterClient } from "@orpc/server";
 import { RPCLink } from "@orpc/client/fetch";
 import { call } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { describe, expect, test } from "bun:test";
-import { drizzle } from "drizzle-orm/libsql";
 
-// @libsql/client is a transitive dep of @joyorogo/db (see privacy.test.ts).
-import { createClient } from "../../../db/node_modules/@libsql/client";
-import type { Database } from "@joyorogo/db";
+import { d1TestDb } from "@joyorogo/db/test-d1";
 
 import type { Context } from "../context";
 import type { ScanStreamEvent } from "../lib/scan-live";
 import { aiRouter } from "./ai";
 import type { AnalyzeFoodResult } from "./ai";
 
-const client = createClient({ url: ":memory:" });
-const migrationsDir = join(import.meta.dir, "../../../db/src/migrations");
-for (const file of readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
-  .sort()) {
-  await client.executeMultiple(readFileSync(join(migrationsDir, file), "utf8"));
-}
+const { client, db } = await d1TestDb();
 await client.executeMultiple(`
   INSERT INTO "user" (id, name, email) VALUES ('u1', 'u1', 'u1@test.id'), ('u2', 'u2', 'u2@test.id'), ('u3', 'u3', 'u3@test.id');
 `);
-const db = drizzle(client) as unknown as Database;
 
 const ANSWER = JSON.stringify({
   items: [
