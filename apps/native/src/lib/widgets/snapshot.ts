@@ -1,5 +1,8 @@
 import { File, Paths } from "expo-file-system";
 
+import type { StreakStamp } from "@joyorogo/api/lib/streak";
+import type { DayZone } from "@joyorogo/i18n";
+
 /**
  * Plain-data snapshot the home-screen widgets render from.
  *
@@ -11,11 +14,19 @@ import { File, Paths } from "expo-file-system";
  */
 export type WidgetDaySnapshot = {
   date: string;
+  /** The person's day zone (an IANA name served by the app): the streak widget cuts today in it. Absent in old snapshots. */
+  zone?: DayZone;
   eatenKcal: number;
   eatKcal: number;
   proteinEatenG: number | null;
   proteinTargetG: number | null;
   streakDays: number;
+  /**
+   * The logging streak as the server counted it on `date`: the live run and the last counted day. The widget ages it
+   * on the phone's own date (api lib/streak `streakAt`), so a lit flame turns "at risk" at midnight without a fetch.
+   * Null in Hamil / Menyusui (no streak pressure); absent in snapshots written before the streak widget.
+   */
+  streak?: StreakStamp | null;
   /** Hamil / Menyusui: no "left/over" budget wording, the day is a need to meet. Absent in old snapshots. */
   maternal?: boolean;
   /** Naikin BB: "Kurang X kkal lagi" instead of left/over, ring never red. Absent in old snapshots. */

@@ -249,11 +249,15 @@ export default function Dashboard() {
     void pushDaySnapshot(
       {
         date: summaryData.date,
+        zone: summaryData.zone,
         eatenKcal: summaryData.eatenKcal,
         eatKcal: summaryData.targets.eatKcal,
         proteinEatenG: summaryData.protein?.eatenG ?? null,
         proteinTargetG: summaryData.protein?.targetG ?? null,
         streakDays: summaryData.streakDays,
+        streak: summaryData.streak
+          ? { days: summaryData.streak.days, lastLoggedDate: summaryData.streak.lastLoggedDate }
+          : null,
         maternal: summaryData.targets.maternal != null,
         gain: summaryData.targets.maternal == null && summaryData.targets.gain != null,
       },
@@ -993,18 +997,38 @@ export default function Dashboard() {
             <ProChip />
           </View>
         </View>
-        {!maternal && data.streakDays > 0 ? (
+        {/* One streak, as the home-screen widget shows it: a lit flame with the run (hollow while today is still blank), or, once it broke, a cold flame with the days since the last log that opens the scan camera. */}
+        {!maternal && data.streak && data.streak.status === "broken" ? (
+          <Link href="/makan-ai" asChild>
+            <Pressable
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.streakChip, styles.streakChipCold, pressed && styles.pressedSoft]}
+              accessibilityLabel={t(gain ? "header.streakLapseGainLabel" : "header.streakLapseLabel", {
+                count: data.streak.lapseDays,
+              })}
+            >
+              <Ionicons name="flame-outline" size={14} color={theme.colors.mutedForeground} />
+              <Num style={[styles.streakChipText, styles.streakChipColdText]}>{data.streak.lapseDays}</Num>
+            </Pressable>
+          </Link>
+        ) : !maternal && data.streakDays > 0 ? (
           <Pressable
             accessibilityRole="button"
             style={({ pressed }) => [styles.streakChip, pressed && styles.pressedSoft]}
             accessibilityLabel={
-              gain
-                ? t("gain:today.streak", { count: data.streakDays })
-                : t("header.streakLabel", { count: data.streakDays })
+              data.streak?.status === "at_risk"
+                ? t(gain ? "header.streakAtRiskGainLabel" : "header.streakAtRiskLabel", { count: data.streakDays })
+                : gain
+                  ? t("gain:today.streak", { count: data.streakDays })
+                  : t("header.streakLabel", { count: data.streakDays })
             }
             onPress={() => setStreakOpen(true)}
           >
-            <Ionicons name="flame" size={14} color={theme.colors.bakarText} />
+            <Ionicons
+              name={data.streak?.status === "at_risk" ? "flame-outline" : "flame"}
+              size={14}
+              color={theme.colors.bakarText}
+            />
             <Num style={styles.streakChipText}>{data.streakDays}</Num>
           </Pressable>
         ) : null}
@@ -1481,6 +1505,12 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     fontWeight: "700",
     color: theme.colors.bakarText,
+  },
+  streakChipCold: {
+    backgroundColor: theme.colors.muted,
+  },
+  streakChipColdText: {
+    color: theme.colors.mutedForeground,
   },
   heroNote: {
     fontSize: theme.fontSize.sm,

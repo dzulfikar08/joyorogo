@@ -153,3 +153,78 @@ export function cameraTileLayout(label: string, side: number): CameraTileLayout 
     singleLine: chosen.singleLine,
   };
 }
+
+/** Streak tile padding (dp), tighter than the card widgets so Joyo gets the room. */
+export const STREAK_PADDING = 12;
+/** Streak tile text sizes (sp): the nudge line and the "hari tanpa catat" label beside Joyo. */
+export const STREAK_CAPTION_SIZE = 11;
+export const STREAK_CAPTION_LINE = 13;
+/** Line height of the title that stands in for the number (fresh, signed out, no plan), at most two lines. */
+export const STREAK_TITLE_LINE = 22;
+/** Joyo's slot is this share of the tile width, at most STREAK_MASCOT_SLOT_MAX dp; the text takes the rest. */
+const MASCOT_SLOT_SHARE = 0.44;
+const STREAK_MASCOT_SLOT_MAX = 110;
+const STREAK_GAP = 6;
+const MASCOT_MAX = 100;
+/** Joyo is dropped when the row under the number is shorter than this. */
+const MASCOT_MIN_ROW = 44;
+/** Caption lines grow with the user's font scale; this much extra keeps the row count from clipping. */
+const FONT_SCALE_SLACK = 1.15;
+
+export interface StreakTileLayout {
+  numberSize: number;
+  numberLine: number;
+  flame: number;
+  /** Height of the title line(s) when the tile has no number. */
+  titleHeight: number;
+  mascotWidth: number;
+  /** 0 when the tile is too short for Joyo: the text then takes the full width. */
+  mascotHeight: number;
+  /** Width of the text column beside Joyo. */
+  textWidth: number;
+  /** Lines the nudge line may take beside Joyo; the label above it (broken) takes two more. */
+  captionLines: number;
+}
+
+/**
+ * Sizes of the square streak tile on a launcher widget of `width` x `height` dp: the flame and number on top, then
+ * Joyo on the left with the nudge line (and, once the streak broke, the "hari tanpa catat" label) in a column to his
+ * right, like him saying it. The number does not scale with the user's font size (a decorative numeral already at 38 sp),
+ * so its row is exact; Joyo takes the height under it, at his own aspect ratio, and the caption fills what that leaves.
+ */
+export function streakTileLayout(args: {
+  width: number;
+  height: number;
+  /** Digits of the number; 0 for the states that show a title instead. */
+  digits: number;
+  hasLabel: boolean;
+  /** Width / height of the pose's trimmed art. */
+  mascotAspect: number;
+}): StreakTileLayout {
+  const side = (args.width > 0 ? args.width : 150) - STREAK_PADDING * 2;
+  const budget = (args.height > 0 ? args.height : 150) - STREAK_PADDING * 2;
+  const numberSize = args.digits >= 4 ? 30 : args.digits === 3 ? 34 : 38;
+  const numberLine = Math.round(numberSize * 1.12);
+  const titleHeight = STREAK_TITLE_LINE * 2;
+  const top = args.digits === 0 ? titleHeight : numberLine;
+  const row = budget - top - STREAK_GAP;
+  const lineBox = Math.ceil(STREAK_CAPTION_LINE * FONT_SCALE_SLACK);
+  const base = { numberSize, numberLine, flame: Math.round(numberSize * 0.8), titleHeight };
+
+  if (row < MASCOT_MIN_ROW) {
+    return { ...base, mascotWidth: 0, mascotHeight: 0, textWidth: side, captionLines: Math.max(1, Math.floor(row / lineBox)) };
+  }
+  const slot = Math.min(STREAK_MASCOT_SLOT_MAX, Math.round(side * MASCOT_SLOT_SHARE));
+  const heightFromRow = Math.min(MASCOT_MAX, row);
+  const widthFromHeight = Math.round(heightFromRow * args.mascotAspect);
+  const mascotWidth = Math.min(slot, widthFromHeight);
+  const mascotHeight = mascotWidth === widthFromHeight ? Math.round(heightFromRow) : Math.round(mascotWidth / args.mascotAspect);
+  const labelRows = args.hasLabel ? 2 : 0;
+  return {
+    ...base,
+    mascotWidth,
+    mascotHeight,
+    textWidth: side - slot - STREAK_GAP,
+    captionLines: Math.max(2, Math.floor(row / lineBox) - labelRows),
+  };
+}

@@ -5,8 +5,8 @@ import type { WidgetName } from "./ui";
 import { writeSnapshot } from "./snapshot";
 import type { WidgetInboxItem, WidgetSnapshot } from "./snapshot";
 
-/** Widgets that show day progress; the combined one shows it too. */
-const PROGRESS_WIDGETS: WidgetName[] = ["ProgresHariIni", "Ringkasan"];
+/** Widgets that show day data: progress (the combined one too) and the streak, which the day summary also carries. */
+const PROGRESS_WIDGETS: WidgetName[] = ["ProgresHariIni", "Ringkasan", "StreakCatat"];
 /** Widgets that show the group inbox. */
 const INBOX_WIDGETS: WidgetName[] = ["KotakMasukGrup", "Ringkasan"];
 

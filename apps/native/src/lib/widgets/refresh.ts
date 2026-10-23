@@ -68,11 +68,15 @@ async function fetchSnapshot(current: WidgetSnapshot): Promise<WidgetSnapshot | 
       summary.hasProfile && summary.targets
         ? {
             date: summary.date,
+            zone: summary.zone,
             eatenKcal: summary.eatenKcal,
             eatKcal: summary.targets.eatKcal,
             proteinEatenG: summary.protein?.eatenG ?? null,
             proteinTargetG: summary.protein?.targetG ?? null,
             streakDays: summary.streakDays,
+            streak: summary.streak
+              ? { days: summary.streak.days, lastLoggedDate: summary.streak.lastLoggedDate }
+              : null,
             maternal: summary.targets.maternal != null,
             gain: summary.targets.maternal == null && summary.targets.gain != null,
           }

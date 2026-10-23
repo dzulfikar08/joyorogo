@@ -6,10 +6,12 @@ import {
   HERO_STACK_BELOW_WIDTH,
   ROW_HEIGHT,
   STALE_AFTER_MS,
+  STREAK_PADDING,
   cameraTileLayout,
   inboxRowCount,
   progressRows,
   staleAgo,
+  streakTileLayout,
 } from "./layout";
 
 const ALL = { contentWidth: 300, hasFasting: true, hasProtein: true, isStale: true } as const;
@@ -132,5 +134,60 @@ describe("cameraTileLayout", () => {
 
   test("a launcher reporting no size gets the 72 dp layout", () => {
     expect(cameraTileLayout("Scan makan", 0)).toEqual(cameraTileLayout("Scan makan", 72));
+  });
+});
+
+describe("streakTileLayout", () => {
+  const square = { width: 150, height: 150, mascotAspect: 1 };
+
+  test("the number row, Joyo and the gap fit the height; Joyo and the text sit side by side in the width", () => {
+    const l = streakTileLayout({ ...square, digits: 3, hasLabel: false });
+    expect(l.numberLine + 6 + l.mascotHeight).toBeLessThanOrEqual(150 - STREAK_PADDING * 2);
+    expect(l.mascotWidth + 6 + l.textWidth).toBeLessThanOrEqual(150 - STREAK_PADDING * 2);
+    expect(l.mascotHeight).toBeGreaterThanOrEqual(44);
+  });
+
+  test("the number shrinks only at four digits", () => {
+    expect(streakTileLayout({ ...square, digits: 1, hasLabel: false }).numberSize).toBe(38);
+    expect(streakTileLayout({ ...square, digits: 3, hasLabel: false }).numberSize).toBe(34);
+    expect(streakTileLayout({ ...square, digits: 4, hasLabel: false }).numberSize).toBe(30);
+  });
+
+  test("the broken label takes two caption lines from the nudge line, which keeps at least two", () => {
+    const plain = streakTileLayout({ ...square, digits: 2, hasLabel: false });
+    const labelled = streakTileLayout({ ...square, digits: 2, hasLabel: true });
+    expect(labelled.captionLines).toBe(plain.captionLines - 2);
+    expect(labelled.captionLines).toBeGreaterThanOrEqual(2);
+  });
+
+  test("a title in place of the number reserves two lines", () => {
+    const l = streakTileLayout({ ...square, digits: 0, hasLabel: false });
+    expect(l.titleHeight).toBe(44);
+    expect(l.titleHeight + 6 + l.mascotHeight).toBeLessThanOrEqual(150 - STREAK_PADDING * 2);
+  });
+
+  test("a tile too short for Joyo drops him and gives the text the full width", () => {
+    const tiny = streakTileLayout({ width: 150, height: 90, digits: 3, hasLabel: false, mascotAspect: 1 });
+    expect(tiny).toMatchObject({ mascotWidth: 0, mascotHeight: 0, textWidth: 126 });
+    expect(tiny.captionLines).toBeGreaterThanOrEqual(1);
+  });
+
+  test("Joyo keeps his aspect ratio: a tall pose is limited by height, a round head by his slot", () => {
+    const tall = streakTileLayout({ ...square, digits: 2, hasLabel: false, mascotAspect: 115 / 192 });
+    expect(tall.mascotWidth / tall.mascotHeight).toBeCloseTo(115 / 192, 1);
+    const head = streakTileLayout({ ...square, digits: 2, hasLabel: false, mascotAspect: 1.04 });
+    expect(head.mascotWidth).toBeLessThanOrEqual(Math.round(126 * 0.44));
+    expect(head.mascotWidth / head.mascotHeight).toBeCloseTo(1.04, 1);
+  });
+
+  test("a big widget never draws Joyo past 100 dp", () => {
+    const big = streakTileLayout({ width: 320, height: 400, digits: 2, hasLabel: false, mascotAspect: 1 });
+    expect(big.mascotHeight).toBeLessThanOrEqual(100);
+  });
+
+  test("a launcher that reports no size gets a 150 dp tile", () => {
+    expect(streakTileLayout({ width: 0, height: 0, digits: 3, hasLabel: false, mascotAspect: 1 })).toEqual(
+      streakTileLayout({ width: 150, height: 150, digits: 3, hasLabel: false, mascotAspect: 1 }),
+    );
   });
 });

@@ -263,6 +263,32 @@
     "fasting": {
       "window": "Eating until {{close}}",
       "next": "Eat again at {{open}}"
+    },
+    "streak": {
+      "title": "Logging streak",
+      "days": "day streak",
+      "lapse": "days not logged",
+      "lapseGain": "days short of target",
+      "done": {
+        "1": "The flame is lit. See you tomorrow!",
+        "2": "Nice, today's done."
+      },
+      "atRisk": {
+        "1": "Keep the flame: log today",
+        "2": "One photo keeps the flame alive.",
+        "gain": "Keep the flame: hit your target today"
+      },
+      "broken": {
+        "1": "Joyo's waiting. One photo?",
+        "2": "No worries. Start again today.",
+        "3": "Log one meal, flame's back."
+      },
+      "asleep": "Joyo fell asleep waiting.",
+      "freshTitle": "Light the flame",
+      "fresh": "Log one meal and your streak begins.",
+      "freshGain": "Reach your eating target today to start a streak.",
+      "off": "Tap to scan your meal.",
+      "signInLine": "Open JoyoRogo to sign in."
     }
   }
 }

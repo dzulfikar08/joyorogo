@@ -259,6 +259,32 @@
     "fasting": {
       "window": "Makan sampai {{close}}",
       "next": "Makan lagi {{open}}"
+    },
+    "streak": {
+      "title": "Streak catat",
+      "days": "hari beruntun",
+      "lapse": "hari tanpa catat",
+      "lapseGain": "hari belum capai target",
+      "done": {
+        "1": "Apinya menyala. Sampai besok!",
+        "2": "Mantap, hari ini sudah beres."
+      },
+      "atRisk": {
+        "1": "Jaga apinya: catat hari ini",
+        "2": "Satu foto cukup buat jaga apinya.",
+        "gain": "Jaga apinya: capai target hari ini"
+      },
+      "broken": {
+        "1": "Joyo nungguin. Satu foto, yuk.",
+        "2": "Santai, mulai lagi hari ini.",
+        "3": "Catat satu makan, api nyala."
+      },
+      "asleep": "Joyo ketiduran nungguin.",
+      "freshTitle": "Nyalakan apinya",
+      "fresh": "Catat satu makan, streak-mu dimulai.",
+      "freshGain": "Capai target makan hari ini, streak-mu dimulai.",
+      "off": "Ketuk untuk scan makananmu.",
+      "signInLine": "Buka JoyoRogo untuk masuk."
     }
   }
 }

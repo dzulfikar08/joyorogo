@@ -17,18 +17,15 @@ import { timeAgoId } from "@/src/lib/group";
 import type { WidgetSnapshot } from "@/src/lib/widgets/snapshot";
 import { fmtInt } from "@/utils/format";
 
+import { FONT_BOLD, FONT_HEAVY, FONT_MEDIUM } from "@/src/lib/widgets/fonts";
 import { CAMERA_WIDGET_URI, INBOX_WIDGET_URI, PROGRESS_WIDGET_URI, WIDGET_NAMES } from "@/src/lib/widgets/names";
 import type { WidgetName } from "@/src/lib/widgets/names";
+import { StreakWidget } from "@/src/lib/widgets/streak-ui";
 import { CARD_PADDING, DEFAULT_WIDGET_HEIGHT, cameraTileLayout, inboxRowCount, progressRows, staleAgo } from "@/src/lib/widgets/layout";
 
 export { WIDGET_NAMES };
 export type { WidgetName };
 
-// Basenames of the TTFs the config plugin copies into android assets
-// (app.json -> react-native-android-widget fonts).
-const FONT_MEDIUM = "PlusJakartaSans_500Medium";
-const FONT_BOLD = "PlusJakartaSans_700Bold";
-const FONT_HEAVY = "PlusJakartaSans_800ExtraBold";
 
 /** Widget colors pinned from the app tokens (light/dark pair). */
 export interface WidgetPalette {
@@ -641,6 +638,8 @@ function buildElement(name: WidgetName, snapshot: WidgetSnapshot, dark: boolean,
       return <RingkasanWidget snapshot={snapshot} c={c} {...size} />;
     case "FotoMakanan":
       return <CameraWidget dark={dark} {...size} />;
+    case "StreakCatat":
+      return <StreakWidget snapshot={snapshot} dark={dark} {...size} />;
   }
 }
 

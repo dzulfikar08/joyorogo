@@ -4,6 +4,7 @@ export const WIDGET_NAMES = {
   KotakMasukGrup: true,
   Ringkasan: true,
   FotoMakanan: true,
+  StreakCatat: true,
 } as const;
 
 export type WidgetName = keyof typeof WIDGET_NAMES;

@@ -178,6 +178,20 @@
               "targetCellHeight": 1,
               "resizeMode": "none",
               "previewImage": "./assets/widget-preview/foto-makanan.png"
+            },
+            {
+              "name": "StreakCatat",
+              "label": "Streak Catat",
+              "description": "Hari beruntun kamu mencatat makan, ditemani Joyo. Ketuk untuk scan makanan.",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "maxResizeWidth": "250dp",
+              "maxResizeHeight": "250dp",
+              "resizeMode": "horizontal|vertical",
+              "previewImage": "./assets/widget-preview/streak-catat.png",
+              "updatePeriodMillis": 3600000
             }
           ]
         }

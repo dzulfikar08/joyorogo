@@ -16,7 +16,15 @@
     "profile": "Profile",
     "openProfile": "Open {{name}}'s profile",
     "fallbackName": "You",
-    "share": "Share progress"
+    "share": "Share progress",
+    "streakAtRiskLabel_one": "Streak: {{count}} day in a row. Log today to keep the flame",
+    "streakAtRiskLabel_other": "Streak: {{count}} days in a row. Log today to keep the flame",
+    "streakAtRiskGainLabel_one": "Streak: {{count}} day in a row. Reach your eating target today to keep the flame",
+    "streakAtRiskGainLabel_other": "Streak: {{count}} days in a row. Reach your eating target today to keep the flame",
+    "streakLapseLabel_one": "{{count}} day without logging. Tap to scan a meal",
+    "streakLapseLabel_other": "{{count}} days without logging. Tap to scan a meal",
+    "streakLapseGainLabel_one": "{{count}} day short of your eating target. Tap to scan a meal",
+    "streakLapseGainLabel_other": "{{count}} days short of your eating target. Tap to scan a meal"
   },
   "banner": {
     "scans": "AI scans {{n}}x/day",

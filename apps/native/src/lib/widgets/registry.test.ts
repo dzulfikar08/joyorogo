@@ -59,9 +59,19 @@ describe("widget registration", () => {
     const w = widgets.find((x) => x.name === "FotoMakanan");
     expect(w?.updatePeriodMillis).toBeUndefined();
     expect(isStaticWidget("FotoMakanan")).toBe(true);
-    for (const name of ["ProgresHariIni", "KotakMasukGrup", "Ringkasan"]) {
+    for (const name of ["ProgresHariIni", "KotakMasukGrup", "Ringkasan", "StreakCatat"]) {
       expect(isStaticWidget(name)).toBe(false);
     }
+  });
+
+  test("StreakCatat is a 2x2 tile that refreshes hourly with the day widgets and opens the scan camera", () => {
+    const w = widgets.find((x) => x.name === "StreakCatat");
+    expect(w).toBeDefined();
+    expect(w?.targetCellWidth).toBe(2);
+    expect(w?.targetCellHeight).toBe(2);
+    expect(w?.updatePeriodMillis).toBe(3600000);
+    expect(w?.updatePeriodMillis).toBe(widgets.find((x) => x.name === "ProgresHariIni")?.updatePeriodMillis);
+    expect(existsSync(resolve(root, "app/makan-ai.tsx"))).toBe(true);
   });
 
   test("the widget deep link uses the app scheme and resolves to the camera route", () => {
