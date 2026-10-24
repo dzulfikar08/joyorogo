@@ -360,6 +360,8 @@
     "detail": "Butiran",
     "detailAria": "Tunjukkan semua pilihan dan nombor",
     "save": "Simpan ke {{meal}}",
-    "total": "Jumlah"
+    "total": "Jumlah",
+    "liveHeard": "“{{text}}”",
+    "liveSending": "Menghantar: “{{text}}”"
   }
 }

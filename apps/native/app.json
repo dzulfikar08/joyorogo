@@ -113,6 +113,14 @@
         }
       ],
       [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Izinkan mikrofon untuk merekam cerita makananmu dan menghitung kalorinya.",
+          "speechRecognitionPermission": "Izinkan pengenalan suara supaya ucapan koreksimu langsung tampil sebagai teks. Suara bisa diproses oleh Apple untuk diubah jadi teks.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox", "com.google.android.as"]
+        }
+      ],
+      [
         "expo-media-library",
         {
           "savePhotosPermission": "Izinkan JoyoRogo menambahkan gambar story ke galeri kamu. Foto lainmu tidak dibaca.",

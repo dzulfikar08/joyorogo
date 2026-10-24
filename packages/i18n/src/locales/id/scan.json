@@ -360,6 +360,8 @@
     "detail": "Detail",
     "detailAria": "Tampilkan semua pilihan dan angka",
     "save": "Simpan ke {{meal}}",
-    "total": "Total"
+    "total": "Total",
+    "liveHeard": "“{{text}}”",
+    "liveSending": "Mengirim: “{{text}}”"
   }
 }
