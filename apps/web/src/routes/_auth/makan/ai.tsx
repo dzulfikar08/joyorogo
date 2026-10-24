@@ -44,7 +44,7 @@ import type { Meal } from "@joyorogo/api/lib/engine";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { hasBone, setWithBone, stripBoneLabel } from "@joyorogo/api/lib/bone-chip";
 import { itemAtCount } from "@joyorogo/api/lib/piece-chip";
-import { macrosForTypedKcal, scalePortion } from "@joyorogo/api/lib/portion";
+import { gramsForTypedKcal, macrosForTypedKcal, scalePortion } from "@joyorogo/api/lib/portion";
 import {
   modelNumbers,
   swapPortionPrior,
@@ -1111,7 +1111,7 @@ function AiFoodPage() {
         items: items.map((item, index) => ({
           name: item.name,
           kcal: values[index]!,
-          grams: item.grams,
+          grams: gramsForTypedKcal(item, values[index]!),
           ...macrosForTypedKcal(item, values[index]!),
           box: item.box,
           // Already-cut stickers are promoted on save; unfinished ones are

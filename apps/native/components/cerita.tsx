@@ -18,7 +18,7 @@ import { MEALS, jakartaToday, storySlotLabel } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
-import { macrosForTypedKcal } from "@joyorogo/api/lib/portion";
+import { gramsForTypedKcal, macrosForTypedKcal } from "@joyorogo/api/lib/portion";
 import { copyChipLabel, copyWantedLabel } from "@joyorogo/api/lib/meal-copy-label";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
@@ -436,7 +436,7 @@ export function Cerita({
           meal: item.meal,
           name: item.name,
           kcal: values[index] ?? 0,
-          grams: item.grams,
+          grams: gramsForTypedKcal(item, values[index] ?? 0),
           ...macrosForTypedKcal(item, values[index] ?? 0),
           source: item.copied ? "copy" : "ai",
           ...(existing ? { plateId: existing } : plate ? { plate } : {}),

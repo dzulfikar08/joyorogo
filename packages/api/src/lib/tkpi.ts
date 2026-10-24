@@ -768,6 +768,11 @@ export type CalibratedItem = {
   fiber?: number;
   confidence?: number;
   matched?: boolean;
+  /**
+   * The kcal is the library's fixed kcal per gram times the grams (plain rice, black coffee, plain tea, juice: see
+   * FIXED_KCAL_DISHES), so a different kcal can only mean a different amount (portion.ts gramsForTypedKcal).
+   */
+  fixedDensity?: boolean;
   /** Eaten part of `grams` for a bone-in dish (ayam goreng, ikan utuh); absent = all of it is eaten. */
   edibleGrams?: number;
   /** Bone-in only: the weight with the bone as seen (`grams` while `withBone`), so a client can switch `grams` between it and `edibleGrams`. */
@@ -963,6 +968,7 @@ function calibrateOne({ drink, asSeen, ...entered }: CalibratableItem, options: 
     fiber,
     kcal,
     matched: true,
+    ...(fixed !== undefined ? { fixedDensity: true } : {}),
     ...(edible < 1 ? boneFields(grams, edible) : {}),
   });
 }

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { macrosForTypedKcal, rescaleForGrams, resolvePortion } from "./portion";
+import { gramsForTypedKcal, macrosForTypedKcal, rescaleForGrams, resolvePortion } from "./portion";
 import type { PortionValues } from "./portion";
 
 // 200 g of nasi goreng as logged.
@@ -94,6 +94,22 @@ describe("resolvePortion", () => {
 
   test("grams on a row without a stored weight keeps the kcal", () => {
     expect(resolvePortion({ ...NASI, grams: null }, { grams: 99 })).toEqual({ ...NASI, grams: 99 });
+  });
+});
+
+describe("gramsForTypedKcal (review lists: photo scan, Cerita)", () => {
+  test("plain rice typed down to 100 kcal saves 77 g, not '200 g at 100 kcal'", () => {
+    expect(gramsForTypedKcal({ kcal: 260, grams: 200, fixedDensity: true }, 100)).toBe(77);
+  });
+
+  test("a dish priced in a band keeps its grams: the typed kcal may fix an oilier recipe", () => {
+    expect(gramsForTypedKcal({ kcal: 450, grams: 250 }, 300)).toBe(250);
+  });
+
+  test("an untouched row, a zero and a row without weight stay as they are", () => {
+    expect(gramsForTypedKcal({ kcal: 195, grams: 150, fixedDensity: true }, 195.4)).toBe(150);
+    expect(gramsForTypedKcal({ kcal: 195, grams: 150, fixedDensity: true }, 0)).toBe(150);
+    expect(gramsForTypedKcal({ kcal: 195, grams: null, fixedDensity: true }, 100)).toBeUndefined();
   });
 });
 

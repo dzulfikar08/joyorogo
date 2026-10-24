@@ -120,8 +120,8 @@ export type ItemMacros = { protein?: number; carbs?: number; fat?: number; fiber
 /**
  * A kcal typed over an item's estimate in a review list (photo scan, "Cerita") moves the item's macros with it,
  * the same ratio food.update applies to a kcal-only edit. Without it the row kept the estimate's macros at the
- * old energy: halve 500 kcal to 250 and it still logged the full protein. Weight is left alone (the typed
- * number may fix the model's density, and the stored weight is what the portion prior compares against).
+ * old energy: halve 500 kcal to 250 and it still logged the full protein. Weight is left alone here (the typed
+ * number may fix the model's density); gramsForTypedKcal moves it for fixed-density foods such as plain rice.
  * An untouched row (typed kcal equals the shown, rounded estimate) keeps its macros exactly; macros the item
  * never had stay undefined, never 0.
  */
@@ -133,4 +133,31 @@ export function macrosForTypedKcal(item: ItemMacros & { kcal: number }, typedKca
   const ratio = typedKcal / item.kcal;
   const scale = (n: number | undefined) => (n === undefined ? undefined : round1(Math.min(500, n * ratio)));
   return { protein: scale(protein), carbs: scale(carbs), fat: scale(fat), fiber: scale(fiber) };
+}
+
+/**
+ * The weight a review-list row is saved with after a typed kcal. When the row's kcal is a fixed kcal per gram times
+ * its grams (`fixedDensity`: plain rice is ~1.3 kcal/g whatever the photo), a typed kcal can only mean a different
+ * amount, so the grams follow at the same density: "200 g rice, 260 kcal" typed down to 100 kcal saves 77 g, not
+ * "200 g at 100 kcal", and the portion prior (it learns from user-set grams) sees the edit. Any other row keeps its
+ * grams: there the typed number may be fixing the density (an oilier nasi goreng). Untouched rows and rows without
+ * a weight are returned as they are.
+ */
+export function gramsForTypedKcal(
+  item: { kcal: number; grams?: number | null; fixedDensity?: boolean },
+  typedKcal: number,
+): number | undefined {
+  const grams = item.grams ?? undefined;
+  if (
+    grams === undefined ||
+    !(grams > 0) ||
+    item.fixedDensity !== true ||
+    !(item.kcal > 0) ||
+    !Number.isFinite(typedKcal) ||
+    typedKcal <= 0 ||
+    Math.round(item.kcal) === Math.round(typedKcal)
+  ) {
+    return grams;
+  }
+  return Math.max(1, Math.min(5000, Math.round((grams * typedKcal) / item.kcal)));
 }

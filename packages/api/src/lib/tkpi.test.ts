@@ -401,6 +401,11 @@ describe("consistent staples and drinks", () => {
     expect(local?.kcal).toBe(195);
   });
 
+  test("plain rice is flagged fixed-density; a rice dish priced in a band is not", () => {
+    expect(kcal("nasi putih", 150, 182)?.fixedDensity).toBe(true);
+    expect(kcal("nasi goreng", 250, 450)?.fixedDensity).toBeUndefined();
+  });
+
   test("americano and black coffee are ~5 kcal whatever the model said", () => {
     for (const [name, model] of [["Es Kopi Americano", 60], ["Americano Es", 20], ["Iced Americano", 35], ["kopi hitam", 5]] as const) {
       const item = kcal(name, 240, model);

@@ -3,7 +3,7 @@ import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { MEALS, jakartaToday, relativeDayLabel, storySlotLabel } from "@joyorogo/api/lib/engine";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
 import { copyChipLabel, copyWantedLabel } from "@joyorogo/api/lib/meal-copy-label";
-import { macrosForTypedKcal } from "@joyorogo/api/lib/portion";
+import { gramsForTypedKcal, macrosForTypedKcal } from "@joyorogo/api/lib/portion";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import type { TFunction } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
@@ -377,7 +377,7 @@ export function Cerita({
           meal: item.meal,
           name: item.name,
           kcal: values[index]!,
-          grams: item.grams,
+          grams: gramsForTypedKcal(item, values[index]!),
           ...macrosForTypedKcal(item, values[index]!),
           source: item.copied ? "copy" : "ai",
           ...(startsGroup

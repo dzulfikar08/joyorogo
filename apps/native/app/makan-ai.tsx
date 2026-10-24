@@ -50,7 +50,7 @@ import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { hasBone, setWithBone, stripBoneLabel } from "@joyorogo/api/lib/bone-chip";
 import { itemAtCount } from "@joyorogo/api/lib/piece-chip";
 import type { Pieces } from "@joyorogo/api/lib/piece-chip";
-import { macrosForTypedKcal, scalePortion } from "@joyorogo/api/lib/portion";
+import { gramsForTypedKcal, macrosForTypedKcal, scalePortion } from "@joyorogo/api/lib/portion";
 import { modelNumbers, swapPortionPrior, withoutPortionPrior } from "@joyorogo/api/lib/portion-chip";
 import type { PortionPriorChip } from "@joyorogo/api/lib/portion-chip";
 import type { UsualDensityNote } from "@joyorogo/api/lib/usual-density";
@@ -1094,7 +1094,7 @@ export default function MakanAi() {
         items: chosen.map(({ item, draft, index }) => ({
           name: item.name,
           kcal: parseNum(draft.kcal) ?? 0,
-          grams: item.grams,
+          grams: gramsForTypedKcal(item, parseNum(draft.kcal) ?? 0),
           ...macrosForTypedKcal(item, parseNum(draft.kcal) ?? 0),
           box: item.box,
           // Already-cut stickers are promoted on save; unfinished ones are
