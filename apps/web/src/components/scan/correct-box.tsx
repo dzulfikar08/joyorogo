@@ -231,6 +231,11 @@ export function useScanCorrection(args: {
   kcals: Record<number, string>;
   kinds: Record<number, FoodKind>;
   onApply: (result: CorrectScanResult, base: AiFoodItem[]) => boolean;
+  /**
+   * Lets the screen keep a finished recording instead of sending it (true = kept, nothing is submitted). Asked once
+   * per recording, when it ends.
+   */
+  capture?: (input: CorrectionInput) => boolean;
 }): ScanCorrection {
   const { t, i18n } = useTranslation("scan");
   const [phase, setPhase] = useState<ScanCorrection["phase"]>("idle");
@@ -351,7 +356,13 @@ export function useScanCorrection(args: {
         setPhase("idle");
         return;
       }
-      void blobToBase64(blob).then((audioBase64) => submit({ audioBase64 }));
+      void blobToBase64(blob).then((audioBase64) => {
+        if (argsRef.current.capture?.({ audioBase64 })) {
+          setPhase("idle");
+          return;
+        }
+        return submit({ audioBase64 });
+      });
     };
     recorderRef.current = recorder;
     recorder.start();
@@ -388,6 +399,11 @@ export function useScanCorrection(args: {
     if (text.replace(/\s/g, "").length < 2) {
       setLive(null);
       setError(t("correct.error.voiceEmpty"));
+      setPhase("idle");
+      return;
+    }
+    if (argsRef.current.capture?.({ text })) {
+      setLive(null);
       setPhase("idle");
       return;
     }

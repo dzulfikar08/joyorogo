@@ -84,9 +84,11 @@ import {
   CorrectBadge,
   CorrectBox,
   useScanCorrection,
+  LiveCaption,
 } from "@/components/scan/correct-box";
 import { SimpleResult } from "@/components/scan/simple-result";
-import type { CorrectScanResult, CorrectionKind } from "@/components/scan/correct-box";
+import { HoldMic } from "@/components/scan/hold-mic";
+import type { CorrectScanResult, CorrectionInput, CorrectionKind } from "@/components/scan/correct-box";
 import { LiveRows } from "@/components/scan/live-rows";
 import { CountUp } from "@/components/kit/count-up";
 import { STICKER_FILTER, stickerReady, stickerUrl } from "@/components/sticker";
@@ -724,6 +726,15 @@ function AiFoodPage() {
     kcals,
     kinds,
     onApply: applyCorrection,
+    capture: (input) => {
+      if (phase === "preparing" || phase === "analyzing") {
+        setQueuedContext({ input, text: "text" in input ? input.text : "…" });
+        return true;
+      }
+      // A new recording after the result replaces what was still waiting.
+      setQueuedContext(null);
+      return false;
+    },
   });
   // The "too many items" notice lives on the full screen; it shows first.
   const simpleView = scanSimple && !showDetail && !tooMany;
@@ -733,6 +744,71 @@ function AiFoodPage() {
     if (!correctionLive) correction.cancel();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [correctionLive]);
+
+  // Context spoken while the photo was being read: kept here until the result lands (the mic's `capture`).
+  const [queuedContext, setQueuedContext] = useState<{ input: CorrectionInput; text: string } | null>(
+    null,
+  );
+  const [applyingContext, setApplyingContext] = useState(false);
+  // The scan ended without a result (error, cancel): the queued context and any recording go with it.
+  useEffect(() => {
+    if (phase !== "idle") return;
+    setQueuedContext(null);
+    correction.cancel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+  // The result is here: run the queued context as a correction (it carries the photoId, so the server re-reads the photo).
+  useEffect(() => {
+    if (!queuedContext || phase !== "confirm" || items.length === 0) return;
+    if (retrying || saving || correction.phase !== "idle") return;
+    const { input } = queuedContext;
+    setQueuedContext(null);
+    setApplyingContext(true);
+    void correction.submit(input).then((applied) => {
+      setApplyingContext(false);
+      if (!applied) return;
+      const done = t("analyzing.contextApplied");
+      setCorrectionNote((note) => (note ? `${done} · ${note}` : done));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queuedContext, phase, items.length, retrying, saving, correction.phase]);
+  // The photo was kept but nothing was found: a written context becomes the hint of one "Hitung ulang". Audio waits for
+  // a result with food; here it is dropped.
+  useEffect(() => {
+    if (!queuedContext || phase !== "confirm" || items.length > 0 || retrying) return;
+    const { input } = queuedContext;
+    setQueuedContext(null);
+    const hint = "text" in input ? input.text.trim().slice(0, 200).trim() : "";
+    if (hint && photoId && retriesLeft > 0) void retryAnalysis(hint);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queuedContext, phase, items.length, retrying]);
+  const queuedRef = useRef(queuedContext);
+  queuedRef.current = queuedContext;
+  // The scan failed but kept its photo, and there is a written context: one hinted retry instead of the error.
+  const [keptFailure, setKeptFailure] = useState<{
+    failure: ScanFailure;
+    hint: string;
+    run: number;
+  } | null>(null);
+  useEffect(() => {
+    if (!keptFailure || phase !== "analyzing" || retrying) return;
+    const kept = keptFailure;
+    setKeptFailure(null);
+    void retryAnalysis(kept.hint).then((ok) => {
+      if (runRef.current !== kept.run) return;
+      if (ok) {
+        setPhase("confirm");
+        return;
+      }
+      setScanError(kept.failure);
+      setPhase("idle");
+      setImage(null);
+      setPhotoId(null);
+      setRetriesLeft(0);
+      setRetryError(null);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keptFailure, phase, retrying]);
 
   // Rules of hooks: this must run on EVERY render, so it lives above the
   // early returns. Confetti fires once per confirm entry, sized by tier; Mode simpel stays quiet.
@@ -783,8 +859,10 @@ function AiFoodPage() {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    let prepared: NonNullable<typeof image> | null = null;
     try {
       const image = await fileToImageBase64(file);
+      prepared = image;
       if (runRef.current !== run) return;
       setLiveRows([]);
       setPhase("analyzing");
@@ -903,7 +981,20 @@ function AiFoodPage() {
         navigate({ to: "/pro", search: { from: "quota", next: "/makan/ai" } });
         return;
       }
-      setScanError(failureOf(err, t("flow.analyzeFailed")));
+      const failure = failureOf(err, t("flow.analyzeFailed"));
+      // "unclear" / "not_food" keep the photo server-side: a written context becomes the hint of one retry.
+      const keptId = (err as { data?: { photoId?: unknown } } | null)?.data?.photoId;
+      const queued = queuedRef.current?.input;
+      const hint = queued && "text" in queued ? queued.text.trim().slice(0, 200).trim() : "";
+      if (prepared && hint && typeof keptId === "string" && keptId) {
+        setQueuedContext(null);
+        setImage(prepared);
+        setPhotoId(keptId);
+        setRetriesLeft(1);
+        setKeptFailure({ failure, hint, run });
+        return;
+      }
+      setScanError(failure);
       setPhase("idle");
     }
   };
@@ -994,6 +1085,9 @@ function AiFoodPage() {
     setFeedbackNote("");
     setFeedbackKeepPhoto(false);
     setRetryCount(0);
+    setQueuedContext(null);
+    setApplyingContext(false);
+    correction.cancel();
     setShowDetail(false);
     if (cameraInputRef.current) cameraInputRef.current.value = "";
     if (galleryInputRef.current) galleryInputRef.current.value = "";
@@ -1026,15 +1120,16 @@ function AiFoodPage() {
   // Hitung ulang: same photo, one more model pass. Only the id travels (the
   // photo stays server-side) and no daily scan is spent. The previous result
   // stays visible until the new items land; on failure it stays for good.
-  const retryAnalysis = async () => {
-    if (!image || !photoId || retrying || retriesLeft <= 0) return;
+  const retryAnalysis = async (hint = retryHint) => {
+    if (!image || !photoId || retrying || retriesLeft <= 0) return false;
     setRetryError(null);
     setRetrying(true);
     const controller = new AbortController();
     retryAbortRef.current = controller;
+    let ok = false;
     try {
       const result = await client.ai.analyzeFoodRetry(
-        { photoId, hint: retryHint.trim() || undefined },
+        { photoId, hint: hint.trim().slice(0, 200) || undefined },
         { signal: controller.signal },
       );
       applyItems(result.items);
@@ -1059,13 +1154,23 @@ function AiFoodPage() {
       setRetryCount((count) => count + 1);
       setTooMany(result.tooMany);
       setPlateNote({ plate: result.plate, card: result.card });
+      ok = true;
     } catch (err) {
+      ok = false;
       setRetryError(failureOf(err, t("flow.retryFailed")));
     } finally {
       if (retryAbortRef.current === controller) retryAbortRef.current = null;
       setRetrying(false);
     }
+    return ok;
   };
+
+  // Status line while the queued context runs as a correction.
+  const contextBanner = applyingContext ? (
+    <p className="mt-3 animate-pulse text-sm text-muted-foreground" role="status">
+      {t("analyzing.contextApplying")}
+    </p>
+  ) : null;
 
   const saveAll = async () => {
     if (!image) return;
@@ -1206,6 +1311,49 @@ function AiFoodPage() {
           </div>
         </Card>
         {phase === "analyzing" && <LiveRows rows={liveRows} />}
+        {(phase === "preparing" || phase === "analyzing") && (
+          <section className="mt-4" aria-label={t("analyzing.contextMic")}>
+            <HoldMic
+              correction={correction}
+              idleLabel={t("analyzing.contextMic")}
+              ariaLabel={t("analyzing.contextMic")}
+            />
+            <div className="mt-2 space-y-1 text-center text-sm" aria-live="polite">
+              {correction.phase === "recording" && (
+                <p className="text-muted-foreground">{t("simple.micRelease")}</p>
+              )}
+              {correction.error && (
+                <p className="font-semibold text-destructive" role="alert">
+                  {correction.error}
+                </p>
+              )}
+              {correction.live?.text ? (
+                <LiveCaption live={correction.live} className="font-semibold text-foreground" />
+              ) : (
+                correction.phase === "idle" &&
+                !queuedContext && (
+                  <p className="text-xs text-muted-foreground">{t("analyzing.contextExamples")}</p>
+                )
+              )}
+            </div>
+            {queuedContext && correction.phase === "idle" && (
+              <div className="mt-2 flex items-center gap-1 rounded-2xl bg-card py-1 pr-1 pl-4 text-sm">
+                <p className="min-w-0 flex-1 break-words">
+                  {t("analyzing.contextQueued", { text: queuedContext.text })}
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t("analyzing.contextRemove")}
+                  onClick={() => setQueuedContext(null)}
+                >
+                  <X aria-hidden />
+                </Button>
+              </div>
+            )}
+          </section>
+        )}
         {fact && !maternalInfo && !gain && (
           <div className="mt-3 rounded-2xl bg-card p-4 text-sm">
             <span className="font-bold">{t("fact.title")} </span>
@@ -1263,6 +1411,7 @@ function AiFoodPage() {
         onSave={() => void saveAll()}
         onDetail={() => setShowDetail(true)}
         onRetake={reset}
+        banner={contextBanner}
       />
     );
   }
@@ -1281,6 +1430,8 @@ function AiFoodPage() {
             </Button>
           }
         />
+
+        {contextBanner}
 
         {tooMany && (
           <Card className="mb-3 p-4" role="status">

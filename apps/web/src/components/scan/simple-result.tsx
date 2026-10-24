@@ -1,18 +1,15 @@
 import { kcalUnit } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
-import { Loader2, Mic, Undo2 } from "lucide-react";
-import { useEffect, useRef } from "react";
-import type { KeyboardEvent, PointerEvent, ReactNode } from "react";
+import { Undo2 } from "lucide-react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { CountUp } from "@/components/kit/count-up";
 import { Card, ListGroup, Page, PageHeader, Segmented } from "@/components/kit/surface";
 import { CORRECTED_ROW_CLASS, CorrectBadge, LiveCaption } from "@/components/scan/correct-box";
 import type { CorrectionKind, ScanCorrection } from "@/components/scan/correct-box";
-
-/** A press shorter than this is a tap (record until the next tap), longer is hold-to-talk (release sends). */
-const HOLD_MS = 400;
+import { HoldMic } from "@/components/scan/hold-mic";
 
 export interface SimpleRow {
   name: string;
@@ -43,6 +40,7 @@ export function SimpleResult<M extends string>({
   onSave,
   onDetail,
   onRetake,
+  banner,
 }: {
   rows: SimpleRow[];
   totalKcal: number;
@@ -59,71 +57,13 @@ export function SimpleResult<M extends string>({
   onSave: () => void;
   onDetail: () => void;
   onRetake: () => void;
+  /** Shown above the list (the screen's own status line). */
+  banner?: ReactNode;
 }) {
   const { t } = useTranslation(["scan", "common"]);
-  const { phase, error, heard, live, startRecording, stopRecording } = correction;
+  const { phase, error, heard, live } = correction;
   const recording = phase === "recording";
   const working = phase === "working";
-
-  // Hold-to-talk with a tap fallback: pointer and Space/Enter share one press/release pair.
-  const phaseRef = useRef(phase);
-  phaseRef.current = phase;
-  const downRef = useRef(false);
-  const startedAtRef = useRef<number | null>(null);
-  const swallowReleaseRef = useRef(false);
-
-  useEffect(() => {
-    // Released while the mic was still opening (permission prompt): keep recording until the next tap.
-    startedAtRef.current = phase === "recording" && downRef.current ? performance.now() : null;
-  }, [phase]);
-
-  const press = () => {
-    downRef.current = true;
-    if (phaseRef.current === "recording") {
-      swallowReleaseRef.current = true;
-      stopRecording(false);
-    } else if (phaseRef.current === "idle") {
-      void startRecording();
-    }
-  };
-  const release = () => {
-    if (!downRef.current) return;
-    downRef.current = false;
-    if (swallowReleaseRef.current) {
-      swallowReleaseRef.current = false;
-      return;
-    }
-    const startedAt = startedAtRef.current;
-    if (
-      phaseRef.current === "recording" &&
-      startedAt !== null &&
-      performance.now() - startedAt >= HOLD_MS
-    ) {
-      stopRecording(false);
-    }
-  };
-
-  const onPointerDown = (event: PointerEvent<HTMLButtonElement>) => {
-    if (event.button !== 0) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    press();
-  };
-  const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key !== " " && event.key !== "Enter") return;
-    event.preventDefault();
-    if (!event.repeat) press();
-  };
-  const onKeyUp = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key !== " " && event.key !== "Enter") return;
-    event.preventDefault();
-    release();
-  };
-
-  const micLabel = working
-    ? t("simple.working")
-    : recording
-      ? t("simple.listening")
-      : t("simple.mic");
 
   return (
     <Page className="stagger-enter md:max-w-3xl">
@@ -136,6 +76,8 @@ export function SimpleResult<M extends string>({
           </Button>
         }
       />
+
+      {banner}
 
       {rows.length > 1 && (
         <Card className="flex items-baseline justify-between gap-3 px-4 py-3">
@@ -185,25 +127,7 @@ export function SimpleResult<M extends string>({
       </section>
 
       <div className="mt-4">
-        <Button
-          type="button"
-          size="lg"
-          variant={recording ? "destructive" : "default"}
-          aria-label={phase === "idle" ? t("simple.micAria") : undefined}
-          aria-pressed={recording}
-          disabled={working}
-          className="h-16 w-full touch-none text-base select-none"
-          onPointerDown={onPointerDown}
-          onPointerUp={release}
-          onPointerCancel={release}
-          onKeyDown={onKeyDown}
-          onKeyUp={onKeyUp}
-          onBlur={release}
-          onContextMenu={(event) => event.preventDefault()}
-        >
-          {working ? <Loader2 className="animate-spin" aria-hidden /> : <Mic aria-hidden />}
-          {micLabel}
-        </Button>
+        <HoldMic correction={correction} idleLabel={t("simple.mic")} ariaLabel={t("simple.micAria")} />
         <div className="mt-2 space-y-1 text-center text-sm" aria-live="polite">
           {recording && <p className="text-muted-foreground">{t("simple.micRelease")}</p>}
           {heard && <p className="text-muted-foreground">{t("correct.heard", { text: heard })}</p>}

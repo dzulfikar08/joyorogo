@@ -187,6 +187,12 @@ function localFailure(message: string): ScanFailure {
   return { reason: null, message };
 }
 
+/** A scan that failed as unclear / not food keeps its photo on the server and names it for a "Hitung ulang". */
+function failurePhotoId(error: unknown): string | null {
+  const id = (error as { data?: { photoId?: unknown } } | null)?.data?.photoId;
+  return typeof id === "string" && id ? id : null;
+}
+
 /**
  * Cuts one item crop on device from the image we sent. Boxes are on a
  * 0-1000 grid, so they map straight onto the sent image's pixel size.
@@ -459,10 +465,12 @@ function AnalyzingOverlay({
   previewUri,
   rows,
   onCancel,
+  mic,
 }: {
   previewUri: string;
   rows: LiveRow[];
   onCancel: () => void;
+  mic: React.ReactNode;
 }) {
   const { t } = useTranslation("scan");
   const [stage, setStage] = useState(0);
@@ -483,6 +491,7 @@ function AnalyzingOverlay({
         <ActivityIndicator size="large" color="#FFFFFF" />
         <Text style={styles.analyzingText}>{t(`analyzing.stage.${ANALYZE_STAGES[stage]}`)}</Text>
         <LiveRows rows={rows} />
+        <View style={styles.analyzingMic}>{mic}</View>
         <PressableScale
           accessibilityRole="button"
           accessibilityLabel={t("analyzing.cancelLabel")}
@@ -540,6 +549,41 @@ export default function MakanAi() {
   const [flashTick, setFlashTick] = useState(0);
   const [liveRows, setLiveRows] = useState<LiveRow[]>([]);
   const scanRunRef = useRef(0);
+  // Context spoken while the photo is analyzed: queued here (ref for the async scan code, state for the screen),
+  // run as a correction once the rows arrive, or as the hint of one automatic "Hitung ulang" when the scan fails.
+  const [queuedContext, setQueuedContext] = useState<CorrectInput | null>(null);
+  const queuedRef = useRef<CorrectInput | null>(null);
+  const analyzingRef = useRef(false);
+  analyzingRef.current = analyzing;
+  const contextActiveRef = useRef(false);
+  const contextIdleRef = useRef<Array<() => void>>([]);
+  const [applyContext, setApplyContext] = useState<CorrectInput | null>(null);
+  const [contextRun, setContextRun] = useState<
+    { status: "applying" | "applied" } | { status: "error"; message: string } | null
+  >(null);
+  const flushContextWaiters = () => contextIdleRef.current.splice(0).forEach((resolve) => resolve());
+  const dropContext = () => {
+    queuedRef.current = null;
+    setQueuedContext(null);
+    setApplyContext(null);
+    setContextRun(null);
+    flushContextWaiters();
+  };
+  const queueContext = async (input: CorrectInput): Promise<CorrectOutcome | null> => {
+    if (!analyzingRef.current) return null;
+    queuedRef.current = input;
+    setQueuedContext(input);
+    return null;
+  };
+  const markContextActive = useRef((active: boolean) => {
+    contextActiveRef.current = active;
+    if (!active) contextIdleRef.current.splice(0).forEach((resolve) => resolve());
+  }).current;
+  /** A take still being spoken or read when the rows arrive: the mic stays on screen until it is queued. */
+  const waitContextIdle = () =>
+    contextActiveRef.current
+      ? new Promise<void>((resolve) => contextIdleRef.current.push(resolve))
+      : Promise.resolve();
   const scanAbortRef = useRef<AbortController | null>(null);
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
   const ramadan = effectiveRamadan(profile.data?.profile?.ramadanMode);
@@ -654,6 +698,21 @@ export default function MakanAi() {
     };
   }, [plateScanId]);
 
+  // The context spoken while the photo was analyzed runs as a normal correction once its rows are on screen.
+  useEffect(() => {
+    if (!applyContext || phase !== "confirm") return;
+    setApplyContext(null);
+    setContextRun({ status: "applying" });
+    submitCorrection(applyContext)
+      .then((outcome) => setContextRun(outcome ? { status: "applied" } : null))
+      .catch((err: unknown) =>
+        setContextRun({
+          status: "error",
+          message: err instanceof Error && err.message ? err.message : t("correct.error.failed"),
+        }),
+      );
+  }, [applyContext, phase]);
+
   if (gate === "loading") {
     return <BootLoader />;
   }
@@ -713,6 +772,7 @@ export default function MakanAi() {
     setAnalyzing(false);
     setLiveRows([]);
     retry.reset();
+    dropContext();
     setPhase("camera");
   };
 
@@ -791,6 +851,8 @@ export default function MakanAi() {
   ) => {
     setFlowError(null);
     let previewSet = false;
+    let runId = 0;
+    let sent: { base64: string; uri: string; width: number; height: number } | null = null;
     try {
       // Show the shot immediately while the upload + AI run (~10 s total).
       setPreviewUri(photoUri);
@@ -823,6 +885,13 @@ export default function MakanAi() {
         sessionTiming;
       sessionTiming = {};
       const run = ++scanRunRef.current;
+      runId = run;
+      sent = {
+        base64: saved.base64,
+        uri: saved.uri,
+        width: rendered.width,
+        height: rendered.height,
+      };
       const abort = new AbortController();
       scanAbortRef.current = abort;
       setLiveRows([]);
@@ -855,6 +924,7 @@ export default function MakanAi() {
             if (scanRunRef.current === run) setLiveRows(rows);
           },
         });
+        await waitContextIdle();
       } finally {
         if (scanRunRef.current === run) setAnalyzing(false);
       }
@@ -926,6 +996,10 @@ export default function MakanAi() {
       setKinds({});
       setFullPortion(null);
       setPhase("confirm");
+      const spoken = queuedRef.current;
+      queuedRef.current = null;
+      setQueuedContext(null);
+      if (spoken) setApplyContext(spoken);
       // The state commit is on screen after two frames; record how long that
       // took, then cut the per-item tiles in the background.
       const respondedAt = performance.now();
@@ -951,6 +1025,22 @@ export default function MakanAi() {
       if (isPaywallError(e)) {
         router.replace({ pathname: "/founder", params: { from: "quota" } });
         return;
+      }
+      // "Unclear" / "not food" keep the photo on the server: the spoken text becomes the hint of one retry.
+      const rescueId = failurePhotoId(e);
+      const spoken = queuedRef.current;
+      const hint = spoken && "text" in spoken ? spoken.text.trim().slice(0, 200) : "";
+      if (rescueId && sent && hint && scanRunRef.current === runId) {
+        setAnalyzing(true);
+        const ok = await retryAnalysis({ photoId: rescueId, hint, run: runId, sent });
+        if (scanRunRef.current !== runId) return;
+        queuedRef.current = null;
+        setQueuedContext(null);
+        setAnalyzing(false);
+        if (ok) {
+          setPhase("confirm");
+          return;
+        }
       }
       if (previewSet) setPreviewUri(null);
       setFlowError(failureOf(e));
@@ -1020,15 +1110,30 @@ export default function MakanAi() {
       .catch(() => {});
   };
 
-  /** Hitung ulang: same photo, one more model pass; only the id travels. */
-  const retryAnalysis = async () => {
-    if (!photoId || retry.isPending || correct.isPending || retriesLeft <= 0) return;
+  /**
+   * Hitung ulang: same photo, one more model pass; only the id travels. `rescue` is the automatic pass after a scan
+   * that failed before any result existed: it fills the screen like a first result and reports whether it did.
+   */
+  const retryAnalysis = async (rescue?: {
+    photoId: string;
+    hint: string;
+    run: number;
+    sent: NonNullable<typeof sentImage>;
+  }): Promise<boolean> => {
+    const id = rescue?.photoId ?? photoId;
+    const hint = rescue ? rescue.hint : retryHint.trim();
+    if (!id || retry.isPending || correct.isPending || (!rescue && retriesLeft <= 0)) return false;
     setFlowError(null);
     try {
-      const result = await retry.mutateAsync({
-        photoId,
-        ...(retryHint.trim() ? { hint: retryHint.trim() } : {}),
-      });
+      const result = await retry.mutateAsync({ photoId: id, ...(hint ? { hint } : {}) });
+      if (rescue && scanRunRef.current !== rescue.run) return false;
+      if (rescue) {
+        setPhotoId(id);
+        setPlateScanId(null);
+        setSentImage(rescue.sent);
+        setQuotaReached(false);
+        setRetryCount(0);
+      }
       correctRunRef.current += 1;
       setUndoStack([]);
       setFlagged(null);
@@ -1048,21 +1153,24 @@ export default function MakanAi() {
       setReferences({ plate: result.plate, card: result.card });
       setTooMany(result.tooMany);
       // Re-cut the per-item tiles from the same sent image, in the background.
-      if (sentImage) {
-        cutCrops(sentImage.uri, sentImage.width, sentImage.height, result.items);
+      const image = rescue?.sent ?? sentImage;
+      if (image) {
+        cutCrops(image.uri, image.width, image.height, result.items);
       }
       // Only items whose box moved get a fresh cutout; same box, same sticker.
       cutStickers(
-        photoId,
+        id,
         result.items,
         result.items.map((next) => {
           const prevIndex = items.findIndex((prev) => sameBox(prev.box, next.box));
           return prevIndex === -1 ? null : (stickers[prevIndex] ?? null);
         }),
       );
+      return true;
     } catch (e) {
-      // The previous result stays on screen; only the message changes.
-      setFlowError(failureOf(e));
+      // The previous result stays on screen; only the message changes. A rescue leaves the scan error to its caller.
+      if (!rescue) setFlowError(failureOf(e));
+      return false;
     }
   };
 
@@ -1387,6 +1495,20 @@ export default function MakanAi() {
     refreshTiles(snap.items, snap.crops, snap.stickers);
   };
 
+  const submitUserCorrection = (input: CorrectInput) => {
+    setContextRun(null);
+    return submitCorrection(input);
+  };
+  const contextLine = contextRun ? (
+    contextRun.status === "error" ? (
+      <Text style={styles.errorText}>{contextRun.message}</Text>
+    ) : (
+      <Text style={styles.contextStatus} accessibilityLiveRegion="polite">
+        {t(contextRun.status === "applying" ? "analyzing.contextApplying" : "analyzing.contextApplied")}
+      </Text>
+    )
+  ) : null;
+
   const flowErrorTitle = flowError?.reason ? t(`fail.reason.${flowError.reason}.title`) : null;
   const flowErrorMessage = flowError?.reason
     ? t(`fail.reason.${flowError.reason}.message`)
@@ -1434,7 +1556,27 @@ export default function MakanAi() {
           <Ionicons name="close" size={24} color="#FFFFFF" />
         </PressableScale>
         {analyzing && previewUri ? (
-          <AnalyzingOverlay previewUri={previewUri} rows={liveRows} onCancel={resetToCamera} />
+          <AnalyzingOverlay
+            previewUri={previewUri}
+            rows={liveRows}
+            onCancel={resetToCamera}
+            mic={
+              <SimpleMic
+                busy={false}
+                canUndo={false}
+                onSubmit={queueContext}
+                onUndo={() => {}}
+                context={{
+                  queued: queuedContext,
+                  onRemove: () => {
+                    queuedRef.current = null;
+                    setQueuedContext(null);
+                  },
+                  onActive: markContextActive,
+                }}
+              />
+            }
+          />
         ) : (
           <>
             <View style={styles.shutterRow}>
@@ -1624,11 +1766,13 @@ export default function MakanAi() {
               })}
             </ListGroup>
 
+            {contextLine}
+
             {!retry.isPending && !addScan.isPending ? (
               <SimpleMic
                 busy={correct.isPending}
                 canUndo={undoStack.length > 0}
-                onSubmit={submitCorrection}
+                onSubmit={submitUserCorrection}
                 onUndo={undoCorrection}
               />
             ) : null}
@@ -1953,6 +2097,8 @@ export default function MakanAi() {
             })}
           </ListGroup>
 
+          {contextLine}
+
           {/* Saran tips kalau ada minuman manis atau saus/gorengan */}
           {gain ? null : <ContextualTip names={items.map((item) => item.name)} />}
 
@@ -1968,7 +2114,7 @@ export default function MakanAi() {
             <CorrectBox
               busy={correct.isPending}
               canUndo={undoStack.length > 0}
-              onSubmit={submitCorrection}
+              onSubmit={submitUserCorrection}
               onUndo={undoCorrection}
             />
           ) : null}
@@ -2364,6 +2510,14 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     justifyContent: "center",
     gap: theme.spacing.md,
+  },
+  analyzingMic: {
+    alignSelf: "stretch",
+    paddingHorizontal: theme.spacing.lg,
+  },
+  contextStatus: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
   },
   analyzingText: {
     color: "#FFFFFF",

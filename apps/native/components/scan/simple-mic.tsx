@@ -23,12 +23,23 @@ export function SimpleMic({
   canUndo,
   onSubmit,
   onUndo,
+  context,
 }: {
   /** A correction request is in flight (started elsewhere). */
   busy: boolean;
   canUndo: boolean;
   onSubmit: (input: CorrectInput) => Promise<CorrectOutcome | null>;
   onUndo: () => void;
+  /**
+   * While the photo is still being analyzed: the take goes to `onSubmit` (which queues it, resolving null) instead of
+   * correcting rows, the queued line replaces the outcome lines, and the colors suit the dark overlay.
+   */
+  context?: {
+    queued: CorrectInput | null;
+    onRemove: () => void;
+    /** True from the first press until the take was handed to `onSubmit`. */
+    onActive: (active: boolean) => void;
+  };
 }) {
   const { t } = useTranslation(["scan", "common"]);
   const { theme } = useUnistyles();
@@ -45,6 +56,14 @@ export function SimpleMic({
   });
   const { recording, caption } = voice;
   const working = busy || correction.processing || voice.processing;
+  const onActive = context?.onActive;
+  const active = recording || working;
+  useEffect(() => {
+    onActive?.(active);
+  }, [active, onActive]);
+  useEffect(() => () => onActive?.(false), [onActive]);
+  const dark = context ? styles.onDark : null;
+  const mutedDark = context ? styles.onDarkMuted : null;
 
   const press = useRef({ held: false, latched: false, starting: false, at: 0, ignoreOut: false });
   const [latched, setLatched] = useState(false);
@@ -98,7 +117,11 @@ export function SimpleMic({
     correction.markUndone();
   };
 
-  const label = recording ? t("simple.listening") : working ? t("simple.working") : t("simple.mic");
+  const label = recording
+    ? t("simple.listening")
+    : working
+      ? t("simple.working")
+      : t(context ? "analyzing.contextMic" : "simple.mic");
 
   return (
     <View style={styles.wrap}>
@@ -128,30 +151,53 @@ export function SimpleMic({
         </View>
       </Pressable>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {heard ? <Text style={styles.status}>{t("correct.heard", { text: heard })}</Text> : null}
-      {outcome ? (
-        <Text style={styles.status} accessibilityLiveRegion="polite">
-          {t("correct.applied", { count: outcome.count })}
-          {outcome.removed.length > 0
-            ? ` ${t("correct.removed", { names: outcome.removed.join(", ") })}`
-            : ""}
-        </Text>
-      ) : null}
-      {undone ? <Text style={styles.status}>{t("correct.undone")}</Text> : null}
-      {canUndo ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          icon="arrow-undo"
-          label={t("correct.undo")}
-          disabled={working || recording}
-          onPress={undo}
-        />
-      ) : null}
+      {error ? <Text style={[styles.error, dark]}>{error}</Text> : null}
+      {context ? (
+        context.queued && !recording ? (
+          <View style={styles.queued}>
+            <Text style={[styles.status, dark, styles.queuedText]} numberOfLines={2} accessibilityLiveRegion="polite">
+              {t("analyzing.contextQueued", {
+                text: "text" in context.queued ? context.queued.text : "…",
+              })}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("analyzing.contextRemove")}
+              onPress={context.onRemove}
+              hitSlop={12}
+              style={styles.queuedRemove}
+            >
+              <Ionicons name="close" size={18} color="#FFFFFF" />
+            </Pressable>
+          </View>
+        ) : null
+      ) : (
+        <>
+          {heard ? <Text style={styles.status}>{t("correct.heard", { text: heard })}</Text> : null}
+          {outcome ? (
+            <Text style={styles.status} accessibilityLiveRegion="polite">
+              {t("correct.applied", { count: outcome.count })}
+              {outcome.removed.length > 0
+                ? ` ${t("correct.removed", { names: outcome.removed.join(", ") })}`
+                : ""}
+            </Text>
+          ) : null}
+          {undone ? <Text style={styles.status}>{t("correct.undone")}</Text> : null}
+          {canUndo ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              icon="arrow-undo"
+              label={t("correct.undo")}
+              disabled={working || recording}
+              onPress={undo}
+            />
+          ) : null}
+        </>
+      )}
       {caption ? (
         <Text
-          style={styles.caption}
+          style={[styles.caption, dark]}
           numberOfLines={3}
           ellipsizeMode="head"
           accessibilityLiveRegion="polite"
@@ -159,7 +205,9 @@ export function SimpleMic({
           {t(caption.sending ? "simple.liveSending" : "simple.liveHeard", { text: caption.text })}
         </Text>
       ) : (
-        <Text style={styles.examples}>{t("simple.examples")}</Text>
+        <Text style={[styles.examples, mutedDark]}>
+          {t(context ? "analyzing.contextExamples" : "simple.examples")}
+        </Text>
       )}
     </View>
   );
@@ -222,5 +270,28 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
     textAlign: "center",
+  },
+  onDark: {
+    color: "#FFFFFF",
+  },
+  onDarkMuted: {
+    color: "rgba(255,255,255,0.75)",
+  },
+  queued: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: theme.spacing.sm,
+  },
+  queuedText: {
+    flexShrink: 1,
+  },
+  queuedRemove: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
 }));
