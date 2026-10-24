@@ -137,15 +137,17 @@ export function SimpleResult<M extends string>({
         }
       />
 
-      <Card className="flex items-baseline justify-between gap-3 px-4 py-3">
-        <p className="text-sm font-semibold text-muted-foreground">{t("simple.total")}</p>
-        <p className="text-3xl leading-none font-extrabold tracking-tighter tabular-nums">
-          <CountUp value={totalKcal} duration={700} />
-          <span className="ml-1.5 text-sm font-semibold tracking-normal text-muted-foreground">
-            {kcalUnit()}
-          </span>
-        </p>
-      </Card>
+      {rows.length > 1 && (
+        <Card className="flex items-baseline justify-between gap-3 px-4 py-3">
+          <p className="text-sm font-semibold text-muted-foreground">{t("simple.total")}</p>
+          <p className="text-3xl leading-none font-extrabold tracking-tighter tabular-nums">
+            <CountUp value={totalKcal} duration={700} />
+            <span className="ml-1.5 text-sm font-semibold tracking-normal text-muted-foreground">
+              {kcalUnit()}
+            </span>
+          </p>
+        </Card>
+      )}
 
       <section className="mt-3" aria-label={t("result.items.label")}>
         <ListGroup>

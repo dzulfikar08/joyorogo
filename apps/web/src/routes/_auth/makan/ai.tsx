@@ -735,15 +735,15 @@ function AiFoodPage() {
   }, [correctionLive]);
 
   // Rules of hooks: this must run on EVERY render, so it lives above the
-  // early returns. Confetti fires once per confirm entry, sized by tier.
+  // early returns. Confetti fires once per confirm entry, sized by tier; Mode simpel stays quiet.
   const confirmedRef = useRef(false);
   useEffect(() => {
     if (phase === "confirm" && !confirmedRef.current) {
       confirmedRef.current = true;
-      celebrate(totalKcal);
+      if (!scanSimple) celebrate(totalKcal);
     }
     if (phase !== "confirm") confirmedRef.current = false;
-  }, [phase, totalKcal]);
+  }, [phase, totalKcal, scanSimple]);
 
   // Incremented on every new shot and on cancel; a late AI response from an
   // abandoned run must never overwrite the current screen. Each run gets its
