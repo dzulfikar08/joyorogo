@@ -8,12 +8,13 @@ import { DishwareSection } from "@/components/dishware/dishware-section";
 import { FastingSettingsSection } from "@/components/fasting/settings-section";
 import { Card, Segmented, SectionTitle } from "@/components/kit/surface";
 import { profileOptions } from "@/components/profil/shared";
+import { ScanSimpleSection } from "@/components/profil/scan-simple-section";
 import type { ProfilCtx } from "@/components/profil/shared";
 import type { MyProfileData } from "@/lib/api-types";
 import { useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
-/** Ramadan mode, intermittent fasting, reminders note and the shopping budget. */
+/** Ramadan mode, intermittent fasting, reminders note, the shopping budget and Mode simpel after a scan. */
 export function MealsScreen({ ctx }: { ctx: ProfilCtx }) {
   const { t } = useTranslation(["settings", "maternal"]);
   const { row, targets } = ctx;
@@ -41,6 +42,7 @@ export function MealsScreen({ ctx }: { ctx: ProfilCtx }) {
       <BudgetSetting />
 
       <DishwareSection />
+      <ScanSimpleSection />
     </>
   );
 }
