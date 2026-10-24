@@ -81,6 +81,12 @@
   },
   "analyzing": {
     "title": "Analyzing photo",
+    "contextMic": "Hold & tell us the food",
+    "contextExamples": "E.g. “nasi padang with tuna balado”",
+    "contextQueued": "Context: “{{text}}”",
+    "contextApplying": "Applying your context…",
+    "contextApplied": "Your context was applied.",
+    "contextRemove": "Remove context",
     "subtitle": "Hang on, usually 8 to 15 seconds.",
     "photoAlt": "Food photo being analyzed",
     "cancel": "Cancel",

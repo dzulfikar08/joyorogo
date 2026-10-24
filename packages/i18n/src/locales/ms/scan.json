@@ -80,6 +80,12 @@
   },
   "analyzing": {
     "title": "Menganalisis foto",
+    "contextMic": "Tahan & beritahu makanannya",
+    "contextExamples": "Cth. “nasi padang dengan tuna balado”",
+    "contextQueued": "Konteks: “{{text}}”",
+    "contextApplying": "Menerapkan konteks anda…",
+    "contextApplied": "Konteks anda sudah diterapkan.",
+    "contextRemove": "Buang konteks",
     "subtitle": "Tunggu sebentar, biasanya 8 hingga 15 saat.",
     "photoAlt": "Foto makanan yang sedang dianalisis",
     "cancel": "Batalkan",
