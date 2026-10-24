@@ -12,7 +12,7 @@ import { orpc } from "@/utils/orpc";
 // Closed on this phone for good; not tied to the account (the tip is about a habit with the camera).
 const STORE_KEY = "joyorogo.scanReferenceHint";
 
-/** One line over the camera: put a card or a kitchen scale beside the food. Only for users with either flag on. */
+/** One line over the camera: put a card or a kitchen scale beside the food (the scale only where no card is read). */
 export function ReferenceHint() {
   const { t } = useTranslation("scan");
   const hint = useQuery(orpc.dishware.scanHint.queryOptions());
@@ -24,10 +24,10 @@ export function ReferenceHint() {
       () => setClosed(false),
     );
   }, []);
-  if (!hint.data?.show || closed) return null;
+  if (!hint.data || !(hint.data.show || hint.data.scale) || closed) return null;
   return (
     <View style={styles.pill}>
-      <Text style={styles.text}>{t("idle.referenceHint")}</Text>
+      <Text style={styles.text}>{t(hint.data.show ? "idle.referenceHint" : "idle.referenceHintScale")}</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t("idle.referenceHintClose")}

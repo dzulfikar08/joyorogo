@@ -91,8 +91,8 @@
     "DATASET_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
     "DISHWARE_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
     "CORRECTION_MEMORY_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
-    // The owner and the QA test account (qa@joyorogo.com), so the scale readout can be checked in a browser.
-    "SCALE_READOUT_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc,19d6d730903aa680d7ff3f8f564e3daf",
+    // Everyone since 2026-10-24 (docs/scale-readout.md): ~4.5 neurons per scan, 7 of 7 owner readings real, 0 false in 29.
+    "SCALE_READOUT_USER_IDS": "*",
     "SHADOW_SAMPLE_RATE": "0.2",
     "SHADOW_DAILY_CAP": "60",
     // The signed-in app (docs/app-subdomain.md); SITE_URL is the landing/marketing site.

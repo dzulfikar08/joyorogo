@@ -4,7 +4,9 @@ When a food photo shows a kitchen scale's display, a second, tiny vision call re
 
 ## Flag
 
-`SCALE_READOUT_USER_IDS`: comma-separated user ids (a Worker var in `apps/server/wrangler.jsonc`, like `DATASET_USER_IDS`; owner only today). Unset, empty or any other user: no second call is made and `ai.analyzeFood` / `analyzeFoodStream` / `analyzeFoodRetry` return exactly what they returned before (no `scaleRead` key on any item). To switch on for QA add the user id to the var and deploy; to switch off remove it.
+`SCALE_READOUT_USER_IDS`: comma-separated user ids, or `*` for everyone (a Worker var in `apps/server/wrangler.jsonc`, like `DATASET_USER_IDS`). **On for everyone since 2026-10-24.** Before that it ran for the owner only: over 36 owner scans it read 7 displays, all 7 real scale photos (258-668 g, confidence 0.9-1), and gave no reading on the 29 photos without a scale. The cost, about 4.5 neurons per scan (about $0.00005 at $0.011 per 1,000 neurons), was judged acceptable. Unset or empty: no second call is made and `ai.analyzeFood` / `analyzeFoodStream` / `analyzeFoodRetry` return exactly what they returned before (no `scaleRead` key on any item). To switch it off, set the var to the owner's id (or empty) and deploy.
+
+The camera tip (`dishware.scanHint`): `show` = a card is read for this user (`DISHWARE_USER_IDS`; builds before 1.1.0 only read `show` and say "card or scale"), `scale` = the scale display is read; 1.1.0 and the web show "punya timbangan dapur?" to scale-only users. The row's "Termasuk wadah?" takes the empty bowl or plate off a reading (`tareScaleRows`, `lib/scale-chip.ts`), and Koreksi has a `wadah` op for "668 itu termasuk mangkok".
 
 ## How it works (`packages/api/src/lib/scale-reading.ts`)
 

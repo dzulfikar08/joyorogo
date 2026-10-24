@@ -331,13 +331,13 @@ function split(total: number, weights: number[]): number[] {
 }
 
 /**
- * `SCALE_READOUT_USER_IDS` is a comma-separated user id allowlist (the owner and
- * QA); empty or unset = nobody, and the analyze path stays exactly as it was.
+ * `SCALE_READOUT_USER_IDS` is a comma-separated user id allowlist, or `*` for everyone; empty or unset = nobody, and
+ * the analyze path stays exactly as it was.
  */
 export function scaleReadoutEnabled(env: { SCALE_READOUT_USER_IDS?: string }, userId: string): boolean {
   return (env.SCALE_READOUT_USER_IDS ?? "")
     .split(",")
-    .some((id) => id.trim() !== "" && id.trim() === userId);
+    .some((id) => id.trim() === "*" || (id.trim() !== "" && id.trim() === userId));
 }
 
 /** The ledger row's account of a scale call: what was read, what became of it, and what the call cost. */

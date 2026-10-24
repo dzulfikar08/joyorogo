@@ -137,10 +137,12 @@ function ledger(db: Database, userId: string, model: string, startedAt: number, 
  * (DISHWARE_USER_IDS); `status` is how clients know whether to show the screen at all.
  */
 export const dishwareRouter = {
-  // The camera tip about putting a card or a kitchen scale beside the food: for users with either flag on.
+  // The camera tip about putting a card or a kitchen scale beside the food. `show` = a card is read for this user
+  // (builds before 1.1.0 read only `show` and always say "card or scale"); `scale` = the scale display is read, so
+  // newer clients show a scale-only tip to everyone else.
   scanHint: protectedProcedure.handler(({ context }) => {
     const userId = context.session.user.id;
-    return { show: dishwareEnabled(context.env, userId) || scaleReadoutEnabled(context.env, userId) };
+    return { show: dishwareEnabled(context.env, userId), scale: scaleReadoutEnabled(context.env, userId) };
   }),
 
   status: protectedProcedure.handler(async ({ context }) => {

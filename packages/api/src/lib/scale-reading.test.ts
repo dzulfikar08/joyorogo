@@ -207,6 +207,11 @@ describe("the flag", () => {
     expect(scaleReadoutEnabled({ SCALE_READOUT_USER_IDS: "" }, "")).toBe(false);
     expect(scaleReadoutEnabled({}, "a")).toBe(false);
   });
+
+  test("* switches it on for everyone", () => {
+    expect(scaleReadoutEnabled({ SCALE_READOUT_USER_IDS: "*" }, "anyone")).toBe(true);
+    expect(scaleReadoutEnabled({ SCALE_READOUT_USER_IDS: "a, *" }, "b")).toBe(true);
+  });
 });
 
 describe("readScaleDisplay", () => {

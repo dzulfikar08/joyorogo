@@ -16,16 +16,16 @@ function readClosed(): boolean {
   }
 }
 
-/** One line on the scan screen: put a card or a kitchen scale beside the food. Only for users with either flag on. */
+/** One line on the scan screen: put a card or a kitchen scale beside the food (the scale only where no card is read). */
 export function ReferenceHint() {
   const { t } = useTranslation("scan");
   const hint = useQuery(orpc.dishware.scanHint.queryOptions());
   const [closed, setClosed] = useState(readClosed);
-  if (!hint.data?.show || closed) return null;
+  if (!hint.data || !(hint.data.show || hint.data.scale) || closed) return null;
   return (
     <p className="mt-2 inline-flex max-w-full items-start gap-1.5 rounded-2xl bg-muted px-3.5 py-1.5 text-left text-xs text-muted-foreground">
       <Lightbulb className="mt-px size-3.5 shrink-0" aria-hidden />
-      <span>{t("idle.referenceHint")}</span>
+      <span>{t(hint.data.show ? "idle.referenceHint" : "idle.referenceHintScale")}</span>
       <button
         type="button"
         aria-label={t("idle.referenceHintClose")}
