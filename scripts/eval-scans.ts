@@ -9,6 +9,11 @@
 //              grams (packages/api/src/lib/external-case.ts); kcal = TKPI 2019 / library
 //              reference for those grams, never his or the model's number
 //   wikimedia  (--wikimedia) the bench-accuracy set; truth = a kcal band + the dish name
+//   wrongfood  (--wrongfood) photos a person said were named wrong (or saved under another dish); read from
+//              .tmp/dataset/wrong-food.json: { cases: [{ set: owner|feedback, id, label, checks: [{ what,
+//              accept: [names], minGrams? }], truth? }] }. A check is a hit when an answer item's name
+//              contains one of the accept names (whole words), with at least minGrams over the items that do.
+//              Truth is dish names, not kcal, unless a case carries `truth` (then plate kcal is scored too).
 //   Export owner/feedback/external with scripts/dataset-export.ts, or write external cases
 //   straight from a labels file with scripts/external-import.ts --out .tmp/dataset/external.
 //   Cases with no saved label are skipped and listed in the report.
@@ -20,9 +25,10 @@
 //   --variant <name>   run a named variant (repeatable; default baseline). With 2+, the
 //                      report compares every later variant against the first.
 //   --wikimedia        add the Wikimedia bench set (structure check; band truth)
+//   --wrongfood        add the wrong-food set (group "wrongfood"; see above)
 //   --scale-photos     add three public Wikimedia Commons photos of a scale display (group "scale": the
 //                      display is the only truth; run with --variant scale-readout, see docs/scale-readout.md)
-//   --only <group>     run only this group (repeatable): owner, feedback, external, wikimedia, scale
+//   --only <group>     run only this group (repeatable): owner, feedback, external, wikimedia, scale, wrongfood
 //   --external-trust <high|medium|low>
 //                      lowest trust of an external case to run (default medium; see the
 //                      labels: low = the photo may not be his plate)
@@ -70,7 +76,7 @@ import { parseFoodStory } from "../packages/api/src/lib/story";
 import { cardOutcome, dishwareInstruction, dishwareLabel, plateRefSchema, referenceInstruction } from "../packages/api/src/lib/dishware";
 import type { PlateRef } from "../packages/api/src/lib/dishware";
 
-import { analyzeFoodPhoto, DEFAULT_VISION_MODEL, JUICE_RULE, LOOKALIKE_RULE, PRINTED_TEXT_RULE, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
+import { analyzeFoodPhoto, COUNT_RULE, DEFAULT_VISION_MODEL, DRINK_RULE, JUICE_RULE, LOOKALIKE_RULE, PACKAGE_RULE, PRINTED_TEXT_RULE, SAUCE_RULE, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
 import type { AiRunner, CardAnswer } from "../packages/api/src/lib/vision";
 import type { CalibrateOptions } from "../packages/api/src/lib/tkpi";
 import { PRIOR_BIG_PLATE, PRIOR_MIN_ENTRIES, TYPICAL_MIN_RATIO, TYPICAL_PORTIONS, buildPriors, userSetSamples, withPortionPrior } from "../packages/api/src/lib/portion-prior";
@@ -93,6 +99,8 @@ type Variant = {
   promptTransform?: (base: string) => string;
   /** A calibration variant (tkpi.ts CalibrateOptions): same model call as baseline, other post-processing. */
   calibration?: CalibrateOptions;
+  /** Sampling temperature of the scan call; unset = the model default, as production. */
+  temperature?: number;
   /**
    * Production's "Porsi kebiasaanmu" (lib/portion-prior.ts) on top of the baseline answers: the same model
    * call, then the usual-grams default from the user's OTHER cases (leave-one-out).
@@ -124,6 +132,16 @@ type Variant = {
 const SCALE_CUES_RULE =
   "Cara memperkirakan grams: gunakan petunjuk skala yang terlihat di foto (diameter piring atau mangkuk, sendok, garpu, tangan, kemasan) dan bandingkan dengan isi piring; jangan otomatis memakai porsi umum atau standar, tiap foto bisa lebih kecil atau lebih besar dari itu.";
 
+const BAG_RULE =
+  "Kantong plastik atau bungkus yang berisi sesuatu yang tampak seperti makanan atau minuman (es lilin, putih telur, bubur, jus, kuah, agar-agar) tetap dicatat sebagai makanan atau minuman: jangan jawab bukan_makanan. Tebak isinya dari warna dan teksturnya dan beri confidence rendah bila ragu.";
+const RICE_RULE =
+  "Jenis nasi, lihat butir dan taburannya: nasi kuning = butir kuning merata (kunyit); nasi uduk = nasi putih mengilap berminyak, sering dibungkus daun pisang atau kertas, dengan taburan bawang goreng, kering tempe, telur suwir atau iris, teri, bihun, emping (nasi putih yang bertabur bawang goreng dan lauk di daun pisang adalah nasi uduk, bukan \"nasi putih dengan bawang goreng\"); nasi jagung = butir jagung kuning-oranye kasar bercampur beras; nasi liwet = nasi gurih mengilap di daun pisang atau wadah dengan bumbu serai dan daun salam; nasi putih = putih polos tanpa taburan dan tanpa minyak.";
+const CHICKEN_RULE =
+  "Ayam goreng = kulit atau tepung keemasan renyah; ayam bakar atau panggang = kulit gelap kecokelatan mengilap oleh bumbu kecap atau kecap manis, kadang ada bekas bakar; jangan menyebut ayam bakar berkulit gelap mengilap sebagai ayam goreng.";
+const UDUK_RULE =
+  'Nasi putih yang mengilap berminyak dan bertabur bawang goreng bersama lauk kering (telur suwir atau iris, teri, kering tempe, bihun, emping), terutama di daun pisang atau kertas bungkus, adalah nasi uduk: tulis "nasi uduk" (satu item dengan taburannya), bukan "nasi putih dengan bawang goreng".';
+const KUNING_RULE = "Nasi kuning hanya bila butir nasinya kuning merata; nasi putih di foto yang hangat atau kekuningan oleh lampu tetap nasi putih.";
+
 const VARIANTS: Record<string, Variant> = {
   baseline: { notes: "Production exactly: default model, shipped prompt, TKPI calibration." },
   "no-printed-text": {
@@ -133,6 +151,58 @@ const VARIANTS: Record<string, Variant> = {
   "no-lookalike": {
     promptTransform: (base) => base.replace(`\n${LOOKALIKE_RULE}`, "").replace(`\n${JUICE_RULE}`, ""),
     notes: "The shipped prompt without the lookalike (bakwan/tempe, chain pizza, siomay sauce) and juice-sugar rules: the paired 'before' for them.",
+  },
+  "no-count": {
+    promptTransform: (base) => base.replace(`\n${COUNT_RULE}`, ""),
+    notes: "The shipped prompt without the count rule (COUNT_RULE): ablation.",
+  },
+  "no-package": {
+    promptTransform: (base) => base.replace(`\n${PACKAGE_RULE}`, ""),
+    notes: "The shipped prompt without the package rule (PACKAGE_RULE): ablation.",
+  },
+  "no-drink": {
+    promptTransform: (base) => base.replace(`\n${DRINK_RULE}`, ""),
+    notes: "The shipped prompt without the drink rule (DRINK_RULE): ablation.",
+  },
+  "no-sauce": {
+    promptTransform: (base) => base.replace(`\n${SAUCE_RULE}`, ""),
+    notes: "The shipped prompt without the sauce rule (SAUCE_RULE): ablation.",
+  },
+  "bag-rule": {
+    promptTransform: (base) => `${base}\n${BAG_RULE}`,
+    notes: "Candidate: a plastic bag or wrapper holding something that looks like food or drink is still food, never bukan_makanan.",
+  },
+  "rice-rule": {
+    promptTransform: (base) => `${base}\n${RICE_RULE}`,
+    notes: "Candidate: how to tell nasi kuning / uduk / jagung / liwet / putih apart.",
+  },
+  "chicken-rule": {
+    promptTransform: (base) => `${base}\n${CHICKEN_RULE}`,
+    notes: "Candidate: ayam goreng vs ayam bakar by the skin.",
+  },
+  "wf-rules": {
+    promptTransform: (base) => `${base}\n${BAG_RULE}\n${RICE_RULE}\n${CHICKEN_RULE}`,
+    notes: "Candidate: bag + rice + chicken rules together.",
+  },
+  "uduk-rule": {
+    promptTransform: (base) => `${base}\n${UDUK_RULE}`,
+    notes: "Candidate: rice that is glossy, topped with fried shallots and dry side toppings, usually on banana leaf, is nasi uduk.",
+  },
+  "uduk-kuning-rule": {
+    promptTransform: (base) => `${base}\n${UDUK_RULE} ${KUNING_RULE}`,
+    notes: "Candidate: the uduk rule plus 'nasi kuning only when the grains are evenly yellow'.",
+  },
+  "t01": {
+    temperature: 0.1,
+    notes: "Same prompt as baseline, sampling temperature 0.1 (production uses the model default): tests run-to-run consistency.",
+  },
+  "t03": {
+    temperature: 0.3,
+    notes: "Same prompt as baseline, sampling temperature 0.3.",
+  },
+  "m-scout": {
+    model: "@cf/meta/llama-4-scout-17b-16e-instruct",
+    notes: "Model swap, same prompt and calibration: Llama 4 Scout 17B (Workers AI). Information only.",
   },
   "prompt-b": {
     // PLACEHOLDER: shows the mechanism. The wording is illustrative, not a recommendation.
@@ -235,7 +305,7 @@ const SCALE_CASES: Array<{ id: string; what: string; text: string; unit: ScaleUn
   url: `https://thumb.wikimedia.org/wikipedia/commons/thumb/${path}/960px-${(path as string).split("/").pop()}`,
 }));
 
-type Group = "owner" | "feedback" | "external" | "wikimedia" | "scale";
+type Group = "owner" | "feedback" | "external" | "wikimedia" | "scale" | "wrongfood";
 /** A truth item. noKcal = there is no reference kcal for it (kcal is 0 and is never scored). */
 type TruthItem = EvalItem & { noKcal?: true; ref?: string };
 type Case = {
@@ -255,6 +325,8 @@ type Case = {
   plate?: PlateRef;
   /** Wikimedia only: dish name and the kcal band one serving is expected in. */
   wiki?: { dish: string; min: number; max: number };
+  /** Wrong-food cases only: what the answer must name (and, per check, how many grams at least). */
+  wrong?: { checks: Array<{ what: string; accept: string[]; minGrams?: number }> };
   /** A visible kitchen-scale display, labelled by hand (scale.json beside the photo, or SCALE_CASES). */
   scale?: ScaleTruth;
   /** External cases only. */
@@ -298,6 +370,7 @@ const WIKI_CASES: Array<{ dish: string; url: string; min: number; max: number }>
 type Args = {
   variants: string[];
   wikimedia: boolean;
+  wrongfood: boolean;
   scalePhotos: boolean;
   only: Group[];
   externalTrust: ExternalMeta["trust"];
@@ -317,6 +390,7 @@ function parseArgs(argv: string[]): Args {
   const args: Args = {
     variants: [],
     wikimedia: false,
+    wrongfood: false,
     scalePhotos: false,
     only: [],
     externalTrust: "medium",
@@ -344,6 +418,9 @@ function parseArgs(argv: string[]): Args {
       case "--wikimedia":
         args.wikimedia = true;
         break;
+      case "--wrongfood":
+        args.wrongfood = true;
+        break;
       case "--scale-photos":
         args.scalePhotos = true;
         break;
@@ -364,7 +441,7 @@ function parseArgs(argv: string[]): Args {
         break;
       case "--only": {
         const group = value(i++);
-        if (!["owner", "feedback", "external", "wikimedia", "scale"].includes(group)) throw new Error(`--only: unknown group "${group}"`);
+        if (!["owner", "feedback", "external", "wikimedia", "scale", "wrongfood"].includes(group)) throw new Error(`--only: unknown group "${group}"`);
         args.only.push(group as Group);
         break;
       }
@@ -412,6 +489,8 @@ type Scored = {
   names: { tp: number; ai: number; truth: number } | null;
   /** Wikimedia: the dish name appears among the answer items. */
   nameHit: boolean | null;
+  /** Wrong-food: each check (a dish the answer had to name) and whether the answer did. */
+  checks: Array<{ what: string; hit: boolean }> | null;
   itemKcal: ErrPoint[];
   grams: ErrPoint[];
   /** `grams` split: rice (the truth item is a nasi) and everything else (side dishes: lauk, sayur). */
@@ -441,6 +520,7 @@ function scoreCase(c: Case, items: EvalItem[]): Scored {
     const target = Math.min(max, Math.max(min, aiKcal));
     return {
       names: null,
+      checks: null,
       nameHit: items.some((item) => nameScore(item.name, dish) >= NAME_MATCH_MIN),
       itemKcal: [],
       grams: [],
@@ -449,6 +529,27 @@ function scoreCase(c: Case, items: EvalItem[]): Scored {
       plate: { ...point(aiKcal, target), aiKcal, truthKcal: target },
       plateGrams: null,
       inBand: aiKcal >= min && aiKcal <= max,
+      detail: { matches: [], missed: [], extra: [], ignored: [] },
+    };
+  }
+  if (c.wrong) {
+    const words = (s: string) => ` ${s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim()} `;
+    const checks = c.wrong.checks.map((check) => {
+      const named = items.filter((item) => check.accept.some((a) => words(item.name).includes(words(a))));
+      return { what: check.what, hit: named.length > 0 && sum(named.map((i) => i.grams ?? 0)) >= (check.minGrams ?? 0) };
+    });
+    const truthKcal = c.truth ? total(c.truth) : 0;
+    return {
+      names: null,
+      nameHit: null,
+      checks,
+      itemKcal: [],
+      grams: [],
+      gramsRice: [],
+      gramsSide: [],
+      plate: c.truth ? { ...point(aiKcal, truthKcal), aiKcal, truthKcal } : null,
+      plateGrams: null,
+      inBand: null,
       detail: { matches: [], missed: [], extra: [], ignored: [] },
     };
   }
@@ -466,6 +567,7 @@ function scoreCase(c: Case, items: EvalItem[]): Scored {
   return {
     names: { tp: pairs.length, ai: answer.length, truth: truth.length },
     nameHit: null,
+    checks: null,
     itemKcal: pairs.filter((p) => !noKcal.has(p.truth)).map((p) => point(p.ai.kcal, p.truth.kcal)),
     grams: gramsPoints(pairs).map((p) => p.point),
     gramsRice: gramsPoints(pairs).flatMap((p) => (p.rice ? [p.point] : [])),
@@ -562,7 +664,7 @@ type RunResult =
 const fingerprint = (variant: Variant, c?: Case) =>
   createHash("sha256")
     .update(
-      `${variant.model ?? DEFAULT_VISION_MODEL}\n${promptFor(variant)(visionPrompt())}\n${variant.scaleReadout ? SCALE_PROMPT : ""}\n${JSON.stringify(variant.calibration ?? {}, (_k, v) => (v === Infinity ? "inf" : v))}\n${priorSignature(variant, c)}\n${(c && variant.dishware?.(c)) ?? ""}`,
+      `${variant.model ?? DEFAULT_VISION_MODEL}\n${promptFor(variant)(visionPrompt())}\n${variant.scaleReadout ? SCALE_PROMPT : ""}\n${JSON.stringify(variant.calibration ?? {}, (_k, v) => (v === Infinity ? "inf" : v))}\n${priorSignature(variant, c)}\n${(c && variant.dishware?.(c)) ?? ""}${variant.temperature === undefined ? "" : `\nT${variant.temperature}`}`,
     )
     .digest("hex")
     .slice(0, 8);
@@ -644,6 +746,7 @@ async function runOne(
         promptTransform: promptFor(variant),
         dishware: variant.dishware?.(c),
         calibration: variant.calibration,
+        temperature: variant.temperature,
       }),
       variant.scaleReadout ? readScaleDisplay(runner, { imageBase64: image, mimeType: "image/jpeg", model: variant.model }) : null,
     ]);
@@ -903,6 +1006,26 @@ async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }
       });
     }
   }
+  if (args.wrongfood) {
+    const file = join(args.dir, "wrong-food.json");
+    if (!existsSync(file)) throw new Error(`--wrongfood: ${file} not found (hand-written, git-ignored; format in the header of this script)`);
+    // Boundary: a hand-written file.
+    const set: { cases: Array<{ set: "owner" | "feedback"; id: string; label: string; checks: NonNullable<Case["wrong"]>["checks"]; truth?: TruthItem[] }> } = await Bun.file(file).json();
+    for (const w of set.cases) {
+      const photo = join(args.dir, w.set, w.id, "photo.jpg");
+      if (!existsSync(photo)) throw new Error(`--wrongfood: no photo at ${photo}`);
+      cases.push({
+        id: `wf-${w.id}`,
+        group: "wrongfood",
+        person: `wrongfood-${w.id}`,
+        photo,
+        label: w.label,
+        recorded: null,
+        truth: w.truth ?? null,
+        wrong: { checks: w.checks },
+      });
+    }
+  }
   const wanted = args.only.length ? cases.filter((c) => args.only.includes(c.group)) : cases;
   return { cases: wanted.slice(0, args.limit), skipped };
 }
@@ -1036,6 +1159,8 @@ type Agg = {
   failures: Record<string, number>;
   name: { precision: number; recall: number; f1: number; macroF1: number } | null;
   nameHit: { hit: number; of: number } | null;
+  /** Wrong-food checks hit, over every (run, check). */
+  checks: { hit: number; of: number } | null;
   inBand: { hit: number; of: number } | null;
   itemKcal: ErrStats;
   plate: ErrStats;
@@ -1085,6 +1210,10 @@ function aggregate(group: Group, variant: string, runs: Run[]): Agg {
         }
       : null,
     nameHit: wiki.length ? { hit: wiki.filter((s) => s.nameHit).length, of: wiki.length } : null,
+    // A scan that failed (not_food, unclear) named nothing: every check of its case is a miss.
+    checks: runs.some((r) => r.c.wrong)
+      ? { hit: sum(scored.map((s) => s.checks?.filter((c) => c.hit).length ?? 0)), of: sum(runs.map((r) => r.c.wrong?.checks.length ?? 0)) }
+      : null,
     inBand: band.length ? { hit: band.filter((s) => s.inBand).length, of: band.length } : null,
     itemKcal: errStats(scored.flatMap((s) => s.itemKcal)),
     plate: errStats(scored.flatMap((s) => (s.plate ? [s.plate] : []))),
@@ -1153,6 +1282,7 @@ function aggTable(a: Agg): string[] {
     rows.push(`| item names macro F1 | ${f(a.name.macroF1 * 100, 0)}% |`);
   }
   if (a.nameHit) rows.push(`| dish named | ${a.nameHit.hit} of ${a.nameHit.of} |`);
+  if (a.checks) rows.push(`| wrong-food checks hit | ${a.checks.hit} of ${a.checks.of} (${f((a.checks.hit / a.checks.of) * 100, 0)}%) |`);
   if (a.inBand) rows.push(`| plate kcal in expected band | ${a.inBand.hit} of ${a.inBand.of} |`);
   const plateLabel = a.group === "wikimedia" ? "plate (outside band)" : "plate kcal";
   rows.push(...statsRows(plateLabel, a.plate, "kcal"));
@@ -1255,6 +1385,35 @@ function worstSection(variant: string, group: Group, runs: Run[], n = 5): string
       const truth = r.c.wiki ? `band ${r.c.wiki.min}-${r.c.wiki.max} kcal (${r.c.wiki.dish})` : showItems(r.c.truth ?? []);
       const answer = r.result.ok ? showItems(r.result.items) : "";
       lines.push(`| ${r.c.id}${r.rep ? `#${r.rep}` : ""} | ${Math.round(plate.aiKcal)} / ${Math.round(plate.truthKcal)} | ${plate.err > 0 ? "+" : ""}${Math.round(plate.err)} kcal (${plate.pct > 0 ? "+" : ""}${f(plate.pct, 0)}%) | ${answer} | ${truth} |`);
+    }
+    lines.push("");
+  }
+  return lines;
+}
+
+/** Wrong-food: per case and check, hits over runs for every variant, then what the answers called it. */
+function wrongDetail(variants: string[], runsOf: (variant: string) => Run[]): string[] {
+  const base = runsOf(variants[0]!);
+  const ids = [...new Set(base.map((r) => r.c.id))];
+  const lines = [`| Case | Check | ${variants.join(" | ")} |`, `|---|---|${variants.map(() => "---").join("|")}|`];
+  for (const id of ids) {
+    const c = base.find((r) => r.c.id === id)!.c;
+    c.wrong!.checks.forEach((check, k) => {
+      const cells = variants.map((v) => {
+        const rs = runsOf(v).filter((r) => r.c.id === id);
+        return `${rs.filter((r) => r.scored?.checks?.[k]?.hit).length}/${rs.length}`;
+      });
+      lines.push(`| ${id} (${c.label}) | ${check.what} | ${cells.join(" | ")} |`);
+    });
+  }
+  lines.push("");
+  for (const v of variants) {
+    lines.push(`Answers, ${v}:`, "");
+    for (const id of ids) {
+      const names = runsOf(v)
+        .filter((r) => r.c.id === id && r.result.ok)
+        .map((r) => (r.result.ok ? r.result.items.map((i) => `${i.name} ${Math.round(i.grams ?? 0)}g`).join(" + ") : ""));
+      lines.push(`- ${id}: ${names.join(" | ")}`);
     }
     lines.push("");
   }
@@ -1506,7 +1665,7 @@ async function main() {
 
   const runsBy = (variant: string, group: Group) =>
     results.flatMap((r, i) => (jobs[i]!.variant === variant && r.c.group === group ? [r] : []));
-  const groups = (["owner", "feedback", "external", "wikimedia"] as const).filter((g) => cases.some((c) => c.group === g));
+  const groups = (["owner", "feedback", "external", "wikimedia", "wrongfood"] as const).filter((g) => cases.some((c) => c.group === g));
 
   const date = new Date().toISOString().slice(0, 10);
   const md: string[] = [`# Scan accuracy eval ${date}`, ""];
@@ -1543,6 +1702,7 @@ async function main() {
     md.push(...deltaSection(group, aggs, (v) => runsBy(v, group)));
     for (const v of variants) md.push(...worstSection(v, group, runsBy(v, group)));
     if (group === "external") for (const v of variants) md.push(...externalDetail(v, runsBy(v, group)));
+    if (group === "wrongfood") md.push(...wrongDetail(variants, (v) => runsBy(v, group)));
   }
   const cell = (st: ErrStats, unit: "g" | "kcal") => (st.n ? `${f(st.signedMeanPct, 0)}% / ${f(st.mae, 0)} ${unit} (n ${st.n})` : "-");
   // An owner scan saved unedited has the model's own answer as truth, so only the edited ones (corrected, retried) test a change.
