@@ -1,0 +1,62 @@
+{
+  "title": "COROS",
+  "hub": {
+    "subtitle": "Import workouts from your COROS watch",
+    "valueConnected": "Connected"
+  },
+  "status": {
+    "checking": "Checking status...",
+    "checkingCard": "Checking COROS status...",
+    "error": "Couldn't check status: {{error}}",
+    "comingSoon": "Coming soon: workouts from your COROS watch will go into your burn numbers automatically.",
+    "idle": "Workouts from your COROS watch go into your burn numbers automatically.",
+    "connectHint": "Connect your COROS account to import your watch workouts automatically.",
+    "connected": "Connected.",
+    "connectedSynced": "Connected · last synced {{when}}",
+    "neverSynced": "never synced",
+    "imported_one": "{{count}} workout from COROS",
+    "imported_other": "{{count}} workouts from COROS",
+    "lastFailed": "The last sync failed. Try syncing again.",
+    "synced": "{{imported}} imported, {{skipped}} skipped."
+  },
+  "action": {
+    "connect": "Connect COROS",
+    "connecting": "Opening COROS...",
+    "sync": "Sync",
+    "syncing": "Syncing...",
+    "disconnect": "Disconnect",
+    "disconnecting": "Disconnecting..."
+  },
+  "toast": {
+    "synced_one": "COROS: {{count}} workout imported, {{skipped}} skipped.",
+    "synced_other": "COROS: {{count}} workouts imported, {{skipped}} skipped.",
+    "disconnected": "COROS disconnected.",
+    "connected": "COROS connected."
+  },
+  "callback": {
+    "title": "COROS is not connected",
+    "denied": "COROS refused the connection: {{error}}",
+    "noCode": "COROS did not send an authorization code. Try connecting again from the Profile page.",
+    "back": "Back to Profile",
+    "connecting": "Connecting COROS..."
+  },
+  "notes": {
+    "text": "JoyoRogo reads your COROS watch workouts through COROS's official MCP server: type, time, duration and calories. Data is read only when you press Sync or open Profile.",
+    "dedupe": "The same workout from Health Connect, Apple Health or Strava is not counted twice. Disconnect removes the connection and every workout imported from COROS."
+  },
+  "error": {
+    "noCode": "COROS did not return an authorization code."
+  },
+  "workout": {
+    "other": "COROS workout",
+    "named": "{{label}} (COROS)"
+  },
+  "server": {
+    "notConfigured": "COROS is not configured on the server.",
+    "rejected": "The COROS connection was refused. Reconnect from the profile page.",
+    "badState": "This COROS connection request is not valid or has expired. Start again from the profile page.",
+    "retry": "Couldn't reach COROS. Try again later.",
+    "connectFirst": "Connect COROS first on the profile page.",
+    "expired": "The COROS connection has expired. Reconnect from the profile page."
+  }
+}

@@ -211,6 +211,19 @@ const PRIVACY_MS: LegalDoc = {
       ],
     },
     {
+      id: "coros",
+      title: "COROS (pilihan)",
+      blocks: [
+        "Jika anda menyambungkan COROS, JoyoRogo meminta kebenaran melalui pelayan MCP rasmi COROS (openid mcp.tools offline_access) untuk membaca senaman daripada jam anda dan menukarnya menjadi kalori terbakar di diari anda. Data dibaca apabila anda menekan Segerak atau membuka halaman COROS di Profil.",
+        { list: [
+          "Dibaca daripada setiap senaman: jenis sukan, hari, tempoh dan kalori. Jika COROS tidak menghantar kalori, kami menganggarkannya daripada jenis senaman, tempoh dan berat anda.",
+          "Disimpan di akaun anda sebagai senaman, dengan nombor aktiviti COROS supaya tidak dicatat dua kali. Senaman yang sama daripada Health Connect, Apple Health atau Strava tidak dikira dua kali.",
+          "Token akses dan token penyegar COROS disimpan dalam pangkalan data JoyoRogo. Senaman daripada COROS digunakan seperti senaman lain di diari anda, termasuk untuk Joyo AI dan sasaran kalori anda.",
+        ] },
+        { note: "Memutuskan COROS di JoyoRogo memadam token dan semua senaman yang diimport daripada COROS. Memadam data atau akaun anda juga memadamkannya. Anda juga boleh menarik balik kebenaran JoyoRogo dalam aplikasi COROS. JoyoRogo tidak menggunakan data COROS untuk iklan dan tidak menjualnya." },
+      ],
+    },
+    {
       id: "latihan-joyofit",
       title: "Latihan JoyoFit di awan (Pro)",
       blocks: [
@@ -631,6 +644,19 @@ const PRIVACY_EN: LegalDoc = {
           "Workouts from Strava are kept only 7 days from the activity, following the Strava API Agreement (section 6.2: Strava data may not be cached for more than seven days). After that the whole row, including calories, is deleted automatically every few minutes, so calories burned for older days no longer include it. Activities older than 7 days are not imported at all. For calories that stay stored, use Health Connect (Android) or Apple Health (iPhone).",
         ] },
         { note: "Disconnecting Strava in JoyoRogo deletes the workouts imported from Strava earlier. Permission is revoked at Strava only if JoyoFit is not using it too; if it is still in use, the JoyoFit connection keeps working. If you revoke the app at strava.com (Settings, My Apps), all tokens and all workouts imported from Strava are deleted too. Deleting your data or account revokes Strava permission completely. JoyoRogo does not use Strava data for ads or analytics, and does not sell it." },
+      ],
+    },
+    {
+      id: "coros",
+      title: "COROS (optional)",
+      blocks: [
+        "If you connect COROS, JoyoRogo asks for permission through COROS's official MCP server (openid mcp.tools offline_access) to read the workouts from your watch and turn them into calories burned in your diary. Data is read when you press Sync or open the COROS page in Profile.",
+        { list: [
+          "Read from each workout: sport type, day, duration and calories. If COROS does not send calories, we estimate them from the workout type, duration and your weight.",
+          "Stored in your account as a workout, with the COROS activity number so it is not logged twice. The same workout from Health Connect, Apple Health or Strava is not counted twice.",
+          "COROS access and refresh tokens are stored in the JoyoRogo database. Workouts from COROS are used like any other workout in your diary, including by Joyo AI and for your calorie target.",
+        ] },
+        { note: "Disconnecting COROS in JoyoRogo deletes the tokens and every workout imported from COROS. Deleting your data or account removes them too. You can also revoke JoyoRogo's access in the COROS app. JoyoRogo does not use COROS data for advertising and does not sell it." },
       ],
     },
     {

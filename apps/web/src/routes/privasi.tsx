@@ -228,6 +228,29 @@ function PrivasiPage() {
             </p>
           </section>
 
+          <section className="rounded-3xl bg-card p-5" id="coros">
+            <h2 className="text-base font-bold tracking-tight">COROS (opsional)</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Kalau kamu menyambungkan COROS, JoyoRogo meminta izin lewat server MCP resmi COROS
+              (<span className="font-mono text-xs">openid mcp.tools offline_access</span>) untuk
+              membaca latihan dari jammu dan mengubahnya jadi kalori terbakar di diarimu. Data
+              dibaca saat kamu menekan Sinkron atau membuka halaman COROS di Profil.
+            </p>
+            <CheckList
+              items={[
+                "Dibaca dari tiap latihan: jenis olahraga, hari, durasi, dan kalori. Kalau COROS tidak mengirim kalori, kami memperkirakannya dari jenis olahraga, durasi, dan beratmu.",
+                "Disimpan di akunmu sebagai olahraga, dengan nomor aktivitas COROS supaya tidak tercatat dua kali. Latihan yang sama dari Health Connect, Apple Health, atau Strava tidak dihitung dua kali.",
+                "Token akses dan token penyegar COROS disimpan di database JoyoRogo. Latihan dari COROS dipakai seperti olahraga lain di diarimu, termasuk untuk Joyo AI dan target kalorimu.",
+              ]}
+            />
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Memutus COROS di JoyoRogo menghapus token dan semua olahraga yang diimpor dari COROS.
+              Menghapus data atau akunmu juga menghapusnya. Kamu juga bisa mencabut izin
+              JoyoRogo di aplikasi COROS. JoyoRogo tidak memakai data COROS untuk iklan, dan tidak
+              menjualnya.
+            </p>
+          </section>
+
           <section className="rounded-3xl bg-card p-5" id="latihan-joyofit">
             <h2 className="text-base font-bold tracking-tight">Latihan JoyoFit di cloud (Pro)</h2>
             <p className="mt-3 text-sm leading-relaxed">

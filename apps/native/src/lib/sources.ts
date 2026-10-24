@@ -1,5 +1,5 @@
 /** The places JoyoRogo's numbers come from, in the order the sources screen lists them. */
-export const SOURCE_IDS = ["joyofit", "health", "strava", "scale", "manual"] as const;
+export const SOURCE_IDS = ["joyofit", "health", "strava", "coros", "scale", "manual"] as const;
 export type SourceId = (typeof SOURCE_IDS)[number];
 
 export type SourceRow = {
@@ -17,6 +17,7 @@ export type SourceRow = {
 export type SourcesInput = {
   health: { connected: boolean; lastAt: number | null } | null;
   strava: { connected: boolean } | null;
+  coros: { connected: boolean } | null;
   /** workouts of the last 30 days; `at` is when the row reached JoyoRogo */
   exercise: ReadonlyArray<{ source: string; date: string; at: number }>;
   /** weigh-ins; `at` is when the row reached JoyoRogo */
@@ -38,6 +39,7 @@ export function buildSources(input: SourcesInput): SourceRow[] {
     rows.filter((row) => row.date >= input.recentFrom).length;
   const joyofit = bySource("joyofit");
   const strava = bySource("strava");
+  const coros = bySource("coros");
   const scale = input.weights.filter((row) => row.source === "scale");
   const manual = [...bySource("manual"), ...input.weights.filter((row) => row.source === "manual")];
   return [
@@ -63,6 +65,13 @@ export function buildSources(input: SourcesInput): SourceRow[] {
       usedToday: false,
     },
     {
+      id: "coros",
+      connected: input.coros?.connected ?? false,
+      lastAt: newest(coros),
+      recent: recent(coros),
+      usedToday: false,
+    },
+    {
       id: "scale",
       connected: scale.length > 0,
       lastAt: newest(scale),
@@ -82,6 +91,8 @@ export function buildSources(input: SourcesInput): SourceRow[] {
 /** Whether an activity source is linked: what the setup checklist asks (the scale and manual entries are not one). */
 export function hasActivitySource(rows: readonly SourceRow[]): boolean {
   return rows.some(
-    (row) => (row.id === "joyofit" || row.id === "health" || row.id === "strava") && row.connected,
+    (row) =>
+      (row.id === "joyofit" || row.id === "health" || row.id === "strava" || row.id === "coros") &&
+      row.connected,
   );
 }

@@ -21,6 +21,7 @@ export function useSources({
   const today = jakartaToday();
   const health = useHealthStatus(enabled);
   const strava = useQuery({ ...orpc.strava.status.queryOptions(), enabled });
+  const coros = useQuery({ ...orpc.coros.status.queryOptions(), enabled });
   const exercise = useQuery({
     ...orpc.exercise.recent.queryOptions({ input: { days: 30 } }),
     enabled,
@@ -31,16 +32,22 @@ export function useSources({
   });
   const day = useQuery({ ...orpc.day.summary.queryOptions({ input: { date: today } }), enabled });
 
-  const queries = [health, strava, exercise, day, ...(weights ? [history] : [])];
+  const queries = [health, strava, coros, exercise, day, ...(weights ? [history] : [])];
   const error = queries.find((query) => query.isError)?.error ?? null;
   const ready =
-    health.data && strava.data && exercise.data && day.data && (!weights || history.data);
+    health.data &&
+    strava.data &&
+    coros.data &&
+    exercise.data &&
+    day.data &&
+    (!weights || history.data);
 
   const rows: SourceRow[] | null =
     ready && error === null
       ? buildSources({
           health: { connected: health.data.connected, lastAt: health.data.last?.at ?? null },
           strava: { connected: strava.data.connected },
+          coros: { connected: coros.data.connected },
           exercise: exercise.data.items.map((item) => ({
             source: item.source,
             date: item.date,

@@ -12,5 +12,6 @@ export function mapNativeIntentPath(path: string): string {
   // Removed strength logger screens now live in JoyoFit; /latihan is the archive.
   if (/latihan\/(aktif|pilih|ringkasan|rutinitas)/i.test(path)) return "/latihan";
   if (path.includes("joyorogo.com/strava")) return "/profil/strava";
+  if (path.includes("joyorogo.com/coros")) return "/profil/coros";
   return path;
 }

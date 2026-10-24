@@ -46,6 +46,7 @@ import type { QueryKey } from "@tanstack/react-query";
 // Brand names of import sources; "manual" is translated (source.manual).
 const SOURCE_LABELS: Record<string, string> = {
   strava: "Strava",
+  coros: "COROS",
   health_connect: "Health Connect",
   apple_health: "Apple Health",
   joyofit: "JoyoFit",

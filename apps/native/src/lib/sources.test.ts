@@ -5,6 +5,7 @@ import { buildSources, hasActivitySource, type SourcesInput } from "./sources";
 const empty: SourcesInput = {
   health: { connected: false, lastAt: null },
   strava: { connected: false },
+  coros: { connected: false },
   exercise: [],
   weights: [],
   allDaySource: null,
@@ -20,6 +21,7 @@ describe("buildSources", () => {
       ["joyofit", false],
       ["health", false],
       ["strava", false],
+      ["coros", false],
       ["scale", false],
       ["manual", true],
     ]);

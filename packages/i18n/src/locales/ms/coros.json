@@ -1,0 +1,60 @@
+{
+  "title": "COROS",
+  "hub": {
+    "subtitle": "Import senaman daripada jam COROS",
+    "valueConnected": "Bersambung"
+  },
+  "status": {
+    "checking": "Menyemak status...",
+    "checkingCard": "Menyemak status COROS...",
+    "error": "Gagal menyemak status: {{error}}",
+    "comingSoon": "Akan datang: senaman daripada jam COROS masuk ke angka bakar secara automatik.",
+    "idle": "Senaman daripada jam COROS masuk ke angka bakar secara automatik.",
+    "connectHint": "Sambungkan akaun COROS untuk mengimport senaman daripada jam anda secara automatik.",
+    "connected": "Bersambung.",
+    "connectedSynced": "Bersambung · segerak terakhir {{when}}",
+    "neverSynced": "belum pernah segerak",
+    "imported_other": "{{count}} senaman daripada COROS",
+    "lastFailed": "Segerak terakhir gagal. Cuba segerak lagi.",
+    "synced": "{{imported}} diimport, {{skipped}} dilangkau."
+  },
+  "action": {
+    "connect": "Sambungkan COROS",
+    "connecting": "Membuka COROS...",
+    "sync": "Segerak",
+    "syncing": "Menyegerak...",
+    "disconnect": "Putuskan",
+    "disconnecting": "Memutuskan..."
+  },
+  "toast": {
+    "synced_other": "COROS: {{count}} senaman diimport, {{skipped}} dilangkau.",
+    "disconnected": "COROS diputuskan.",
+    "connected": "COROS bersambung."
+  },
+  "callback": {
+    "title": "COROS tidak bersambung",
+    "denied": "COROS menolak sambungan: {{error}}",
+    "noCode": "COROS tidak menghantar kod kebenaran. Cuba sambung lagi dari halaman Profil.",
+    "back": "Kembali ke Profil",
+    "connecting": "Menyambungkan COROS..."
+  },
+  "notes": {
+    "text": "JoyoRogo membaca senaman jam COROS anda melalui pelayan MCP rasmi COROS: jenis, masa, tempoh dan kalori. Data dibaca hanya apabila anda menekan Segerak atau membuka Profil.",
+    "dedupe": "Senaman yang sama daripada Health Connect, Apple Health atau Strava tidak dikira dua kali. Putuskan memadam sambungan dan semua senaman yang diimport daripada COROS."
+  },
+  "error": {
+    "noCode": "COROS tidak memulangkan kod kebenaran."
+  },
+  "workout": {
+    "other": "Senaman COROS",
+    "named": "{{label}} (COROS)"
+  },
+  "server": {
+    "notConfigured": "COROS belum dikonfigurasi pada pelayan.",
+    "rejected": "Sambungan COROS ditolak. Sambung semula di halaman profil.",
+    "badState": "Permintaan sambungan COROS ini tidak sah atau sudah tamat tempoh. Mulakan semula dari halaman profil.",
+    "retry": "Gagal menghubungi COROS. Cuba lagi nanti.",
+    "connectFirst": "Sambungkan COROS dahulu di halaman profil.",
+    "expired": "Sambungan COROS telah tamat tempoh. Sambung semula di halaman profil."
+  }
+}

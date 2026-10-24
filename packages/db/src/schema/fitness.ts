@@ -314,6 +314,45 @@ export const stravaAccount = sqliteTable(
   (table) => [index("strava_account_athlete_idx").on(table.athleteId)],
 );
 
+// COROS (docs/coros.md): one OAuth grant per user at COROS's MCP server. A public client, so the tokens are all there is.
+// Rows imported from COROS live in exercise_log with source 'coros'.
+export const corosAccount = sqliteTable("coros_account", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+  scope: text("scope").notNull().default(""),
+  connectedAt: integer("connected_at", { mode: "timestamp_ms" }).notNull(),
+  lastSyncAt: integer("last_sync_at", { mode: "timestamp_ms" }),
+  // The last sync's failure, in words for a log, never shown raw; cleared by the next good sync.
+  lastError: text("last_error"),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+});
+
+// A started COROS authorization: the PKCE verifier and where to send the browser afterwards. `state` is the
+// unguessable key the redirect brings back; the row is deleted when used (or when it expires), so a code cannot be
+// exchanged twice and a state belongs to the user who started it.
+export const corosAuthState = sqliteTable(
+  "coros_auth_state",
+  {
+    state: text("state").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    codeVerifier: text("code_verifier").notNull(),
+    redirectUri: text("redirect_uri").notNull(),
+    // 'web' | 'native': which app the server's callback hands the code to.
+    returnTo: text("return_to").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("coros_auth_state_user_idx").on(table.userId)],
+);
+
 export const profileRelations = relations(profile, ({ one }) => ({
   user: one(user, {
     fields: [profile.userId],

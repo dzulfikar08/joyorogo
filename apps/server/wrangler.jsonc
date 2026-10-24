@@ -85,6 +85,8 @@
   "vars": {
     "CORS_ORIGIN": "http://localhost:3001,http://localhost:3002,http://localhost:3003,https://joyorogo-web-live-dzul-fqqmlyfh7l3bif2g.dzulfikar-at.workers.dev,https://joyorogo.com,https://app.joyorogo.com,https://admin.joyorogo.com,https://app.fit.joyorogo.com",
     "BETTER_AUTH_URL": "https://api.joyorogo.com",
+    // COROS MCP OAuth public client, redirect https://api.joyorogo.com/api/coros/callback (docs/coros.md).
+    "COROS_CLIENT_ID": "be255c7f-949e-4a44-8638-ba18111f9092",
     "GOOGLE_CLIENT_ID": "915036968874-0ne1edkq0laljg6cdlnksor1hqpj9gfr.apps.googleusercontent.com",
     "DEV_LOGIN": "",
     "AI_VISION_MODEL": "@cf/google/gemma-4-26b-a4b-it",

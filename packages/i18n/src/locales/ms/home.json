@@ -54,7 +54,8 @@
       "joyofit": "JoyoFit",
       "health_connect": "Health Connect",
       "apple_health": "Apple Health",
-      "strava": "Strava"
+      "strava": "Strava",
+      "coros": "COROS"
     },
     "sleep": "Tidur",
     "sleepUnit": "jam",

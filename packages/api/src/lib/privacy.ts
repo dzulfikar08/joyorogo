@@ -3,6 +3,8 @@ import { and, asc, eq, isNotNull, ne, or } from "drizzle-orm";
 import type { Database } from "@joyorogo/db";
 import {
   aiUsage,
+  corosAccount,
+  corosAuthState,
   dailyActivity,
   exerciseLog,
   foodLog,
@@ -167,6 +169,8 @@ export function deleteAllUserData(db: Database, userId: string) {
     // AI apps connected through the MCP connector: consent, tokens and the audit log (they would read an empty account).
     ...deleteUserMcpData(db, userId),
     db.delete(stravaAccount).where(eq(stravaAccount.userId, userId)),
+    db.delete(corosAccount).where(eq(corosAccount.userId, userId)),
+    db.delete(corosAuthState).where(eq(corosAuthState.userId, userId)),
     db.delete(waterLog).where(eq(waterLog.userId, userId)),
     db.delete(dailyActivity).where(eq(dailyActivity.userId, userId)),
     db.delete(aiUsage).where(eq(aiUsage.userId, userId)),

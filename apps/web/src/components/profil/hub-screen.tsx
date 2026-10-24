@@ -15,6 +15,7 @@ import {
   User,
   Users,
   Utensils,
+  Watch,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -96,9 +97,16 @@ function SummaryCard({ ctx }: { ctx: ProfilCtx }) {
 
 /** Profil hub: summary card, grouped rows that open sub-screens, then Keluar and Hapus akun. */
 export function HubScreen({ ctx }: { ctx: ProfilCtx }) {
-  const { t, i18n: instance } = useTranslation(["settings", "koneksi", "notifications", "home"]);
+  const { t, i18n: instance } = useTranslation([
+    "settings",
+    "koneksi",
+    "notifications",
+    "home",
+    "coros",
+  ]);
   const { theme } = useTheme();
   const strava = useQuery(orpc.strava.status.queryOptions());
+  const coros = useQuery(orpc.coros.status.queryOptions());
   const apps = useQuery(orpc.mcpConnection.list.queryOptions());
   const actions = useAccountActions();
   const displayValue = `${t(`theme.${theme}`)} · ${LOCALE_NAMES[instance.language as Locale] ?? instance.language}`;
@@ -170,6 +178,18 @@ export function HubScreen({ ctx }: { ctx: ProfilCtx }) {
           subtitle={t("hub.rows.strava.subtitle")}
           oneLineSubtitle
           value={strava.data?.connected ? t("hub.rows.strava.valueConnected") : undefined}
+        />
+        <ListLinkRow
+          to="/profil/coros"
+          icon={
+            <IconChip tone="bakar">
+              <Watch />
+            </IconChip>
+          }
+          title={t("coros:title")}
+          subtitle={t("coros:hub.subtitle")}
+          oneLineSubtitle
+          value={coros.data?.connected ? t("coros:hub.valueConnected") : undefined}
         />
         <ListLinkRow
           to="/koneksi"

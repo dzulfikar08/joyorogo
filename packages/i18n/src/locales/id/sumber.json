@@ -30,6 +30,12 @@
       "noRecord": "belum ada sinkron tercatat di HP ini",
       "empty": "Izinkan baca langkah, tidur, dan olahraga agar masuk sendiri."
     },
+    "coros": {
+      "title": "COROS",
+      "via": "via COROS",
+      "none": "belum ada latihan dalam 30 hari terakhir",
+      "empty": "Hubungkan agar latihan dari jam COROS masuk sendiri."
+    },
     "strava": {
       "title": "Strava",
       "via": "via Strava",

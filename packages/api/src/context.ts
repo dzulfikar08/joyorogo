@@ -54,6 +54,8 @@ export type ApiEnv = PaywallEnv & ShadowEnv & {
   USDA_FDC_API_KEY?: string;
   STRAVA_CLIENT_ID?: string;
   STRAVA_CLIENT_SECRET?: string;
+  /** COROS MCP OAuth public client (docs/coros.md); unset = COROS shows "Segera hadir". Registered with scripts/coros-register-client.ts. */
+  COROS_CLIENT_ID?: string;
   /** Images binding for dish sticker cutouts (BiRefNet segmentation). */
   IMAGES?: ImagesBinding;
   /** R2 bucket storing the generated cutout PNGs. */

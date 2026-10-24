@@ -101,6 +101,21 @@ export default function Sumber() {
             : [t("sumber:rows.strava.empty")],
           onPress: () => router.push("/profil/strava"),
         };
+      case "coros":
+        return {
+          ...common,
+          icon: "watch" as const,
+          tint: "bakar" as const,
+          title: t("sumber:rows.coros.title"),
+          subtitle: row.connected
+            ? [
+                t("sumber:rows.coros.via"),
+                row.lastAt === null ? t("sumber:rows.coros.none") : last("lastIn"),
+                row.recent > 0 ? t("sumber:counts.workouts", { count: row.recent }) : null,
+              ]
+            : [t("sumber:rows.coros.empty")],
+          onPress: () => router.push("/profil/coros"),
+        };
       case "scale":
         return {
           ...common,

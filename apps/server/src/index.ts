@@ -53,6 +53,7 @@ import type { McpEnv } from "./mcp";
 import { registerOgRoutes } from "./og";
 import { registerPrivacyRoutes } from "./privacy";
 import { registerFamilyRoutes } from "./family";
+import { registerCorosRoutes } from "./coros";
 import { registerStravaRoutes } from "./strava";
 import {
   runTestflightNoticeSweep,
@@ -519,6 +520,7 @@ app.get("/avatar/:userId/:file", async (c) => {
 registerPrivacyRoutes(app, {
   getDb,
   strava: env,
+  coros: env,
   createAuth,
   stickers: () => ("STICKERS" in env ? env.STICKERS : undefined),
 });
@@ -549,6 +551,8 @@ registerMcpRoutes(app, {
 
 // JoyoFit's Worker reads and writes the shared Strava grant here (Basic auth with the Strava client credentials).
 registerStravaRoutes(app, { env, getDb });
+// COROS's OAuth redirect: hands the code on to the web callback page or the app (docs/coros.md).
+registerCorosRoutes(app, { getDb, appOrigin: () => env.APP_URL || env.BETTER_AUTH_URL });
 // JoyoFit family monitoring asks here for a user's Pro state, name, email and language (same Basic auth).
 registerFamilyRoutes(app, { env, getDb });
 

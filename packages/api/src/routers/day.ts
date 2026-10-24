@@ -65,7 +65,7 @@ const ZERO_MEALS: Record<Meal, number> = {
 };
 
 /** The sources a recorded workout can come from, in the order the "Olahraga hari ini" tile lists them. */
-const EXERCISE_SOURCES = ["manual", "joyofit", "health_connect", "apple_health", "strava"] as const;
+const EXERCISE_SOURCES = ["manual", "joyofit", "health_connect", "apple_health", "strava", "coros"] as const;
 
 export type Milestone = { kind: "streak" | "lost" | "gained"; value: number };
 

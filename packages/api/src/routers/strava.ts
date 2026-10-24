@@ -1,8 +1,7 @@
 import { ORPCError } from "@orpc/server";
-import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { exerciseLog, profile, weightLog } from "@joyorogo/db/schema/fitness";
+import { exerciseLog } from "@joyorogo/db/schema/fitness";
 import { dayOfMs } from "@joyorogo/i18n";
 import type { DayZone, Locale } from "@joyorogo/i18n";
 
@@ -13,6 +12,7 @@ import { serverT } from "../lib/messages";
 import { estimateKcal, metForStravaType } from "../lib/met";
 import { stravaRetentionCutoff } from "../lib/strava-retention";
 import { userZone } from "../lib/user-zone";
+import { weightLookup } from "../lib/weight-at";
 import {
   StravaGrantError,
   deleteImportedActivities,
@@ -159,27 +159,7 @@ export const stravaRouter = {
       (activity) => !isJoyofitUpload(activity.external_id) && localDate(activity.start_date, zone) > cutoff,
     );
 
-    // One weight query for the whole batch instead of two per activity.
-    const [weights, profileRows] = await Promise.all([
-      context.db
-        .select({ date: weightLog.date, weightKg: weightLog.weightKg })
-        .from(weightLog)
-        .where(eq(weightLog.userId, context.session.user.id))
-        .orderBy(asc(weightLog.date)),
-      context.db
-        .select({ startWeightKg: profile.startWeightKg })
-        .from(profile)
-        .where(eq(profile.userId, context.session.user.id)),
-    ]);
-    const fallbackKg = profileRows[0]?.startWeightKg ?? 70;
-    const weightAt = (date: string): number => {
-      let latest: number | undefined;
-      for (const w of weights) {
-        if (w.date > date) break;
-        latest = w.weightKg;
-      }
-      return latest ?? fallbackKg;
-    };
+    const weightAt = await weightLookup(context.db, context.session.user.id);
 
     const statements = imports.map((activity) => {
       const date = localDate(activity.start_date, zone);

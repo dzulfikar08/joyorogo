@@ -1,0 +1,60 @@
+{
+  "title": "COROS",
+  "hub": {
+    "subtitle": "Impor latihan dari jam COROS",
+    "valueConnected": "Terhubung"
+  },
+  "status": {
+    "checking": "Memeriksa status...",
+    "checkingCard": "Memeriksa status COROS...",
+    "error": "Gagal memeriksa status: {{error}}",
+    "comingSoon": "Segera hadir: latihan dari jam COROS otomatis masuk ke angka bakar.",
+    "idle": "Latihan dari jam COROS otomatis masuk ke angka bakar.",
+    "connectHint": "Hubungkan akun COROS untuk mengimpor latihan dari jammu otomatis.",
+    "connected": "Terhubung.",
+    "connectedSynced": "Terhubung · sinkron terakhir {{when}}",
+    "neverSynced": "belum pernah sinkron",
+    "imported_other": "{{count}} latihan dari COROS",
+    "lastFailed": "Sinkron terakhir gagal. Coba sinkron lagi.",
+    "synced": "{{imported}} diimpor, {{skipped}} dilewati."
+  },
+  "action": {
+    "connect": "Sambungkan COROS",
+    "connecting": "Membuka COROS...",
+    "sync": "Sinkron",
+    "syncing": "Menyinkronkan...",
+    "disconnect": "Putuskan",
+    "disconnecting": "Memutuskan..."
+  },
+  "toast": {
+    "synced_other": "COROS: {{count}} latihan diimpor, {{skipped}} dilewati.",
+    "disconnected": "COROS diputuskan.",
+    "connected": "COROS terhubung."
+  },
+  "callback": {
+    "title": "COROS tidak terhubung",
+    "denied": "COROS menolak sambungan: {{error}}",
+    "noCode": "COROS tidak mengirim kode otorisasi. Coba hubungkan lagi dari halaman Profil.",
+    "back": "Kembali ke Profil",
+    "connecting": "Menyambungkan COROS..."
+  },
+  "notes": {
+    "text": "JoyoRogo membaca latihan jam COROS lewat server MCP resmi COROS: jenis, waktu, durasi, dan kalori. Data dibaca hanya saat kamu menekan Sinkron atau membuka Profil.",
+    "dedupe": "Latihan yang sama dari Health Connect, Apple Health, atau Strava tidak dihitung dua kali. Putuskan menghapus sambungan dan semua latihan yang diimpor dari COROS."
+  },
+  "error": {
+    "noCode": "COROS tidak mengembalikan kode otorisasi."
+  },
+  "workout": {
+    "other": "Latihan COROS",
+    "named": "{{label}} (COROS)"
+  },
+  "server": {
+    "notConfigured": "COROS belum dikonfigurasi di server.",
+    "rejected": "Sambungan COROS ditolak. Hubungkan ulang di halaman profil.",
+    "badState": "Permintaan sambung COROS tidak berlaku atau sudah kedaluwarsa. Mulai lagi dari halaman profil.",
+    "retry": "Gagal menghubungi COROS. Coba lagi nanti.",
+    "connectFirst": "Hubungkan COROS dulu di halaman profil.",
+    "expired": "Sambungan COROS kedaluwarsa. Hubungkan ulang di halaman profil."
+  }
+}

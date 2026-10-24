@@ -33,6 +33,12 @@
       "noRecord": "no sync recorded on this phone yet",
       "empty": "Allow reading steps, sleep and workouts so they arrive on their own."
     },
+    "coros": {
+      "title": "COROS",
+      "via": "via COROS",
+      "none": "no workouts in the last 30 days",
+      "empty": "Connect so workouts from your COROS watch arrive on their own."
+    },
     "strava": {
       "title": "Strava",
       "via": "via Strava",

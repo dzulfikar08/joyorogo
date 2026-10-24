@@ -8,6 +8,7 @@ import { appleRevokeConfig, revokeAppleAuthorization } from "../lib/apple-revoke
 import { customAvatarKey } from "../lib/avatar";
 
 import { deleteAllUserData, deleteUserMedia, deleteUserSocialData, userStickerKeys } from "../lib/privacy";
+import { disconnectCoros } from "../lib/coros-grant";
 import { revokeGrant } from "../lib/strava-grant";
 
 import { serverT } from "../lib/messages";
@@ -22,6 +23,7 @@ export const privacyRouter = {
     const stickerKeys = await userStickerKeys(context.db, userId);
     await deleteUserSocialData(context.db, userId);
     await revokeGrant(context.db, context.env, userId);
+    await disconnectCoros(context.db, context.env, userId);
     await deleteAllUserData(context.db, userId);
     // Foto profil ikut dihapus: reset dulu, objek R2 menyusul (best effort).
     const [current] = await context.db
@@ -106,6 +108,7 @@ export const privacyRouter = {
       const stickerKeys = await userStickerKeys(context.db, userId);
       await deleteUserSocialData(context.db, userId);
       await revokeGrant(context.db, context.env, userId);
+      await disconnectCoros(context.db, context.env, userId);
       await deleteAllUserData(context.db, userId);
       const bucket = context.env.STICKERS;
       if (bucket) {

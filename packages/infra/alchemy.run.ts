@@ -36,6 +36,7 @@ export const server = Cloudflare.Worker("server", {
     ),
     STRAVA_CLIENT_ID: Config.string("STRAVA_CLIENT_ID").pipe(Config.withDefault("")),
     STRAVA_CLIENT_SECRET: Config.redacted("STRAVA_CLIENT_SECRET").pipe(Config.withDefault("")),
+    COROS_CLIENT_ID: Config.string("COROS_CLIENT_ID").pipe(Config.withDefault("")),
   },
   dev: {
     // DEV_PORT override lets the worker dodge other local dev servers

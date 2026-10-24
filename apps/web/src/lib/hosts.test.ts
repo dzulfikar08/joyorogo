@@ -39,6 +39,7 @@ describe("areaOf", () => {
     ["/makan/ai", "app"],
     ["/grup/abc/tantangan/xyz", "app"],
     ["/profil/strava/callback", "app"],
+    ["/profil/coros/callback", "app"],
     ["/koneksi/izin", "app"],
     ["/pembayaran", "app"],
     ["/pro", "app"],

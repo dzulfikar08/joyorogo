@@ -37,6 +37,10 @@ describe("mapNativeIntentPath", () => {
     expect(mapNativeIntentPath("joyorogo://joyorogo.com/strava?code=abc")).toBe("/profil/strava");
   });
 
+  test("the COROS redirect goes to the COROS settings screen", () => {
+    expect(mapNativeIntentPath("joyorogo://joyorogo.com/coros?code=abc&state=xyz")).toBe("/profil/coros");
+  });
+
   test("other paths pass through untouched", () => {
     expect(mapNativeIntentPath("joyorogo://inbox")).toBe("joyorogo://inbox");
     expect(mapNativeIntentPath("/")).toBe("/");

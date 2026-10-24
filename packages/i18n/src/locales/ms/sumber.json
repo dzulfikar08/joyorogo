@@ -30,6 +30,12 @@
       "noRecord": "belum ada penyegerakan dicatat di telefon ini",
       "empty": "Benarkan bacaan langkah, tidur dan senaman supaya masuk sendiri."
     },
+    "coros": {
+      "title": "COROS",
+      "via": "melalui COROS",
+      "none": "tiada senaman dalam 30 hari lepas",
+      "empty": "Sambungkan supaya senaman daripada jam COROS masuk sendiri."
+    },
     "strava": {
       "title": "Strava",
       "via": "melalui Strava",
