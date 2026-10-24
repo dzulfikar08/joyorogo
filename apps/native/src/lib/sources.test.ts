@@ -15,6 +15,11 @@ const empty: SourcesInput = {
 const row = (rows: ReturnType<typeof buildSources>, id: string) => rows.find((r) => r.id === id)!;
 
 describe("buildSources", () => {
+  test("COROS has no row for a user it is not offered to", () => {
+    const rows = buildSources({ ...empty, coros: null });
+    expect(rows.map((r) => r.id)).toEqual(["joyofit", "health", "strava", "scale", "manual"]);
+  });
+
   test("a fresh account: only manual entry is available", () => {
     const rows = buildSources(empty);
     expect(rows.map((r) => [r.id, r.connected])).toEqual([

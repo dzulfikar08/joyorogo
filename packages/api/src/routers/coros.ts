@@ -9,7 +9,7 @@ import { protectedProcedure } from "../index";
 import {
   CorosGrantError,
   completeAuthorization,
-  corosConfigured,
+  corosEnabled,
   deleteImportedWorkouts,
   disconnectCoros,
   grantStatus,
@@ -20,8 +20,11 @@ import type { Context } from "../context";
 import { serverT } from "../lib/messages";
 import { userZone } from "../lib/user-zone";
 
-function requireConfig(context: Context): void {
-  if (!corosConfigured(context.env)) {
+// protectedProcedure narrows session to non-null; helpers share that shape.
+type AuthedContext = Context & { session: NonNullable<Context["session"]> };
+
+function requireConfig(context: AuthedContext): void {
+  if (!corosEnabled(context.env, context.session.user.id)) {
     throw new ORPCError("NOT_FOUND", { message: serverT(context.locale, "coros")("server.notConfigured") });
   }
 }
@@ -49,7 +52,7 @@ export const corosRouter = {
       .from(exerciseLog)
       .where(and(eq(exerciseLog.userId, userId), eq(exerciseLog.source, "coros")));
     return {
-      configured: corosConfigured(context.env),
+      configured: corosEnabled(context.env, userId),
       connected: status.connected,
       connectedAt: status.connectedAt ?? null,
       lastSyncAt: status.lastSyncAt ?? null,

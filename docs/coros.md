@@ -79,6 +79,13 @@ revocation and clear both tables.
 
 ## Owner setup
 
+0. **Allowlist.** Nothing is verified against a real COROS account yet, so the whole feature sits behind `COROS_USER_IDS`
+   (comma-separated user ids, or `*`; empty = nobody; `corosEnabled` in `lib/coros-grant.ts`, same pattern as
+   `SCALE_READOUT_USER_IDS`). For a user not on it `coros.status` says `configured: false` and the other procedures answer
+   "not configured", exactly as with `COROS_CLIENT_ID` unset, and the web Connections row, the native Profil row and the "Sumber
+   data" row are hidden (no "Segera hadir"). `apps/server/wrangler.jsonc` lists the owner and QA. Add a tester by appending
+   their user id; set `*` once a real account has confirmed items 1-4 of "What needs a real COROS account". The OAuth redirect
+   endpoint and the deletion paths are not gated (they only act on state or data that exists).
 1. The client is registered: `COROS_CLIENT_ID=be255c7f-949e-4a44-8638-ba18111f9092` (redirect `https://api.joyorogo.com/api/coros/callback`),
    set in `apps/server/wrangler.jsonc` vars. For another environment run `bun scripts/coros-register-client.ts <https redirect URI>`;
    the redirect must be `<BETTER_AUTH_URL>/api/coros/callback`. Unset = `configured: false`, the screens say "Segera hadir".

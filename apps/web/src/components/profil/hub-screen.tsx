@@ -179,6 +179,7 @@ export function HubScreen({ ctx }: { ctx: ProfilCtx }) {
           oneLineSubtitle
           value={strava.data?.connected ? t("hub.rows.strava.valueConnected") : undefined}
         />
+        {coros.data?.configured ? (
         <ListLinkRow
           to="/profil/coros"
           icon={
@@ -191,6 +192,7 @@ export function HubScreen({ ctx }: { ctx: ProfilCtx }) {
           oneLineSubtitle
           value={coros.data?.connected ? t("coros:hub.valueConnected") : undefined}
         />
+        ) : null}
         <ListLinkRow
           to="/koneksi"
           icon={

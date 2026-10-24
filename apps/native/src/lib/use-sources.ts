@@ -47,7 +47,7 @@ export function useSources({
       ? buildSources({
           health: { connected: health.data.connected, lastAt: health.data.last?.at ?? null },
           strava: { connected: strava.data.connected },
-          coros: { connected: coros.data.connected },
+          coros: coros.data.configured ? { connected: coros.data.connected } : null,
           exercise: exercise.data.items.map((item) => ({
             source: item.source,
             date: item.date,

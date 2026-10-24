@@ -14,7 +14,7 @@ import { corosAccount, corosAuthState, exerciseLog } from "@joyorogo/db/schema/f
  * session, so a tampered state, another user's state, or a replayed code are all refused.
  */
 
-export type CorosEnv = { COROS_CLIENT_ID?: string; BETTER_AUTH_URL?: string };
+export type CorosEnv = { COROS_CLIENT_ID?: string; BETTER_AUTH_URL?: string; COROS_USER_IDS?: string };
 
 export type CorosReturnTo = "web" | "native";
 
@@ -47,6 +47,18 @@ export class CorosGrantError extends Error {
 
 export function corosConfigured(env: CorosEnv): env is CorosEnv & { COROS_CLIENT_ID: string } {
   return Boolean(env.COROS_CLIENT_ID && env.BETTER_AUTH_URL);
+}
+
+/**
+ * Whether COROS is offered to this user: the client is configured and the user is on the `COROS_USER_IDS` allowlist
+ * (comma-separated user ids, or `*` for everyone; empty or unset = nobody). Same pattern as `scaleReadoutEnabled`. Off means
+ * the feature does not exist for them: the router answers `configured: false` and the apps hide every COROS row.
+ */
+export function corosEnabled(env: CorosEnv, userId: string): boolean {
+  return (
+    corosConfigured(env) &&
+    (env.COROS_USER_IDS ?? "").split(",").some((id) => id.trim() === "*" || (id.trim() !== "" && id.trim() === userId))
+  );
 }
 
 /** The one https redirect COROS's client registration holds; the server bounces it on to web or the app (apps/server/src/coros.ts). */

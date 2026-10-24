@@ -56,6 +56,8 @@ export type ApiEnv = PaywallEnv & ShadowEnv & {
   STRAVA_CLIENT_SECRET?: string;
   /** COROS MCP OAuth public client (docs/coros.md); unset = COROS shows "Segera hadir". Registered with scripts/coros-register-client.ts. */
   COROS_CLIENT_ID?: string;
+  /** Comma-separated user ids that get COROS (lib/coros-grant.ts corosEnabled), or `*` for everyone. Unset or empty = nobody. */
+  COROS_USER_IDS?: string;
   /** Images binding for dish sticker cutouts (BiRefNet segmentation). */
   IMAGES?: ImagesBinding;
   /** R2 bucket storing the generated cutout PNGs. */

@@ -136,6 +136,7 @@ function Hub({ profile }: { profile: ProfileData }) {
           chevron
           onPress={() => router.push("/profil/strava")}
         />
+        {corosStatus.data?.configured ? (
         <ListRow
           icon="watch"
           iconTint="bakar"
@@ -145,6 +146,7 @@ function Hub({ profile }: { profile: ProfileData }) {
           chevron
           onPress={() => router.push("/profil/coros")}
         />
+        ) : null}
         {isHealthSyncSupported() ? (
           <ListRow
             thumb={<BrandMark brand={HEALTH_BRAND} />}

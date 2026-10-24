@@ -17,6 +17,7 @@ export type SourceRow = {
 export type SourcesInput = {
   health: { connected: boolean; lastAt: number | null } | null;
   strava: { connected: boolean } | null;
+  /** null = COROS is not offered to this user (allowlist): no row */
   coros: { connected: boolean } | null;
   /** workouts of the last 30 days; `at` is when the row reached JoyoRogo */
   exercise: ReadonlyArray<{ source: string; date: string; at: number }>;
@@ -64,13 +65,17 @@ export function buildSources(input: SourcesInput): SourceRow[] {
       recent: recent(strava),
       usedToday: false,
     },
-    {
-      id: "coros",
-      connected: input.coros?.connected ?? false,
-      lastAt: newest(coros),
-      recent: recent(coros),
-      usedToday: false,
-    },
+    ...(input.coros
+      ? [
+          {
+            id: "coros" as const,
+            connected: input.coros.connected,
+            lastAt: newest(coros),
+            recent: recent(coros),
+            usedToday: false,
+          },
+        ]
+      : []),
     {
       id: "scale",
       connected: scale.length > 0,
