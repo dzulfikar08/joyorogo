@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
-import { Globe, Image as ImageIcon, Link2, ShieldCheck, Trash2 } from "lucide-react";
+import { Globe, Image as ImageIcon, Link2, Mic, ShieldCheck, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import type { ProfilCtx } from "@/components/profil/shared";
 import { env } from "@/env.public";
 import type { MyProfileData } from "@/lib/api-types";
 import { legalPath } from "@/lib/legal-path";
+import { saveScanSimple, storedScanSimple } from "@/lib/scan-simple";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import { client, getServerUrl, orpc } from "@/utils/orpc";
 
@@ -29,6 +30,7 @@ export function PrivacyScreen({ ctx }: { ctx: ProfilCtx }) {
     <>
       {!targets.maternal && <ShareSection enabled={row.shareEnabled} code={row.shareCode} />}
       <KeepPhotosSection keep={row.keepPhotos} />
+      <ScanSimpleSection />
       <SleepConsentSection />
       <ListGroup className="mt-3">
         <ListLinkRow
@@ -86,10 +88,7 @@ function ShareSection({ enabled, code }: { enabled: boolean; code: string | null
       previous.current = null;
       return {
         message: input.enabled ? t("privacy.share.toastOn") : t("privacy.share.toastOff"),
-        undo:
-          prev === null
-            ? undefined
-            : () => void client.profile.shareToggle({ enabled: prev }),
+        undo: prev === null ? undefined : () => void client.profile.shareToggle({ enabled: prev }),
       };
     },
   });
@@ -99,10 +98,10 @@ function ShareSection({ enabled, code }: { enabled: boolean; code: string | null
     <ListGroup>
       <ListRow
         icon={
-            <IconChip tone="tidur">
-              <Globe />
-            </IconChip>
-          }
+          <IconChip tone="tidur">
+            <Globe />
+          </IconChip>
+        }
         title={t("privacy.share.titleWeb")}
         subtitle={t("privacy.share.hintWeb")}
         trailing={
@@ -129,6 +128,34 @@ function ShareSection({ enabled, code }: { enabled: boolean; code: string | null
           }}
         />
       )}
+    </ListGroup>
+  );
+}
+
+function ScanSimpleSection() {
+  const { t } = useTranslation("settings");
+  const [on, setOn] = useState(storedScanSimple);
+  return (
+    <ListGroup className="mt-3">
+      <ListRow
+        icon={
+          <IconChip tone="makan">
+            <Mic />
+          </IconChip>
+        }
+        title={t("scanSimple.title")}
+        subtitle={on ? t("scanSimple.on") : t("scanSimple.off")}
+        trailing={
+          <Switch
+            label={t("scanSimple.label")}
+            checked={on}
+            onCheckedChange={(next) => {
+              setOn(next);
+              saveScanSimple(next);
+            }}
+          />
+        }
+      />
     </ListGroup>
   );
 }

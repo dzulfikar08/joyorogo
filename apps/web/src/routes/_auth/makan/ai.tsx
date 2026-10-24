@@ -45,7 +45,11 @@ import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { hasBone, setWithBone, stripBoneLabel } from "@joyorogo/api/lib/bone-chip";
 import { itemAtCount } from "@joyorogo/api/lib/piece-chip";
 import { macrosForTypedKcal, scalePortion } from "@joyorogo/api/lib/portion";
-import { modelNumbers, swapPortionPrior, withoutPortionPrior } from "@joyorogo/api/lib/portion-chip";
+import {
+  modelNumbers,
+  swapPortionPrior,
+  withoutPortionPrior,
+} from "@joyorogo/api/lib/portion-chip";
 import { swapScaleRead, tareScaleRows, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
@@ -75,7 +79,13 @@ import type { PlateNoteData } from "@/components/dishware/plate-note";
 import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { IdrInput } from "@/components/plate/idr-input";
 import { SaveLocationToggle } from "@/components/places/location-toggle";
-import { CORRECTED_ROW_CLASS, CorrectBadge, CorrectBox } from "@/components/scan/correct-box";
+import {
+  CORRECTED_ROW_CLASS,
+  CorrectBadge,
+  CorrectBox,
+  useScanCorrection,
+} from "@/components/scan/correct-box";
+import { SimpleResult } from "@/components/scan/simple-result";
 import type { CorrectScanResult, CorrectionKind } from "@/components/scan/correct-box";
 import { LiveRows } from "@/components/scan/live-rows";
 import { CountUp } from "@/components/kit/count-up";
@@ -92,6 +102,7 @@ import { KindCycleChip, SnackAdviceCard, useSnackAdvice } from "@/components/mak
 import { isPaywallError } from "@/lib/billing";
 import { fmtGramsLabel, fmtInt, fmtKcalLabel, parseNum } from "@/lib/format";
 import { usePlaceLocation } from "@/lib/location";
+import { storedScanSimple } from "@/lib/scan-simple";
 import { askText } from "@/lib/joyo-chat";
 import { ReferenceHint } from "@/components/scan/reference-hint";
 import { client, orpc } from "@/utils/orpc";
@@ -326,7 +337,13 @@ function CutoutImage({
         />
       )}
       {underId && (
-        <img src={stickerUrl(underId)} alt="" aria-hidden style={STICKER_FILTER} className={layer} />
+        <img
+          src={stickerUrl(underId)}
+          alt=""
+          aria-hidden
+          style={STICKER_FILTER}
+          className={layer}
+        />
       )}
       {sticker && (
         <img
@@ -418,6 +435,10 @@ function AiFoodPage() {
   // first 3, then once per WIB day). Never blocks saving; answering or
   // dismissing hides the card; "Hitung ulang" is logged server-side as a retry.
   const [model, setModel] = useState<string | null>(null);
+  // "Mode simpel" (settings): the result is the list, a mic and Simpan. `showDetail` is this scan only; it never
+  // changes the setting.
+  const [scanSimple] = useState(storedScanSimple);
+  const [showDetail, setShowDetail] = useState(false);
   const [askFeedback, setAskFeedback] = useState(false);
   const [feedbackAnswered, setFeedbackAnswered] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState<"kurang_akurat" | "salah" | null>(null);
@@ -480,7 +501,13 @@ function AiFoodPage() {
   const applyItems = (next: AiFoodItem[]) => {
     setItems(next);
     if (next.length > 0 && !mealPickedRef.current) {
-      setMeal(suggestMealForDish(new Date(), ramadan, next.some((item) => isHeavyDish(item.name))));
+      setMeal(
+        suggestMealForDish(
+          new Date(),
+          ramadan,
+          next.some((item) => isHeavyDish(item.name)),
+        ),
+      );
     }
     setKcals(Object.fromEntries(next.map((item, index) => [index, String(item.kcal)])));
     setKinds({});
@@ -582,7 +609,9 @@ function AiFoodPage() {
     const item = items[index];
     if (!item) return;
     touchList();
-    setItems((current) => current.map((it, i) => (i === index ? setWithBone(it, withBone, t("result.withBone")) : it)));
+    setItems((current) =>
+      current.map((it, i) => (i === index ? setWithBone(it, withBone, t("result.withBone")) : it)),
+    );
   };
 
   /** A cup whose contents the photo hides: the user's drink / size pick replaces the row's numbers. */
@@ -658,7 +687,9 @@ function AiFoodPage() {
     setCorrectionNote(
       [
         result.changes.length > 0 ? t("correct.applied", { count: result.changes.length }) : null,
-        result.removed.length > 0 ? t("correct.removed", { names: result.removed.join(", ") }) : null,
+        result.removed.length > 0
+          ? t("correct.removed", { names: result.removed.join(", ") })
+          : null,
       ]
         .filter(Boolean)
         .join(" ") || null,
@@ -685,6 +716,23 @@ function AiFoodPage() {
     setCorrectionNote(t("correct.undone"));
     realignTiles(snapshot.items, snapshot.crops, snapshot.stickers);
   };
+
+  // One ai.correctScan client for the typed box, the mic, and a note sent with a negative rating.
+  const correction = useScanCorrection({
+    photoId,
+    items,
+    kcals,
+    kinds,
+    onApply: applyCorrection,
+  });
+  // The "too many items" notice lives on the full screen; it shows first.
+  const simpleView = scanSimple && !showDetail && !tooMany;
+  // A recording or request belongs to the list on screen: drop it when that list is retried, saved or left.
+  const correctionLive = phase === "confirm" && !retrying && !saving;
+  useEffect(() => {
+    if (!correctionLive) correction.cancel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [correctionLive]);
 
   // Rules of hooks: this must run on EVERY render, so it lives above the
   // early returns. Confetti fires once per confirm entry, sized by tier.
@@ -867,11 +915,7 @@ function AiFoodPage() {
   // whole-photo cutout) almost at once; a second call then waits for the
   // refined per-box cutout, which fades in over it. `reuse` carries the ids
   // that are still valid (same box after Hitung ulang).
-  const cutStickers = (
-    photoId: string,
-    list: AiFoodItem[],
-    reuse: Array<string | null>,
-  ) => {
+  const cutStickers = (photoId: string, list: AiFoodItem[], reuse: Array<string | null>) => {
     const run = ++stickerRunRef.current;
     setStickers(reuse);
     const apply = (index: number, scanId: string) => {
@@ -950,6 +994,7 @@ function AiFoodPage() {
     setFeedbackNote("");
     setFeedbackKeepPhoto(false);
     setRetryCount(0);
+    setShowDetail(false);
     if (cameraInputRef.current) cameraInputRef.current.value = "";
     if (galleryInputRef.current) galleryInputRef.current.value = "";
   };
@@ -1058,7 +1103,10 @@ function AiFoodPage() {
         ...(plateScanId ? { plateScanId } : {}),
         ...(plate.name || plate.place || plate.priceIdr != null ? { plate } : {}),
         ...(eatenAt !== null
-          ? { eatenAt: eatenAtFromClock(scanDate ?? jakartaToday(), eatenAtClock(eatenAt)) ?? undefined }
+          ? {
+              eatenAt:
+                eatenAtFromClock(scanDate ?? jakartaToday(), eatenAtClock(eatenAt)) ?? undefined,
+            }
           : {}),
         items: items.map((item, index) => ({
           name: item.name,
@@ -1096,9 +1144,7 @@ function AiFoodPage() {
       // The save already landed: results are safe in the diary. Only then
       // offer Founder to the user who just spent their last free scan.
       navigate(
-        quotaReached
-          ? { to: "/pro", search: { from: "quota", next: "/makan" } }
-          : { to: "/makan" },
+        quotaReached ? { to: "/pro", search: { from: "quota", next: "/makan" } } : { to: "/makan" },
       );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("flow.saveFailed"));
@@ -1172,6 +1218,52 @@ function AiFoodPage() {
           {t("analyzing.cancel")}
         </Button>
       </Page>
+    );
+  }
+
+  if (phase === "confirm" && simpleView) {
+    return (
+      <SimpleResult
+        rows={items.map((item, index) => ({
+          name: item.name,
+          amount:
+            item.grams != null && !item.cup
+              ? `±${fmtGramsLabel(item.grams)}`
+              : (item.portion ?? null),
+          kcal: fmtInt(parseNum(kcals[index] ?? String(item.kcal)) ?? 0),
+          changed: changed[index],
+          thumb:
+            crops[index] || stickers[index] ? (
+              <CutoutImage
+                crop={crops[index]}
+                sticker={stickers[index]}
+                name=""
+                className="chip-pop size-10 shrink-0 rounded-xl motion-reduce:animate-none"
+              />
+            ) : cropping && item.box ? (
+              <Skeleton className="size-10 shrink-0 rounded-xl" aria-hidden />
+            ) : null,
+        }))}
+        totalKcal={totalKcal}
+        correction={correction}
+        notice={correctionNote}
+        canUndo={undoStack.length > 0}
+        onUndo={undoCorrection}
+        meal={meal}
+        meals={MEALS.map(([key, mealLabel]) => ({ value: key, label: mealLabel }))}
+        onMeal={(value) => {
+          mealPickedRef.current = true;
+          setMeal(value);
+        }}
+        mealLabel={t("result.meal.label")}
+        saveLabel={
+          saving ? t("result.save.saving") : t("result.save.toMeal", { meal: MEAL_LABELS[meal] })
+        }
+        busy={saving || retrying}
+        onSave={() => void saveAll()}
+        onDetail={() => setShowDetail(true)}
+        onRetake={reset}
+      />
     );
   }
 
@@ -1374,7 +1466,17 @@ function AiFoodPage() {
                         setReasonNudged(true);
                         return;
                       }
-                      sendFeedback(feedbackRating, feedbackReasons, feedbackNote, feedbackKeepPhoto);
+                      sendFeedback(
+                        feedbackRating,
+                        feedbackReasons,
+                        feedbackNote,
+                        feedbackKeepPhoto,
+                      );
+                      // What they typed is a correction too: run it the way the "Ada yang kurang pas?" box does.
+                      const typed = feedbackNote.trim();
+                      if (typed.length >= 2 && correction.phase === "idle") {
+                        void correction.submit({ text: typed });
+                      }
                       setFeedbackAnswered(true);
                     }}
                   >
@@ -1434,7 +1536,9 @@ function AiFoodPage() {
                                 gross: fmtGramsLabel(item.grossGrams!),
                                 edible: fmtGramsLabel(item.edibleGrams!),
                               })
-                            : t("result.items.boneOff", { edible: fmtGramsLabel(item.edibleGrams!) })
+                            : t("result.items.boneOff", {
+                                edible: fmtGramsLabel(item.edibleGrams!),
+                              })
                           : item.grams != null && !item.cup
                             ? `±${fmtGramsLabel(item.grams)}`
                             : null,
@@ -1443,11 +1547,14 @@ function AiFoodPage() {
                         .filter(Boolean)
                         .join(" · ")}
                     </span>
-                    {item.usualDensity && (kcals[index] ?? String(item.kcal)) === String(item.kcal) && (
-                      <span className="block text-[0.8125rem] leading-snug text-muted-foreground">
-                        {t("result.items.usual", { kcal: fmtKcalLabel(item.usualDensity.modelKcal) })}
-                      </span>
-                    )}
+                    {item.usualDensity &&
+                      (kcals[index] ?? String(item.kcal)) === String(item.kcal) && (
+                        <span className="block text-[0.8125rem] leading-snug text-muted-foreground">
+                          {t("result.items.usual", {
+                            kcal: fmtKcalLabel(item.usualDensity.modelKcal),
+                          })}
+                        </span>
+                      )}
                   </span>
                   <span className="flex shrink-0 items-center gap-1.5">
                     <Input
@@ -1462,7 +1569,9 @@ function AiFoodPage() {
                       }}
                       className="h-10 w-20 text-right font-bold tabular-nums"
                     />
-                    <span className="text-xs font-semibold text-muted-foreground">{kcalUnit()}</span>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {kcalUnit()}
+                    </span>
                   </span>
                 </div>
                 <div className="mt-1.5 space-y-2">
@@ -1483,7 +1592,9 @@ function AiFoodPage() {
                       }}
                     />
                   </span>
-                  {item.cup && <CupChoices choice={item.cup} onPick={(next) => pickCup(index, next)} />}
+                  {item.cup && (
+                    <CupChoices choice={item.cup} onPick={(next) => pickCup(index, next)} />
+                  )}
                   {(item.pieces || hasBone(item)) && (
                     <span className="flex flex-wrap items-center gap-1.5">
                       {item.pieces && (
@@ -1494,12 +1605,20 @@ function AiFoodPage() {
                         />
                       )}
                       {hasBone(item) && (
-                        <BoneChips name={item.name} item={item} onChange={(on) => setBone(index, on)} />
+                        <BoneChips
+                          name={item.name}
+                          item={item}
+                          onChange={(on) => setBone(index, on)}
+                        />
                       )}
                     </span>
                   )}
                   {item.portionPrior && (
-                    <PortionPriorChips name={item.name} item={item} onSwap={() => swapPrior(index)} />
+                    <PortionPriorChips
+                      name={item.name}
+                      item={item}
+                      onSwap={() => swapPrior(index)}
+                    />
                   )}
                   {item.scaleRead && (
                     <ScaleReadChips
@@ -1528,15 +1647,11 @@ function AiFoodPage() {
 
         {!retrying && !saving && items.length > 0 && (
           <CorrectBox
-            photoId={photoId}
-            items={items}
-            kcals={kcals}
-            kinds={kinds}
+            correction={correction}
             correctionsLeft={correctionsLeft}
             notice={correctionNote}
             canUndo={undoStack.length > 0}
             onUndo={undoCorrection}
-            onApply={applyCorrection}
           />
         )}
 
@@ -1745,7 +1860,9 @@ function AiFoodPage() {
           <Button
             variant="outline"
             size="sm"
-            render={<Link to="/joyo" search={{ ask: askJoyoText }} target="_blank" rel="noopener" />}
+            render={
+              <Link to="/joyo" search={{ ask: askJoyoText }} target="_blank" rel="noopener" />
+            }
           >
             <MessagesSquare aria-hidden />
             {t("joyoAiWeb:entry.label")}

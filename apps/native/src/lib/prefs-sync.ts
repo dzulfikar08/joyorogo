@@ -20,6 +20,7 @@ import { readCalibrationPref, writeCalibrationPref } from "./calibration-prefs";
 import { readAddBackPref, writeAddBackPref } from "./exercise-credit-prefs";
 import { setLocale } from "./i18n";
 import { loadMakanPrefs, writeMakanPref } from "./makan-prefs";
+import { loadScanSimple, writeScanSimple } from "./scan-prefs";
 import { readStoredReminderConfig, rescheduleAll, writeReminderConfig } from "./notifications";
 import { applyThemePref, loadThemePref, writeThemePref } from "./theme-pref";
 
@@ -93,6 +94,8 @@ async function readDevice(key: RogoPrefKey, userId: string): Promise<unknown | u
       return (await loadMakanPrefs()).view;
     case "makan.kind":
       return (await loadMakanPrefs()).kind;
+    case "scan.simple":
+      return (await loadScanSimple()) ? true : undefined;
     case "sticker":
       return loadStickerPrefs();
     case "exercise.addBack.enabled":
@@ -120,6 +123,8 @@ async function writeDevice(key: RogoPrefKey, userId: string, value: unknown | un
       return writeMakanPref("view", value as string | undefined);
     case "makan.kind":
       return writeMakanPref("kind", value as string | undefined);
+    case "scan.simple":
+      return writeScanSimple(value);
     case "sticker":
       return writeStickerPrefs((value as typeof DEFAULT_STICKER_PREFS | undefined) ?? DEFAULT_STICKER_PREFS);
     case "exercise.addBack.enabled":

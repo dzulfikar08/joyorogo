@@ -1,12 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import {
-  RecordingPresets,
-  requestRecordingPermissionsAsync,
-  setAudioModeAsync,
-  useAudioRecorder,
-} from "expo-audio";
-import { File } from "expo-file-system";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, View } from "react-native";
 import Reanimated from "react-native-reanimated";
@@ -15,10 +8,8 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { PressableScale, useEnter, usePopIn } from "@/components/motion";
 import { Button, Input, Text } from "@/components/ui";
 
-/** A correction is a short sentence; thirty seconds is plenty and keeps the upload small. */
-const MAX_RECORD_MS = 30_000;
-/** Matches the server's audioBase64 floor; anything tinier never transcribes. */
-const MIN_AUDIO_BASE64 = 1_332;
+import { useCorrectionRun } from "./use-correction-run";
+import { useVoiceRecorder } from "./use-voice-recorder";
 
 /** What the screen reports back after it applied a correction. */
 export type CorrectOutcome = {
@@ -35,12 +26,6 @@ export type CorrectInput = { text: string } | { audioBase64: string };
 function fmtClock(ms: number): string {
   const s = Math.floor(ms / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-}
-
-/** Server messages are already localized; the transcript survives a failed parse. */
-function errorTranscript(err: unknown): string | null {
-  const data = (err as { data?: { transcript?: unknown } } | null)?.data;
-  return typeof data?.transcript === "string" && data.transcript ? data.transcript : null;
 }
 
 /** Result line under the box; fades up, with a popped check once a correction landed. */
@@ -83,165 +68,31 @@ export function CorrectBox({
   const { t } = useTranslation(["scan", "common"]);
   const { theme } = useUnistyles();
   const [text, setText] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [heard, setHeard] = useState<string | null>(null);
-  const [outcome, setOutcome] = useState<CorrectOutcome | null>(null);
-  const [undone, setUndone] = useState(false);
-  const [left, setLeft] = useState<number | null>(null);
-  const [processing, setProcessing] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
+  const correction = useCorrectionRun(onSubmit);
+  const { error, heard, outcome, undone, left, run } = correction;
+  const voice = useVoiceRecorder({
+    onAudio: async (audioBase64) => {
+      await run({ audioBase64 });
+    },
+    onError: correction.setVoiceError,
+  });
+  const { recording, elapsed } = voice;
 
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const discardRef = useRef(false);
-  const stoppingRef = useRef(false);
-
-  const working = busy || processing;
+  const working = busy || correction.processing || voice.processing;
   const cleanText = text.trim();
   const canSend = !working && !recording && cleanText.length >= 2;
 
-  // Release the mic and audio focus when the box goes away.
-  useEffect(
-    () => () => {
-      discardRef.current = true;
-      void recorder.stop().catch(() => {});
-      void setAudioModeAsync({ allowsRecording: false }).catch(() => {});
-    },
-    [recorder],
-  );
-
-  const run = async (input: CorrectInput) => {
-    setError(null);
-    setHeard(null);
-    setOutcome(null);
-    setUndone(false);
-    setProcessing(true);
-    try {
-      const result = await onSubmit(input);
-      if (!result) return;
-      if ("text" in input) setText("");
-      setOutcome(result);
-      setHeard(result.transcript);
-      if (result.correctionsLeft !== null) setLeft(result.correctionsLeft);
-    } catch (err) {
-      setError(err instanceof Error && err.message ? err.message : t("correct.error.failed"));
-      setHeard(errorTranscript(err));
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const finishRecording = async () => {
-    if (stoppingRef.current) return;
-    stoppingRef.current = true;
-    setProcessing(true);
-    try {
-      try {
-        await recorder.stop();
-        await setAudioModeAsync({ allowsRecording: false });
-      } catch {
-        setRecording(false);
-        setError(t("correct.error.failed"));
-        return;
-      }
-      setRecording(false);
-      const uri = recorder.uri;
-      const discarded = discardRef.current;
-      if (discarded) {
-        if (uri) {
-          try {
-            new File(uri).delete();
-          } catch {
-            // The temp file is gone either way.
-          }
-        }
-        return;
-      }
-      if (!uri) {
-        setError(t("correct.error.failed"));
-        return;
-      }
-      let audioBase64: string;
-      try {
-        const file = new File(uri);
-        audioBase64 = await file.base64();
-        file.delete();
-      } catch {
-        setError(t("correct.error.failed"));
-        return;
-      }
-      if (audioBase64.length < MIN_AUDIO_BASE64) {
-        setError(t("correct.error.voiceEmpty"));
-        return;
-      }
-      await run({ audioBase64 });
-    } finally {
-      stoppingRef.current = false;
-      discardRef.current = false;
-      setProcessing(false);
-    }
-  };
-
-  const finishRef = useRef(finishRecording);
-  finishRef.current = finishRecording;
-
-  useEffect(() => {
-    if (!recording) return;
-    const startedAt = Date.now();
-    setElapsed(0);
-    const timer = setInterval(() => {
-      const ms = Date.now() - startedAt;
-      setElapsed(ms);
-      if (ms >= MAX_RECORD_MS) void finishRef.current();
-    }, 250);
-    return () => clearInterval(timer);
-  }, [recording]);
-
-  const startRecording = async () => {
-    setError(null);
-    setHeard(null);
-    let granted = false;
-    try {
-      granted = (await requestRecordingPermissionsAsync()).granted;
-    } catch {
-      setError(t("correct.micUnsupported"));
-      return;
-    }
-    if (!granted) {
-      setError(t("correct.micDenied"));
-      return;
-    }
-    try {
-      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-      discardRef.current = false;
-      stoppingRef.current = false;
-      // Each take needs a fresh prepared file; stop() finalizes the previous one.
-      await recorder.prepareToRecordAsync();
-      recorder.record();
-      setRecording(true);
-    } catch {
-      void setAudioModeAsync({ allowsRecording: false }).catch(() => {});
-      setError(t("correct.micUnsupported"));
-    }
-  };
-
-  const stopRecording = (discard: boolean) => {
-    discardRef.current = discard;
-    void finishRef.current();
-  };
-
   const send = () => {
     if (!canSend) return;
-    void run({ text: cleanText });
+    void run({ text: cleanText }).then((result) => {
+      if (result) setText("");
+    });
   };
 
   const undo = () => {
     if (working || recording) return;
     onUndo();
-    setOutcome(null);
-    setHeard(null);
-    setError(null);
-    setUndone(true);
+    correction.markUndone();
   };
 
   return (
@@ -263,13 +114,13 @@ export function CorrectBox({
               variant="secondary"
               size="sm"
               label={t("common:actions.cancel")}
-              onPress={() => stopRecording(true)}
+              onPress={() => voice.stop(true)}
             />
             <Button
               size="sm"
               icon="stop"
               label={t("correct.micStop")}
-              onPress={() => stopRecording(false)}
+              onPress={() => voice.stop(false)}
             />
           </View>
         </View>
@@ -290,7 +141,7 @@ export function CorrectBox({
             accessibilityRole="button"
             accessibilityLabel={t("correct.mic")}
             disabled={working}
-            onPress={() => void startRecording()}
+            onPress={() => void voice.start()}
             dimTo={0.6}
             scaleTo={0.94}
             style={[styles.roundButton, styles.micButton, working && styles.pressedSoft]}

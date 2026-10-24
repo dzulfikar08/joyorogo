@@ -15,6 +15,8 @@ import { ConfirmSheet } from "@/components/confirm-sheet";
 import { useToast } from "@/components/toast";
 import { setLocale } from "@/src/lib/i18n";
 import { applyThemePref, saveThemePref } from "@/src/lib/theme-pref";
+import { syncPrefs } from "@/src/lib/prefs-sync";
+import { loadScanSimple, saveScanSimple } from "@/src/lib/scan-prefs";
 import { errorMessage } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
@@ -298,6 +300,50 @@ export function PrivacyList({ keepPhotos }: { keepPhotos: boolean }) {
           setKeepOff({ id: "keep-photos" });
         }}
       />
+    </Card>
+  );
+}
+
+/** "Mode simpel" for the scan result (synced pref scan.simple, off by default): applies the next time a result opens. */
+export function ScanSimpleCard() {
+  const { t } = useTranslation("settings");
+  const { theme } = useUnistyles();
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    void loadScanSimple().then((loaded) => {
+      if (live) setEnabled(loaded);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  if (enabled === null) return null;
+
+  const change = async (value: boolean) => {
+    setEnabled(value);
+    await saveScanSimple(value);
+    await syncPrefs().catch(() => null);
+  };
+
+  return (
+    <Card>
+      <Text style={styles.cardTitle}>{t("scanSimple.title")}</Text>
+      <View style={styles.switchRow}>
+        <View style={styles.switchText}>
+          <Text style={styles.rowTitle}>{t("scanSimple.label")}</Text>
+        </View>
+        <Switch
+          value={enabled}
+          onValueChange={(value) => void change(value)}
+          trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+          thumbColor={theme.colors.background}
+          accessibilityLabel={t("scanSimple.label")}
+        />
+      </View>
+      <Text style={styles.note}>{enabled ? t("scanSimple.on") : t("scanSimple.off")}</Text>
     </Card>
   );
 }

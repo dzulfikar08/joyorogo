@@ -20,6 +20,7 @@ import { dismissalStoreKey, writeDismissal } from "./dismissals";
 import { readCalibrationPref, writeCalibrationPref } from "./calibration-prefs";
 import { readAddBackPref, writeAddBackPref } from "./exercise-credit-prefs";
 import { storedKind, storedMakanView, writeMakanPref } from "./makan-prefs";
+import { storedScanSimple, writeScanSimplePref } from "./scan-simple";
 import { STORY_PREFS_KEY } from "./story-prefs";
 
 // Account preferences in this browser (what is synced and what is not: packages/api/src/lib/rogo-prefs.ts). The
@@ -46,7 +47,12 @@ function readMeta(): PrefsMeta {
           typeof item.dirty === "boolean" &&
           (item.deletedAt === null || typeof item.deletedAt === "number")
         ) {
-          meta.items[key] = { updatedAt: item.updatedAt, deletedAt: item.deletedAt, dirty: item.dirty, json: item.json };
+          meta.items[key] = {
+            updatedAt: item.updatedAt,
+            deletedAt: item.deletedAt,
+            dirty: item.dirty,
+            json: item.json,
+          };
         }
       }
     }
@@ -92,6 +98,8 @@ function readDevice(key: RogoPrefKey, userId: string): unknown | undefined {
       return storedMakanView();
     case "makan.kind":
       return storedKind();
+    case "scan.simple":
+      return storedScanSimple() ? true : undefined;
     case "sticker":
       return readJson(STORY_PREFS_KEY) ?? undefined;
     case "dismissed.handlePrompt":
@@ -122,6 +130,9 @@ function writeDevice(key: RogoPrefKey, userId: string, value: unknown | undefine
         return;
       case "makan.kind":
         writeMakanPref("kind", parseFoodKindFilter(value));
+        return;
+      case "scan.simple":
+        writeScanSimplePref(value);
         return;
       case "sticker":
         if (value === undefined) localStorage.removeItem(STORY_PREFS_KEY);
@@ -182,7 +193,10 @@ export const forgetPrefsSync = prefsSync.forget;
 
 /** Before sign-out (the session is still valid): uploads edits that are still waiting for their quiet time. */
 export async function flushPrefsSync(): Promise<void> {
-  await withTimeout(prefsSync.sync().catch(() => null), 3000);
+  await withTimeout(
+    prefsSync.sync().catch(() => null),
+    3000,
+  );
 }
 
 /** Sign-in: the account's preferences are applied before the app opens, for at most `RESTORE_WAIT_MS`. */

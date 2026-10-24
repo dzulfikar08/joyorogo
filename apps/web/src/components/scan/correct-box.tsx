@@ -93,36 +93,35 @@ export function CorrectBadge({ kind }: { kind: CorrectionKind }) {
 /** Row highlight while a correction's changes are still fresh. */
 export const CORRECTED_ROW_CLASS = "bg-primary/[0.06] ring-1 ring-primary/25 ring-inset";
 
+export type CorrectionInput = { text: string } | { audioBase64: string };
+
+export interface ScanCorrection {
+  phase: "idle" | "recording" | "working";
+  error: string | null;
+  /** What Whisper heard (voice only). */
+  heard: string | null;
+  /** Sends a typed or recorded correction; resolves true when the screen applied it. */
+  submit: (input: CorrectionInput) => Promise<boolean>;
+  startRecording: () => Promise<void>;
+  stopRecording: (discard: boolean) => void;
+  /** Drops any recording and in-flight request (the list the answer was made for is gone). */
+  cancel: () => void;
+}
+
 /**
- * "Ada yang kurang pas?": fix the scan result by typing or by voice. The box
- * only talks to ai.correctScan; the screen owns the list, so it applies the
- * result (returning false when the list moved on while the request ran).
+ * The one client for ai.correctScan, typed or by voice: MediaRecorder capture, the request and its error copy. The
+ * screen owns the list, so it applies the result (`onApply` returns false when the list moved on while the request
+ * ran). Every input is read at call time, so a recording that ends later still corrects the list as it is by then.
  */
-export function CorrectBox({
-  photoId,
-  items,
-  kcals,
-  kinds,
-  correctionsLeft,
-  notice,
-  canUndo,
-  onUndo,
-  onApply,
-}: {
+export function useScanCorrection(args: {
   photoId: string | null;
   items: AiFoodItem[];
   kcals: Record<number, string>;
   kinds: Record<number, FoodKind>;
-  correctionsLeft: number | null;
-  /** Summary of the last apply/undo, owned by the screen. */
-  notice: string | null;
-  canUndo: boolean;
-  onUndo: () => void;
   onApply: (result: CorrectScanResult, base: AiFoodItem[]) => boolean;
-}) {
-  const { t } = useTranslation(["scan", "common"]);
-  const [text, setText] = useState("");
-  const [phase, setPhase] = useState<"idle" | "recording" | "working">("idle");
+}): ScanCorrection {
+  const { t } = useTranslation("scan");
+  const [phase, setPhase] = useState<ScanCorrection["phase"]>("idle");
   const [error, setError] = useState<string | null>(null);
   const [heard, setHeard] = useState<string | null>(null);
   const [mime] = useState(recorderMime);
@@ -131,12 +130,21 @@ export function CorrectBox({
   const discardRef = useRef(false);
   const stopTimerRef = useRef<number | undefined>(undefined);
   const abortRef = useRef<AbortController | null>(null);
-  // The async result lands in whatever render is current by then.
-  const onApplyRef = useRef(onApply);
-  onApplyRef.current = onApply;
+  const argsRef = useRef(args);
+  argsRef.current = args;
 
-  // Release the mic and any in-flight request when the box goes away (retry,
-  // save, new scan): a late answer must never touch a list it wasn't made for.
+  const cancel = () => {
+    discardRef.current = true;
+    recorderRef.current?.stop();
+    clearTimeout(stopTimerRef.current);
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setPhase("idle");
+    setError(null);
+    setHeard(null);
+  };
+
+  // Release the mic and any in-flight request when the screen goes away.
   useEffect(
     () => () => {
       discardRef.current = true;
@@ -147,10 +155,11 @@ export function CorrectBox({
     [],
   );
 
-  const submit = async (input: { text: string } | { audioBase64: string }) => {
+  const submit = async (input: CorrectionInput): Promise<boolean> => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    const { photoId, items, kcals, kinds } = argsRef.current;
     setError(null);
     setHeard(null);
     setPhase("working");
@@ -163,15 +172,12 @@ export function CorrectBox({
         },
         { signal: controller.signal },
       );
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) return false;
       setHeard(result.transcript);
-      if (onApplyRef.current(result, items)) {
-        setText("");
-      } else {
-        setError(t("correct.error.failed"));
-      }
+      if (argsRef.current.onApply(result, items)) return true;
+      setError(t("correct.error.failed"));
     } catch (err) {
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) return false;
       setError(err instanceof Error && err.message ? err.message : t("correct.error.failed"));
       const transcript = (err as { data?: { transcript?: unknown } } | null)?.data?.transcript;
       if (typeof transcript === "string" && transcript) setHeard(transcript);
@@ -181,6 +187,7 @@ export function CorrectBox({
         setPhase("idle");
       }
     }
+    return false;
   };
 
   const startRecording = async () => {
@@ -229,11 +236,38 @@ export function CorrectBox({
     recorderRef.current?.stop();
   };
 
+  return { phase, error, heard, submit, startRecording, stopRecording, cancel };
+}
+
+/**
+ * "Ada yang kurang pas?": fix the scan result by typing or by voice. The screen owns the correction (`useScanCorrection`)
+ * and the list; the box is its typed/voice form.
+ */
+export function CorrectBox({
+  correction,
+  correctionsLeft,
+  notice,
+  canUndo,
+  onUndo,
+}: {
+  correction: ScanCorrection;
+  correctionsLeft: number | null;
+  /** Summary of the last apply/undo, owned by the screen. */
+  notice: string | null;
+  canUndo: boolean;
+  onUndo: () => void;
+}) {
+  const { t } = useTranslation(["scan", "common"]);
+  const { phase, error, heard, submit, startRecording, stopRecording } = correction;
+  const [text, setText] = useState("");
+
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     const typed = text.trim();
     if (phase !== "idle" || typed.length < 2) return;
-    void submit({ text: typed });
+    void submit({ text: typed }).then((applied) => {
+      if (applied) setText("");
+    });
   };
 
   const working = phase === "working";

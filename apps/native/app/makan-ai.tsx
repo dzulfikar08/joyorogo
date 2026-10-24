@@ -71,6 +71,7 @@ import {
   ListGroup,
   ListRow,
   CountNum,
+  Num,
   Segmented,
   Text,
 } from "@/components/ui";
@@ -94,6 +95,8 @@ import { ReferenceHint } from "@/components/scan/reference-hint";
 import { ScanAllowance } from "@/components/scan/scan-allowance";
 import { ScaleReadChips } from "@/components/scan/scale-read-chips";
 import type { CorrectInput, CorrectOutcome } from "@/components/scan/correct-box";
+import { SimpleMic } from "@/components/scan/simple-mic";
+import { useScanSimple } from "@/src/lib/scan-prefs";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import type { MealStory } from "@/components/story/types";
 import { useSessionGate } from "@/lib/use-session-gate";
@@ -354,19 +357,23 @@ function ShutterFlash({ tick }: { tick: number }) {
   return <Reanimated.View pointerEvents="none" style={[styles.shutterFlash, style]} />;
 }
 
-/** Big kcal total of the result panel: enters with the panel and counts to every new total. */
+/** Big kcal total of the result panel: enters with the panel and counts to every new total. `plain` is the simple result: a custom heading and no reaction or comparison line. */
 function TotalBlock({
   totalKcal,
   reactionText,
+  heading,
+  plain = false,
 }: {
   totalKcal: number;
   reactionText: string | null;
+  heading?: string;
+  plain?: boolean;
 }) {
   const { t } = useTranslation("scan");
   const enter = useEnter();
   return (
     <Reanimated.View entering={enter} style={styles.totalBlock}>
-      <Text style={styles.totalLabel}>{t("result.total")}</Text>
+      <Text style={styles.totalLabel}>{heading ?? t("result.total")}</Text>
       <View style={styles.totalRow}>
         <CountNum
           value={totalKcal}
@@ -376,8 +383,8 @@ function TotalBlock({
         />
         <Text style={styles.totalUnit}>{kcalUnit()}</Text>
       </View>
-      {reactionText ? <Text style={styles.totalReaction}>{reactionText}</Text> : null}
-      {equivalentLine(totalKcal) ? <Text style={styles.totalGeprek}>{equivalentLine(totalKcal)}</Text> : null}
+      {plain ? null : reactionText ? <Text style={styles.totalReaction}>{reactionText}</Text> : null}
+      {!plain && equivalentLine(totalKcal) ? <Text style={styles.totalGeprek}>{equivalentLine(totalKcal)}</Text> : null}
     </Reanimated.View>
   );
 }
@@ -580,6 +587,9 @@ export default function MakanAi() {
   const [feedbackKeepPhoto, setFeedbackKeepPhoto] = useState(false);
   // A negative rating sent with no reason and no note is held back once and the reason chips are asked again.
   const [reasonNudged, setReasonNudged] = useState(false);
+  // "Mode simpel" (account setting, off by default). "Detail" shows the full result for this screen only.
+  const simplePref = useScanSimple();
+  const [showDetail, setShowDetail] = useState(false);
   // Item kind: the AI's call, or what the user tapped on the row. Advice only.
   const [kinds, setKinds] = useState<Record<number, FoodKind>>({});
   // Items and kcal drafts as they were before "Setengah porsi", so one tap restores them.
@@ -1531,6 +1541,134 @@ export default function MakanAi() {
           })
         : includedItems[0]?.name;
     const reactionText = totalKcal > 0 && !gain ? t(`reaction.${reactionKey(totalKcal)}`) : null;
+    const tooManyCard = tooMany ? (
+      <View style={styles.feedbackCard}>
+        <View>
+          <Text style={styles.feedbackTitle}>{t("fail.reason.too_many.title")}</Text>
+          <Text style={styles.feedbackSubtitle}>{t("fail.tooManyPartial")}</Text>
+        </View>
+        <View style={styles.feedbackRow}>
+          <Button
+            size="sm"
+            label={t("result.keep", { count: items.length })}
+            onPress={() => setTooMany(false)}
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            label={t("result.retake")}
+            onPress={resetToCamera}
+          />
+        </View>
+      </View>
+    ) : null;
+
+    // "Mode simpel": the list, one mic for a spoken correction, and Save. Everything else is behind "Detail".
+    if (simplePref && !showDetail) {
+      return (
+        <SafeAreaView style={styles.safeArea}>
+          <KeyboardAwareScrollView
+            contentContainerStyle={styles.confirmContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <TotalBlock totalKcal={totalKcal} reactionText={null} heading={t("simple.title")} plain />
+            {tooManyCard}
+
+            <ListGroup>
+              {items.map((item, index) => {
+                const draft = drafts[index];
+                if (!draft) return null;
+                const mark = marks?.get(index);
+                const detail = item.cup
+                  ? item.portion
+                  : item.grams !== undefined
+                    ? `±${fmtGramsLabel(item.grams)}`
+                    : undefined;
+                return (
+                  <ItemCard
+                    key={`${item.name}-${index}`}
+                    index={index}
+                    include={draft.include}
+                    corrected={!!mark}
+                  >
+                    <ListRow
+                      icon={draft.include ? "checkmark-circle" : "ellipse-outline"}
+                      iconTint={draft.include ? "makan" : "muted"}
+                      thumb={
+                        crops[index] || stickers[index] || (cropping && item.box) ? (
+                          <CropSlot
+                            uri={crops[index]}
+                            stickerId={stickers[index] ?? undefined}
+                            size={40}
+                            style={styles.cropThumb}
+                            label={t("result.cropLabel", { name: item.name })}
+                          />
+                        ) : undefined
+                      }
+                      title={item.name}
+                      wrapTitle
+                      subtitle={detail}
+                      right={
+                        <Num style={styles.simpleKcal}>
+                          {fmtKcalLabel(parseNum(draft.kcal) ?? item.kcal)}
+                        </Num>
+                      }
+                      onPress={() =>
+                        setDrafts((prev) =>
+                          prev.map((d, i) => (i === index ? { ...d, include: !d.include } : d)),
+                        )
+                      }
+                    />
+                  </ItemCard>
+                );
+              })}
+            </ListGroup>
+
+            {!retry.isPending && !addScan.isPending ? (
+              <SimpleMic
+                busy={correct.isPending}
+                canUndo={undoStack.length > 0}
+                onSubmit={submitCorrection}
+                onUndo={undoCorrection}
+              />
+            ) : null}
+
+            <Segmented
+              options={MEAL_KEYS.map((key) => ({
+                value: key,
+                label: t(`makan:diary.mealShort.${key}`),
+              }))}
+              value={meal}
+              onChange={(value) => {
+                mealPickedRef.current = true;
+                setMeal(value);
+              }}
+            />
+            {flowErrorMessage ? <Text style={styles.errorText}>{flowErrorMessage}</Text> : null}
+            <Button
+              label={
+                includedCount > 0
+                  ? t("simple.save", { meal: t(`makan:diary.mealShort.${meal}`) })
+                  : t("result.save.pickOne")
+              }
+              disabled={includedCount === 0 || retry.isPending || correct.isPending}
+              onPress={() => void saveIncluded()}
+              loading={addScan.isPending}
+            />
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityLabel={t("simple.detailAria")}
+              onPress={() => setShowDetail(true)}
+              dimTo={0.6}
+              style={styles.detailLink}
+            >
+              <Text style={styles.detailLinkText}>{t("simple.detail")}</Text>
+            </PressableScale>
+          </KeyboardAwareScrollView>
+        </SafeAreaView>
+      );
+    }
+
     return (
       <>
       <SafeAreaView style={styles.safeArea}>
@@ -1540,27 +1678,7 @@ export default function MakanAi() {
         >
           <TotalBlock totalKcal={totalKcal} reactionText={reactionText} />
 
-          {tooMany ? (
-            <View style={styles.feedbackCard}>
-              <View>
-                <Text style={styles.feedbackTitle}>{t("fail.reason.too_many.title")}</Text>
-                <Text style={styles.feedbackSubtitle}>{t("fail.tooManyPartial")}</Text>
-              </View>
-              <View style={styles.feedbackRow}>
-                <Button
-                  size="sm"
-                  label={t("result.keep", { count: items.length })}
-                  onPress={() => setTooMany(false)}
-                />
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  label={t("result.retake")}
-                  onPress={resetToCamera}
-                />
-              </View>
-            </View>
-          ) : null}
+          {tooManyCard}
 
           {/* Penilaian hasil: selalu bisa dilewati, tidak pernah blokir simpan */}
           {askFeedback && !feedbackAnswered && photoId ? (
@@ -1675,6 +1793,12 @@ export default function MakanAi() {
                           feedbackNote,
                           feedbackKeepPhoto,
                         );
+                        // The note is also what the user wants changed: apply it like the "Ada yang kurang pas?"
+                        // box does. A failed correction stays silent; the rating is already on its way.
+                        const fix = feedbackNote.trim();
+                        if (fix.length >= 2 && !correct.isPending && !retry.isPending) {
+                          void submitCorrection({ text: fix }).catch(() => {});
+                        }
                         setFeedbackAnswered(true);
                       }}
                     />
@@ -2428,6 +2552,23 @@ const styles = StyleSheet.create((theme) => ({
     gap: theme.spacing.xs,
   },
   mealLabel: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
+  simpleKcal: {
+    fontSize: theme.fontSize.base,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+  },
+  detailLink: {
+    alignSelf: "center",
+    minHeight: 44,
+    paddingHorizontal: theme.spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  detailLinkText: {
     fontSize: theme.fontSize.sm,
     fontWeight: "600",
     color: theme.colors.mutedForeground,
