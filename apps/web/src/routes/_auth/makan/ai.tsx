@@ -750,10 +750,25 @@ function AiFoodPage() {
     null,
   );
   const [applyingContext, setApplyingContext] = useState(false);
+  // The result came while the person was still talking: the analyzing screen (and its mic) stays until the take is
+  // released and queued, then the result shows and the context applies. Swapping screens mid-hold lost the release.
+  const [heldConfirm, setHeldConfirm] = useState(false);
+  const correctionPhaseRef = useRef(correction.phase);
+  correctionPhaseRef.current = correction.phase;
+  const enterConfirm = () => {
+    if (correctionPhaseRef.current === "idle") setPhase("confirm");
+    else setHeldConfirm(true);
+  };
+  useEffect(() => {
+    if (!heldConfirm || correction.phase !== "idle") return;
+    setHeldConfirm(false);
+    setPhase("confirm");
+  }, [heldConfirm, correction.phase]);
   // The scan ended without a result (error, cancel): the queued context and any recording go with it.
   useEffect(() => {
     if (phase !== "idle") return;
     setQueuedContext(null);
+    setHeldConfirm(false);
     correction.cancel();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
@@ -797,7 +812,7 @@ function AiFoodPage() {
     void retryAnalysis(kept.hint).then((ok) => {
       if (runRef.current !== kept.run) return;
       if (ok) {
-        setPhase("confirm");
+        enterConfirm();
         return;
       }
       setScanError(kept.failure);
@@ -947,7 +962,7 @@ function AiFoodPage() {
           })
           .catch(() => {});
       }
-      setPhase("confirm");
+      enterConfirm();
       // Numbers are on screen after the next two frames; record how long the
       // state commit took, then cut the per-item tiles in the background.
       const respondedAt = performance.now();
