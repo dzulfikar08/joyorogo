@@ -53,14 +53,18 @@ jobs:
           distribution: temurin
           java-version: "17"
       # CVE-2026-91403: eight eMudhra intermediates were compromised (forged TLS certificates for any host). The JDK that
-      # setup-java installs may predate the OpenJDK fix, and Gradle fetches dependencies over TLS with its cacerts, so the
-      # whole emSign hierarchy is removed from it here. Drop this step once the pinned JDK is a fixed release.
+      # setup-java installs may predate the OpenJDK fix, and Gradle fetches dependencies over TLS, so the JVMs here use a
+      # copy of the JDK's cacerts without the emSign hierarchy (the runner's cacerts itself is read-only). Drop this step
+      # once the pinned JDK is a fixed release.
       - name: Distrust eMudhra in the JDK (CVE-2026-91403)
         run: |
-          for alias in $("$JAVA_HOME/bin/keytool" -list -cacerts -storepass changeit | grep -i emsign | cut -d, -f1); do
-            "$JAVA_HOME/bin/keytool" -delete -cacerts -storepass changeit -alias "$alias"
+          store="$RUNNER_TEMP/cacerts"
+          cp -L "$JAVA_HOME/lib/security/cacerts" "$store" && chmod 600 "$store"
+          for alias in $("$JAVA_HOME/bin/keytool" -list -keystore "$store" -storepass changeit | grep -i emsign | cut -d, -f1); do
+            "$JAVA_HOME/bin/keytool" -delete -keystore "$store" -storepass changeit -alias "$alias"
           done
-          if "$JAVA_HOME/bin/keytool" -list -cacerts -storepass changeit | grep -qi emsign; then echo "emSign still trusted" >&2; exit 1; fi
+          if "$JAVA_HOME/bin/keytool" -list -keystore "$store" -storepass changeit | grep -qi emsign; then echo "emSign still trusted" >&2; exit 1; fi
+          echo "JAVA_TOOL_OPTIONS=-Djavax.net.ssl.trustStore=$store -Djavax.net.ssl.trustStorePassword=changeit" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
