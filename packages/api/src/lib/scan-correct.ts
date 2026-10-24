@@ -149,6 +149,8 @@ const opSchema = z.discriminatedUnion("op", [
   }),
   z.object({ op: z.literal("remove"), i: index }),
   z.object({ op: z.literal("add"), ...newDishShape }),
+  /** The weight still includes the bowl or plate: `grams` of the empty container come off the weighed rows. */
+  z.object({ op: z.literal("wadah"), grams: optionalNum }),
 ]);
 
 type Op = z.infer<typeof opSchema>;
@@ -184,6 +186,7 @@ Jawab HANYA JSON valid satu baris (tanpa \`\`\`, tanpa teks lain): {"ops":[...]}
 {"op":"portion","i":nomor,"count":number} = item berhitung per buah (porsi atau namanya memuat "5 pcs", "3 potong", "4 buah") dan pengguna menyebut berapa yang DIMAKAN ("cuma 2", "yang dimakan 2", "aku makan 3 aja"). count = jumlah baru yang dimakan, bukan berat. Contoh: "pisang goreng | 5 pcs" dan pengguna bilang "cuma 2" jadi {"op":"portion","i":nomor,"count":2}.
 {"op":"portion","i":nomor,"grams":number} = HANYA kalau pengguna menyebut berat (gram, ons, kg); jangan isi grams dengan jumlah buah.
 {"op":"remove","i":nomor} = item tidak ada / tidak dimakan.
+{"op":"wadah","grams":number} = pengguna bilang beratnya masih termasuk wadah (mangkuk, piring, gelas, kotak), misalnya "668 itu termasuk mangkok" atau "dikurangi piring 400 g". grams = berat wadah kosong: angka pengguna kalau disebut; kalau tidak, perkirakan${photo ? " dari foto" : ""} (mangkuk keramik biasanya 250-450, piring keramik 300-550, mangkuk atau piring plastik/melamin 80-200, kotak kertas atau styrofoam 5-20). Server mengurangkannya dari berat makanan; JANGAN pakai rename atau portion untuk ini.
 {"op":"add","name":"nama","kind":"makanan|camilan|minuman",${shape}"portion":"maks 3 kata","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number} = makanan atau minuman yang ditambahkan.
 Satu koreksi boleh memuat beberapa op. Pengguna menyebut sesuatu yang tidak ada di daftar, atau tidak ada yang perlu diubah: {"ops":[]}. Semua angka bulat. name Bahasa Indonesia tanpa terjemahan; kcal dan gizi untuk porsi yang dimakan.${localNameRule(locale)}`;
 }
@@ -380,6 +383,42 @@ function applyPortion(row: Row, op: Extract<Op, { op: "portion" }>): Row | null 
 }
 
 /**
+ * "Termasuk wadah": the empty container's grams come off the weighed rows that were sent (food before drinks, as the
+ * scale reading covers them), shared in the rows' proportions; kcal and macros follow the grams. A container that
+ * would leave less than a tenth of the weight (or 10 g) is a misread and changes nothing. True when it applied.
+ */
+function applyWadah(rows: Row[], grams: number | undefined, sent: number): boolean {
+  if (grams === undefined || !(grams >= 1)) return false;
+  const weighed = rows.filter(
+    (r) => !r.removed && r.from !== null && r.from < sent && (r.item.grams ?? 0) > 0,
+  );
+  const food = weighed.filter((r) => resolveFoodKind(r.item.name, r.item.kind) !== "minuman");
+  const targets = food.length > 0 ? food : weighed;
+  const total = targets.reduce((sum, r) => sum + r.item.grams!, 0);
+  const net = total - grams;
+  if (targets.length === 0 || net < Math.max(10, total * 0.1)) return false;
+  for (const row of targets) {
+    const old = row.item;
+    const factor = net / total;
+    const at = rows.indexOf(row);
+    rows[at] = {
+      ...row,
+      change: row.change ?? "portion",
+      item: {
+        ...old,
+        grams: bound(old.grams! * factor, 1, 5000),
+        kcal: bound(old.kcal * factor, 0, 5000) ?? old.kcal,
+        protein: scaled(old.protein, factor, 500),
+        carbs: scaled(old.carbs, factor, 500),
+        fat: scaled(old.fat, factor, 500),
+        fiber: scaled(old.fiber, factor, 200),
+      },
+    };
+  }
+  return true;
+}
+
+/**
  * Applies the model's ops to the current list. Ops address items by their
  * 1-based number; one that names no item (or the removed one) is ignored.
  * Throws `unknown_reference` when nothing applied, `unclear` when the answer
@@ -401,11 +440,20 @@ export function applyCorrection(
     throw new CorrectionError("unclear", answer.slice(0, 200));
   }
   const rows: Row[] = current.map((item, from) => ({ item, from }));
-  let applied = 0;
-  for (const raw of rawOps) {
+  const ops = rawOps.flatMap((raw) => {
     const parsed = opSchema.safeParse(raw);
-    if (!parsed.success) continue;
-    const op = parsed.data;
+    return parsed.success ? [parsed.data] : [];
+  });
+  // "Termasuk mangkuk 380 g" sometimes comes back as the container plus a rename to the same dish, which would re-price
+  // a food nobody renamed: with a container in the answer, a rename that keeps the name is dropped.
+  const hasWadah = ops.some((op) => op.op === "wadah");
+  const sameName = (op: Op) =>
+    op.op === "rename" &&
+    current[op.i - 1] !== undefined &&
+    op.name.trim().toLowerCase() === current[op.i - 1]!.name.trim().toLowerCase();
+  let applied = 0;
+  for (const op of ops) {
+    if (hasWadah && sameName(op)) continue;
     if (op.op === "add") {
       const kcal = bound(op.kcal, 0, 5000);
       // Zero is a real answer for a drink (Coke Zero, air putih).
@@ -430,6 +478,10 @@ export function applyCorrection(
         },
       });
       applied += 1;
+      continue;
+    }
+    if (op.op === "wadah") {
+      if (applyWadah(rows, op.grams, current.length)) applied += 1;
       continue;
     }
     const at = op.i - 1;

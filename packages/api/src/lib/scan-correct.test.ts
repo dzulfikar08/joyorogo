@@ -17,6 +17,46 @@ const plate: CorrectionItemInput[] = [
 
 const ops = (...list: unknown[]) => JSON.stringify({ ops: list });
 
+describe("applyCorrection: the weight includes the container (wadah)", () => {
+  const soto: CorrectionItemInput[] = [
+    { name: "soto daging", grams: 668, kcal: 418, protein: 25, carbs: 15, fat: 22, kind: "makanan" },
+  ];
+
+  test("the bowl's grams come off the weighed soto, not a rename that keeps 668 g", () => {
+    const patch = applyCorrection(soto, ops({ op: "wadah", grams: 350 }));
+    expect(patch.items[0]?.name).toBe("soto daging");
+    expect(patch.items[0]?.grams).toBeCloseTo(318, 0);
+    expect(patch.items[0]!.kcal).toBeLessThan(418);
+    expect(patch.changes).toEqual([{ index: 0, kind: "portion" }]);
+  });
+
+  test("on a plate the food rows share the container in their proportions; the drink is left alone", () => {
+    const meal: CorrectionItemInput[] = [
+      { name: "nasi putih", grams: 300, kcal: 390, kind: "makanan" },
+      { name: "ayam goreng", grams: 100, kcal: 260, kind: "makanan" },
+      { name: "es teh manis", grams: 250, kcal: 90, kind: "minuman" },
+    ];
+    const patch = applyCorrection(meal, ops({ op: "wadah", grams: 200 }));
+    expect(patch.items[0]?.grams).toBeCloseTo(150, 0);
+    expect(patch.items[1]?.grams).toBeCloseTo(50, 0);
+    expect(patch.items[2]).toMatchObject({ grams: 250, kcal: 90 });
+  });
+
+  test("a container as heavy as the food (or no number) changes nothing", () => {
+    expect(() => applyCorrection(soto, ops({ op: "wadah", grams: 660 }))).toThrow(CorrectionError);
+    expect(() => applyCorrection(soto, ops({ op: "wadah" }))).toThrow(CorrectionError);
+  });
+
+  test("a rename to the same dish beside the container does not re-price the soto", () => {
+    const patch = applyCorrection(
+      soto,
+      ops({ op: "rename", i: 1, name: "Soto Daging", grams: 668, kcal100: 120 }, { op: "wadah", grams: 380 }),
+    );
+    expect(patch.items[0]?.grams).toBeCloseTo(288, 0);
+    expect(patch.changes).toEqual([{ index: 0, kind: "portion" }]);
+  });
+});
+
 describe("applyCorrection", () => {
   test("rename swaps the dish, keeps the box and leaves other items byte-identical", () => {
     const patch = applyCorrection(

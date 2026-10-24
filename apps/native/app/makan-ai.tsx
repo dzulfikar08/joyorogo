@@ -54,7 +54,7 @@ import { macrosForTypedKcal, scalePortion } from "@joyorogo/api/lib/portion";
 import { modelNumbers, swapPortionPrior, withoutPortionPrior } from "@joyorogo/api/lib/portion-chip";
 import type { PortionPriorChip } from "@joyorogo/api/lib/portion-chip";
 import type { UsualDensityNote } from "@joyorogo/api/lib/usual-density";
-import { swapScaleRead, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
+import { swapScaleRead, tareScaleRows, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
 import type { ScaleReadChip } from "@joyorogo/api/lib/scale-chip";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 import { cupPick } from "@joyorogo/api/lib/drink-options";
@@ -1195,6 +1195,19 @@ export default function MakanAi() {
     );
   };
 
+  /** "Termasuk wadah": the empty container's grams come off every row the scale reading covers. False when too heavy. */
+  const tareScale = (grams: number): boolean => {
+    const next = tareScaleRows(items, grams);
+    if (!next) return false;
+    setItems(next);
+    setDrafts((prev) =>
+      prev.map((draft, i) =>
+        next[i]?.scaleRead && next[i] !== items[i] ? { ...draft, kcal: String(next[i]!.kcal) } : draft,
+      ),
+    );
+    return true;
+  };
+
   /**
    * "Jumlah": one tap on the stepper puts another count on a row of pieces; weight, kcal (the typed one scales
    * too) and macros follow. The AI breakdown stays as the model answered, so the new count is a correction.
@@ -1765,7 +1778,12 @@ export default function MakanAi() {
                         />
                       ) : null}
                       {item.scaleRead ? (
-                        <ScaleReadChips name={item.name} item={item} onSwap={() => swapScale(index)} />
+                        <ScaleReadChips
+                          name={item.name}
+                          item={item}
+                          onSwap={() => swapScale(index)}
+                          onTare={tareScale}
+                        />
                       ) : null}
                       <View style={styles.itemChips}>
                         {hasMacros ? (

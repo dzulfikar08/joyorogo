@@ -46,7 +46,7 @@ import { hasBone, setWithBone, stripBoneLabel } from "@joyorogo/api/lib/bone-chi
 import { itemAtCount } from "@joyorogo/api/lib/piece-chip";
 import { macrosForTypedKcal, scalePortion } from "@joyorogo/api/lib/portion";
 import { modelNumbers, swapPortionPrior, withoutPortionPrior } from "@joyorogo/api/lib/portion-chip";
-import { swapScaleRead, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
+import { swapScaleRead, tareScaleRows, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { cupPick } from "@joyorogo/api/lib/drink-options";
@@ -548,6 +548,22 @@ function AiFoodPage() {
     touchList();
     setItems((current) => current.map((it, i) => (i === index ? swapped : it)));
     setKcals((current) => ({ ...current, [index]: String(swapped.kcal) }));
+  };
+
+  /** "Termasuk wadah": the empty container's grams come off every row the scale reading covers. False when too heavy. */
+  const tareScale = (grams: number): boolean => {
+    const next = tareScaleRows(items, grams);
+    if (!next) return false;
+    touchList();
+    setItems(next);
+    setKcals((current) => {
+      const out = { ...current };
+      next.forEach((it, i) => {
+        if (it.scaleRead && it !== items[i]) out[i] = String(it.kcal);
+      });
+      return out;
+    });
+    return true;
   };
 
   /** "Jumlah": one tap on the stepper puts another count on a row of pieces; weight, kcal (the typed one scales too) and macros follow. */
@@ -1486,7 +1502,12 @@ function AiFoodPage() {
                     <PortionPriorChips name={item.name} item={item} onSwap={() => swapPrior(index)} />
                   )}
                   {item.scaleRead && (
-                    <ScaleReadChips name={item.name} item={item} onSwap={() => swapScale(index)} />
+                    <ScaleReadChips
+                      name={item.name}
+                      item={item}
+                      onSwap={() => swapScale(index)}
+                      onTare={tareScale}
+                    />
                   )}
                 </div>
               </li>
