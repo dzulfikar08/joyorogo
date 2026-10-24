@@ -119,12 +119,18 @@ function distinctBoxes(items: ReadonlyArray<{ box?: ItemBox }>): ItemBox[] {
   return [...byKey.values()].slice(0, 12);
 }
 
-/** The ORPC error for a failed scan: `data.reason` lets clients pick the right guidance. */
-function scanFailure(error: unknown, locale: Locale) {
+/** Failures a spoken or typed hint can turn around ("itu nasi padang pakai tuna balado"): the photo stays for one retry. */
+const HINT_RECOVERABLE: Partial<Record<string, true>> = { unclear: true, not_food: true };
+
+/**
+ * The ORPC error for a failed scan: `data.reason` lets clients pick the right guidance. `data.photoId` is set when the
+ * photo was kept for `analyzeFoodRetry` with a hint (HINT_RECOVERABLE).
+ */
+function scanFailure(error: unknown, locale: Locale, photoId?: string | null) {
   const reason = error instanceof VisionError ? error.reason : "failed";
   return new ORPCError(
     reason === "failed" || reason === "timeout" ? "INTERNAL_SERVER_ERROR" : "UNPROCESSABLE_CONTENT",
-    { message: scanFailMessage(reason, locale), data: { reason } },
+    { message: scanFailMessage(reason, locale), data: { reason, ...(photoId ? { photoId } : {}) } },
   );
 }
 
@@ -477,8 +483,11 @@ async function runAnalyzeFood(
       onEvent: report,
     });
   } catch (error) {
-    // No result, no retry target: drop the photo stored alongside inference.
-    if (stickers) {
+    // A failure a hint can fix keeps the photo for one hinted "Hitung ulang" (scan-src/ objects expire through the
+    // bucket lifecycle). Any other failure has no retry target: drop the photo stored alongside inference.
+    const keep = error instanceof VisionError && HINT_RECOVERABLE[error.reason] === true;
+    const keptId = keep ? await photoStored.catch(() => null) : null;
+    if (stickers && !keptId) {
       context.waitUntil(
         photoStored.then((id) => (id ? stickers.delete(scanSrcKey(userId, id)) : undefined)).catch(() => {}),
       );
@@ -486,7 +495,7 @@ async function runAnalyzeFood(
     context.waitUntil(
       logScanFailure(context.db, userId, error, startedAt, "photo", input.clientTiming),
     );
-    throw scanFailure(error, context.locale);
+    throw scanFailure(error, context.locale, keptId);
   }
   const latencyMs = Date.now() - startedAt;
   // Kitchen-scale readout (lib/scale-reading.ts): allowlist only. The ledger and the
