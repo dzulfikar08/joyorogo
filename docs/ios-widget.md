@@ -64,9 +64,9 @@ Android widget; a signed-out person is sent to the login and back); signed out a
 ## Signing and the Apple Developer portal (owner steps)
 
 The widget is a second bundle id, `com.joyodigitama.joyorogo.widget`, and the app and the widget share the App Group `group.com.joyodigitama.joyorogo`. **Both
-bundle ids need the App Groups capability with that group, or the widget reads nothing and shows the signed-out tile.** State on 2026-10-23, read from the App Store
-Connect API: `com.joyodigitama.joyorogo` has APPLE_ID_AUTH, HEALTHKIT, IN_APP_PURCHASE, PUSH_NOTIFICATIONS; the widget bundle id is not registered; no App Group
-exists. The API can register the bundle id and switch the capability on (the scripts do), but it has no resource for App Groups, so the group itself is a portal step:
+bundle ids need the App Groups capability with that group, or the widget reads nothing and shows the signed-out tile.** Done on 2026-10-24: the group is registered
+("JoyoRogo shared") and both App IDs show "Enabled App Groups (1)". The API can register the bundle id and switch the capability on (the scripts do), but it has no
+resource for App Groups, so for a new group the steps are:
 
 1. <https://developer.apple.com/account> -> Certificates, Identifiers & Profiles -> Identifiers -> **+** -> **App Groups** -> Continue. Description `JoyoRogo`, identifier
    `group.com.joyodigitama.joyorogo` -> Register.
