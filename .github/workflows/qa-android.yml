@@ -39,10 +39,10 @@ jobs:
       # whole emSign hierarchy is removed from it here. Drop this step once the pinned JDK is a fixed release.
       - name: Distrust eMudhra in the JDK (CVE-2026-91403)
         run: |
-          for alias in $(keytool -list -cacerts -storepass changeit | grep -i emsign | cut -d, -f1); do
-            keytool -delete -cacerts -storepass changeit -alias "$alias"
+          for alias in $("$JAVA_HOME/bin/keytool" -list -cacerts -storepass changeit | grep -i emsign | cut -d, -f1); do
+            "$JAVA_HOME/bin/keytool" -delete -cacerts -storepass changeit -alias "$alias"
           done
-          if keytool -list -cacerts -storepass changeit | grep -qi emsign; then echo "emSign still trusted" >&2; exit 1; fi
+          if "$JAVA_HOME/bin/keytool" -list -cacerts -storepass changeit | grep -qi emsign; then echo "emSign still trusted" >&2; exit 1; fi
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
