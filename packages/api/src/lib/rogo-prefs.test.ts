@@ -22,6 +22,7 @@ describe("the registry", () => {
       "makan.view",
       "makan.kind",
       "sticker",
+      "scan.simple",
       "dismissed.handlePrompt",
       "dismissed.stravaRetention7d",
       "dismissed.energyModel",

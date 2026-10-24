@@ -547,6 +547,12 @@
       }
     }
   },
+  "scanSimple": {
+    "title": "Simple mode after a scan",
+    "label": "Simple mode",
+    "on": "After a scan you only see the food list, one mic button to fix it, and Save. Everything else is under Details.",
+    "off": "The full scan result screen with every option."
+  },
   "privacy": {
     "policy": "Privacy policy",
     "share": {

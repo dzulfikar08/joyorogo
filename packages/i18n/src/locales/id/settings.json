@@ -534,6 +534,12 @@
       }
     }
   },
+  "scanSimple": {
+    "title": "Mode simpel setelah scan",
+    "label": "Mode simpel",
+    "on": "Setelah scan cuma daftar makanan, satu tombol mic untuk koreksi, dan Simpan. Pilihan lain ada di Detail.",
+    "off": "Layar hasil scan lengkap dengan semua pilihan."
+  },
   "privacy": {
     "policy": "Kebijakan privasi",
     "share": {

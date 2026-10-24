@@ -574,6 +574,12 @@
       }
     }
   },
+  "scanSimple": {
+    "title": "Mod ringkas selepas imbas",
+    "label": "Mod ringkas",
+    "on": "Selepas imbas hanya senarai makanan, satu butang mikrofon untuk pembetulan, dan Simpan. Pilihan lain di Butiran.",
+    "off": "Skrin hasil imbas penuh dengan semua pilihan."
+  },
   "privacy": {
     "policy": "Dasar privasi",
     "share": {

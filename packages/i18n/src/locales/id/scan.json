@@ -348,5 +348,18 @@
     "matched": "Piring: {{name}} ({{cm}} cm), jadi patokan ukuran porsi.",
     "none": "Piring tidak dikenali, porsi diperkirakan biasa.",
     "card": "Kartu terdeteksi, jadi patokan ukuran porsi."
+  },
+  "simple": {
+    "title": "Cek hasilnya",
+    "mic": "Tahan & bilang koreksinya",
+    "micRelease": "Lepas untuk kirim",
+    "micAria": "Tahan untuk mengucapkan koreksi",
+    "listening": "Mendengarkan…",
+    "working": "Memperbaiki…",
+    "examples": "Mis. “nasinya setengah”, “itu mangga, bukan jeruk”, “termasuk mangkuk”",
+    "detail": "Detail",
+    "detailAria": "Tampilkan semua pilihan dan angka",
+    "save": "Simpan ke {{meal}}",
+    "total": "Total"
   }
 }

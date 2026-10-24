@@ -348,5 +348,18 @@
     "matched": "Pinggan: {{name}} ({{cm}} cm), dijadikan panduan saiz hidangan.",
     "none": "Pinggan tidak dikenali, hidangan dianggarkan seperti biasa.",
     "card": "Kad dikesan, dijadikan panduan saiz hidangan."
+  },
+  "simple": {
+    "title": "Semak hasilnya",
+    "mic": "Tahan & sebut pembetulan",
+    "micRelease": "Lepas untuk hantar",
+    "micAria": "Tahan untuk menyebut pembetulan",
+    "listening": "Mendengar…",
+    "working": "Membetulkan…",
+    "examples": "Cth. “nasi separuh”, “itu mangga, bukan oren”, “termasuk mangkuk”",
+    "detail": "Butiran",
+    "detailAria": "Tunjukkan semua pilihan dan nombor",
+    "save": "Simpan ke {{meal}}",
+    "total": "Jumlah"
   }
 }

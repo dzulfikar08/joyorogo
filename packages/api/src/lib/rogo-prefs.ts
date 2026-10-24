@@ -96,6 +96,12 @@ const SPECS = {
     sanitize: sanitizeSticker,
     isDefault: (value) => same(value, DEFAULT_STICKER_PREFS),
   },
+  // "Mode simpel" after a scan (lib/scan-simple): the food list, one mic and Simpan; the rest behind "Detail". Off by
+  // default: only `true` is stored.
+  "scan.simple": {
+    sanitize: (value) => (typeof value === "boolean" ? value : undefined),
+    isDefault: (value) => value === false,
+  },
   // The local keys carry the user id (one phone can hold several accounts); the synced key does not, the account is
   // the record's owner.
   "dismissed.handlePrompt": dismissal,

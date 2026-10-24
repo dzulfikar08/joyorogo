@@ -373,5 +373,18 @@
     "matched": "Plate: {{name}} ({{cm}} cm), used as the size reference for portions.",
     "none": "Plate not recognised, portions estimated as usual.",
     "card": "Card detected, used as the size reference for portions."
+  },
+  "simple": {
+    "title": "Check the result",
+    "mic": "Hold & say the fix",
+    "micRelease": "Release to send",
+    "micAria": "Hold to say a correction",
+    "listening": "Listening…",
+    "working": "Fixing…",
+    "examples": "E.g. “half the rice”, “that's mango, not orange”, “includes the bowl”",
+    "detail": "Details",
+    "detailAria": "Show all options and numbers",
+    "save": "Save to {{meal}}",
+    "total": "Total"
   }
 }
