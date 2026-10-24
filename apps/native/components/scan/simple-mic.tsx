@@ -38,9 +38,12 @@ export function SimpleMic({
     onAudio: async (audioBase64) => {
       await run({ audioBase64 });
     },
+    onText: async (text) => {
+      await run({ text });
+    },
     onError: correction.setVoiceError,
   });
-  const { recording } = voice;
+  const { recording, caption } = voice;
   const working = busy || correction.processing || voice.processing;
 
   const press = useRef({ held: false, latched: false, starting: false, at: 0, ignoreOut: false });
@@ -146,7 +149,18 @@ export function SimpleMic({
           onPress={undo}
         />
       ) : null}
-      <Text style={styles.examples}>{t("simple.examples")}</Text>
+      {caption ? (
+        <Text
+          style={styles.caption}
+          numberOfLines={3}
+          ellipsizeMode="head"
+          accessibilityLiveRegion="polite"
+        >
+          {t(caption.sending ? "simple.liveSending" : "simple.liveHeard", { text: caption.text })}
+        </Text>
+      ) : (
+        <Text style={styles.examples}>{t("simple.examples")}</Text>
+      )}
     </View>
   );
 }
@@ -197,6 +211,11 @@ const styles = StyleSheet.create((theme) => ({
   status: {
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
+    textAlign: "center",
+  },
+  caption: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.foreground,
     textAlign: "center",
   },
   examples: {

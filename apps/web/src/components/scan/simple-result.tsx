@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 
 import { CountUp } from "@/components/kit/count-up";
 import { Card, ListGroup, Page, PageHeader, Segmented } from "@/components/kit/surface";
-import { CORRECTED_ROW_CLASS, CorrectBadge } from "@/components/scan/correct-box";
+import { CORRECTED_ROW_CLASS, CorrectBadge, LiveCaption } from "@/components/scan/correct-box";
 import type { CorrectionKind, ScanCorrection } from "@/components/scan/correct-box";
 
 /** A press shorter than this is a tap (record until the next tap), longer is hold-to-talk (release sends). */
@@ -61,7 +61,7 @@ export function SimpleResult<M extends string>({
   onRetake: () => void;
 }) {
   const { t } = useTranslation(["scan", "common"]);
-  const { phase, error, heard, startRecording, stopRecording } = correction;
+  const { phase, error, heard, live, startRecording, stopRecording } = correction;
   const recording = phase === "recording";
   const working = phase === "working";
 
@@ -221,7 +221,11 @@ export function SimpleResult<M extends string>({
               {t("correct.undo")}
             </Button>
           )}
-          {!recording && <p className="text-xs text-muted-foreground">{t("simple.examples")}</p>}
+          {live?.text ? (
+            <LiveCaption live={live} className="font-semibold text-foreground" />
+          ) : (
+            !recording && <p className="text-xs text-muted-foreground">{t("simple.examples")}</p>
+          )}
         </div>
       </div>
 

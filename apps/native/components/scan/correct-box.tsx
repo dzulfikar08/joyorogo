@@ -74,9 +74,12 @@ export function CorrectBox({
     onAudio: async (audioBase64) => {
       await run({ audioBase64 });
     },
+    onText: async (voiceText) => {
+      await run({ text: voiceText });
+    },
     onError: correction.setVoiceError,
   });
-  const { recording, elapsed } = voice;
+  const { recording, elapsed, caption } = voice;
 
   const working = busy || correction.processing || voice.processing;
   const cleanText = text.trim();
@@ -108,7 +111,13 @@ export function CorrectBox({
             <Ionicons name="mic" size={18} color={theme.colors.destructive} />
             <Text style={styles.recordClock}>{fmtClock(elapsed)}</Text>
           </View>
-          <Text style={styles.recordHint}>{t("correct.recording")}</Text>
+          {caption ? (
+            <Text style={styles.recordCaption} numberOfLines={3} ellipsizeMode="head">
+              {t("simple.liveHeard", { text: caption.text })}
+            </Text>
+          ) : (
+            <Text style={styles.recordHint}>{t("correct.recording")}</Text>
+          )}
           <View style={styles.recordActions}>
             <Button
               variant="secondary"
@@ -165,7 +174,11 @@ export function CorrectBox({
       {working && !recording ? (
         <View style={styles.statusRow} accessibilityLiveRegion="polite">
           <ActivityIndicator size="small" color={theme.colors.primary} />
-          <Text style={styles.status}>{t("correct.working")}</Text>
+          <Text style={styles.status} numberOfLines={3}>
+            {caption?.sending
+              ? t("simple.liveSending", { text: caption.text })
+              : t("correct.working")}
+          </Text>
         </View>
       ) : null}
 
@@ -263,6 +276,11 @@ const styles = StyleSheet.create((theme) => ({
   recordHint: {
     fontSize: theme.fontSize.xs,
     color: theme.colors.mutedForeground,
+    textAlign: "center",
+  },
+  recordCaption: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.foreground,
     textAlign: "center",
   },
   recordActions: {

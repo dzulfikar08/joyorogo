@@ -1,6 +1,7 @@
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
+import { cn } from "@joyorogo/ui/lib/utils";
 import { Loader2, Mic, Send, Square, Undo2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
@@ -33,8 +34,93 @@ const AUDIO_TYPES = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
 const MAX_RECORD_MS = 30_000;
 /** Below this the clip is a tap, not speech. */
 const MIN_AUDIO_BYTES = 1000;
+/** After a stop, how long to wait for the recognizer's final result before using the last interim one. */
+const FINAL_WAIT_MS = 1500;
+/** The caption shows the latest words only: longer transcripts lose their start. */
+const CAPTION_TAIL = 90;
 /** The remaining-corrections hint only shows when the limit is near. */
 const LEFT_HINT_AT = 3;
+
+// The Web Speech API is missing from some lib.dom versions and prefixed in Safari/old Chrome, so it is typed here.
+interface RecognitionResultLike {
+  readonly length: number;
+  readonly [index: number]: { readonly transcript: string } | undefined;
+}
+interface RecognitionEventLike {
+  readonly results: {
+    readonly length: number;
+    readonly [index: number]: RecognitionResultLike | undefined;
+  };
+}
+interface RecognitionLike {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onaudiostart: (() => void) | null;
+  onresult: ((event: RecognitionEventLike) => void) | null;
+  onerror: ((event: { readonly error: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+}
+type RecognitionCtor = new () => RecognitionLike;
+
+function recognitionCtor(): RecognitionCtor | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    SpeechRecognition?: RecognitionCtor;
+    webkitSpeechRecognition?: RecognitionCtor;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
+
+function speechLang(language: string): string {
+  if (language.startsWith("en")) return "en-US";
+  if (language.startsWith("ms")) return "ms-MY";
+  return "id-ID";
+}
+
+/** Errors that mean live recognition can't work here: the recorder + Whisper path takes over. */
+const UNAVAILABLE_ERRORS: Record<string, true> = {
+  "not-allowed": true,
+  "service-not-allowed": true,
+  "language-not-supported": true,
+  network: true,
+};
+/** Set once recognition fails for availability; later presses record audio instead. */
+let liveUnavailable = false;
+
+function transcriptOf(results: RecognitionEventLike["results"]): string {
+  const parts: string[] = [];
+  for (let i = 0; i < results.length; i++) parts.push(results[i]?.[0]?.transcript ?? "");
+  return parts.join(" ").replace(/\s+/g, " ").trim();
+}
+
+function captionTail(text: string): string {
+  if (text.length <= CAPTION_TAIL) return text;
+  const cut = text.slice(-CAPTION_TAIL);
+  const space = cut.indexOf(" ");
+  return `…${space > 0 ? cut.slice(space + 1) : cut}`;
+}
+
+/** One press-to-release of live recognition. */
+interface LiveSession {
+  rec: RecognitionLike;
+  text: string;
+  gotResult: boolean;
+  stopped: boolean;
+  discard: boolean;
+  capTimer: number | undefined;
+  finalTimer: number | undefined;
+}
+
+/** What is being said (or, while the correction runs, sent). */
+export interface LiveCaptionState {
+  text: string;
+  sending: boolean;
+}
 
 function recorderMime(): string | null {
   if (typeof window === "undefined" || typeof MediaRecorder === "undefined") return null;
@@ -100,12 +186,38 @@ export interface ScanCorrection {
   error: string | null;
   /** What Whisper heard (voice only). */
   heard: string | null;
+  /** Live caption of the speech; null when not using live recognition. */
+  live: LiveCaptionState | null;
   /** Sends a typed or recorded correction; resolves true when the screen applied it. */
   submit: (input: CorrectionInput) => Promise<boolean>;
   startRecording: () => Promise<void>;
   stopRecording: (discard: boolean) => void;
   /** Drops any recording and in-flight request (the list the answer was made for is gone). */
   cancel: () => void;
+}
+
+/** The live transcript under a mic: the latest words, at most three lines. */
+export function LiveCaption({
+  live,
+  polite,
+  className,
+}: {
+  live: LiveCaptionState | null;
+  polite?: boolean;
+  className?: string;
+}) {
+  const { t } = useTranslation("scan");
+  if (!live?.text) return null;
+  return (
+    <p
+      className={cn("line-clamp-3 break-words", className)}
+      {...(polite ? { role: "status" } : {})}
+    >
+      {live.sending
+        ? t("simple.liveSending", { text: captionTail(live.text) })
+        : t("simple.liveHeard", { text: captionTail(live.text) })}
+    </p>
+  );
 }
 
 /**
@@ -120,11 +232,14 @@ export function useScanCorrection(args: {
   kinds: Record<number, FoodKind>;
   onApply: (result: CorrectScanResult, base: AiFoodItem[]) => boolean;
 }): ScanCorrection {
-  const { t } = useTranslation("scan");
+  const { t, i18n } = useTranslation("scan");
   const [phase, setPhase] = useState<ScanCorrection["phase"]>("idle");
   const [error, setError] = useState<string | null>(null);
   const [heard, setHeard] = useState<string | null>(null);
+  const [live, setLive] = useState<LiveCaptionState | null>(null);
   const [mime] = useState(recorderMime);
+
+  const liveRef = useRef<LiveSession | null>(null);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const discardRef = useRef(false);
@@ -137,11 +252,13 @@ export function useScanCorrection(args: {
     discardRef.current = true;
     recorderRef.current?.stop();
     clearTimeout(stopTimerRef.current);
+    if (liveRef.current) dropLive(liveRef.current);
     abortRef.current?.abort();
     abortRef.current = null;
     setPhase("idle");
     setError(null);
     setHeard(null);
+    setLive(null);
   };
 
   // Release the mic and any in-flight request when the screen goes away.
@@ -150,6 +267,17 @@ export function useScanCorrection(args: {
       discardRef.current = true;
       recorderRef.current?.stop();
       clearTimeout(stopTimerRef.current);
+      const session = liveRef.current;
+      if (session) {
+        clearTimeout(session.capTimer);
+        clearTimeout(session.finalTimer);
+        session.rec.onaudiostart = null;
+        session.rec.onresult = null;
+        session.rec.onerror = null;
+        session.rec.onend = null;
+        session.rec.abort();
+        liveRef.current = null;
+      }
       abortRef.current?.abort();
     },
     [],
@@ -190,7 +318,7 @@ export function useScanCorrection(args: {
     return false;
   };
 
-  const startRecording = async () => {
+  const startAudio = async () => {
     if (mime === null) {
       setError(t("correct.micUnsupported"));
       return;
@@ -231,12 +359,137 @@ export function useScanCorrection(args: {
     setPhase("recording");
   };
 
+  /** Tears the session down (handlers off first, so the abort below reports nothing). */
+  const dropLive = (session: LiveSession) => {
+    clearTimeout(session.capTimer);
+    clearTimeout(session.finalTimer);
+    session.rec.onaudiostart = null;
+    session.rec.onresult = null;
+    session.rec.onerror = null;
+    session.rec.onend = null;
+    try {
+      session.rec.abort();
+    } catch {
+      // Already stopped.
+    }
+    if (liveRef.current === session) liveRef.current = null;
+  };
+
+  /** The recognizer is done (or gave up waiting): send what was heard as a text correction. */
+  const finishLive = (session: LiveSession) => {
+    if (liveRef.current !== session) return;
+    dropLive(session);
+    if (session.discard) {
+      setLive(null);
+      setPhase("idle");
+      return;
+    }
+    const text = session.text.trim().slice(0, 300).trim();
+    if (text.replace(/\s/g, "").length < 2) {
+      setLive(null);
+      setError(t("correct.error.voiceEmpty"));
+      setPhase("idle");
+      return;
+    }
+    setLive({ text, sending: true });
+    void submit({ text }).finally(() => {
+      if (liveRef.current === null) setLive(null);
+    });
+  };
+
+  const stopLive = (session: LiveSession, discard: boolean) => {
+    if (liveRef.current !== session) return;
+    if (discard) {
+      session.discard = true;
+      finishLive(session);
+      return;
+    }
+    if (session.stopped) return;
+    session.stopped = true;
+    clearTimeout(session.capTimer);
+    setPhase("working");
+    setLive({ text: session.text, sending: true });
+    // stop() delivers the final result, then `end`; the timer covers a recognizer that never ends.
+    session.finalTimer = window.setTimeout(() => finishLive(session), FINAL_WAIT_MS);
+    try {
+      session.rec.stop();
+    } catch {
+      finishLive(session);
+    }
+  };
+
+  const startLive = (Ctor: RecognitionCtor) => {
+    if (liveRef.current) return;
+    setError(null);
+    const rec = new Ctor();
+    rec.lang = speechLang(i18n.language);
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
+    const session: LiveSession = {
+      rec,
+      text: "",
+      gotResult: false,
+      stopped: false,
+      discard: false,
+      capTimer: undefined,
+      finalTimer: undefined,
+    };
+    liveRef.current = session;
+    rec.onaudiostart = () => {
+      if (liveRef.current === session && !session.stopped) setPhase("recording");
+    };
+    rec.onresult = (event) => {
+      if (liveRef.current !== session) return;
+      session.gotResult = true;
+      session.text = transcriptOf(event.results);
+      setLive({ text: session.text, sending: session.stopped });
+      if (!session.stopped) setPhase("recording");
+    };
+    rec.onerror = (event) => {
+      if (liveRef.current !== session || !UNAVAILABLE_ERRORS[event.error]) return;
+      if (event.error === "network" && session.gotResult) return;
+      // Recognition can't work here: record audio instead (this press if still held, else the next one).
+      liveUnavailable = true;
+      const { stopped, discard } = session;
+      dropLive(session);
+      setLive(null);
+      if (!stopped) {
+        void startAudio();
+      } else {
+        if (!discard) setError(t("correct.error.voiceEmpty"));
+        setPhase("idle");
+      }
+    };
+    rec.onend = () => finishLive(session);
+    try {
+      rec.start();
+    } catch {
+      dropLive(session);
+      liveUnavailable = true;
+      void startAudio();
+      return;
+    }
+    session.capTimer = window.setTimeout(() => stopLive(session, false), MAX_RECORD_MS);
+  };
+
+  const startRecording = async () => {
+    const Ctor = liveUnavailable ? null : recognitionCtor();
+    if (Ctor) startLive(Ctor);
+    else await startAudio();
+  };
+
   const stopRecording = (discard: boolean) => {
+    const session = liveRef.current;
+    if (session) {
+      stopLive(session, discard);
+      return;
+    }
     discardRef.current = discard;
     recorderRef.current?.stop();
   };
 
-  return { phase, error, heard, submit, startRecording, stopRecording, cancel };
+  return { phase, error, heard, live, submit, startRecording, stopRecording, cancel };
 }
 
 /**
@@ -258,7 +511,7 @@ export function CorrectBox({
   onUndo: () => void;
 }) {
   const { t } = useTranslation(["scan", "common"]);
-  const { phase, error, heard, submit, startRecording, stopRecording } = correction;
+  const { phase, error, heard, live, submit, startRecording, stopRecording } = correction;
   const [text, setText] = useState("");
 
   const onSubmit = (event: FormEvent) => {
@@ -344,6 +597,7 @@ export function CorrectBox({
             {t("correct.working")}
           </p>
         )}
+        <LiveCaption live={live} polite className="text-sm text-foreground" />
         {heard && (
           <p className="text-sm text-muted-foreground">{t("correct.heard", { text: heard })}</p>
         )}
