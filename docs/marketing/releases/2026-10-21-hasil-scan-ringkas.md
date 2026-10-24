@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Hasil scan makan lebih ringkas
 shipped: 2026-10-21
-available: code
+available: test-build
 tier: free
 post: todo
 atur:
@@ -16,4 +16,4 @@ atur:
 
 **Bukti visual:** Scan segelas es kopi susu di luar jendela makan IF, sebelum dan sesudah, di native dan web.
 
-**Jangan klaim:** Belum di build mana pun; jangan diposting sebagai rilis. Saran porsi hanya panduan, bukan nasihat medis.
+**Jangan klaim:** Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. Saran porsi hanya panduan, bukan nasihat medis.

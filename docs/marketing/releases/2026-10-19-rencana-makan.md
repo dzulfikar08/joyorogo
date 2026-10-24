@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Rencana makan (Pro)
 shipped: 2026-10-19
-available: web
+available: test-build
 tier: pro
 post: todo
 atur: JRG-263

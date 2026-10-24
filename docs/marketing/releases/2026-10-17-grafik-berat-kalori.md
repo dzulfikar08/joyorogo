@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Grafik berat dengan kalori harian
 shipped: 2026-10-17
-available: web
+available: test-build
 tier: free
 post: todo
 atur: JRG-272

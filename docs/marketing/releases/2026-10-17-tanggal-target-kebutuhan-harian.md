@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Tanggal target dan Kebutuhan harianmu
 shipped: 2026-10-17
-available: web
+available: test-build
 tier: free
 post: todo
 atur: JRG-250

@@ -2,7 +2,7 @@
 app: both
 feature: Bahasa Inggris
 shipped: 2026-10-17
-available: web
+available: test-build
 tier: free
 post: planned 2026-10-29
 atur: JRG-267

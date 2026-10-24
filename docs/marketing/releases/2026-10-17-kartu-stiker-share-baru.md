@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Kartu dan stiker share baru
 shipped: 2026-10-17
-available: web
+available: test-build
 tier: free
 post: planned 2026-11-01
 atur: JRG-256

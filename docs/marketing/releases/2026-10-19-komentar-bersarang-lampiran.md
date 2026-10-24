@@ -2,7 +2,7 @@
 app: both
 feature: Balasan komentar dan lampiran
 shipped: 2026-10-19
-available: web
+available: test-build
 tier: free
 post: todo
 atur: JRG-265

@@ -2,7 +2,7 @@
 app: both
 feature: Latihan jam di cloud dan halaman /jam
 shipped: 2026-10-18
-available: web
+available: test-build
 tier: pro
 post: todo
 atur: JRG-258

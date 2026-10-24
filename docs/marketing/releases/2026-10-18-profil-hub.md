@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Profil jadi hub per topik
 shipped: 2026-10-18
-available: web
+available: test-build
 tier: free
 post: todo
 atur: JRG-268

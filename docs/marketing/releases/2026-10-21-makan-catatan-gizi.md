@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Makan jadi catatan gizi (Daftar, Kalender, Foto, Tempat)
 shipped: 2026-10-21
-available: code
+available: test-build
 tier: free
 post: todo
 atur: JRG-341
@@ -16,4 +16,4 @@ atur: JRG-341
 
 **Bukti visual:** Tab Makan (Daftar) dengan satu hari berisi tiga waktu makan; Kalender satu bulan dengan beberapa hari lewat target; Tempat dengan dua tempat yang punya rata-rata kalori dan pilihan protein. Pakai akun demo dengan makan yang sudah dicatat.
 
-**Jangan klaim:** Belum di build mana pun; jangan diposting sebagai rilis. Kalori dari foto adalah perkiraan. Rata-rata tempat hanya dari piring yang kamu catat dengan nama tempat; 'paling banyak protein per kkal' hanya membandingkan piring yang kamu catat sendiri, bukan saran kesehatan. Jangan tulis 'tersedia di Play Store/App Store'.
+**Jangan klaim:** Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. Kalori dari foto adalah perkiraan. Rata-rata tempat hanya dari piring yang kamu catat dengan nama tempat; 'paling banyak protein per kkal' hanya membandingkan piring yang kamu catat sendiri, bukan saran kesehatan. Jangan tulis 'tersedia di Play Store/App Store'.

@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Bayar Pro pakai kartu dolar
 shipped: 2026-10-18
-available: web
+available: test-build
 tier: pro
 post: todo
 atur: JRG-269

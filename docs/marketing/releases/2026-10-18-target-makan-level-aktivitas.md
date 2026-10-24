@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Target makan dari level aktivitas
 shipped: 2026-10-18
-available: web
+available: test-build
 tier: free
 post: planned 2026-10-22
 atur: JRG-251

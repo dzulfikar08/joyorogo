@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Porsi nasi "Biasanya" di hasil scan
 shipped: 2026-10-21
-available: code
+available: test-build
 tier: free
 post: todo
 atur: JRG-348
@@ -16,4 +16,4 @@ atur: JRG-348
 
 **Bukti visual:** Scan sepiring nasi dengan lauk di native atau web: dua tombol "AI: 150 g" dan "Biasanya: 100 g" di bawah baris nasi, sebelum dan sesudah ketuk (kkal berubah).
 
-**Jangan klaim:** Belum di build mana pun; jangan diposting sebagai rilis. 100 g berasal dari satu orang yang menimbang makanannya, bukan rata-rata orang Indonesia: jangan tulis "porsi nasi rata-rata" atau angka akurasi. Tombol hanya menawarkan, angka AI tetap yang tampil sampai diketuk. Porsi hanya perkiraan, bukan nasihat medis. Mulai dari porsimu hanya setelah dua catatan yang cocok (selisih sampai 15%); di Cerita tidak ada tombol, hanya baris keterangan, dan butuh deploy server serta OTA web dan native.
+**Jangan klaim:** Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. 100 g berasal dari satu orang yang menimbang makanannya, bukan rata-rata orang Indonesia: jangan tulis "porsi nasi rata-rata" atau angka akurasi. Tombol hanya menawarkan, angka AI tetap yang tampil sampai diketuk. Porsi hanya perkiraan, bukan nasihat medis. Mulai dari porsimu hanya setelah dua catatan yang cocok (selisih sampai 15%); di Cerita tidak ada tombol, hanya baris keterangan, dan butuh deploy server serta OTA web dan native.

@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Termasuk wadah (kurangi berat mangkuk dari angka timbangan)
 shipped: 2026-10-24
-available: web
+available: test-build
 tier: free
 post: todo
 atur: JRG-403

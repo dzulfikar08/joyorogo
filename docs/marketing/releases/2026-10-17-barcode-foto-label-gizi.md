@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Barcode + foto label gizi
 shipped: 2026-10-17
-available: web
+available: test-build
 tier: free
 post: planned 2026-10-22
 atur: JRG-248

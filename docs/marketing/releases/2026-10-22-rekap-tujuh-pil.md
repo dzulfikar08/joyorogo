@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Seminggu dalam tujuh pil di rekap Senin
 shipped: 2026-10-22
-available: code
+available: test-build
 tier: free
 post: todo
 atur: JRG-378
@@ -16,7 +16,7 @@ atur: JRG-378
 
 **Bukti visual:** Beranda hari Senin dengan kartu rekap dan deretan tujuh pil (akun dengan minggu lalu yang bervariasi: beberapa centang, satu lewat, satu kosong). Mode gelap dan terang.
 
-**Jangan klaim:** Hanya muncul hari Senin (kartunya memang hanya Senin). "Sesuai target" artinya asupan hari itu antara separuh target dan 5% di atasnya, dihitung dari catatan sendiri, bukan penilaian medis. Hari yang tidak dicatat bukan berarti hari puasa. Belum di build mana pun; jangan diposting sebagai rilis.
+**Jangan klaim:** Hanya muncul hari Senin (kartunya memang hanya Senin). "Sesuai target" artinya asupan hari itu antara separuh target dan 5% di atasnya, dihitung dari catatan sendiri, bukan penilaian medis. Hari yang tidak dicatat bukan berarti hari puasa. Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'.
 
 Follow [`../marketing-plan.md`](../marketing-plan.md) section 1.1 and the "Claims to avoid" list in
 [`../social-playbook.md`](../social-playbook.md). Never write "tersedia di Play Store / App Store" before `available:

@@ -16,4 +16,4 @@ atur: JRG-388
 
 **Bukti visual:** Sheet "Sudah dicatat N menit lalu" setelah mencatat produk yang sama dua kali; produk dengan 0 kkal dan lemak 2,5 g menampilkan catatan perkiraan di bawah angka per 100 g.
 
-**Jangan klaim:** Kalori hasil hitung ulang adalah perkiraan (4/4/9 kkal per gram), bukan angka resmi label. Hanya berlaku bila label menulis kurang dari separuh dari yang disiratkan makronya. Belum ada di build mana pun.
+**Jangan klaim:** Kalori hasil hitung ulang adalah perkiraan (4/4/9 kkal per gram), bukan angka resmi label. Hanya berlaku bila label menulis kurang dari separuh dari yang disiratkan makronya. Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'.

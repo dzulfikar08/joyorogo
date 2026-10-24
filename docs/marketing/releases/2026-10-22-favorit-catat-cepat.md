@@ -16,4 +16,4 @@ atur: JRG-392
 
 **Bukti visual:** Akun dengan satu makanan yang dicatat tiga kali dalam dua minggu: kartu "Sering kamu catat" di Makan > Daftar. Lalu layar Atur Catat cepat dengan panah urut dan tombol ubah.
 
-**Jangan klaim:** Belum di build mana pun: butuh deploy server (migrasi 0062), deploy web, dan OTA native. Tawaran muncul sekali per kebiasaan, bukan pengingat berulang. Kalori favorit yang ditambah sendiri memakai angka yang kamu ketik; makronya diambil dari tabel TKPI atau perkiraan teks bila ada, dan kosong bila tidak ada.
+**Jangan klaim:** Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. Tawaran muncul sekali per kebiasaan, bukan pengingat berulang. Kalori favorit yang ditambah sendiri memakai angka yang kamu ketik; makronya diambil dari tabel TKPI atau perkiraan teks bila ada, dan kosong bila tidak ada.

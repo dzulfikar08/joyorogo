@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Refleksi mingguan
 shipped: 2026-10-19
-available: web
+available: test-build
 tier: mixed
 post: todo
 atur: JRG-271

@@ -16,4 +16,4 @@ atur: JRG-394
 
 **Bukti visual:** Scan foto 3 telur rebus, lalu ketuk "Jumlah" ke atas dan ke bawah (kalori berubah sesuai). Scan foto ayam goreng paha, lalu ketuk "Tanpa tulang": berat berpindah ke bagian yang dimakan.
 
-**Jangan klaim:** Berat bagian yang bisa dimakan adalah perkiraan per bagian (sayap 50%, paha bawah 60%, paha 65%, dada 70%, iga 50%, ikan utuh 55%), bukan hasil timbang; hasil scan tetap berlabel "perkiraan AI". AI masih bisa salah baca bagian ayamnya atau berat dengan tulangnya. Jumlah awal tetap dibaca AI dari foto. Belum di build mana pun: butuh deploy server, deploy web, dan OTA native.
+**Jangan klaim:** Berat bagian yang bisa dimakan adalah perkiraan per bagian (sayap 50%, paha bawah 60%, paha 65%, dada 70%, iga 50%, ikan utuh 55%), bukan hasil timbang; hasil scan tetap berlabel "perkiraan AI". AI masih bisa salah baca bagian ayamnya atau berat dengan tulangnya. Jumlah awal tetap dibaca AI dari foto. Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'.

@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Kartu JoyoFit ringkas di Makan
 shipped: 2026-10-21
-available: code
+available: test-build
 tier: free
 post: todo
 atur: JRG-342
@@ -16,4 +16,4 @@ atur: JRG-342
 
 **Bukti visual:** Tab Makan sebelum dan sesudah pada akun yang punya skor JoyoFit hari itu, plus lembar detailnya.
 
-**Jangan klaim:** Belum di build mana pun; jangan diposting sebagai rilis. Skor berasal dari JoyoFit, bukan hasil medis. Jangan tulis 'tersedia di Play Store/App Store'.
+**Jangan klaim:** Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. Skor berasal dari JoyoFit, bukan hasil medis. Jangan tulis 'tersedia di Play Store/App Store'.

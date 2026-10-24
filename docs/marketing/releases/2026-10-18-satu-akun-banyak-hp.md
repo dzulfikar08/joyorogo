@@ -2,7 +2,7 @@
 app: both
 feature: Satu akun banyak HP
 shipped: 2026-10-18
-available: web
+available: test-build
 tier: mixed
 post: todo
 atur: JRG-259

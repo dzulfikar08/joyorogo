@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Kartu Progres dan layar Berat yang lebih jelas
 shipped: 2026-10-21
-available: code
+available: test-build
 tier: free
 post: todo
 atur: JRG-340
@@ -16,4 +16,4 @@ atur: JRG-340
 
 **Bukti visual:** Setelah rilis: screenshot layar Berat (tab 30H) dan kartu Progres story dengan data demo minimal 30 hari catatan makan dan 8 timbangan. Gambar contoh dirender dari fixture: `packages/sticker/__goldens__/period.progress.*.png`.
 
-**Jangan klaim:** Defisit adalah perkiraan dari TDEE dan catatan makan (hari tanpa catatan tidak dihitung), bukan pengukuran. Setara kg lemak hanya muncul sebagai perkiraan (7.700 kcal per kg) dan hanya bila tidak bertentangan dengan tren timbangan. Jangan tulis "turun X kg dalam Y hari" sebagai hasil yang dijanjikan, jangan sebut membakar lemak, jangan pakai angka orang lain sebagai testimoni. Belum rilis: jangan tulis 'tersedia di Play Store/App Store'.
+**Jangan klaim:** Defisit adalah perkiraan dari TDEE dan catatan makan (hari tanpa catatan tidak dihitung), bukan pengukuran. Setara kg lemak hanya muncul sebagai perkiraan (7.700 kcal per kg) dan hanya bila tidak bertentangan dengan tren timbangan. Jangan tulis "turun X kg dalam Y hari" sebagai hasil yang dijanjikan, jangan sebut membakar lemak, jangan pakai angka orang lain sebagai testimoni. Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'.

@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Widget Streak Catat (Android dan iPhone)
 shipped: 2026-10-23
-available: code
+available: test-build
 tier: free
 post: todo
 atur: JRG-401

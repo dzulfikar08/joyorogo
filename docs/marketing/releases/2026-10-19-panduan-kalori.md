@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Panduan /panduan/kalori
 shipped: 2026-10-19
-available: web
+available: test-build
 tier: free
 post: planned 2026-10-26
 atur: JRG-270

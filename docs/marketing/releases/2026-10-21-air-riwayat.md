@@ -2,7 +2,7 @@
 app: joyorogo            # joyorogo | joyofit | both
 feature: Air: riwayat gelas per hari
 shipped: 2026-10-21
-available: code
+available: test-build
 tier: free
 post: todo
 atur: JRG-362
@@ -16,4 +16,4 @@ atur: JRG-362
 
 **Bukti visual:** Beranda, ketuk baris Air; layar Air dengan grafik 7 hari (akun yang sudah mencatat air beberapa hari).
 
-**Jangan klaim:** Belum di build mana pun (code only). Target 8 gelas, atau sesuai tahap untuk Hamil/Menyusui. Rata-rata dihitung dari hari yang dicatat saja.
+**Jangan klaim:** Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. Target 8 gelas, atau sesuai tahap untuk Hamil/Menyusui. Rata-rata dihitung dari hari yang dicatat saja.

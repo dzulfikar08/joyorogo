@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Layar Pro baru dan pintu masuk Pro di aplikasi
 shipped: 2026-10-21
-available: code
+available: test-build
 tier: pro
 post: skip (belum ada di build mana pun; tunggu OTA ke build Play dan review produksi)
 atur: JRG-354
@@ -16,4 +16,4 @@ atur: JRG-354
 
 **Bukti visual:** Tangkapan layar `/founder` di build Play (pilihan Tahunan terpilih, tombol di bawah) dan kamera dengan "Sisa 2 dari 3 scan gratis hari ini". Butuh akun gratis dan build Play yang sudah menerima OTA.
 
-**Jangan klaim:** Belum di build mana pun dan pembelian Play belum diuji dengan uang sungguhan. Jangan sebut "tersedia di Play Store". Persen hemat dihitung dari harga yang dilaporkan toko, jangan tulis angka rupiah tetap. Tidak ada angka pengguna atau ulasan untuk dikutip. Pro di iOS menunggu review App Store.
+**Jangan klaim:** Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. Jangan sebut "tersedia di Play Store". Persen hemat dihitung dari harga yang dilaporkan toko, jangan tulis angka rupiah tetap. Tidak ada angka pengguna atau ulasan untuk dikutip. Pro di iOS menunggu review App Store.

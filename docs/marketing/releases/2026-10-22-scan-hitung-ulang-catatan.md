@@ -16,4 +16,4 @@ atur: JRG-395
 
 **Bukti visual:** Scan foto yang telurnya terbaca satu, ketik "telurnya 3" di Hitung ulang: baris telur menjadi 3 butir dengan kalori tiga kali.
 
-**Jangan klaim:** Hanya jumlah potongan yang dijamin mengikuti catatan; nama dan berat tetap dibaca AI dari catatanmu (biasanya menurut, tidak dijamin). Hitung ulang tetap maksimal 2 kali per foto. Belum di build mana pun: butuh deploy server, deploy web, dan OTA native.
+**Jangan klaim:** Hanya jumlah potongan yang dijamin mengikuti catatan; nama dan berat tetap dibaca AI dari catatanmu (biasanya menurut, tidak dijamin). Hitung ulang tetap maksimal 2 kali per foto. Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'.

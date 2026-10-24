@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Koneksi AI (Claude dan ChatGPT)
 shipped: 2026-10-18
-available: web
+available: test-build
 tier: pro
 post: planned 2026-11-01
 atur: JRG-255

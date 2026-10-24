@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Koneksi AI: pertanyaan siap pakai, rencana latihan dan tidur per malam
 shipped: 2026-10-22
-available: code
+available: test-build
 tier: pro
 post: todo
 atur:

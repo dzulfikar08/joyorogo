@@ -16,4 +16,4 @@ atur:
 
 **Bukti visual:** Foto piring berisi telur rebus yang dibelah: hasil scan menampilkan porsi "N belahan (N/2 butir)" dengan berat dan kalori yang naik sesuai jumlahnya.
 
-**Jangan klaim:** Jumlah potongan masih dibaca AI dari foto dan bisa meleset kalau potongan saling menempel atau menumpuk (uji: 7 belahan terbaca 4 sampai 5). Belum di build mana pun; bagian hitung butuh deploy server, teks "yakin N%" yang hilang butuh deploy web dan OTA native. Bukan klaim akurasi.
+**Jangan klaim:** Jumlah potongan masih dibaca AI dari foto dan bisa meleset kalau potongan saling menempel atau menumpuk (uji: 7 belahan terbaca 4 sampai 5). Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. Bukan klaim akurasi.

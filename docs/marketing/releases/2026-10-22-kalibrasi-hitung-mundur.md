@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Hitung mundur kalibrasi di Beranda
 shipped: 2026-10-22
-available: code
+available: test-build
 tier: free
 post: todo
 atur: JRG-377
@@ -16,7 +16,7 @@ atur: JRG-377
 
 **Bukti visual:** Beranda akun yang baru 1-2 minggu mencatat makan dan menimbang, dengan baris "Kalibrasi, paling cepat N hari lagi" di bawah pemilih hari. Mode gelap dan terang.
 
-**Jangan klaim:** Angka hari adalah batas paling cepat, bukan janji: hari yang terlewat menundanya, dan kalibrasi baru berlaku di Senin berikutnya setelah datanya cukup. Jangan tulis "target akan akurat dalam N hari". Hanya di aplikasi Android dan iOS (tidak ada di web). Belum di build mana pun; jangan diposting sebagai rilis.
+**Jangan klaim:** Angka hari adalah batas paling cepat, bukan janji: hari yang terlewat menundanya, dan kalibrasi baru berlaku di Senin berikutnya setelah datanya cukup. Jangan tulis "target akan akurat dalam N hari". Hanya di aplikasi Android dan iOS (tidak ada di web). Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'.
 
 Follow [`../marketing-plan.md`](../marketing-plan.md) section 1.1 and the "Claims to avoid" list in
 [`../social-playbook.md`](../social-playbook.md). Never write "tersedia di Play Store / App Store" before `available:

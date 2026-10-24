@@ -2,7 +2,7 @@
 app: both
 feature: Peta rute di feed
 shipped: 2026-10-18
-available: web
+available: test-build
 tier: mixed
 post: planned 2026-11-01
 atur: JRG-257

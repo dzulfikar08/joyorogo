@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Ulangi makan: "sama kayak tadi siang"
 shipped: 2026-10-19
-available: web
+available: test-build
 tier: free
 post: todo
 atur: JRG-264

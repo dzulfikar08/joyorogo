@@ -2,7 +2,7 @@
 app: joyorogo            # joyorogo | joyofit | both
 feature: Bilah tab melayang
 shipped: 2026-10-21
-available: code
+available: test-build
 tier: free
 post: todo
 atur: JRG-347
@@ -16,4 +16,4 @@ atur: JRG-347
 
 **Bukti visual:** Rekam layar Beranda dan Makan sambil menggulir ke bawah (mode terang dan gelap), lalu ketuk tombol kamera. Akun mana pun, data demo cukup.
 
-**Jangan klaim:** Belum ada di build mana pun (hanya di kode). Jangan sebut tersedia di Play Store atau App Store.
+**Jangan klaim:** Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. Jangan sebut tersedia di Play Store atau App Store.

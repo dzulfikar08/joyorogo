@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Scan hidangan Malaysia (nasi lemak, roti canai, teh tarik)
 shipped: 2026-10-21
-available: code
+available: test-build
 tier: free
 post: todo
 atur: JRG-352
@@ -16,4 +16,4 @@ atur: JRG-352
 
 **Bukti visual:** Hasil scan foto nasi lemak atau roti canai dengan UI Bahasa Melayu dan baris "Bersamaan ... keping roti canai". Perlu foto asli milik kita, bukan stok.
 
-**Jangan klaim:** Belum di build mana pun. Angka adalah perkiraan; HPB mengukur hidangan seperti dijual di Singapura, bukan resep Malaysia, dan MyFCD (Kementerian Kesihatan Malaysia) belum dipakai (lisensinya belum ada). Nasi kandar, laksa Johor, kuih keria belum ada di tabel. Tampilkan notis sumber HPB di materi yang menampilkan angkanya, dan jangan menyiratkan HPB mendukung JoyoRogo. Jangan tulis "halal", "bebas babi", atau klaim akurasi.
+**Jangan klaim:** Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. Angka adalah perkiraan; HPB mengukur hidangan seperti dijual di Singapura, bukan resep Malaysia, dan MyFCD (Kementerian Kesihatan Malaysia) belum dipakai (lisensinya belum ada). Nasi kandar, laksa Johor, kuih keria belum ada di tabel. Tampilkan notis sumber HPB di materi yang menampilkan angkanya, dan jangan menyiratkan HPB mendukung JoyoRogo. Jangan tulis "halal", "bebas babi", atau klaim akurasi.

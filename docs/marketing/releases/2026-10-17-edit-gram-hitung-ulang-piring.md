@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Edit porsi gram dan hitung ulang kalori per piring
 shipped: 2026-10-17
-available: web
+available: test-build
 tier: free
 post: todo
 atur: JRG-249
