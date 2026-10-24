@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt, lte, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lt, lte, ne, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { user } from "@joyorogo/db/schema/auth";
@@ -34,7 +34,7 @@ import {
   readAddBackPrefs,
 } from "../lib/exercise-credit-store";
 import { READINESS_LABELS, hasFitnessData } from "../lib/fitness-hint";
-import { IMPORT_SOURCE } from "../lib/history-import";
+import { IMPORT_SOURCE, IMPORTED_WEIGHT_SOURCES } from "../lib/history-import";
 import { dateSchema } from "../lib/schemas";
 import { loadIdeaValues } from "./plate";
 import { gainMealIdeas, mealIdeas } from "../lib/ideas";
@@ -65,7 +65,7 @@ const ZERO_MEALS: Record<Meal, number> = {
 };
 
 /** The sources a recorded workout can come from, in the order the "Olahraga hari ini" tile lists them. */
-const EXERCISE_SOURCES = ["manual", "joyofit", "health_connect", "apple_health", "strava", "coros"] as const;
+const EXERCISE_SOURCES = ["manual", "joyofit", "health_connect", "apple_health", "strava", "coros", "garmin"] as const;
 
 export type Milestone = { kind: "streak" | "lost" | "gained"; value: number };
 
@@ -195,7 +195,7 @@ export const dayRouter = {
             and(
               eq(weightLog.userId, userId),
               gte(weightLog.date, streakStart),
-              ne(weightLog.source, IMPORT_SOURCE),
+              notInArray(weightLog.source, IMPORTED_WEIGHT_SOURCES),
             ),
           ),
         context.db

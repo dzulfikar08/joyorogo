@@ -6,6 +6,7 @@ const empty: SourcesInput = {
   health: { connected: false, lastAt: null },
   strava: { connected: false },
   coros: { connected: false },
+  garmin: { connected: false },
   exercise: [],
   weights: [],
   allDaySource: null,
@@ -16,8 +17,20 @@ const row = (rows: ReturnType<typeof buildSources>, id: string) => rows.find((r)
 
 describe("buildSources", () => {
   test("COROS has no row for a user it is not offered to", () => {
-    const rows = buildSources({ ...empty, coros: null });
+    const rows = buildSources({ ...empty, coros: null, garmin: null });
     expect(rows.map((r) => r.id)).toEqual(["joyofit", "health", "strava", "scale", "manual"]);
+  });
+
+  test("Garmin has no row for a user it is not offered to", () => {
+    const rows = buildSources({ ...empty, garmin: null });
+    expect(rows.map((r) => r.id)).not.toContain("garmin");
+  });
+
+  test("Garmin has a row, and counts as an activity source once connected, when offered", () => {
+    expect(buildSources(empty).map((r) => r.id)).toContain("garmin");
+    const rows = buildSources({ ...empty, garmin: { connected: true } });
+    expect(row(rows, "garmin").connected).toBe(true);
+    expect(hasActivitySource(rows)).toBe(true);
   });
 
   test("a fresh account: only manual entry is available", () => {
@@ -27,6 +40,7 @@ describe("buildSources", () => {
       ["health", false],
       ["strava", false],
       ["coros", false],
+      ["garmin", false],
       ["scale", false],
       ["manual", true],
     ]);

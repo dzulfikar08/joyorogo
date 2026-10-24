@@ -61,7 +61,8 @@
       "health_connect": "Health Connect",
       "apple_health": "Apple Health",
       "strava": "Strava",
-      "coros": "COROS"
+      "coros": "COROS",
+      "garmin": "Garmin"
     },
     "sleep": "Sleep",
     "sleepUnit": "h",

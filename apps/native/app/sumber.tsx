@@ -116,6 +116,21 @@ export default function Sumber() {
             : [t("sumber:rows.coros.empty")],
           onPress: () => router.push("/profil/coros"),
         };
+      case "garmin":
+        return {
+          ...common,
+          icon: "fitness" as const,
+          tint: "bakar" as const,
+          title: t("sumber:rows.garmin.title"),
+          subtitle: row.connected
+            ? [
+                t("sumber:rows.garmin.via"),
+                row.lastAt === null ? t("sumber:rows.garmin.none") : last("lastIn"),
+                row.recent > 0 ? t("sumber:counts.workouts", { count: row.recent }) : null,
+              ]
+            : [t("sumber:rows.garmin.empty")],
+          onPress: () => router.push("/profil/garmin"),
+        };
       case "scale":
         return {
           ...common,

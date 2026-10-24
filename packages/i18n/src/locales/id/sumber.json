@@ -36,6 +36,12 @@
       "none": "belum ada latihan dalam 30 hari terakhir",
       "empty": "Hubungkan agar latihan dari jam COROS masuk sendiri."
     },
+    "garmin": {
+      "title": "Garmin",
+      "via": "via Garmin",
+      "none": "belum ada latihan dalam 30 hari terakhir",
+      "empty": "Hubungkan agar latihan dari jam Garmin masuk sendiri."
+    },
     "strava": {
       "title": "Strava",
       "via": "via Strava",

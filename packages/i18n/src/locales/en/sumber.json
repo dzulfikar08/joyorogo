@@ -39,6 +39,12 @@
       "none": "no workouts in the last 30 days",
       "empty": "Connect so workouts from your COROS watch arrive on their own."
     },
+    "garmin": {
+      "title": "Garmin",
+      "via": "via Garmin",
+      "none": "no workouts in the last 30 days",
+      "empty": "Connect so workouts from your Garmin watch arrive on their own."
+    },
     "strava": {
       "title": "Strava",
       "via": "via Strava",

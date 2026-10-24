@@ -36,6 +36,12 @@
       "none": "tiada senaman dalam 30 hari lepas",
       "empty": "Sambungkan supaya senaman daripada jam COROS masuk sendiri."
     },
+    "garmin": {
+      "title": "Garmin",
+      "via": "melalui Garmin",
+      "none": "tiada senaman dalam 30 hari lepas",
+      "empty": "Sambungkan supaya senaman daripada jam Garmin masuk sendiri."
+    },
     "strava": {
       "title": "Strava",
       "via": "melalui Strava",

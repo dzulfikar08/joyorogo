@@ -34,11 +34,12 @@ export default function ProfilHub() {
 }
 
 function Hub({ profile }: { profile: ProfileData }) {
-  const { t, i18n } = useTranslation(["settings", "common", "koneksi", "notifications", "home", "coros"]);
+  const { t, i18n } = useTranslation(["settings", "common", "koneksi", "notifications", "home", "coros", "garmin"]);
   const { rt, theme } = useUnistyles();
   const session = authClient.useSession();
   const stravaStatus = useQuery(orpc.strava.status.queryOptions());
   const corosStatus = useQuery(orpc.coros.status.queryOptions());
+  const garminStatus = useQuery(orpc.garmin.status.queryOptions());
   const status = usePlanStatus(profile);
   const account = useAccountActions();
 
@@ -145,6 +146,17 @@ function Hub({ profile }: { profile: ProfileData }) {
           value={corosStatus.data?.connected ? t("coros:hub.valueConnected") : undefined}
           chevron
           onPress={() => router.push("/profil/coros")}
+        />
+        ) : null}
+        {garminStatus.data?.configured ? (
+        <ListRow
+          icon="fitness"
+          iconTint="bakar"
+          title={t("garmin:title")}
+          subtitle={t("garmin:hub.subtitle")}
+          value={garminStatus.data?.connected ? t("garmin:hub.valueConnected") : undefined}
+          chevron
+          onPress={() => router.push("/profil/garmin")}
         />
         ) : null}
         {isHealthSyncSupported() ? (

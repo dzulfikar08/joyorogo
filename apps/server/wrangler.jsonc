@@ -89,6 +89,8 @@
     "COROS_CLIENT_ID": "be255c7f-949e-4a44-8638-ba18111f9092",
     // Allowlist while nothing is verified against a real COROS account: owner and QA. "*" after docs/coros.md items 1-4 are confirmed.
     "COROS_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc,19d6d730903aa680d7ff3f8f564e3daf",
+    // Garmin Personal API keys cover a person's own data only: owner and QA until a business (OAuth) agreement exists (docs/garmin.md).
+    "GARMIN_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc,19d6d730903aa680d7ff3f8f564e3daf",
     "GOOGLE_CLIENT_ID": "915036968874-0ne1edkq0laljg6cdlnksor1hqpj9gfr.apps.googleusercontent.com",
     "DEV_LOGIN": "",
     "AI_VISION_MODEL": "@cf/google/gemma-4-26b-a4b-it",

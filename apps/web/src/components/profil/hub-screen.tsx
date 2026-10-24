@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
+  Activity,
   Bell,
   ChevronRight,
   Info,
@@ -103,10 +104,12 @@ export function HubScreen({ ctx }: { ctx: ProfilCtx }) {
     "notifications",
     "home",
     "coros",
+    "garmin",
   ]);
   const { theme } = useTheme();
   const strava = useQuery(orpc.strava.status.queryOptions());
   const coros = useQuery(orpc.coros.status.queryOptions());
+  const garmin = useQuery(orpc.garmin.status.queryOptions());
   const apps = useQuery(orpc.mcpConnection.list.queryOptions());
   const actions = useAccountActions();
   const displayValue = `${t(`theme.${theme}`)} · ${LOCALE_NAMES[instance.language as Locale] ?? instance.language}`;
@@ -191,6 +194,20 @@ export function HubScreen({ ctx }: { ctx: ProfilCtx }) {
           subtitle={t("coros:hub.subtitle")}
           oneLineSubtitle
           value={coros.data?.connected ? t("coros:hub.valueConnected") : undefined}
+        />
+        ) : null}
+        {garmin.data?.configured ? (
+        <ListLinkRow
+          to="/profil/garmin"
+          icon={
+            <IconChip tone="bakar">
+              <Activity />
+            </IconChip>
+          }
+          title={t("garmin:title")}
+          subtitle={t("garmin:hub.subtitle")}
+          oneLineSubtitle
+          value={garmin.data?.connected ? t("garmin:hub.valueConnected") : undefined}
         />
         ) : null}
         <ListLinkRow

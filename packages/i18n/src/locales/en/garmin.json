@@ -1,0 +1,55 @@
+{
+  "title": "Garmin",
+  "hub": {
+    "subtitle": "Import workouts, weigh-ins and steps from your Garmin account",
+    "valueConnected": "Connected"
+  },
+  "status": {
+    "checking": "Checking status...",
+    "checkingCard": "Checking Garmin status...",
+    "error": "Couldn't check status: {{error}}",
+    "connectHint": "Paste your Garmin Personal API key to import workouts, weigh-ins and steps.",
+    "connectedSynced": "Connected · last synced {{when}}",
+    "neverSynced": "never synced",
+    "imported_one": "{{count}} workout from Garmin",
+    "imported_other": "{{count}} workouts from Garmin",
+    "lastFailed": "The last sync failed. Try syncing again.",
+    "synced": "{{imported}} workouts imported, {{skipped}} skipped."
+  },
+  "key": {
+    "label": "Personal API key",
+    "placeholder": "Paste the key here",
+    "steps": "Create the key in Garmin Connect: Settings → Personal API Key, then copy it and paste it here.",
+    "link": "Open Garmin Connect settings",
+    "expiry": "The key expires. Garmin emails you before it does; create a new key and reconnect here."
+  },
+  "action": {
+    "connect": "Connect",
+    "connecting": "Connecting...",
+    "sync": "Sync",
+    "syncing": "Syncing...",
+    "disconnect": "Disconnect",
+    "disconnecting": "Disconnecting..."
+  },
+  "toast": {
+    "synced_one": "Garmin: {{count}} workout, {{weights}} weigh-ins, {{days}} days of activity imported.",
+    "synced_other": "Garmin: {{count}} workouts, {{weights}} weigh-ins, {{days}} days of activity imported.",
+    "disconnected": "Garmin disconnected.",
+    "connected": "Garmin connected."
+  },
+  "notes": {
+    "text": "JoyoRogo reads your Garmin account through Garmin's official Personal API: workouts (type, time, duration, active kcal), weigh-ins, and daily steps and active kcal. Data is read only when you press Sync or open this page.",
+    "dedupe": "The same workout from Health Connect, Apple Health or Strava is not counted twice. Disconnect removes the key and everything imported from Garmin."
+  },
+  "workout": {
+    "other": "Garmin workout",
+    "named": "{{label}} (Garmin)"
+  },
+  "server": {
+    "notConfigured": "Garmin is not available for your account.",
+    "badKey": "The Garmin key is not valid or has expired. Check the key or create a new one in Garmin Connect.",
+    "retry": "Couldn't reach Garmin. Try again later.",
+    "connectFirst": "Connect Garmin first on the profile page.",
+    "expired": "The Garmin key has expired or was revoked. Create a new key and reconnect on the profile page."
+  }
+}

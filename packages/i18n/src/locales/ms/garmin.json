@@ -1,0 +1,53 @@
+{
+  "title": "Garmin",
+  "hub": {
+    "subtitle": "Import senaman, timbangan dan langkah daripada akaun Garmin",
+    "valueConnected": "Bersambung"
+  },
+  "status": {
+    "checking": "Menyemak status...",
+    "checkingCard": "Menyemak status Garmin...",
+    "error": "Gagal menyemak status: {{error}}",
+    "connectHint": "Tampal kunci Personal API Garmin anda untuk mengimport senaman, timbangan dan langkah.",
+    "connectedSynced": "Bersambung · segerak terakhir {{when}}",
+    "neverSynced": "belum pernah segerak",
+    "imported_other": "{{count}} senaman daripada Garmin",
+    "lastFailed": "Segerak terakhir gagal. Cuba segerak lagi.",
+    "synced": "{{imported}} senaman diimport, {{skipped}} dilangkau."
+  },
+  "key": {
+    "label": "Kunci Personal API",
+    "placeholder": "Tampal kunci di sini",
+    "steps": "Cipta kunci di Garmin Connect: Tetapan → Personal API Key, kemudian salin dan tampal di sini.",
+    "link": "Buka tetapan Garmin Connect",
+    "expiry": "Kunci ada tarikh luput. Garmin menghantar e-mel sebelum kunci tamat; cipta kunci baharu dan sambung semula di sini."
+  },
+  "action": {
+    "connect": "Sambungkan",
+    "connecting": "Menyambung...",
+    "sync": "Segerak",
+    "syncing": "Menyegerak...",
+    "disconnect": "Putuskan",
+    "disconnecting": "Memutuskan..."
+  },
+  "toast": {
+    "synced_other": "Garmin: {{count}} senaman, {{weights}} timbangan, {{days}} hari aktiviti diimport.",
+    "disconnected": "Garmin diputuskan.",
+    "connected": "Garmin bersambung."
+  },
+  "notes": {
+    "text": "JoyoRogo membaca akaun Garmin anda melalui Personal API rasmi Garmin: senaman (jenis, masa, tempoh, kcal aktif), timbangan, serta langkah dan kcal aktif harian. Data dibaca hanya apabila anda menekan Segerak atau membuka halaman ini.",
+    "dedupe": "Senaman yang sama daripada Health Connect, Apple Health atau Strava tidak dikira dua kali. Putuskan memadam kunci dan semua data yang diimport daripada Garmin."
+  },
+  "workout": {
+    "other": "Senaman Garmin",
+    "named": "{{label}} (Garmin)"
+  },
+  "server": {
+    "notConfigured": "Garmin belum tersedia untuk akaun anda.",
+    "badKey": "Kunci Garmin tidak sah atau sudah tamat tempoh. Semak kunci atau cipta yang baharu di Garmin Connect.",
+    "retry": "Gagal menghubungi Garmin. Cuba lagi nanti.",
+    "connectFirst": "Sambungkan Garmin dahulu di halaman profil.",
+    "expired": "Kunci Garmin telah tamat tempoh atau dibatalkan. Cipta kunci baharu dan sambung semula di halaman profil."
+  }
+}

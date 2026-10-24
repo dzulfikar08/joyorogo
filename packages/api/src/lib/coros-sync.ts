@@ -14,9 +14,9 @@ import { jakartaToday, shiftDate } from "./engine";
 import { EXERCISE_MAX_KCAL } from "./exercise-edit";
 import { diaryMatcher } from "./import-dedupe";
 import { serverT } from "./messages";
-import { estimateKcal, exerciseTypeLabel, metForStravaType } from "./met";
-import type { ExerciseTypeKey } from "./met";
+import { estimateKcal, metForStravaType } from "./met";
 import { weightLookup } from "./weight-at";
+import { workoutTypeLabel } from "./workout-label";
 
 /** Days a first sync reaches back. */
 export const FIRST_SYNC_DAYS = 14;
@@ -62,23 +62,10 @@ export type CorosSyncInput = {
   fetcher?: Fetcher;
 };
 
-/** Diary type → the exercise label a COROS activity without a title of its own is named after. */
-const LABEL_KEYS: Readonly<Record<string, ExerciseTypeKey>> = {
-  Run: "lari",
-  TrailRun: "lari",
-  Treadmill: "lari",
-  Ride: "sepeda",
-  Swim: "berenang",
-  Walk: "jalan_cepat",
-  Hike: "jalan_cepat",
-  WeightTraining: "angkat_beban",
-};
-
 /** "Lari (COROS)", the title COROS gave, or "Latihan COROS" for a kind of workout the diary has no label for. */
 export function workoutName(locale: Locale, type: string, title: string | null): string {
   const t = serverT(locale, "coros");
-  const key = LABEL_KEYS[type];
-  const label = title ?? (key ? exerciseTypeLabel(key, locale) : null);
+  const label = title ?? workoutTypeLabel(locale, type);
   return label === null ? t("workout.other") : t("workout.named", { label });
 }
 

@@ -1,5 +1,5 @@
 /** The places JoyoRogo's numbers come from, in the order the sources screen lists them. */
-export const SOURCE_IDS = ["joyofit", "health", "strava", "coros", "scale", "manual"] as const;
+export const SOURCE_IDS = ["joyofit", "health", "strava", "coros", "garmin", "scale", "manual"] as const;
 export type SourceId = (typeof SOURCE_IDS)[number];
 
 export type SourceRow = {
@@ -19,6 +19,8 @@ export type SourcesInput = {
   strava: { connected: boolean } | null;
   /** null = COROS is not offered to this user (allowlist): no row */
   coros: { connected: boolean } | null;
+  /** null = Garmin is not offered to this user (allowlist): no row */
+  garmin: { connected: boolean } | null;
   /** workouts of the last 30 days; `at` is when the row reached JoyoRogo */
   exercise: ReadonlyArray<{ source: string; date: string; at: number }>;
   /** weigh-ins; `at` is when the row reached JoyoRogo */
@@ -41,6 +43,7 @@ export function buildSources(input: SourcesInput): SourceRow[] {
   const joyofit = bySource("joyofit");
   const strava = bySource("strava");
   const coros = bySource("coros");
+  const garmin = bySource("garmin");
   const scale = input.weights.filter((row) => row.source === "scale");
   const manual = [...bySource("manual"), ...input.weights.filter((row) => row.source === "manual")];
   return [
@@ -76,6 +79,17 @@ export function buildSources(input: SourcesInput): SourceRow[] {
           },
         ]
       : []),
+    ...(input.garmin
+      ? [
+          {
+            id: "garmin" as const,
+            connected: input.garmin.connected,
+            lastAt: newest(garmin),
+            recent: recent(garmin),
+            usedToday: false,
+          },
+        ]
+      : []),
     {
       id: "scale",
       connected: scale.length > 0,
@@ -97,7 +111,9 @@ export function buildSources(input: SourcesInput): SourceRow[] {
 export function hasActivitySource(rows: readonly SourceRow[]): boolean {
   return rows.some(
     (row) =>
-      (row.id === "joyofit" || row.id === "health" || row.id === "strava" || row.id === "coros") &&
+      (row.id === "joyofit" || row.id === "health" || row.id === "strava" ||
+        row.id === "coros" ||
+        row.id === "garmin") &&
       row.connected,
   );
 }

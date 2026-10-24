@@ -47,6 +47,7 @@ import type { QueryKey } from "@tanstack/react-query";
 const SOURCE_LABELS: Record<string, string> = {
   strava: "Strava",
   coros: "COROS",
+  garmin: "Garmin",
   health_connect: "Health Connect",
   apple_health: "Apple Health",
   joyofit: "JoyoFit",

@@ -30,6 +30,7 @@ import { sleepInsightsRouter } from "./sleep-insights";
 import { socialRouter } from "./social";
 import { statsRouter } from "./stats";
 import { corosRouter } from "./coros";
+import { garminRouter } from "./garmin";
 import { stravaRouter } from "./strava";
 import { strengthRouter } from "./strength";
 import { syncRouter } from "./sync";
@@ -63,6 +64,7 @@ export const appRouter = {
   ai: aiRouter,
   strava: stravaRouter,
   coros: corosRouter,
+  garmin: garminRouter,
   privacy: privacyRouter,
   water: waterRouter,
   workout: workoutRouter,

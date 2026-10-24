@@ -6,3 +6,6 @@ export const IMPORT_EARLIEST_DAY = "2012-01-01";
 
 /** `food_log.source` / `weight_log.source` of rows written by an import; streak and challenge queries leave them out. */
 export const IMPORT_SOURCE = "huawei";
+
+/** `weight_log.source` values of imported weigh-ins (a Huawei export, the user's Garmin account): never a logged day. */
+export const IMPORTED_WEIGHT_SOURCES: Array<"huawei" | "garmin"> = [IMPORT_SOURCE, "garmin"];

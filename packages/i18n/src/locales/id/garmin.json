@@ -1,0 +1,53 @@
+{
+  "title": "Garmin",
+  "hub": {
+    "subtitle": "Impor latihan, timbangan, dan langkah dari akun Garmin",
+    "valueConnected": "Terhubung"
+  },
+  "status": {
+    "checking": "Memeriksa status...",
+    "checkingCard": "Memeriksa status Garmin...",
+    "error": "Gagal memeriksa status: {{error}}",
+    "connectHint": "Tempel kunci Personal API Garmin-mu untuk mengimpor latihan, timbangan, dan langkah.",
+    "connectedSynced": "Terhubung · sinkron terakhir {{when}}",
+    "neverSynced": "belum pernah sinkron",
+    "imported_other": "{{count}} latihan dari Garmin",
+    "lastFailed": "Sinkron terakhir gagal. Coba sinkron lagi.",
+    "synced": "{{imported}} latihan diimpor, {{skipped}} dilewati."
+  },
+  "key": {
+    "label": "Kunci Personal API",
+    "placeholder": "Tempel kunci di sini",
+    "steps": "Buat kunci di Garmin Connect: Pengaturan → Personal API Key, lalu salin dan tempel di sini.",
+    "link": "Buka pengaturan Garmin Connect",
+    "expiry": "Kunci punya masa berlaku. Garmin mengirim email sebelum kunci habis; buat kunci baru lalu sambungkan ulang di sini."
+  },
+  "action": {
+    "connect": "Sambungkan",
+    "connecting": "Menyambungkan...",
+    "sync": "Sinkron",
+    "syncing": "Menyinkronkan...",
+    "disconnect": "Putuskan",
+    "disconnecting": "Memutuskan..."
+  },
+  "toast": {
+    "synced_other": "Garmin: {{count}} latihan, {{weights}} timbangan, {{days}} hari aktivitas diimpor.",
+    "disconnected": "Garmin diputuskan.",
+    "connected": "Garmin terhubung."
+  },
+  "notes": {
+    "text": "JoyoRogo membaca data akun Garmin-mu lewat Personal API resmi: latihan (jenis, waktu, durasi, kkal aktif), timbangan, serta langkah dan kkal aktif harian. Data dibaca hanya saat kamu menekan Sinkron atau membuka halaman ini.",
+    "dedupe": "Latihan yang sama dari Health Connect, Apple Health, atau Strava tidak dihitung dua kali. Putuskan menghapus kunci dan semua data yang diimpor dari Garmin."
+  },
+  "workout": {
+    "other": "Latihan Garmin",
+    "named": "{{label}} (Garmin)"
+  },
+  "server": {
+    "notConfigured": "Garmin belum tersedia untuk akunmu.",
+    "badKey": "Kunci Garmin tidak valid atau sudah kedaluwarsa. Periksa kuncinya atau buat yang baru di Garmin Connect.",
+    "retry": "Gagal menghubungi Garmin. Coba lagi nanti.",
+    "connectFirst": "Hubungkan Garmin dulu di halaman profil.",
+    "expired": "Kunci Garmin kedaluwarsa atau dicabut. Buat kunci baru dan sambungkan ulang di halaman profil."
+  }
+}

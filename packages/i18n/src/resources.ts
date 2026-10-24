@@ -42,6 +42,7 @@ import idFitWebConnect from "./locales/id/fitWebConnect.json";
 import idMealPlan from "./locales/id/mealPlan.json";
 import idSumber from "./locales/id/sumber.json";
 import idCoros from "./locales/id/coros.json";
+import idGarmin from "./locales/id/garmin.json";
 import idJoyoAi from "./locales/id/joyoAi.json";
 import idJoyoAiApp from "./locales/id/joyoAiApp.json";
 import idJoyoAiWeb from "./locales/id/joyoAiWeb.json";
@@ -90,6 +91,7 @@ import enFitWebConnect from "./locales/en/fitWebConnect.json";
 import enMealPlan from "./locales/en/mealPlan.json";
 import enSumber from "./locales/en/sumber.json";
 import enCoros from "./locales/en/coros.json";
+import enGarmin from "./locales/en/garmin.json";
 import enJoyoAi from "./locales/en/joyoAi.json";
 import enJoyoAiApp from "./locales/en/joyoAiApp.json";
 import enJoyoAiWeb from "./locales/en/joyoAiWeb.json";
@@ -138,6 +140,7 @@ import msFitWebConnect from "./locales/ms/fitWebConnect.json";
 import msMealPlan from "./locales/ms/mealPlan.json";
 import msSumber from "./locales/ms/sumber.json";
 import msCoros from "./locales/ms/coros.json";
+import msGarmin from "./locales/ms/garmin.json";
 import msJoyoAi from "./locales/ms/joyoAi.json";
 import msJoyoAiApp from "./locales/ms/joyoAiApp.json";
 import msJoyoAiWeb from "./locales/ms/joyoAiWeb.json";
@@ -190,6 +193,7 @@ const id = {
   mealPlan: idMealPlan,
   sumber: idSumber,
   coros: idCoros,
+  garmin: idGarmin,
   joyoAi: idJoyoAi,
   joyoAiApp: idJoyoAiApp,
   joyoAiWeb: idJoyoAiWeb,
@@ -244,6 +248,7 @@ const en: typeof id = {
   mealPlan: enMealPlan,
   sumber: enSumber,
   coros: enCoros,
+  garmin: enGarmin,
   joyoAi: enJoyoAi,
   joyoAiApp: enJoyoAiApp,
   joyoAiWeb: enJoyoAiWeb,
@@ -294,6 +299,7 @@ const ms: typeof id = {
   mealPlan: msMealPlan,
   sumber: msSumber,
   coros: msCoros,
+  garmin: msGarmin,
   joyoAi: msJoyoAi,
   joyoAiApp: msJoyoAiApp,
   joyoAiWeb: msJoyoAiWeb,

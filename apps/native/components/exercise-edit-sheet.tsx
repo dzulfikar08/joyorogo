@@ -45,6 +45,7 @@ type ExerciseRecentData = { items: ExerciseEditRow[]; startDate: string; endDate
 const SOURCE_NAMES: Record<string, string> = {
   strava: "Strava",
   coros: "COROS",
+  garmin: "Garmin",
   health_connect: "Health Connect",
   apple_health: "Apple Health",
 };

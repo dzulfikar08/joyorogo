@@ -1,4 +1,4 @@
-import { and, gte, inArray, lt, lte, ne, sql } from "drizzle-orm";
+import { and, gte, inArray, lt, lte, ne, notInArray, sql } from "drizzle-orm";
 
 import type { Database } from "@joyorogo/db";
 import { foodLog, weightLog } from "@joyorogo/db/schema/fitness";
@@ -6,7 +6,7 @@ import { foodLog, weightLog } from "@joyorogo/db/schema/fitness";
 import { readChunked } from "./d1";
 import { shiftDate } from "./engine";
 import { gainDayHit } from "./gain";
-import { IMPORT_SOURCE } from "./history-import";
+import { IMPORT_SOURCE, IMPORTED_WEIGHT_SOURCES } from "./history-import";
 import { buildPlan, planQueries } from "./plan";
 import { readCalibrationPrefs } from "./calibration-store";
 import { STREAK_MAX_DAYS, STREAK_WINDOW_DAYS, runReachesWindow, streakState } from "./streak";
@@ -61,7 +61,7 @@ async function olderDays(db: Database, userIds: string[], asOf: string, windowSt
             inArray(weightLog.userId, slice),
             gte(weightLog.date, floor),
             lt(weightLog.date, windowStart),
-            ne(weightLog.source, IMPORT_SOURCE),
+            notInArray(weightLog.source, IMPORTED_WEIGHT_SOURCES),
           ),
         ),
     { reserved: 3 },
@@ -147,7 +147,7 @@ export async function loadStreaks(
             inArray(weightLog.userId, slice),
             gte(weightLog.date, windowStart),
             lte(weightLog.date, asOf),
-            ne(weightLog.source, IMPORT_SOURCE),
+            notInArray(weightLog.source, IMPORTED_WEIGHT_SOURCES),
           ),
         ),
     { reserved: 4 },

@@ -129,8 +129,9 @@ export const weightLog = sqliteTable(
     visceralFat: real("visceral_fat"),
     bmrKcal: real("bmr_kcal"),
     proteinPct: real("protein_pct"),
-    // 'huawei': a weigh-in imported from a Huawei Health export (weight.importHistory); never counted in streaks.
-    source: text("source", { enum: ["manual", "scale", "huawei"] }).notNull().default("manual"),
+    // 'huawei': a weigh-in imported from a Huawei Health export (weight.importHistory); 'garmin': one read from the
+    // user's Garmin account (docs/garmin.md). Imported rows are never counted in streaks.
+    source: text("source", { enum: ["manual", "scale", "huawei", "garmin"] }).notNull().default("manual"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),
@@ -353,6 +354,28 @@ export const corosAuthState = sqliteTable(
   (table) => [index("coros_auth_state_user_idx").on(table.userId)],
 );
 
+// Garmin (docs/garmin.md): one connection per user. `auth_kind` 'personal_key' = the user's own Personal API key
+// (connect.garmin.com → Settings → Personal API Key); a later OAuth/push kind adds its own columns. `api_key` is a secret
+// that never leaves the server; `token` is the 24 h bearer minted from it. Rows imported from Garmin live in
+// exercise_log (source 'garmin'), weight_log (source 'garmin') and daily_activity (source 'garmin').
+export const garminAccount = sqliteTable("garmin_account", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  authKind: text("auth_kind", { enum: ["personal_key"] }).notNull().default("personal_key"),
+  apiKey: text("api_key").notNull(),
+  token: text("token"),
+  tokenExpiresAt: integer("token_expires_at", { mode: "timestamp_ms" }),
+  connectedAt: integer("connected_at", { mode: "timestamp_ms" }).notNull(),
+  lastSyncAt: integer("last_sync_at", { mode: "timestamp_ms" }),
+  // The last sync's failure, in words for a log, never shown raw; cleared by the next good sync.
+  lastError: text("last_error"),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+});
+
 export const profileRelations = relations(profile, ({ one }) => ({
   user: one(user, {
     fields: [profile.userId],
@@ -508,7 +531,7 @@ export const dailyActivity = sqliteTable(
     distanceMeters: real("distance_meters").notNull().default(0),
     activeCalories: real("active_calories").notNull().default(0),
     exerciseMinutes: real("exercise_minutes").notNull().default(0),
-    // 'health_connect' | 'apple_health'
+    // 'health_connect' | 'apple_health' | 'garmin'
     source: text("source").notNull().default("health_connect"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
