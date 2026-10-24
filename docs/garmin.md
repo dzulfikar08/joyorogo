@@ -51,8 +51,19 @@ second kind adds its own columns next to `api_key` / `token`. Nothing but the pe
   - weigh-ins: `/weight-service/weight/range/{start}/{end}?includeAll=true`
   - days: `/usersummary-service/v2/dailysummaries?startDate&endDate` (up to 90 days per request; the `stats/steps/daily` endpoint
     refuses ranges that long with 400, so it is not used)
-- Windows: first sync **30 days** for workouts and days and **90 days** for weigh-ins; afterwards since `last_sync_at` minus
-  **2 days**, never further back than the first window.
+- **First sync = backfill** (no `last_sync_at`, so also the first sync after a new key replaced a revoked one; everything is
+  idempotent). Activities: every page of 100 until a short page, **at most 10 pages (the newest 1000)**; the window opens at
+  2000-01-01 (Garmin accepts any date and answers only what exists), so a history that is an exact multiple of 100 costs one more,
+  empty, page. Weigh-ins: **730 days**, one request (the endpoint takes any range; 2000-01-01..today answered the same in a
+  real account). Daily summaries: **365 days in requests of at most 90 days** (5 requests, one after the other; `syncPlan`,
+  `dayChunks`). More than 1000 activities: the older ones are not imported, and later syncs never look back that far.
+- **Later syncs**: since `last_sync_at` minus **2 days**, at most 30 days (workouts, days) and 90 days (weigh-ins), 1-5 activity pages.
+- **Subrequests** (Workers allow 50 on the free plan, 1000 on paid; fetches and D1 statements both count; `db.batch` is one).
+  Measured with a fake Garmin shaped like the owner's account (150 activities, 31 weigh-ins, 85 days of summaries): first sync
+  **8 fetches** (2 activity pages + 1 weigh-in range + 5 day chunks) **+ 12 D1 calls = 20** (22 when the token also had to be
+  minted); a later sync 4 fetches + 7 D1 = 11. Worst case of the backfill (1000 activities, cap hit): 10 + 1 + 5 fetches (+1 mint)
+  and about 13 D1 calls (plus one delete per 90 workouts another source already holds) = about 30, so one request carries it
+  and no cursor is needed.
 - **Calories.** Garmin's `calories` is gross and includes `bmrCalories`, the resting energy of the same minutes. The diary gets
   `calories − bmrCalories` (never below 0). Some activities carry no `bmrCalories` (2 of 150 in the owner's account): the resting
   share is then estimated as 1 MET, the person's weight in kcal per hour (the real figures are within 6% of that). No `calories` at
@@ -103,5 +114,5 @@ live in D1. All deleted on disconnect, "hapus data" and account deletion.
 
 `packages/api/src/lib/garmin-parse.test.ts` (trimmed real answers: activities, net calories, type mapping, weigh-ins, daily
 summaries, bad records), `garmin-flag.test.ts` (allowlist), `garmin-sync.test.ts` on the real migrations with a fake Garmin:
-connect with a bad key, token cache and re-mint, revoked key, windows and paging, import with net calories, idempotency, dedupe in
+connect with a bad key, token cache and re-mint, revoked key, the backfill plan, day chunking and page boundaries (short page, exact multiple, the 1000 cap, 1000 workouts inside D1's limits), later windows, import with net calories, idempotency, dedupe in
 both directions, weigh-ins (manual day kept, Garmin day refreshed), daily rollup rule, outage, disconnect cleanup.

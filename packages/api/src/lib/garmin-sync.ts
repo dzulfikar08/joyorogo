@@ -17,14 +17,23 @@ import { estimateKcal, metForStravaType } from "./met";
 import { weightLookup } from "./weight-at";
 import { workoutTypeLabel } from "./workout-label";
 
-/** Days a first sync reaches back for activities and daily summaries. */
+/** The furthest a later sync reaches back for activities and daily summaries. */
 export const ACTIVITY_DAYS = 30;
-/** Days a first sync reaches back for weigh-ins. */
+/** The furthest a later sync reaches back for weigh-ins. */
 export const WEIGHT_DAYS = 90;
 /** A later sync starts this many days before the last one, so a late-arriving record is still caught. */
 export const OVERLAP_DAYS = 2;
-/** Pages of activities one sync reads (100 each): a month holds far fewer. */
+/** Pages of activities a later sync reads (100 each): a few days hold far fewer. */
 const MAX_PAGES = 5;
+/** The first sync reads the whole history: every page until a short one, at most this many (1000 activities, the newest first). */
+export const BACKFILL_PAGES = 10;
+/** The first sync's activity window opens here: Garmin accepts any earlier date and answers only what exists. */
+export const BACKFILL_ACTIVITY_START = "2000-01-01";
+/** Days of weigh-ins the first sync reads (one request: the endpoint takes any range). */
+export const BACKFILL_WEIGHT_DAYS = 730;
+/** Days of daily summaries the first sync reads, in requests of at most `DAY_CHUNK_DAYS`. */
+export const BACKFILL_DAY_DAYS = 365;
+export const DAY_CHUNK_DAYS = 90;
 /** Where else the same workout arrives from: Garmin also syncs to Health Connect, Apple Health and Strava. */
 const OTHER_SOURCES = ["health_connect", "apple_health", "strava"];
 
@@ -62,11 +71,41 @@ export type GarminSyncInput = {
   fetcher?: Fetcher;
 };
 
-/** First day of a sync window: `firstDays` back on the first sync, afterwards the last sync minus the overlap (never further than `firstDays`). */
-export function syncWindowStart(today: string, lastSyncAt: Date | undefined, now: Date, firstDays: number): string {
-  if (!lastSyncAt) return shiftDate(today, -firstDays);
+/** First day of a later sync's window: the last sync minus the overlap, never further back than `maxDays`. */
+export function syncWindowStart(today: string, lastSyncAt: Date, now: Date, maxDays: number): string {
   const sinceDays = Math.ceil((now.getTime() - lastSyncAt.getTime()) / 86_400_000) + OVERLAP_DAYS;
-  return shiftDate(today, -Math.min(firstDays, Math.max(OVERLAP_DAYS, sinceDays)));
+  return shiftDate(today, -Math.min(maxDays, Math.max(OVERLAP_DAYS, sinceDays)));
+}
+
+/** Where each read of a sync starts; the first sync (no `last_sync_at`) backfills the history. */
+export function syncPlan(today: string, lastSyncAt: Date | undefined, now: Date) {
+  if (!lastSyncAt) {
+    return {
+      backfill: true,
+      activityStart: BACKFILL_ACTIVITY_START,
+      weightStart: shiftDate(today, -BACKFILL_WEIGHT_DAYS),
+      dayStart: shiftDate(today, -(BACKFILL_DAY_DAYS - 1)),
+      pages: BACKFILL_PAGES,
+    };
+  }
+  const activityStart = syncWindowStart(today, lastSyncAt, now, ACTIVITY_DAYS);
+  return {
+    backfill: false,
+    activityStart,
+    weightStart: syncWindowStart(today, lastSyncAt, now, WEIGHT_DAYS),
+    dayStart: activityStart,
+    pages: MAX_PAGES,
+  };
+}
+
+/** `start`..`end` (inclusive days) as consecutive ranges of at most `size` days. */
+export function dayChunks(start: string, end: string, size: number): Array<[string, string]> {
+  const out: Array<[string, string]> = [];
+  for (let from = start; from <= end; from = shiftDate(from, size)) {
+    const to = shiftDate(from, size - 1);
+    out.push([from, to < end ? to : end]);
+  }
+  return out;
 }
 
 export const externalIdOf = (activity: GarminActivity): string => `garmin-${activity.id}`;
@@ -78,10 +117,11 @@ export function workoutName(locale: Locale, activity: GarminActivity): string {
   return label === null ? t("workout.other") : t("workout.named", { label });
 }
 
-async function listActivities(client: GarminClient, start: string, end: string): Promise<{ activities: GarminActivity[]; unparsed: number }> {
+/** Pages of activities, 100 each, until a short page or `maxPages`. */
+async function listActivities(client: GarminClient, start: string, end: string, maxPages: number): Promise<{ activities: GarminActivity[]; unparsed: number }> {
   const activities: GarminActivity[] = [];
   let unparsed = 0;
-  for (let page = 0; page < MAX_PAGES; page++) {
+  for (let page = 0; page < maxPages; page++) {
     const body = await client.activities(start, end, page * ACTIVITY_PAGE);
     const parsed = parseActivities(body);
     activities.push(...parsed.activities);
@@ -101,7 +141,9 @@ async function listActivities(client: GarminClient, start: string, end: string):
  * - Weigh-ins → `weight_log` (`source = 'garmin'`). A day that holds anything but a Garmin row is left alone.
  * - Daily steps, distance, active calories and intensity minutes → `daily_activity` (`source = 'garmin'`), under the same rule
  *   as the health stores: another source's row is replaced only by a reading with at least as many steps.
- * - Windows: 30 days (workouts, days) and 90 days (weigh-ins) on the first sync, afterwards since the last sync minus 2 days.
+ * - Windows: the first sync (no `last_sync_at`) backfills the history: every activity page until a short one (at most 1000),
+ *   730 days of weigh-ins, 365 days of daily summaries in 90-day requests. Afterwards 30 days (workouts, days) and 90 days
+ *   (weigh-ins) at most, since the last sync minus 2 days.
  */
 export async function syncGarmin(input: GarminSyncInput): Promise<GarminSyncResult> {
   const { db, userId } = input;
@@ -109,20 +151,19 @@ export async function syncGarmin(input: GarminSyncInput): Promise<GarminSyncResu
   const status = await garminStatus(db, userId);
   if (!status.connected) throw new GarminSyncError("not_connected");
   const today = jakartaToday(now, input.zone);
-  const activityStart = syncWindowStart(today, status.lastSyncAt, now, ACTIVITY_DAYS);
-  const weightStart = syncWindowStart(today, status.lastSyncAt, now, WEIGHT_DAYS);
+  const plan = syncPlan(today, status.lastSyncAt, now);
 
   let fetched;
   try {
-    fetched = await fetchAll(input, now, { activityStart, weightStart, end: today });
+    fetched = await fetchAll(input, now, { ...plan, end: today });
   } catch (error) {
     throw await failSync(input, error);
   }
 
   try {
-    const workouts = await importActivities(input, fetched.activities, activityStart);
-    const weights = await importWeights(input, fetched.weighIns, weightStart);
-    const days = await importDays(input, fetched.days, activityStart);
+    const workouts = await importActivities(input, fetched.activities, plan.activityStart);
+    const weights = await importWeights(input, fetched.weighIns, plan.weightStart);
+    const days = await importDays(input, fetched.days, plan.dayStart);
     await recordSync(db, userId, { at: now });
     return { ...workouts, weights, days, unparsed: fetched.unparsed };
   } catch (error) {
@@ -130,19 +171,30 @@ export async function syncGarmin(input: GarminSyncInput): Promise<GarminSyncResu
   }
 }
 
-async function fetchAll(input: GarminSyncInput, now: Date, window: { activityStart: string; weightStart: string; end: string }) {
+/** Daily summaries over `start`..`end` in requests of at most DAY_CHUNK_DAYS, one after the other (few open connections). */
+async function listDays(client: GarminClient, start: string, end: string) {
+  const days: ReturnType<typeof parseDailySummaries>["days"] = [];
+  let unparsed = 0;
+  for (const [from, to] of dayChunks(start, end, DAY_CHUNK_DAYS)) {
+    const parsed = parseDailySummaries(await client.dailySummaries(from, to));
+    days.push(...parsed.days);
+    unparsed += parsed.unparsed;
+  }
+  return { days, unparsed };
+}
+
+async function fetchAll(input: GarminSyncInput, now: Date, window: { activityStart: string; weightStart: string; dayStart: string; pages: number; end: string }) {
   let token = await freshToken(input.db, input.userId, { now }, input.fetcher);
   if (!token) throw new GarminSyncError("not_connected");
   for (let attempt = 0; ; attempt++) {
     const client = new GarminClient(token, input.fetcher);
     try {
-      const [listed, weights, summaries] = await Promise.all([
-        listActivities(client, window.activityStart, window.end),
+      const [listed, weights, days] = await Promise.all([
+        listActivities(client, window.activityStart, window.end, window.pages),
         client.weights(window.weightStart, window.end),
-        client.dailySummaries(window.activityStart, window.end),
+        listDays(client, window.dayStart, window.end),
       ]);
       const weighIns = parseWeighIns(weights);
-      const days = parseDailySummaries(summaries);
       return {
         activities: listed.activities,
         weighIns: weighIns.entries,

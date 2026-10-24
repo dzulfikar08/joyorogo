@@ -13,7 +13,16 @@ import {
   mintToken,
   tokenExpiry,
 } from "./garmin-grant";
-import { GarminSyncError, externalIdOf, syncGarmin, syncWindowStart } from "./garmin-sync";
+import { shiftDate } from "./engine";
+import {
+  BACKFILL_ACTIVITY_START,
+  BACKFILL_PAGES,
+  GarminSyncError,
+  dayChunks,
+  externalIdOf,
+  syncGarmin,
+  syncPlan,
+} from "./garmin-sync";
 import { parseActivities } from "./garmin-parse";
 
 const ZONE = "Asia/Jakarta";
@@ -93,7 +102,13 @@ function fakeGarmin(options: FakeOptions = {}): Fake {
       return Response.json((options.activities ?? []).slice(start, start + limit));
     }
     if (parsed.pathname.includes("/weight-service/weight/range/")) return Response.json(options.weights ?? { dailyWeightSummaries: [] });
-    if (parsed.pathname.endsWith("/dailysummaries")) return Response.json(options.summaries ?? { data: [] });
+    if (parsed.pathname.endsWith("/dailysummaries")) {
+      // Only the days inside the requested range, as Garmin answers.
+      const from = parsed.searchParams.get("startDate")!;
+      const to = parsed.searchParams.get("endDate")!;
+      const data = ((options.summaries as { data?: Array<{ calendarDate: string }> } | undefined)?.data ?? []).filter((d) => d.calendarDate >= from && d.calendarDate <= to);
+      return Response.json({ data });
+    }
     return new Response(null, { status: 404 });
   };
   return fake;
@@ -207,17 +222,38 @@ describe("connect and token", () => {
   });
 });
 
-describe("syncWindowStart", () => {
-  test("first sync: the whole first window", () => {
-    expect(syncWindowStart("2026-10-24", undefined, NOW, 30)).toBe("2026-09-24");
-    expect(syncWindowStart("2026-10-24", undefined, NOW, 90)).toBe("2026-07-26");
+describe("sync windows", () => {
+  const plan = (last?: Date) => syncPlan("2026-10-24", last, NOW);
+
+  test("the first sync backfills: all history of workouts, 2 years of weigh-ins, a year of days", () => {
+    expect(plan()).toEqual({
+      backfill: true,
+      activityStart: BACKFILL_ACTIVITY_START,
+      weightStart: "2024-10-24",
+      dayStart: "2025-10-25",
+      pages: BACKFILL_PAGES,
+    });
   });
 
-  test("later: since the last sync minus two days, never past the first window", () => {
+  test("later: since the last sync minus two days, never past 30 days (90 for weigh-ins)", () => {
     const hourAgo = new Date(NOW.getTime() - 3_600_000);
-    expect(syncWindowStart("2026-10-24", hourAgo, NOW, 30)).toBe("2026-10-21");
-    expect(syncWindowStart("2026-10-24", new Date(NOW.getTime() - 10 * 86_400_000), NOW, 30)).toBe("2026-10-12");
-    expect(syncWindowStart("2026-10-24", new Date("2026-01-01T00:00:00Z"), NOW, 30)).toBe("2026-09-24");
+    expect(plan(hourAgo)).toMatchObject({ backfill: false, activityStart: "2026-10-21", weightStart: "2026-10-21", dayStart: "2026-10-21", pages: 5 });
+    expect(plan(new Date(NOW.getTime() - 10 * 86_400_000))).toMatchObject({ activityStart: "2026-10-12", weightStart: "2026-10-12" });
+    expect(plan(new Date("2026-01-01T00:00:00Z"))).toMatchObject({ activityStart: "2026-09-24", weightStart: "2026-07-26", dayStart: "2026-09-24" });
+  });
+
+  test("day chunks: consecutive, at most 90 days, the last clipped to the end", () => {
+    expect(dayChunks("2026-01-01", "2026-01-10", 90)).toEqual([["2026-01-01", "2026-01-10"]]);
+    expect(dayChunks("2026-01-01", "2026-03-31", 90)).toEqual([["2026-01-01", "2026-03-31"]]);
+    expect(dayChunks("2026-01-01", "2026-04-01", 90)).toEqual([
+      ["2026-01-01", "2026-03-31"],
+      ["2026-04-01", "2026-04-01"],
+    ]);
+    const year = dayChunks("2025-10-25", "2026-10-24", 90);
+    expect(year).toHaveLength(5);
+    expect(year[0]![0]).toBe("2025-10-25");
+    expect(year.at(-1)![1]).toBe("2026-10-24");
+    for (let i = 1; i < year.length; i++) expect(shiftDate(year[i - 1]![1], 1)).toBe(year[i]![0]);
   });
 });
 
@@ -265,19 +301,63 @@ describe("sync: workouts", () => {
     expect(status.connected && status.lastSyncAt).toEqual(new Date(NOW.getTime() + 3_600_000));
   });
 
-  test("asks Garmin for the 30-day window, then since the last sync; more than a page is read in pages", async () => {
-    const many = Array.from({ length: 130 }, (_, i) => activity(5000 + i, "walking", `2026-10-${String(10 + (i % 14)).padStart(2, "0")} ${String(i % 24).padStart(2, "0")}:00:00`, 600 + i, 50, 10));
-    const { userId, fake } = await connected({ activities: many });
+  const manyActivities = (n: number) =>
+    Array.from({ length: n }, (_, i) => activity(5000 + i, "walking", `${2020 + (i % 6)}-0${1 + (i % 9)}-1${i % 9} ${String(i % 24).padStart(2, "0")}:00:00`, 600 + i, 50, 10));
+
+  test("the first sync reads the whole history in pages of 100 and stops at a short one", async () => {
+    const { userId, fake } = await connected({ activities: manyActivities(250) });
     const first = await run(userId, fake);
-    expect(first.imported + first.skipped).toBe(130);
+    expect(first.imported).toBe(250);
     const listed = fake.calls.filter((c) => c.path.endsWith("/activities/search/activities"));
-    expect(listed.map((c) => c.params.get("start"))).toEqual(["0", "100"]);
-    expect(listed[0]!.params.get("startDate")).toBe("2026-09-24");
+    expect(listed.map((c) => c.params.get("start"))).toEqual(["0", "100", "200"]);
+    expect(listed[0]!.params.get("startDate")).toBe(BACKFILL_ACTIVITY_START);
     expect(listed[0]!.params.get("endDate")).toBe("2026-10-24");
-    expect(fake.calls.find((c) => c.path.includes("/weight/range/"))!.path).toContain("/2026-07-26/2026-10-24");
+  });
+
+  test("a history that is an exact multiple of a page costs one more, empty, page", async () => {
+    const { userId, fake } = await connected({ activities: manyActivities(200) });
+    await run(userId, fake);
+    expect(fake.calls.filter((c) => c.path.endsWith("/activities/search/activities")).map((c) => c.params.get("start"))).toEqual(["0", "100", "200"]);
+  });
+
+  test("the first sync stops at the page cap (the newest 1000 come first)", async () => {
+    const { userId, fake } = await connected({ activities: manyActivities(BACKFILL_PAGES * 100 + 50) });
+    const first = await run(userId, fake);
+    expect(fake.calls.filter((c) => c.path.endsWith("/activities/search/activities"))).toHaveLength(BACKFILL_PAGES);
+    expect(first.imported).toBe(BACKFILL_PAGES * 100);
+  });
+
+  test("the first sync asks for 2 years of weigh-ins and a year of days in 90-day requests; Garmin gets the owner-sized request count", async () => {
+    const { userId, fake } = await connected({ activities: manyActivities(150), weights: { dailyWeightSummaries: [weighIn("2025-01-01", 72000)] } });
+    await run(userId, fake);
+    expect(fake.calls.find((c) => c.path.includes("/weight/range/"))!.path).toContain("/2024-10-24/2026-10-24");
+    const days = fake.calls.filter((c) => c.path.endsWith("/dailysummaries")).map((c) => [c.params.get("startDate"), c.params.get("endDate")]);
+    expect(days).toHaveLength(5);
+    expect(days[0]![0]).toBe("2025-10-25");
+    expect(days.at(-1)![1]).toBe("2026-10-24");
+    // 150 activities: 2 activity pages + 1 weigh-in request + 5 day requests; the token was minted when connecting.
+    expect(fake.calls).toHaveLength(8);
+    expect(fake.mints).toHaveLength(1);
+    // The weigh-in older than the later window is part of the backfill.
+    expect((await rows("weight_log", userId)).map((r) => r.date)).toEqual(["2025-01-01"]);
+  });
+
+  test("later syncs ask for the short window only", async () => {
+    const { userId, fake } = await connected({ activities: manyActivities(60) });
+    await run(userId, fake);
     fake.calls.length = 0;
     await run(userId, fake, new Date(NOW.getTime() + 3_600_000));
-    expect(fake.calls.find((c) => c.path.endsWith("/activities/search/activities"))!.params.get("startDate")).toBe("2026-10-21");
+    const acts = fake.calls.filter((c) => c.path.endsWith("/activities/search/activities"));
+    expect(acts).toHaveLength(1);
+    expect(acts[0]!.params.get("startDate")).toBe("2026-10-21");
+    expect(fake.calls.filter((c) => c.path.endsWith("/dailysummaries"))).toHaveLength(1);
+    expect(fake.calls).toHaveLength(3);
+  });
+
+  test("an import of 1000 workouts stays inside D1's limits and is idempotent", async () => {
+    const { userId, fake } = await connected({ activities: manyActivities(1000) });
+    expect((await run(userId, fake)).imported).toBe(1000);
+    expect(await rows("exercise_log", userId, "garmin")).toHaveLength(1000);
   });
 
   test("a workout another source already holds is not imported (same day, kind, duration within two minutes)", async () => {
