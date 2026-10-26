@@ -4,7 +4,7 @@
 
 Foto makanan dianalisis model visi AI (gemma-4-26b-a4b-it di Cloudflare Workers AI) untuk mengenali masakan Indonesia dan memperkirakan porsi serta kalori tiap item; pengguna dapat mengoreksi hasil sebelum disimpan. Pengguna juga bisa mengetik atau mengucapkan apa yang dimakan ("Ceritakan"); AI menghitung kalorinya dan menaruh tiap item di waktu makan dan hari yang tepat. Kalori dikalibrasi dengan Tabel Komposisi Pangan Indonesia (TKPI) 2019. Target harian dihitung dengan rumus Mifflin-St Jeor dari profil usia, jenis kelamin, tinggi, berat, dan tingkat aktivitas. Olahraga dapat diimpor dari Strava, tetapi Strava membatasi aplikasi ini di 10 atlet dan semua slot sedang terpakai (daftar tunggu: https://fit.joyorogo.com/strava). Foto asli tidak disimpan kecuali pengguna menyalakan "Simpan foto asli"; yang tersimpan adalah catatan yang dikonfirmasi pengguna dan stiker potongan tiap makanan.
 
-- Berjalan di web (https://joyorogo.com), Android, dan iPhone (beta publik lewat TestFlight; versi App Store 1.0 sedang menunggu review Apple); antarmuka dalam Bahasa Indonesia.
+- Berjalan di web (https://joyorogo.com), Android, dan iPhone (App Store: https://apps.apple.com/id/app/id6823222101); antarmuka dalam Bahasa Indonesia.
 - Login menggunakan akun Google.
 - Dibuat di Malang, Indonesia oleh Dzulfikar.
 - Halaman Bahasa Melayu untuk pembaca Malaysia: https://joyorogo.com/my (anggaran kalori hidangan Malaysia dari foto, nilai dirujuk pada jadual makanan Malaysia yang dinyatakan sumbernya; sumber terbuka AGPL-3.0, foto tidak disimpan; tiada pensijilan atau label halal).
