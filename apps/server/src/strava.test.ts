@@ -9,6 +9,7 @@ const ENV = {
   STRAVA_CLIENT_SECRET: "secret",
   STRAVA_CAPACITY: "3",
   STRAVA_PAID_RESERVE: "1",
+  STRAVA_RELEASE_KEY: "release-key",
 };
 const AUTH = { authorization: `Basic ${btoa("287873:secret")}` };
 
@@ -111,6 +112,31 @@ describe("Strava slots on the internal routes", () => {
       ],
     });
     expect(revoked).toEqual(["ref-2"]);
+    // STRAVA_RELEASE_KEY opens the release route only, and only with the right key.
+    expect(
+      (
+        await post(
+          "/internal/strava/release",
+          { athleteIds: ["1"], dryRun: true },
+          { "x-release-key": "nope" },
+        )
+      ).status,
+    ).toBe(401);
+    const keyed = await post(
+      "/internal/strava/release",
+      { athleteIds: ["1"], dryRun: true },
+      { "x-release-key": "release-key" },
+    );
+    expect((await keyed.json()).results[0]).toMatchObject({ athleteId: "1", outcome: "paid" });
+    expect(
+      (
+        await post(
+          "/internal/joyofit/strava/status",
+          { userId: "a" },
+          { "x-release-key": "release-key" },
+        )
+      ).status,
+    ).toBe(401);
     const status = await (await post("/internal/joyofit/strava/status", { userId: "a" })).json();
     expect(status).toMatchObject({
       connected: false,

@@ -38,6 +38,8 @@ declare module "cloudflare:workers" {
       STRAVA_CAPACITY?: string;
       STRAVA_PAID_RESERVE?: string;
       STRAVA_IDLE_DAYS?: string;
+      // Optional secret that also opens POST /internal/strava/release (header X-Release-Key).
+      STRAVA_RELEASE_KEY?: string;
       COACH_DAILY_CAP?: string;
       AI_COACH_MODEL?: string;
       JOYO_AI_DAILY_CAP?: string;

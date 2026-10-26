@@ -63,7 +63,9 @@ are spare**: the last slots are kept for paying users and idle free users give t
   - *Cron*: the server Worker's `*/5` tick runs `keepPaidReserve`: when fewer than `N` slots are free it releases idle
     free athletes, longest unused first, until `N` are free again (or nobody idle is left). One count query otherwise.
   - *By hand*: `POST https://api.joyorogo.com/internal/strava/release`, HTTP Basic with the Strava client id and secret
-    (the same credentials as the JoyoFit routes). `{ "athleteIds": [..] }` releases those athletes whatever their idle
+    (the same credentials as the JoyoFit routes), or the header `X-Release-Key: <STRAVA_RELEASE_KEY>` when that Worker
+    secret is set (`bunx wrangler secret put STRAVA_RELEASE_KEY` from `apps/server/`; the client secret is not kept
+    outside the Workers). `{ "athleteIds": [..] }` releases those athletes whatever their idle
     time; without ids it releases idle free athletes (`olderThanDays`, default `STRAVA_IDLE_DAYS`; `max`, default 1).
     `"dryRun": true` changes nothing. The answer lists per athlete `outcome` (`released`, `would_release`, `paid`,
     `not_found`), `revoked` (Strava confirmed), `users` and `lastUsedAt`.

@@ -16,7 +16,8 @@ import { RELEASE_MAX, releaseAthletes, releaseIdleFree, releaseNotice } from "@j
 import type { Database } from "@joyorogo/db";
 
 type Deps = {
-  env: StravaGrantEnv & StravaCapacityEnv;
+  /** STRAVA_RELEASE_KEY: optional secret that also opens the release route (`X-Release-Key`), for the owner, who does not hold the Strava client secret locally. */
+  env: StravaGrantEnv & StravaCapacityEnv & { STRAVA_RELEASE_KEY?: string };
   getDb: () => Database;
 };
 
@@ -68,7 +69,18 @@ export function registerStravaRoutes(app: Hono, deps: Deps) {
     await next();
   };
   app.use(`${prefix}/*`, requireAppCredentials);
-  app.use(releasePath, requireAppCredentials);
+  // The release route also opens with STRAVA_RELEASE_KEY (`X-Release-Key`), a Worker secret the owner can set with
+  // wrangler, since the Strava client secret lives only in the Workers.
+  app.use(releasePath, async (c, next) => {
+    const key = deps.env.STRAVA_RELEASE_KEY;
+    const given = c.req.header("x-release-key");
+    if (key && given !== undefined) {
+      if (!(await sameSecret(given, key))) return c.json({ error: "unauthorized" }, 401);
+      if (!stravaConfigured(deps.env)) return c.json({ error: "strava_not_configured" }, 503);
+      return next();
+    }
+    return requireAppCredentials(c, next);
+  });
 
   app.post(`${prefix}/status`, async (c) => {
     const body = userBody.safeParse(await c.req.json().catch(() => null));
