@@ -9,7 +9,6 @@
       "retry": "Gagal menghubungi Strava. Cuba lagi nanti.",
       "connectFirst": "Sambungkan Strava dahulu di halaman profil.",
       "expired": "Sambungan Strava telah tamat tempoh. Sambung semula di halaman profil.",
-      "slotsReserved": "Slot Strava penuh: slot yang tinggal disimpan untuk pengguna Pro. Catat senaman melalui Health Connect atau Apple Health, atau tambah secara manual di Senaman.",
       "slotsFull": "Slot Strava penuh: semua slot sedang digunakan. Cuba lagi nanti, atau catat senaman melalui Health Connect atau Apple Health, atau tambah secara manual di Senaman."
     },
     "workout": {

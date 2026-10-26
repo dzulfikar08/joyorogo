@@ -313,7 +313,7 @@ const NUMBERS: Array<{
     center: "300",
     unit: "kkal",
     title: "Harus bakar",
-    body: "Dari langkah dan olahraga. Di Android terbaca otomatis dari Health Connect, di iPhone dari Apple Health. Strava juga bisa disambung, gratis selama slot masih ada (slot terakhir disimpan untuk pengguna Pro). Mau catat manual juga bisa.",
+    body: "Dari langkah dan olahraga. Di Android terbaca otomatis dari Health Connect, di iPhone dari Apple Health. Strava juga bisa disambung, gratis selama slot masih ada. Mau catat manual juga bisa.",
   },
   {
     metric: "tidur",
@@ -824,9 +824,8 @@ function Landing() {
                   </span>
                   <span className="block text-sm text-muted-foreground">
                     Gratis selama slot masih ada; aktivitas masuk sebagai kalori terbakar. Strava
-                    membatasi aplikasi kami di 10 atlet: 3 slot terakhir disimpan untuk pengguna Pro,
-                    dan slot pengguna gratis yang lama tidak dipakai dilepas otomatis. Pengajuan untuk
-                    menaikkan batas sudah dikirim.{" "}
+                    membatasi aplikasi kami di 10 atlet, jadi kalau semua slot terpakai, sambungan
+                    baru menunggu slot kosong. Pengajuan untuk menaikkan batas sudah dikirim.{" "}
                     <a
                       href="https://fit.joyorogo.com/strava"
                       target="_blank"

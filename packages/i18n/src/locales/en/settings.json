@@ -429,10 +429,9 @@
     },
     "slots": {
       "fullTitle": "Strava slots full",
-      "reserved": "The remaining Strava slots are kept for Pro users. Without Strava, burned calories still come in through Health Connect (Android) or Apple Health (iPhone), or add workouts by hand in Exercise. With Pro you can connect Strava while any slot is free.",
       "full": "Every Strava slot is taken. Try again later. Meanwhile burned calories still come in through Health Connect (Android) or Apple Health (iPhone), or add workouts by hand in Exercise.",
       "releasedTitle": "Strava disconnected",
-      "released": "Slot released for Pro users: Strava on your account had not been used for a long time. Burned calories can still come in through Health Connect (Android) or Apple Health (iPhone), or add workouts by hand in Exercise."
+      "released": "Your Strava connection was released because it had not been used for a long time. If a slot is open, you can connect it again. Burned calories can also come in through Health Connect (Android) or Apple Health (iPhone), or add workouts by hand in Exercise."
     },
     "retention": {
       "text": "Under Strava's rules, activities imported from Strava are kept for only 7 days, then deleted automatically. Burned calories for older days no longer include them.",

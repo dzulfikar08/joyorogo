@@ -9,7 +9,6 @@
       "retry": "Couldn't reach Strava. Try again later.",
       "connectFirst": "Connect Strava first, from your profile.",
       "expired": "Your Strava connection expired. Reconnect it from your profile.",
-      "slotsReserved": "Strava slots full: the remaining slots are kept for Pro users. Log workouts through Health Connect or Apple Health, or add them by hand in Exercise.",
       "slotsFull": "Strava slots full: every slot is taken. Try again later, or log workouts through Health Connect or Apple Health, or add them by hand in Exercise."
     },
     "workout": {

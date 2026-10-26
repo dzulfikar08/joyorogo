@@ -9,8 +9,8 @@ import { exchangeCode } from "./strava-grant";
 import { scrubExpiredStravaRows, stravaRetentionCutoff } from "./strava-retention";
 
 const ENV = { STRAVA_CLIENT_ID: "287873", STRAVA_CLIENT_SECRET: "secret" };
-/** Slot rules are tested in strava-capacity.test.ts; here every grant fits. */
-const OPEN = { capacity: 10_000, reserve: 0, idleDays: 14 };
+/** The capacity is tested in strava-capacity.test.ts; here every grant fits. */
+const OPEN = 10_000;
 const DAY_MS = 86_400_000;
 
 const { client, db } = await d1TestDb();

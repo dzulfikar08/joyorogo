@@ -233,8 +233,8 @@ current feature set:
   branded pieces.
 - Strava: official "Connect with / Compatible with / Powered by Strava" artwork only, unmodified, never in stickers or as
   a headline; "kirim latihan ke Strava", not "pengganti Strava"; the athlete slots are limited (waitlist). Never say
-  "Strava gratis" flat: it is "gratis selama slot masih ada" (the last 3 of 10 slots are kept for Pro, idle free users are
-  released; free users without a slot upload by hand in JoyoFit), docs/strava.md "Capacity".
+  "Strava gratis" flat: it is "gratis selama slot masih ada; unggah manual selalu bisa", and never tie Strava to Pro or
+  paying (Strava API Policy 5.8), docs/strava.md "Capacity".
 - Health numbers (kcal from heart rate, fat and carb burn, Recovery, VO2max, sleep need, scale body composition) are
   "perkiraan, bukan alat medis". Hamil/Menyusui: estimates, "tanya dokter atau bidan", no weight-loss framing. Naikin
   BB: no "naik X kg" or muscle promises. Keluarga: consent-based, not an emergency or fall-detection system.

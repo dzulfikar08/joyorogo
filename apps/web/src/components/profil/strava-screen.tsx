@@ -64,7 +64,7 @@ export function StravaScreen() {
 
       {ready && !strava.connected && (strava.slotsFull || strava.released) && (
         <div className="mt-4 flex">
-          <StravaSlotsNotice slotsFull={strava.slotsFull} slotsReason={strava.slotsReason} released={strava.released} />
+          <StravaSlotsNotice slotsFull={strava.slotsFull} released={strava.released} />
         </div>
       )}
 

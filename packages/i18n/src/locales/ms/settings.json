@@ -458,10 +458,9 @@
     },
     "slots": {
       "fullTitle": "Slot Strava penuh",
-      "reserved": "Slot Strava yang tinggal disimpan untuk pengguna Pro. Tanpa Strava, kalori bakar masih masuk melalui Health Connect (Android) atau Apple Health (iPhone), atau tambah senaman secara manual di Senaman. Dengan Pro, anda boleh menyambungkan Strava selagi ada slot.",
       "full": "Semua slot Strava sedang digunakan. Cuba lagi nanti. Sementara itu kalori bakar masih masuk melalui Health Connect (Android) atau Apple Health (iPhone), atau tambah senaman secara manual di Senaman.",
       "releasedTitle": "Strava diputuskan",
-      "released": "Slot dilepaskan untuk pengguna Pro: Strava pada akaun anda sudah lama tidak digunakan. Kalori bakar masih boleh masuk melalui Health Connect (Android) atau Apple Health (iPhone), atau tambah senaman secara manual di Senaman."
+      "released": "Sambungan Strava anda dilepaskan kerana sudah lama tidak digunakan. Jika masih ada slot, anda boleh menyambungkannya semula. Kalori bakar juga boleh masuk melalui Health Connect (Android) atau Apple Health (iPhone), atau tambah senaman secara manual di Senaman."
     },
     "retention": {
       "text": "Mengikut peraturan Strava, senaman yang diimport daripada Strava hanya disimpan 7 hari, kemudian dipadam secara automatik. Kalori bakar untuk hari yang lebih lama tidak lagi merangkumkannya.",

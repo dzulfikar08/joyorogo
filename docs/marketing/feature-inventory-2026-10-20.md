@@ -52,7 +52,7 @@ Repo /home/dzul/Documents/JoyoDigitama/joyorogo. Free = Cloud free tier (3 AI sc
 | Tidur dari JoyoFit | Tidur tile/screen read JoyoFit sleep hours | Free | 10-19 | git 10-19 |
 | Profil hub NEW | Akun, Langganan, Target, Makan, Strava, Kesehatan, Pengingat, Tampilan, Privasi, Koneksi AI | - | 10-18 | landing card |
 | Health Connect / Apple Health | read steps, workouts, sleep; write meals as Nutrition (Android) | Free | 10-13/14 | git |
-| Strava | import; Strava API capacity 10 athletes, waitlist | Free while slots are spare (last 3 reserved for Pro, idle free users released; rule since 10-26) | 10-16 shared tokens | docs/strava.md; landing |
+| Strava | import; Strava API capacity 10 athletes, waitlist | Free while slots are spare (all plans alike; slots freed by hand) | 10-16 shared tokens | docs/strava.md; landing |
 | Widget Android | Progres Hari Ini, Kotak Masuk Grup, Ringkasan | Free | 10-13 | marketing-plan |
 | Bahasa ID + EN | full translation web + native | - | 10-17 | docs/i18n.md |
 | Pembaruan cepat (OTA) + banner Android | JS fixes without store | - | 10-17/18 | docs/ota.md |
@@ -78,7 +78,7 @@ Repo watch-fit. Android + iPhone, ID + EN, AGPL-3.0, "free forever"; Pro = JoyoR
 | Works without a watch | no-watch onboarding, strength-first Today, manual body-feel | Free | 10-18 | README |
 | Coach (Pro) | daily rule-based suggestion (no AI), run plans 5K/10K/HM/3x week, full-body plans, 100+ exercises w/ CC BY-SA wger images, "Tanya coach" chat (20 msg/day, not stored, not medical) | JoyoRogo Pro | 10-18 | docs/coach.md; site |
 | Cloud sync (Pro) | workouts, strength, gear, coach plan, prefs, templates, routes, health history; restore on new phone | Pro | 10-18 | docs/multi-device.md |
-| Strava | FIT upload with the watch's own numbers, gear linking; Strava capacity 10 athletes, waitlist /strava | Free while slots are spare (last 3 reserved for Pro; others: manual upload; rule since 10-26) | 10-18 | docs/strava.md |
+| Strava | FIT upload with the watch's own numbers, gear linking; Strava capacity 10 athletes, waitlist /strava | Free while slots are spare (all plans alike; manual upload when full) | 10-18 | docs/strava.md |
 | Gear (Sepatu & sepeda) | lifetime km, retire reminders 90/100% | Free (cloud Pro) | 10-18 | site |
 | Watch faces + Studio | install/preview/delete .hwt; photo face; modular faces (community PR #3 by David4rr); JoyoFit Studio browser editor (Fit 4 / Fit 4 Pro, 408x480); EN/ID + Pro cloud projects NEW 10-19 | Free (cloud projects Pro) | 10-17/19 | web/README.md |
 | Routes | GPX/TCX import, draw, send to watch (P2P push) | Free | 10-18 | git |
