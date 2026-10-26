@@ -63,12 +63,12 @@ export interface StreakWidgetModel {
 
 /** Pixel size of each pose's trimmed art in assets/widget/mascot, for the tile's aspect ratio (a test reads the files). */
 export const MASCOT_ART: Record<StreakPose, { width: number; height: number }> = {
-  cheer: { width: 115, height: 192 },
-  surprised: { width: 169, height: 192 },
-  determined: { width: 192, height: 184 },
-  sleepy: { width: 192, height: 162 },
-  ready: { width: 120, height: 192 },
-  relax: { width: 176, height: 192 },
+  cheer: { width: 192, height: 164 },
+  surprised: { width: 192, height: 188 },
+  determined: { width: 185, height: 192 },
+  sleepy: { width: 192, height: 153 },
+  ready: { width: 192, height: 182 },
+  relax: { width: 189, height: 192 },
 };
 
 /** A week without a log: Joyo has dozed off instead of giving the look. */

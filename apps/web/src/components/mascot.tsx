@@ -5,7 +5,9 @@ import { useTranslation } from "react-i18next";
 const POSES = [
   "alert",
   "cheer",
+  "curious",
   "determined",
+  "eating",
   "gas",
   "happy",
   "head",
@@ -15,10 +17,12 @@ const POSES = [
   "mantap",
   "on-it",
   "peek",
+  "proud",
   "ready",
   "relax",
   "sleepy",
   "surprised",
+  "thinking",
   "wink",
   "working",
 ] as const;
@@ -34,7 +38,7 @@ const SQUARE: Record<MascotSize, string> = {
   xl: "size-60 md:size-72",
 };
 
-// `peek` is a wide strip (881x384), so its size steps are widths.
+// `peek` is a wide strip (960x362), so its size steps are widths.
 const PEEK: Record<MascotSize, string> = {
   sm: "w-[120px]",
   md: "w-[200px]",
@@ -42,7 +46,7 @@ const PEEK: Record<MascotSize, string> = {
   xl: "w-[260px] md:w-[360px]",
 };
 
-// `hero` is tall (560x875): size steps are heights.
+// `hero` is tall (673x857): size steps are heights.
 const TALL: Record<MascotSize, string> = {
   sm: "h-24",
   md: "h-40",
@@ -51,8 +55,10 @@ const TALL: Record<MascotSize, string> = {
 };
 
 const INTRINSIC: Partial<Record<MascotPose, [number, number]>> = {
-  peek: [881, 384],
-  hero: [560, 875],
+  peek: [960, 362],
+  relax: [590, 600],
+  hero: [673, 857],
+  ready: [551, 523],
 };
 
 /** Joyo cut-out. Lazy by default; pass `eager` for above-the-fold art.

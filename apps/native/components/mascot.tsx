@@ -20,19 +20,19 @@ export type MascotPose = keyof typeof POSES;
 export type MascotSize = "sm" | "md" | "lg" | "xl";
 
 const SQUARE: Record<MascotSize, number> = { sm: 72, md: 120, lg: 176, xl: 240 };
-// `peek` is a wide strip (881x384): its size steps are widths.
+// `peek` is a wide strip (960x362): its size steps are widths.
 const PEEK_WIDTH: Record<MascotSize, number> = { sm: 120, md: 200, lg: 260, xl: 320 };
-// `hero` is tall (560x875): its size steps are heights.
+// `hero` is tall (673x857): its size steps are heights.
 const HERO_HEIGHT: Record<MascotSize, number> = { sm: 96, md: 160, lg: 240, xl: 320 };
 
 function dimensions(pose: MascotPose, size: MascotSize) {
   if (pose === "peek") {
     const width = PEEK_WIDTH[size];
-    return { width, height: Math.round((width * 384) / 881) };
+    return { width, height: Math.round((width * 362) / 960) };
   }
   if (pose === "hero") {
     const height = HERO_HEIGHT[size];
-    return { width: Math.round((height * 560) / 875), height };
+    return { width: Math.round((height * 673) / 857), height };
   }
   return { width: SQUARE[size], height: SQUARE[size] };
 }
