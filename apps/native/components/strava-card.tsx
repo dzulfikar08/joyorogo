@@ -51,6 +51,8 @@ export function StravaCard({ compact = false, headless = false }: { compact?: bo
       }
     } catch (e) {
       setActionError(errorMessage(e));
+      // A refused authorize or exchange (no Strava slot left) changes what the card shows.
+      void statusQuery.refetch();
     } finally {
       setBusy(false);
     }
@@ -83,6 +85,9 @@ export function StravaCard({ compact = false, headless = false }: { compact?: bo
     );
   } else if (statusQuery.data && !statusQuery.data.configured) {
     subtitle = t("strava.status.comingSoon");
+  } else if (statusQuery.data && !statusQuery.data.connected && statusQuery.data.slotsFull) {
+    // No Strava slot this user may take (docs/strava.md "Capacity"): the notice below says why and what else works.
+    subtitle = t("strava.slots.fullTitle");
   } else if (statusQuery.data && !statusQuery.data.connected) {
     subtitle = t("strava.status.connectHintNative");
     action = (
@@ -148,6 +153,17 @@ export function StravaCard({ compact = false, headless = false }: { compact?: bo
         </View>
       )}
       {action}
+      {statusQuery.data && !statusQuery.data.connected && statusQuery.data.released ? (
+        <Text style={styles.notice}>
+          <Text style={styles.noticeTitle}>{t("strava.slots.releasedTitle")}. </Text>
+          {t("strava.slots.released")}
+        </Text>
+      ) : null}
+      {statusQuery.data && !statusQuery.data.connected && statusQuery.data.slotsFull ? (
+        <Text style={styles.notice}>
+          {statusQuery.data.slotsReason === "full" ? t("strava.slots.full") : t("strava.slots.reserved")}
+        </Text>
+      ) : null}
       {statusQuery.data?.configured ? (
         compact ? (
           <Disclosure plain title={t("olahraga:strava.notesTitle")}>
@@ -203,5 +219,14 @@ const styles = StyleSheet.create((theme) => ({
   error: {
     fontSize: theme.fontSize.sm,
     color: theme.colors.destructive,
+  },
+  notice: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+    lineHeight: 19,
+  },
+  noticeTitle: {
+    fontWeight: "700",
+    color: theme.colors.foreground,
   },
 }));

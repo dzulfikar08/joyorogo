@@ -1,4 +1,4 @@
-import { ChevronDown, Clock, HeartPulse } from "lucide-react";
+import { ChevronDown, Clock, HeartPulse, Unplug, UsersRound } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@joyorogo/ui/components/button";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
@@ -32,7 +32,11 @@ export function useStrava() {
       onSuccess: ({ url }) => {
         window.location.href = url;
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => {
+        toast.error(error.message);
+        // A refused authorize (no Strava slot left) changes what the card should show.
+        queryClient.invalidateQueries({ queryKey: orpc.strava.key() });
+      },
     }),
   );
 
@@ -65,6 +69,11 @@ export function useStrava() {
     configured: status.data?.configured ?? false,
     connected: status.data?.connected ?? false,
     athleteId: status.data?.athleteId ?? null,
+    /** Not connected and no Strava slot this user may take (docs/strava.md "Capacity"). */
+    slotsFull: status.data?.slotsFull ?? false,
+    slotsReason: status.data?.slotsReason ?? null,
+    /** JoyoRogo released this user's idle Strava slot for paying users. */
+    released: Boolean(status.data?.released),
     /** Redirects the browser to the Strava OAuth page. */
     authorize: () =>
       authorize.mutate({
@@ -145,6 +154,37 @@ export function StravaRetentionNotes() {
   );
 }
 
+/**
+ * Why the user cannot connect (no slot left, or only the Pro reserve) and/or that JoyoRogo released their idle Strava
+ * slot, with the alternatives: Health Connect / Apple Health or adding workouts by hand.
+ */
+export function StravaSlotsNotice({ slotsFull, slotsReason, released }: { slotsFull: boolean; slotsReason: string | null; released: boolean }) {
+  const { t } = useTranslation("settings");
+  if (!slotsFull && !released) return null;
+  return (
+    <div role="status" className="basis-full space-y-2 rounded-2xl bg-muted p-3 text-xs leading-relaxed text-muted-foreground">
+      {released && (
+        <p className="flex items-start gap-2">
+          <Unplug className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>
+            <span className="font-bold text-foreground">{t("strava.slots.releasedTitle")}. </span>
+            {t("strava.slots.released")}
+          </span>
+        </p>
+      )}
+      {slotsFull && (
+        <p className="flex items-start gap-2">
+          <UsersRound className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>
+            <span className="font-bold text-foreground">{t("strava.slots.fullTitle")}. </span>
+            {slotsReason === "full" ? t("strava.slots.full") : t("strava.slots.reserved")}
+          </span>
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** Strava integration as one row-like card: status line + one main action. */
 export function StravaCard({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation(["settings", "common", "olahraga"]);
@@ -195,6 +235,8 @@ export function StravaCard({ compact = false }: { compact?: boolean }) {
         </Button>
       </>
     );
+  } else if (strava.slotsFull) {
+    note = t("strava.slots.fullTitle");
   } else {
     actions = <ConnectWithStravaButton onClick={strava.authorize} busy={strava.isAuthorizing} />;
   }
@@ -224,6 +266,9 @@ export function StravaCard({ compact = false }: { compact?: boolean }) {
         actions && (
           <div className="flex flex-wrap items-center gap-2">{actions}</div>
         )
+      )}
+      {showRetention && !strava.connected && (
+        <StravaSlotsNotice slotsFull={strava.slotsFull} slotsReason={strava.slotsReason} released={strava.released} />
       )}
       {showRetention &&
         (compact ? (

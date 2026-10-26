@@ -8,7 +8,9 @@
       "scopeMissing": "Izinkan JoyoRogo membaca aktivitasmu di halaman Strava, lalu hubungkan lagi.",
       "retry": "Gagal menghubungi Strava. Coba lagi nanti.",
       "connectFirst": "Hubungkan Strava dulu di halaman profil.",
-      "expired": "Sambungan Strava kedaluwarsa. Hubungkan ulang di halaman profil."
+      "expired": "Sambungan Strava kedaluwarsa. Hubungkan ulang di halaman profil.",
+      "slotsReserved": "Slot Strava penuh: slot yang tersisa disimpan untuk pengguna Pro. Catat olahraga lewat Health Connect atau Apple Health, atau tambah manual di Olahraga.",
+      "slotsFull": "Slot Strava penuh: semua slot sedang terpakai. Coba lagi nanti, atau catat olahraga lewat Health Connect atau Apple Health, atau tambah manual di Olahraga."
     },
     "workout": {
       "unknownExercise": "Gerakan tidak dikenal: {{id}}",

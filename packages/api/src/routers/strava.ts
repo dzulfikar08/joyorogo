@@ -10,6 +10,8 @@ import type { Context } from "../context";
 import { protectedProcedure } from "../index";
 import { serverT } from "../lib/messages";
 import { estimateKcal, metForStravaType } from "../lib/met";
+import { type SlotCheck, type SlotRefusal, slotCheck, stravaCapacity } from "../lib/strava-capacity";
+import { type StravaReleaseNotice, releaseNotice } from "../lib/strava-release";
 import { stravaRetentionCutoff } from "../lib/strava-retention";
 import { userZone } from "../lib/user-zone";
 import { weightLookup } from "../lib/weight-at";
@@ -63,8 +65,18 @@ function toOrpcError(error: unknown, locale: Locale): ORPCError<string, unknown>
         message: t("server.strava.scopeMissing"),
       });
     }
+    if (error.failure === "slots_full") return slotsFullError(locale, error.slotsReason ?? "full");
   }
   return new ORPCError("INTERNAL_SERVER_ERROR", { message: t("server.strava.retry"), cause: error });
+}
+
+/** No Strava slot for this user (lib/strava-capacity.ts): the client shows the slots-full state from `data`. */
+function slotsFullError(locale: Locale, reason: SlotRefusal): ORPCError<string, unknown> {
+  const t = serverT(locale, "olahraga");
+  return new ORPCError("FORBIDDEN", {
+    message: t(reason === "full" ? "server.strava.slotsFull" : "server.strava.slotsReserved"),
+    data: { slotsFull: true, slotsReason: reason },
+  });
 }
 
 async function getValidToken(context: AuthedContext): Promise<string> {
@@ -90,10 +102,22 @@ export const stravaRouter = {
     // Nothing imported from Strava outlives the connection (Strava API policy), including when the
     // grant ended elsewhere (deauthorized on strava.com, refused refresh token).
     if (!status.connected) await deleteImportedActivities(context.db, userId);
+    // Not connected: may this user take a slot of the shared application (docs/strava.md "Capacity"), and did
+    // JoyoRogo release their last one?
+    const [slots, released]: [SlotCheck, StravaReleaseNotice | null] =
+      configured && !status.connected
+        ? await Promise.all([
+            slotCheck(context.db, userId, stravaCapacity(context.env)),
+            releaseNotice(context.db, userId),
+          ])
+        : [{ slotsFull: false }, null];
     return {
       configured,
       connected: status.connected,
       athleteId: status.athleteId,
+      slotsFull: slots.slotsFull,
+      slotsReason: slots.slotsReason,
+      released: released ?? undefined,
     };
   }),
 
@@ -101,6 +125,8 @@ export const stravaRouter = {
     .input(z.object({ redirectUri: z.string().url() }))
     .handler(async ({ context, input }) => {
       requireStravaConfig(context);
+      const slots = await slotCheck(context.db, context.session.user.id, stravaCapacity(context.env));
+      if (slots.slotsFull) throw slotsFullError(context.locale, slots.slotsReason ?? "full");
       const { requestedScope: scope } = await grantStatus(context.db, context.session.user.id, "rogo");
       const url = new URL("https://www.strava.com/oauth/authorize");
       url.searchParams.set("client_id", context.env.STRAVA_CLIENT_ID ?? "");
@@ -122,6 +148,7 @@ export const stravaRouter = {
           userId: context.session.user.id,
           product: "rogo",
           code: input.code,
+          capacity: stravaCapacity(context.env),
         });
         return { connected: true, athleteId };
       } catch (error) {

@@ -456,6 +456,13 @@
     "error": {
       "noCode": "Strava tidak memulangkan kod kebenaran."
     },
+    "slots": {
+      "fullTitle": "Slot Strava penuh",
+      "reserved": "Slot Strava yang tinggal disimpan untuk pengguna Pro. Tanpa Strava, kalori bakar masih masuk melalui Health Connect (Android) atau Apple Health (iPhone), atau tambah senaman secara manual di Senaman. Dengan Pro, anda boleh menyambungkan Strava selagi ada slot.",
+      "full": "Semua slot Strava sedang digunakan. Cuba lagi nanti. Sementara itu kalori bakar masih masuk melalui Health Connect (Android) atau Apple Health (iPhone), atau tambah senaman secara manual di Senaman.",
+      "releasedTitle": "Strava diputuskan",
+      "released": "Slot dilepaskan untuk pengguna Pro: Strava pada akaun anda sudah lama tidak digunakan. Kalori bakar masih boleh masuk melalui Health Connect (Android) atau Apple Health (iPhone), atau tambah senaman secara manual di Senaman."
+    },
     "retention": {
       "text": "Mengikut peraturan Strava, senaman yang diimport daripada Strava hanya disimpan 7 hari, kemudian dipadam secara automatik. Kalori bakar untuk hari yang lebih lama tidak lagi merangkumkannya.",
       "healthAlternative": "Supaya kalori bakar kekal tersimpan, guna Health Connect di Android atau Apple Health di iPhone melalui aplikasi JoyoRogo. Banyak aplikasi senaman dan jam boleh menulis latihan ke sana, contohnya Strava, Garmin, Samsung Health, dan JoyoFit untuk jam Huawei. Semak tetapan setiap aplikasi.",

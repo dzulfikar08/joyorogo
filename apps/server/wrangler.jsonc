@@ -107,6 +107,11 @@
     // The JoyoFit cloud API that /api/fit/* (the JoyoFit web app) forwards to.
     "JOYOFIT_API_URL": "https://api.fit.joyorogo.com",
     "FREE_DAILY_SCANS": "3",
+    // Strava application slots shared with JoyoFit (docs/strava.md "Capacity"): athletes Strava allows, slots kept for
+    // paying users (a free user connects only while more are free), days without token use before an idle free user is released.
+    "STRAVA_CAPACITY": "10",
+    "STRAVA_PAID_RESERVE": "3",
+    "STRAVA_IDLE_DAYS": "14",
     // Coach chat (docs/coach.md): messages per user per WIB day; "0" turns it off. Optional AI_COACH_MODEL overrides the model.
     "COACH_DAILY_CAP": "20",
     // Joyo AI hosted chat (Pro; packages/api/src/lib/joyo-ai/server-limit.ts): messages per user per local day; "0" turns it off. Optional AI_JOYO_MODEL overrides the model (unset = AI_COACH_MODEL, AI_CORRECT_MODEL, then the default text model).

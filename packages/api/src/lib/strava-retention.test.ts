@@ -9,6 +9,8 @@ import { exchangeCode } from "./strava-grant";
 import { scrubExpiredStravaRows, stravaRetentionCutoff } from "./strava-retention";
 
 const ENV = { STRAVA_CLIENT_ID: "287873", STRAVA_CLIENT_SECRET: "secret" };
+/** Slot rules are tested in strava-capacity.test.ts; here every grant fits. */
+const OPEN = { capacity: 10_000, reserve: 0, idleDays: 14 };
 const DAY_MS = 86_400_000;
 
 const { client, db } = await d1TestDb();
@@ -122,7 +124,7 @@ describe("sync after a scrub", () => {
     const userId = await newUser();
     const t0 = Date.now();
     setSystemTime(new Date(t0));
-    await exchangeCode(db, ENV, { userId, product: "rogo", code: "c", callbackScope: "read,activity:read_all" });
+    await exchangeCode(db, ENV, { userId, product: "rogo", code: "c", callbackScope: "read,activity:read_all", capacity: OPEN });
     const ctx = { db, env: ENV, waitUntil: () => {}, session: { user: { id: userId } } } as unknown as Context;
     const sync = () => call(stravaRouter.sync, undefined, { context: ctx });
 

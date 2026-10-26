@@ -223,7 +223,10 @@ function PrivasiPage() {
               Izinnya dicabut di Strava hanya kalau JoyoFit juga tidak memakainya; kalau masih
               dipakai, sambungan JoyoFit tetap jalan. Kalau kamu mencabut aplikasi di strava.com
               (Pengaturan, Aplikasi Saya), semua token dan semua olahraga hasil impor Strava ikut
-              terhapus. Menghapus data atau akunmu mencabut izin Strava sepenuhnya. JoyoRogo tidak
+              terhapus. Slot Strava terbatas: kalau sambunganmu (akun gratis) lama tidak dipakai
+              dan slotnya dibutuhkan untuk pengguna Pro, kami mencabut izinnya di Strava dan menghapus
+              token serta olahraga hasil impor Strava, lalu memberitahumu di halaman Strava.
+              Menghapus data atau akunmu mencabut izin Strava sepenuhnya. JoyoRogo tidak
               memakai data Strava untuk iklan atau analitik, dan tidak menjualnya.
             </p>
           </section>

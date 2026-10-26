@@ -8,6 +8,7 @@ import {
   ConnectWithStravaButton,
   PoweredByStrava,
   StravaRetentionNotes,
+  StravaSlotsNotice,
   useStrava,
 } from "@/components/strava-card";
 
@@ -42,6 +43,8 @@ export function StravaScreen() {
         {strava.isSyncing ? t("strava.action.syncing") : t("strava.action.sync")}
       </Button>
     );
+  } else if (strava.slotsFull) {
+    status = t("strava.slots.fullTitle");
   } else {
     status = t("strava.status.idle");
   }
@@ -59,7 +62,13 @@ export function StravaScreen() {
         />
       </ListGroup>
 
-      {ready && !strava.connected && (
+      {ready && !strava.connected && (strava.slotsFull || strava.released) && (
+        <div className="mt-4 flex">
+          <StravaSlotsNotice slotsFull={strava.slotsFull} slotsReason={strava.slotsReason} released={strava.released} />
+        </div>
+      )}
+
+      {ready && !strava.connected && !strava.slotsFull && (
         <div className="mt-4 flex justify-center">
           <ConnectWithStravaButton onClick={strava.authorize} busy={strava.isAuthorizing} />
         </div>

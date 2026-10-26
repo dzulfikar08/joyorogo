@@ -416,6 +416,13 @@
     "error": {
       "noCode": "Strava tidak mengembalikan kode otorisasi."
     },
+    "slots": {
+      "fullTitle": "Slot Strava penuh",
+      "reserved": "Slot Strava yang tersisa disimpan untuk pengguna Pro. Tanpa Strava, kalori bakar tetap masuk lewat Health Connect (Android) atau Apple Health (iPhone), atau tambah latihan manual di Olahraga. Dengan Pro, kamu bisa menyambungkan Strava selama masih ada slot.",
+      "full": "Semua slot Strava sedang terpakai. Coba lagi nanti. Sementara itu kalori bakar tetap masuk lewat Health Connect (Android) atau Apple Health (iPhone), atau tambah latihan manual di Olahraga.",
+      "releasedTitle": "Strava diputuskan",
+      "released": "Slot dilepas untuk pengguna Pro: Strava di akunmu lama tidak dipakai. Kalori bakar tetap bisa masuk lewat Health Connect (Android) atau Apple Health (iPhone), atau tambah latihan manual di Olahraga."
+    },
     "retention": {
       "text": "Sesuai aturan Strava, olahraga yang diimpor dari Strava hanya disimpan 7 hari, lalu dihapus otomatis. Kalori bakar untuk hari yang lebih lama tidak lagi menyertakannya.",
       "healthAlternative": "Biar kalori bakar tetap tersimpan, pakai Health Connect di Android atau Apple Health di iPhone lewat aplikasi JoyoRogo. Banyak aplikasi olahraga dan jam bisa menulis latihan ke sana, misalnya Strava, Garmin, Samsung Health, dan JoyoFit untuk jam Huawei. Cek pengaturan tiap aplikasi.",
