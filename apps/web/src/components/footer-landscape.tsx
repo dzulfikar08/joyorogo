@@ -8,7 +8,9 @@
  * transparent so the dark sky fades out of the page background in both themes.
  */
 
-const SIZES = "100vw";
+// Below 640 px the height stays at 240 px, so object-cover draws the image 640 px wide (240 x 1568/588), wider than
+// the viewport; from 640 px up the height is 37.5vw and the image is exactly the viewport wide.
+const SIZES = "(max-width: 640px) 640px, 100vw";
 const srcSet = (ext: string) =>
   `/landing/footer-cat-800.${ext} 800w, /landing/footer-cat-1568.${ext} 1568w`;
 
