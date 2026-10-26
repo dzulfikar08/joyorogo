@@ -72,5 +72,6 @@ deep-green radial gradient (`#2c9452` → `#157040` → `#083a25`), and from the
 | `apps/web/public/icons/icon-{192,512}.png` | PWA `any` icons, rounded tile (palette PNG) |
 | `apps/web/public/icons/icon-maskable-512.png`, `apple-touch-icon.png` | full-bleed square (palette PNG) |
 
-The in-page logo (`apps/web/public/brand/logo-mark.svg`, the JR mark) is unchanged; the web pages no longer
-use it as the tab icon.
+The public site's logo (landing header and footer, `/my`, `/sg`, blog header) is `apps/web/public/brand/joyo-head.webp`:
+`head.png` trimmed, 96 px tall (104×96), shown at 28–32 px. The JR mark (`apps/web/public/brand/logo-mark.svg`) is still the
+logo inside the signed-in app, onboarding, invite and AI-connection pages, the admin site and the unsubscribe page.

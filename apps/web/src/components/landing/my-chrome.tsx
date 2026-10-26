@@ -67,7 +67,7 @@ export function HeaderMy({ legal }: { legal?: LegalLang } = {}) {
           aria-label="JoyoRogo, ke permulaan halaman"
           className={cn("flex items-center gap-2 rounded-full", FOCUS)}
         >
-          <img src="/brand/logo-mark.svg" alt="" className="h-7 w-auto md:h-8" />
+          <img src="/brand/joyo-head.webp" alt="" width={104} height={96} className="h-7 w-auto md:h-8" />
           <span className="text-lg font-extrabold tracking-tight">JoyoRogo</span>
         </a>
         <nav aria-label="Utama" className="hidden items-center gap-1 md:flex">
@@ -138,7 +138,7 @@ export function FooterMy({ legal }: { legal?: LegalLang } = {}) {
       <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 pt-12 pb-6 md:grid-cols-[1.4fr_1fr_1fr] md:px-6">
         <div className="max-w-sm">
           <p className="flex items-center gap-2 text-lg font-extrabold tracking-tight">
-            <img src="/brand/logo-mark.svg" alt="" className="h-7 w-auto" />
+            <img src="/brand/joyo-head.webp" alt="" width={104} height={96} className="h-7 w-auto" />
             JoyoRogo
           </p>
           {en ? (

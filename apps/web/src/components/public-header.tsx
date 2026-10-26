@@ -33,7 +33,7 @@ export function PublicHeader() {
           aria-label="JoyoRogo, ke halaman utama"
           className="flex items-center gap-2 rounded-full focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
         >
-          <img src="/brand/logo-mark.svg" alt="" className="h-7 w-auto md:h-8" />
+          <img src="/brand/joyo-head.webp" alt="" width={104} height={96} className="h-7 w-auto md:h-8" />
           <span className="text-lg font-extrabold tracking-tight">JoyoRogo</span>
         </Link>
         <nav aria-label="Utama" className="hidden items-center gap-1 md:flex">

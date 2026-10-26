@@ -391,7 +391,7 @@ ${opts.jsonLd.map((data) => `    <script type="application/ld+json">${JSON.strin
     <header class="border-b border-border/70">
       <div class="mx-auto flex h-14 max-w-3xl items-center justify-between gap-4 px-4 md:h-16">
         <a href="/" aria-label="JoyoRogo, ke halaman utama" class="flex items-center gap-2 rounded-full ${FOCUS}">
-          <img src="/brand/logo-mark.svg" alt="" width="25" height="28" class="h-7 w-auto" />
+          <img src="/brand/joyo-head.webp" alt="" width="30" height="28" class="h-7 w-auto" />
           <span class="text-lg font-extrabold tracking-tight">JoyoRogo</span>
         </a>
         <nav aria-label="Utama" class="flex items-center gap-1">

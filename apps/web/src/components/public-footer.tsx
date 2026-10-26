@@ -39,7 +39,7 @@ export function PublicFooter() {
       <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-x-6 gap-y-8 px-4 pt-14 pb-4 md:grid-cols-[1.4fr_1fr_1fr_1fr] md:gap-10 md:px-6">
         <div className="col-span-2 max-w-sm md:col-span-1">
           <p className="flex items-center gap-2 text-lg font-extrabold tracking-tight">
-            <img src="/brand/logo-mark.svg" alt="" className="h-7 w-auto" />
+            <img src="/brand/joyo-head.webp" alt="" width={104} height={96} className="h-7 w-auto" />
             JoyoRogo
           </p>
           <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
