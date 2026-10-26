@@ -64,8 +64,6 @@ import { registerUnsubscribeRoutes } from "./unsubscribe";
 import { registerFitProxy } from "./fit-proxy";
 import { registerWatchWorkoutRoutes } from "./watch-workout";
 import { sweepMcp } from "@joyorogo/api/lib/mcp-connections";
-import { stravaCapacity } from "@joyorogo/api/lib/strava-capacity";
-import { keepPaidReserve } from "@joyorogo/api/lib/strava-release";
 import { scrubExpiredStravaRows } from "@joyorogo/api/lib/strava-retention";
 import { env } from "./env.server";
 import { createAuth, getDb } from "./services";
@@ -858,14 +856,6 @@ export default {
     ctx.waitUntil(billing.reconcilePending());
     ctx.waitUntil(billing.runEmails());
     ctx.waitUntil(runStravaRetention());
-    // Strava slots (lib/strava-release, docs/strava.md "Capacity"): while fewer than STRAVA_PAID_RESERVE slots of the
-    // shared application are free, idle free users (no token use for STRAVA_IDLE_DAYS) are released, oldest use first.
-    // One count query when nothing is needed; every release is logged.
-    ctx.waitUntil(
-      keepPaidReserve(getDb(), env, stravaCapacity(env)).catch((error: unknown) =>
-        console.error("[strava] reserve failed", error),
-      ),
-    );
     ctx.waitUntil(
       runMcpSweep().catch((error: unknown) => console.error("[mcp] sweep failed", error)),
     );

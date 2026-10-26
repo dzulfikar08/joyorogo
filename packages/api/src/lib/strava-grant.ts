@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { Database } from "@joyorogo/db";
 import { D1_MAX_PARAMS, chunk } from "./d1";
 import { exerciseLog, stravaAccount, stravaRelease } from "@joyorogo/db/schema/fitness";
-import { type SlotRefusal, type StravaCapacity, connectedAthletes, isPaidUser, slotRefusal } from "./strava-capacity";
+import { connectedAthletes } from "./strava-capacity";
 
 /**
  * The Strava grant of one user, shared by JoyoRogo (reads activities) and JoyoFit (uploads workouts). The two
@@ -46,13 +46,10 @@ export type StravaGrantFailure = "rejected" | "unavailable" | "scope_missing" | 
 
 /**
  * `rejected`: Strava refused the code (used, expired, wrong app). `unavailable`: Strava or the network failed.
- * `slots_full`: the application has no slot this user may take (lib/strava-capacity.ts); `slotsReason` says why.
+ * `slots_full`: every slot of the Strava application is taken (lib/strava-capacity.ts).
  */
 export class StravaGrantError extends Error {
-  constructor(
-    readonly failure: StravaGrantFailure,
-    readonly slotsReason?: SlotRefusal,
-  ) {
+  constructor(readonly failure: StravaGrantFailure) {
     super(failure);
   }
 }
@@ -148,14 +145,13 @@ export async function grantStatus(db: Database, userId: string, product: StravaP
 /**
  * Exchanges the authorization code and links `product` to the user. A grant that lacks the scope the product needs
  * (the athlete unchecked it on Strava's page) is revoked unless a row already exists, in which case that row is left
- * untouched: the other product's connection is not ours to damage. A grant that would take a new slot the user may
- * not have (`slotRefusal`: the application is full, or only the paying-user reserve is left for a free user) is
- * revoked at once, so it never occupies a slot.
+ * untouched: the other product's connection is not ours to damage. A grant that would take a new slot when every slot
+ * is taken is revoked at once, so it never occupies one.
  */
 export async function exchangeCode(
   db: Database,
   env: StravaGrantEnv,
-  input: { userId: string; product: StravaProduct; code: string; callbackScope?: string; capacity: StravaCapacity },
+  input: { userId: string; product: StravaProduct; code: string; callbackScope?: string; capacity: number },
 ): Promise<{ athleteId: string; scope: string }> {
   if (!stravaConfigured(env)) throw new StravaGrantError("unavailable");
   const response = await tokenRequest(env, { grant_type: "authorization_code", code: input.code });
@@ -187,16 +183,12 @@ export async function exchangeCode(
       .from(stravaAccount)
       .where(eq(stravaAccount.athleteId, athleteId))
       .limit(1);
-    if (!held) {
-      const [paid, connected] = await Promise.all([isPaidUser(db, input.userId), connectedAthletes(db)]);
-      const refusal = slotRefusal(paid, connected, input.capacity);
-      if (refusal) {
-        const revoked = await revoke(env, token.refresh_token);
-        console.log(
-          JSON.stringify({ event: "strava_slot_refused", userId: input.userId, athleteId, product: input.product, reason: refusal, revoked }),
-        );
-        throw new StravaGrantError("slots_full", refusal);
-      }
+    if (!held && (await connectedAthletes(db)) >= input.capacity) {
+      const revoked = await revoke(env, token.refresh_token);
+      console.log(
+        JSON.stringify({ event: "strava_slot_refused", userId: input.userId, athleteId, product: input.product, revoked }),
+      );
+      throw new StravaGrantError("slots_full");
     }
   }
   const now = new Date();

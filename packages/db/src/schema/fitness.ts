@@ -323,7 +323,7 @@ export const stravaRelease = sqliteTable("strava_release", {
     .primaryKey()
     .references(() => user.id, { onDelete: "cascade" }),
   athleteId: text("athlete_id").notNull(),
-  // 'released_for_pro': an idle free user's slot went back to the paying-user reserve.
+  // 'idle': the owner released a connection that went unused (lib/strava-release.ts).
   reason: text("reason").notNull(),
   // Strava confirmed the revoke (oauth/revoke answered 2xx).
   revoked: integer("revoked", { mode: "boolean" }).notNull(),

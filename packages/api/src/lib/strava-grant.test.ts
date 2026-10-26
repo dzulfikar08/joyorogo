@@ -15,8 +15,8 @@ import {
 } from "./strava-grant";
 
 const ENV = { STRAVA_CLIENT_ID: "287873", STRAVA_CLIENT_SECRET: "secret" };
-/** Slot rules are tested in strava-capacity.test.ts; here every grant fits. */
-const OPEN = { capacity: 10_000, reserve: 0, idleDays: 14 };
+/** The capacity is tested in strava-capacity.test.ts; here every grant fits. */
+const OPEN = 10_000;
 const ATHLETE = 4242;
 
 const { client, db } = await d1TestDb();

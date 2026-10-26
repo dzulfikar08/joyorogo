@@ -11,8 +11,8 @@ import {
   stravaConfigured,
   type StravaGrantEnv,
 } from "@joyorogo/api/lib/strava-grant";
-import { type StravaCapacityEnv, slotCheck, stravaCapacity } from "@joyorogo/api/lib/strava-capacity";
-import { RELEASE_MAX, releaseAthletes, releaseIdleFree, releaseNotice } from "@joyorogo/api/lib/strava-release";
+import { type StravaCapacityEnv, slotsFull, stravaCapacity } from "@joyorogo/api/lib/strava-capacity";
+import { RELEASE_MAX, releaseAthletes, releasedAt } from "@joyorogo/api/lib/strava-release";
 import type { Database } from "@joyorogo/db";
 
 type Deps = {
@@ -28,11 +28,8 @@ const exchangeBody = userBody.extend({
 });
 const athleteId = z.union([z.number().int().positive(), z.string().regex(/^\d+$/)]);
 const athleteBody = z.object({ athleteId });
-// Named athletes are released whether idle or not; without them the idle free athletes are, oldest use first.
 const releaseBody = z.object({
-  athleteIds: z.array(athleteId).min(1).max(RELEASE_MAX).optional(),
-  olderThanDays: z.number().int().min(1).optional(),
-  max: z.number().int().min(1).max(RELEASE_MAX).optional(),
+  athleteIds: z.array(athleteId).min(1).max(RELEASE_MAX),
   dryRun: z.boolean().optional(),
 });
 
@@ -87,19 +84,18 @@ export function registerStravaRoutes(app: Hono, deps: Deps) {
     if (!body.success) return c.json({ error: "invalid_body" }, 400);
     const db = deps.getDb();
     const status = await grantStatus(db, body.data.userId, "fit");
-    // Not connected: whether a slot of the shared application is open to this user, and whether JoyoRogo released
-    // the last one (docs/strava.md "Capacity"). JoyoFit shows the slots-full state instead of the connect button.
-    const [slots, released] = status.connected
-      ? [undefined, null]
-      : await Promise.all([slotCheck(db, body.data.userId, stravaCapacity(deps.env)), releaseNotice(db, body.data.userId)]);
+    // Not connected: whether every slot of the shared application is taken, and whether the owner released this
+    // user's unused connection (docs/strava.md "Capacity"). JoyoFit shows the slots-full state instead of the button.
+    const [full, released] = status.connected
+      ? ([false, null] as const)
+      : await Promise.all([slotsFull(db, body.data.userId, stravaCapacity(deps.env)), releasedAt(db, body.data.userId)]);
     return c.json({
       connected: status.connected,
       athleteId: status.athleteId === undefined ? undefined : Number(status.athleteId),
       connectedAt: status.connectedAt && Math.floor(status.connectedAt.getTime() / 1000),
       requestedScope: status.requestedScope,
-      slotsFull: slots?.slotsFull ?? false,
-      slotsReason: slots?.slotsReason,
-      released: released ? { at: Math.floor(released.at.getTime() / 1000), reason: released.reason } : undefined,
+      slotsFull: full,
+      released: released ? { at: Math.floor(released.getTime() / 1000) } : undefined,
     });
   });
 
@@ -116,7 +112,7 @@ export function registerStravaRoutes(app: Hono, deps: Deps) {
     } catch (error) {
       if (!(error instanceof StravaGrantError)) throw error;
       // The just-granted token was already revoked: it never holds a slot.
-      if (error.failure === "slots_full") return c.json({ error: "slots_full", reason: error.slotsReason ?? "full" }, 409);
+      if (error.failure === "slots_full") return c.json({ error: "slots_full" }, 409);
       return c.json({ error: error.failure }, error.failure === "unavailable" ? 502 : 422);
     }
   });
@@ -152,22 +148,15 @@ export function registerStravaRoutes(app: Hono, deps: Deps) {
   });
 
   /**
-   * The owner's lever on Strava slots (docs/strava.md "Capacity"): `{ athleteIds }` releases those athletes, otherwise
-   * idle free athletes go (`olderThanDays`, default STRAVA_IDLE_DAYS; `max`, default 1). Paying users never. `dryRun`
-   * answers what would happen. Same credentials as the JoyoFit routes. Answers Strava's revoke result per athlete.
+   * The owner's manual tool for Strava slots (docs/strava.md "Capacity"): `{ athleteIds }` releases those athletes
+   * (`dryRun` answers what would happen). Answers Strava's revoke result per athlete. Nothing releases by itself.
    */
   app.post(releasePath, async (c) => {
     const body = releaseBody.safeParse(await c.req.json().catch(() => null));
     if (!body.success) return c.json({ error: "invalid_body" }, 400);
-    const { athleteIds, olderThanDays, max, dryRun } = body.data;
-    const db = deps.getDb();
-    const results = athleteIds
-      ? await releaseAthletes(db, deps.env, athleteIds.map(String), { dryRun })
-      : await releaseIdleFree(db, deps.env, {
-          olderThanDays: olderThanDays ?? stravaCapacity(deps.env).idleDays,
-          max: max ?? 1,
-          dryRun,
-        });
+    const results = await releaseAthletes(deps.getDb(), deps.env, body.data.athleteIds.map(String), {
+      dryRun: body.data.dryRun,
+    });
     return c.json({ results });
   });
 }

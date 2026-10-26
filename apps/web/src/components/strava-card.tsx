@@ -69,11 +69,10 @@ export function useStrava() {
     configured: status.data?.configured ?? false,
     connected: status.data?.connected ?? false,
     athleteId: status.data?.athleteId ?? null,
-    /** Not connected and no Strava slot this user may take (docs/strava.md "Capacity"). */
+    /** Not connected and every Strava slot is taken (docs/strava.md "Capacity"). */
     slotsFull: status.data?.slotsFull ?? false,
-    slotsReason: status.data?.slotsReason ?? null,
-    /** JoyoRogo released this user's idle Strava slot for paying users. */
-    released: Boolean(status.data?.released),
+    /** The owner released this user's unused Strava connection. */
+    released: status.data?.released ?? false,
     /** Redirects the browser to the Strava OAuth page. */
     authorize: () =>
       authorize.mutate({
@@ -155,10 +154,10 @@ export function StravaRetentionNotes() {
 }
 
 /**
- * Why the user cannot connect (no slot left, or only the Pro reserve) and/or that JoyoRogo released their idle Strava
- * slot, with the alternatives: Health Connect / Apple Health or adding workouts by hand.
+ * Why the user cannot connect (every slot is taken) and/or that their unused Strava connection was released, with the
+ * alternatives: Health Connect / Apple Health or adding workouts by hand.
  */
-export function StravaSlotsNotice({ slotsFull, slotsReason, released }: { slotsFull: boolean; slotsReason: string | null; released: boolean }) {
+export function StravaSlotsNotice({ slotsFull, released }: { slotsFull: boolean; released: boolean }) {
   const { t } = useTranslation("settings");
   if (!slotsFull && !released) return null;
   return (
@@ -177,7 +176,7 @@ export function StravaSlotsNotice({ slotsFull, slotsReason, released }: { slotsF
           <UsersRound className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span>
             <span className="font-bold text-foreground">{t("strava.slots.fullTitle")}. </span>
-            {slotsReason === "full" ? t("strava.slots.full") : t("strava.slots.reserved")}
+            {t("strava.slots.full")}
           </span>
         </p>
       )}
@@ -268,7 +267,7 @@ export function StravaCard({ compact = false }: { compact?: boolean }) {
         )
       )}
       {showRetention && !strava.connected && (
-        <StravaSlotsNotice slotsFull={strava.slotsFull} slotsReason={strava.slotsReason} released={strava.released} />
+        <StravaSlotsNotice slotsFull={strava.slotsFull} released={strava.released} />
       )}
       {showRetention &&
         (compact ? (

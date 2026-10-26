@@ -56,10 +56,6 @@ export type ApiEnv = PaywallEnv & ShadowEnv & {
   STRAVA_CLIENT_SECRET?: string;
   /** Strava application slots (lib/strava-capacity.ts, docs/strava.md "Capacity"): athlete capacity, default 10. */
   STRAVA_CAPACITY?: string;
-  /** Slots kept for paying users, default 3. */
-  STRAVA_PAID_RESERVE?: string;
-  /** Days without token use before an idle free user's grant may be released, default 14. */
-  STRAVA_IDLE_DAYS?: string;
   /** COROS MCP OAuth public client (docs/coros.md); unset = COROS shows "Segera hadir". Registered with scripts/coros-register-client.ts. */
   COROS_CLIENT_ID?: string;
   /** Comma-separated user ids that get COROS (lib/coros-grant.ts corosEnabled), or `*` for everyone. Unset or empty = nobody. */

@@ -161,7 +161,7 @@ export function StravaCard({ compact = false, headless = false }: { compact?: bo
       ) : null}
       {statusQuery.data && !statusQuery.data.connected && statusQuery.data.slotsFull ? (
         <Text style={styles.notice}>
-          {statusQuery.data.slotsReason === "full" ? t("strava.slots.full") : t("strava.slots.reserved")}
+          {t("strava.slots.full")}
         </Text>
       ) : null}
       {statusQuery.data?.configured ? (

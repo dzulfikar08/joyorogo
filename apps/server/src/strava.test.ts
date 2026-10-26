@@ -7,8 +7,7 @@ import { registerStravaRoutes } from "./strava";
 const ENV = {
   STRAVA_CLIENT_ID: "287873",
   STRAVA_CLIENT_SECRET: "secret",
-  STRAVA_CAPACITY: "3",
-  STRAVA_PAID_RESERVE: "1",
+  STRAVA_CAPACITY: "2",
   STRAVA_RELEASE_KEY: "release-key",
 };
 const AUTH = { authorization: `Basic ${btoa("287873:secret")}` };
@@ -71,13 +70,10 @@ afterEach(() => {
 });
 
 describe("Strava slots on the internal routes", () => {
-  test("status tells a free user the reserve is all that is left", async () => {
+  test("status says every slot is taken to a user without one, and nothing about plans", async () => {
     const body = await (await post("/internal/joyofit/strava/status", { userId: "new" })).json();
-    expect(body).toMatchObject({
-      connected: false,
-      slotsFull: true,
-      slotsReason: "reserved_for_paid",
-    });
+    expect(body).toMatchObject({ connected: false, slotsFull: true });
+    expect(body).not.toHaveProperty("slotsReason");
     expect(
       await (await post("/internal/joyofit/strava/status", { userId: "a" })).json(),
     ).toMatchObject({ connected: true, slotsFull: false });
@@ -90,13 +86,14 @@ describe("Strava slots on the internal routes", () => {
       callbackScope: "activity:write",
     });
     expect(response.status).toBe(409);
-    expect(await response.json()).toEqual({ error: "slots_full", reason: "reserved_for_paid" });
+    expect(await response.json()).toEqual({ error: "slots_full" });
     expect(revoked).toEqual(["ref-new"]);
   });
 
-  test("release needs the application credentials, releases named athletes and never the owner", async () => {
+  test("release needs credentials and named athletes, releases them, and refuses the owner (safety guard)", async () => {
     expect((await post("/internal/strava/release", { athleteIds: ["2"] }, {})).status).toBe(401);
     expect((await post("/internal/strava/release", { athleteIds: [] })).status).toBe(400);
+    expect((await post("/internal/strava/release", { dryRun: true })).status).toBe(400);
     const response = await post("/internal/strava/release", { athleteIds: [2, "1", "9"] });
     expect(await response.json()).toEqual({
       results: [
@@ -107,7 +104,7 @@ describe("Strava slots on the internal routes", () => {
           users: 1,
           lastUsedAt: new Date(0).toISOString(),
         },
-        { athleteId: "1", outcome: "paid", users: 1, lastUsedAt: new Date(0).toISOString() },
+        { athleteId: "1", outcome: "protected", users: 1, lastUsedAt: new Date(0).toISOString() },
         { athleteId: "9", outcome: "not_found", users: 0 },
       ],
     });
@@ -127,7 +124,7 @@ describe("Strava slots on the internal routes", () => {
       { athleteIds: ["1"], dryRun: true },
       { "x-release-key": "release-key" },
     );
-    expect((await keyed.json()).results[0]).toMatchObject({ athleteId: "1", outcome: "paid" });
+    expect((await keyed.json()).results[0]).toMatchObject({ athleteId: "1", outcome: "protected" });
     expect(
       (
         await post(
@@ -141,7 +138,8 @@ describe("Strava slots on the internal routes", () => {
     expect(status).toMatchObject({
       connected: false,
       slotsFull: false,
-      released: { reason: "released_for_pro" },
+      released: { at: expect.any(Number) },
     });
+    expect(status.released).not.toHaveProperty("reason");
   });
 });
