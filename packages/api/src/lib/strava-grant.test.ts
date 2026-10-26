@@ -15,6 +15,8 @@ import {
 } from "./strava-grant";
 
 const ENV = { STRAVA_CLIENT_ID: "287873", STRAVA_CLIENT_SECRET: "secret" };
+/** Slot rules are tested in strava-capacity.test.ts; here every grant fits. */
+const OPEN = { capacity: 10_000, reserve: 0, idleDays: 14 };
 const ATHLETE = 4242;
 
 const { client, db } = await d1TestDb();
@@ -66,7 +68,7 @@ async function row(userId: string) {
 
 async function connectRogo(userId: string, scope = "read,activity:read_all") {
   strava = () => grant("acc-1", "ref-1", scope);
-  return exchangeCode(db, ENV, { userId, product: "rogo", code: "c", callbackScope: scope });
+  return exchangeCode(db, ENV, { userId, product: "rogo", code: "c", callbackScope: scope, capacity: OPEN });
 }
 
 describe("scopes", () => {
@@ -95,7 +97,7 @@ describe("exchangeCode", () => {
     expect((await grantStatus(db, userId, "fit")).connected).toBe(false);
 
     strava = () => grant("acc-2", "ref-2", "read,activity:read_all,activity:write");
-    await exchangeCode(db, ENV, { userId, product: "fit", code: "c2" });
+    await exchangeCode(db, ENV, { userId, product: "fit", code: "c2", capacity: OPEN });
     const stored = await row(userId);
     expect(stored?.access_token).toBe("acc-2");
     expect(stored?.scope).toBe("read activity:read_all activity:write");
@@ -108,7 +110,7 @@ describe("exchangeCode", () => {
   test("an athlete who unchecked the product's scope is refused, and the grant revoked when nothing else uses it", async () => {
     const userId = await newUser();
     strava = () => grant("acc-1", "ref-1", "read");
-    await expect(exchangeCode(db, ENV, { userId, product: "rogo", code: "c" })).rejects.toMatchObject({ failure: "scope_missing" });
+    await expect(exchangeCode(db, ENV, { userId, product: "rogo", code: "c", capacity: OPEN })).rejects.toMatchObject({ failure: "scope_missing" });
     expect(await row(userId)).toBeUndefined();
     expect(revokes()).toHaveLength(1);
     expect(revokes()[0]?.body.get("token")).toBe("ref-1");
@@ -118,7 +120,7 @@ describe("exchangeCode", () => {
     const userId = await newUser();
     await connectRogo(userId);
     strava = () => grant("acc-9", "ref-9", "read");
-    await expect(exchangeCode(db, ENV, { userId, product: "fit", code: "c" })).rejects.toBeInstanceOf(StravaGrantError);
+    await expect(exchangeCode(db, ENV, { userId, product: "fit", code: "c", capacity: OPEN })).rejects.toBeInstanceOf(StravaGrantError);
     expect((await row(userId))?.refresh_token).toBe("ref-1");
     expect(revokes()).toHaveLength(0);
   });
@@ -126,9 +128,9 @@ describe("exchangeCode", () => {
   test("Strava refusing the code is `rejected`, a Strava outage `unavailable`", async () => {
     const userId = await newUser();
     strava = () => new Response("bad", { status: 400 });
-    await expect(exchangeCode(db, ENV, { userId, product: "rogo", code: "c" })).rejects.toMatchObject({ failure: "rejected" });
+    await expect(exchangeCode(db, ENV, { userId, product: "rogo", code: "c", capacity: OPEN })).rejects.toMatchObject({ failure: "rejected" });
     strava = () => new Response("down", { status: 503 });
-    await expect(exchangeCode(db, ENV, { userId, product: "rogo", code: "c" })).rejects.toMatchObject({ failure: "unavailable" });
+    await expect(exchangeCode(db, ENV, { userId, product: "rogo", code: "c", capacity: OPEN })).rejects.toMatchObject({ failure: "unavailable" });
     expect(await row(userId)).toBeUndefined();
   });
 
@@ -136,7 +138,7 @@ describe("exchangeCode", () => {
     const userId = await newUser();
     await connectRogo(userId);
     strava = () => grant("acc-2", "ref-2", "activity:write", 21_600, 777);
-    await exchangeCode(db, ENV, { userId, product: "fit", code: "c" });
+    await exchangeCode(db, ENV, { userId, product: "fit", code: "c", capacity: OPEN });
     expect(revokes()[0]?.body.get("token")).toBe("ref-1");
     const stored = await row(userId);
     expect(stored?.rogo_linked_at).toBeNull();
@@ -157,7 +159,7 @@ describe("freshAccessToken", () => {
   test("refreshes a token that expires soon and stores Strava's rotated refresh token", async () => {
     const userId = await newUser();
     strava = () => grant("acc-1", "ref-1", "activity:write", 60);
-    await exchangeCode(db, ENV, { userId, product: "fit", code: "c" });
+    await exchangeCode(db, ENV, { userId, product: "fit", code: "c", capacity: OPEN });
     strava = () => grant("acc-2", "ref-2", "activity:write");
     const token = await freshAccessToken(db, ENV, userId, "fit");
     expect(token?.accessToken).toBe("acc-2");
@@ -168,7 +170,7 @@ describe("freshAccessToken", () => {
   test("a refresh token Strava refuses deletes the row for both products", async () => {
     const userId = await newUser();
     strava = () => grant("acc-1", "ref-1", "read,activity:read_all,activity:write", 60);
-    await exchangeCode(db, ENV, { userId, product: "fit", code: "c" });
+    await exchangeCode(db, ENV, { userId, product: "fit", code: "c", capacity: OPEN });
     strava = () => new Response("revoked", { status: 401 });
     expect(await freshAccessToken(db, ENV, userId, "fit")).toBeNull();
     expect(await row(userId)).toBeUndefined();
@@ -178,7 +180,7 @@ describe("freshAccessToken", () => {
   test("losing a refresh race uses the winner's token instead of deleting the row", async () => {
     const userId = await newUser();
     strava = () => grant("acc-1", "ref-1", "activity:write", 60);
-    await exchangeCode(db, ENV, { userId, product: "fit", code: "c" });
+    await exchangeCode(db, ENV, { userId, product: "fit", code: "c", capacity: OPEN });
     strava = () => {
       // The other request got there first: its token is stored, ours is now invalid.
       client.execute({ sql: "UPDATE strava_account SET access_token = 'acc-w', refresh_token = 'ref-w' WHERE user_id = ?", args: [userId] });
@@ -191,7 +193,7 @@ describe("freshAccessToken", () => {
   test("a Strava outage is an error, not a disconnect", async () => {
     const userId = await newUser();
     strava = () => grant("acc-1", "ref-1", "activity:write", 60);
-    await exchangeCode(db, ENV, { userId, product: "fit", code: "c" });
+    await exchangeCode(db, ENV, { userId, product: "fit", code: "c", capacity: OPEN });
     strava = () => new Response("down", { status: 503 });
     await expect(freshAccessToken(db, ENV, userId, "fit")).rejects.toMatchObject({ failure: "unavailable" });
     expect(await row(userId)).toBeDefined();
@@ -202,8 +204,8 @@ describe("disconnectProduct", () => {
   test("leaving one product keeps the grant for the other; the last one revokes it at Strava", async () => {
     const userId = await newUser();
     strava = () => grant("acc-1", "ref-1", "read,activity:read_all,activity:write");
-    await exchangeCode(db, ENV, { userId, product: "rogo", code: "c" });
-    await exchangeCode(db, ENV, { userId, product: "fit", code: "c" });
+    await exchangeCode(db, ENV, { userId, product: "rogo", code: "c", capacity: OPEN });
+    await exchangeCode(db, ENV, { userId, product: "fit", code: "c", capacity: OPEN });
 
     strava = () => new Response(null, { status: 200 });
     expect(await disconnectProduct(db, ENV, userId, "fit")).toEqual({ revoked: false });
@@ -234,8 +236,8 @@ describe("disconnectProduct", () => {
   test("account deletion revokes whatever the links are", async () => {
     const userId = await newUser();
     strava = () => grant("acc-1", "ref-1", "read,activity:read_all,activity:write");
-    await exchangeCode(db, ENV, { userId, product: "rogo", code: "c" });
-    await exchangeCode(db, ENV, { userId, product: "fit", code: "c" });
+    await exchangeCode(db, ENV, { userId, product: "rogo", code: "c", capacity: OPEN });
+    await exchangeCode(db, ENV, { userId, product: "fit", code: "c", capacity: OPEN });
     strava = () => new Response(null, { status: 200 });
     await revokeGrant(db, ENV, userId);
     expect(revokes()).toHaveLength(1);
@@ -247,10 +249,10 @@ describe("dropAthlete (deauthorization on strava.com)", () => {
   test("deletes every token of the athlete and the imported Strava activities, nothing else", async () => {
     const [a, b, other] = [await newUser(), await newUser(), await newUser()];
     strava = () => grant("acc", "ref", "read,activity:read_all", 21_600, 31_337);
-    await exchangeCode(db, ENV, { userId: a, product: "rogo", code: "c" });
-    await exchangeCode(db, ENV, { userId: b, product: "rogo", code: "c" });
+    await exchangeCode(db, ENV, { userId: a, product: "rogo", code: "c", capacity: OPEN });
+    await exchangeCode(db, ENV, { userId: b, product: "rogo", code: "c", capacity: OPEN });
     strava = () => grant("acc", "ref", "read,activity:read_all", 21_600, 999);
-    await exchangeCode(db, ENV, { userId: other, product: "rogo", code: "c" });
+    await exchangeCode(db, ENV, { userId: other, product: "rogo", code: "c", capacity: OPEN });
     for (const [id, owner, source] of [
       ["e1", a, "strava"],
       ["e2", a, "manual"],

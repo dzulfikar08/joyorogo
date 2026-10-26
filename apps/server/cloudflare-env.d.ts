@@ -34,6 +34,10 @@ declare module "cloudflare:workers" {
       // Origin of the JoyoFit cloud API the web app's /api/fit/* routes forward to (default https://api.fit.joyorogo.com).
       JOYOFIT_API_URL?: string;
       FREE_DAILY_SCANS?: string;
+      // Strava application slots (docs/strava.md "Capacity"): capacity, paying-user reserve, idle days before release.
+      STRAVA_CAPACITY?: string;
+      STRAVA_PAID_RESERVE?: string;
+      STRAVA_IDLE_DAYS?: string;
       COACH_DAILY_CAP?: string;
       AI_COACH_MODEL?: string;
       JOYO_AI_DAILY_CAP?: string;

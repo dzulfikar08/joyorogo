@@ -427,6 +427,13 @@
     "error": {
       "noCode": "Strava didn't return an authorization code."
     },
+    "slots": {
+      "fullTitle": "Strava slots full",
+      "reserved": "The remaining Strava slots are kept for Pro users. Without Strava, burned calories still come in through Health Connect (Android) or Apple Health (iPhone), or add workouts by hand in Exercise. With Pro you can connect Strava while any slot is free.",
+      "full": "Every Strava slot is taken. Try again later. Meanwhile burned calories still come in through Health Connect (Android) or Apple Health (iPhone), or add workouts by hand in Exercise.",
+      "releasedTitle": "Strava disconnected",
+      "released": "Slot released for Pro users: Strava on your account had not been used for a long time. Burned calories can still come in through Health Connect (Android) or Apple Health (iPhone), or add workouts by hand in Exercise."
+    },
     "retention": {
       "text": "Under Strava's rules, activities imported from Strava are kept for only 7 days, then deleted automatically. Burned calories for older days no longer include them.",
       "healthAlternative": "To keep your burned calories saved, use Health Connect on Android or Apple Health on iPhone through the JoyoRogo app. Many workout apps and watches can write workouts there, for example Strava, Garmin, Samsung Health, and JoyoFit for Huawei watches. Check each app's settings.",

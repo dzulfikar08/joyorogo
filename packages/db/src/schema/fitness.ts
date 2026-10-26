@@ -315,6 +315,21 @@ export const stravaAccount = sqliteTable(
   (table) => [index("strava_account_athlete_idx").on(table.athleteId)],
 );
 
+// A Strava grant JoyoRogo released to free a slot of the shared application (lib/strava-release.ts, docs/strava.md
+// "Capacity"): one row per user, so the next status call can say why Strava is disconnected. Deleted when the user
+// connects again. No tokens here.
+export const stravaRelease = sqliteTable("strava_release", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  athleteId: text("athlete_id").notNull(),
+  // 'released_for_pro': an idle free user's slot went back to the paying-user reserve.
+  reason: text("reason").notNull(),
+  // Strava confirmed the revoke (oauth/revoke answered 2xx).
+  revoked: integer("revoked", { mode: "boolean" }).notNull(),
+  releasedAt: integer("released_at", { mode: "timestamp_ms" }).notNull(),
+});
+
 // COROS (docs/coros.md): one OAuth grant per user at COROS's MCP server. A public client, so the tokens are all there is.
 // Rows imported from COROS live in exercise_log with source 'coros'.
 export const corosAccount = sqliteTable("coros_account", {
