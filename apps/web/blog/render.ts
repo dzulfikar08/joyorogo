@@ -371,7 +371,7 @@ function shell(opts: {
     <link rel="canonical" href="${url}" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f5f0" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141311" />
-    <link rel="icon" type="image/svg+xml" href="/brand/logo-mark.svg" />
+    <link rel="icon" href="/icons/icon-192.png" sizes="192x192" />
     <link rel="icon" href="/favicon.png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="alternate" type="application/rss+xml" title="Blog JoyoRogo" href="/blog/rss.xml" />
