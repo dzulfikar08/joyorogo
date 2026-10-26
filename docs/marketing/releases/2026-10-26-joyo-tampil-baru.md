@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Joyo tampil baru (maskot dan ikon aplikasi)
 shipped: 2026-10-26
-available: code
+available: web
 tier: free
 post: todo
 atur: JRG-431
@@ -16,4 +16,4 @@ atur: JRG-431
 
 **Bukti visual:** Lembar semua pose dan pratinjau ikon terlampir di JRG-428 dan JRG-429 (atur). Untuk tangkapan asli: layar masuk web (Joyo berdiri), halaman 404 (Joyo mengintip), dan layar utama HP setelah build toko berikutnya (ikon baru, terang dan gelap).
 
-**Jangan klaim:** Ikon aplikasi dan layar pembuka baru hanya datang lewat build toko berikutnya, bukan pembaruan cepat; jangan tulis sudah ada di HP sebelum build itu keluar. Gambar maskot di web baru terlihat setelah web dideploy. Pakai pose gagah (berdiri, siap, mengintip) untuk posting; rencana pemasaran melarang varian pose imut. Gambar dibuat dengan bantuan AI (ChatGPT); jangan sebut sebagai karya ilustrator.
+**Jangan klaim:** Di web (joyorogo.com, app.joyorogo.com) maskot dan ikon web baru sudah tampil sejak 2026-10-26. Di aplikasi HP, ikon aplikasi, layar pembuka, dan gambar widget baru hanya datang lewat build toko berikutnya, bukan pembaruan cepat; jangan tulis sudah ada di HP sebelum build itu keluar. Pakai pose gagah (berdiri, siap, mengintip) untuk posting; rencana pemasaran melarang varian pose imut. Gambar dibuat dengan bantuan AI (ChatGPT); jangan sebut sebagai karya ilustrator.
