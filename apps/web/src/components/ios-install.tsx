@@ -10,7 +10,6 @@ import {
   Compass,
   Copy,
   ExternalLink,
-  FlaskConical,
   Share,
   SquarePlus,
   Smartphone,
@@ -22,6 +21,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AppLink } from "@/components/app-link";
+import { AppleMark } from "@/components/apple-mark";
+import { APP_STORE_URL } from "@/lib/store-urls";
 import { HOSTS } from "@/lib/app-host";
 import { trackConversion } from "@/lib/analytics";
 import {
@@ -32,7 +33,6 @@ import {
   useIosInstallOpen,
 } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
-import { IOS_TESTFLIGHT_LIVE, JOYOROGO_TESTFLIGHT_URL } from "@/lib/testflight";
 import { sessionQuery } from "@/lib/auth-client";
 
 /** Copies through the async clipboard API, falling back for webviews that block it. */
@@ -197,48 +197,30 @@ function IosInstallSheet() {
         </div>
       )}
 
-      {IOS_TESTFLIGHT_LIVE && (
-        <div className="mb-5 rounded-3xl bg-primary/10 p-4">
-          <p className="flex items-center gap-2 text-sm font-bold">
-            <FlaskConical className="size-4 shrink-0 text-primary" aria-hidden />
-            {t("iosInstall.testflight.title")}
-          </p>
-          <ol className="mt-3 space-y-2 text-sm leading-relaxed">
-            <li className="flex gap-2.5">
-              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-extrabold text-primary-foreground">
-                1
-              </span>
-              <span className="pt-0.5">{t("iosInstall.testflight.step1")}</span>
-            </li>
-            <li className="flex gap-2.5">
-              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-extrabold text-primary-foreground">
-                2
-              </span>
-              <span className="pt-0.5">{t("iosInstall.testflight.step2")}</span>
-            </li>
-          </ol>
-          <Button
-            className="mt-4 w-full"
-            render={
-              <a
-                href={JOYOROGO_TESTFLIGHT_URL}
-                target="_blank"
-                rel="noopener"
-                data-revklik-goal="ios_testflight_click"
-                data-revklik-goal-location="ios_sheet"
-              />
-            }
-          >
-            <ExternalLink aria-hidden />
-            {t("iosInstall.testflight.open")}
-          </Button>
-          <p className="mt-2.5 text-xs leading-relaxed text-muted-foreground">
-            {t("iosInstall.testflight.note")}
-          </p>
-        </div>
-      )}
+      <div className="mb-5 rounded-3xl bg-primary/10 p-4">
+        <p className="flex items-center gap-2 text-sm font-bold">
+          <AppleMark />
+          {t("iosInstall.appStore.title")}
+        </p>
+        <p className="mt-1.5 text-sm leading-relaxed">{t("iosInstall.appStore.body")}</p>
+        <Button
+          className="mt-4 w-full"
+          render={
+            <a
+              href={APP_STORE_URL}
+              target="_blank"
+              rel="noopener"
+              data-revklik-goal="ios_app_store_click"
+              data-revklik-goal-location="ios_sheet"
+            />
+          }
+        >
+          <ExternalLink aria-hidden />
+          {t("iosInstall.appStore.open")}
+        </Button>
+      </div>
 
-      {IOS_TESTFLIGHT_LIVE && <p className="mb-3 text-sm font-bold">{t("iosInstall.testflight.orWeb")}</p>}
+      <p className="mb-3 text-sm font-bold">{t("iosInstall.appStore.orWeb")}</p>
 
       <ol className="space-y-3">
         <Step n={1} title={t("iosInstall.steps.safari.title")} illustration={<SafariMark />}>

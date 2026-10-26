@@ -13,7 +13,7 @@ export const FAQ_SG = [
   },
   {
     q: "A scan is wrong. Can I correct it?",
-    a: "Yes. On the scan result, type the correction, for example \"half the rice\" or \"only 2\" for food counted per piece. The list updates and a correction can be undone. A packaged product that is not in the barcode database? Photograph its nutrition panel, the numbers are read automatically and you check them before saving.",
+    a: 'Yes. On the scan result, type the correction, for example "half the rice" or "only 2" for food counted per piece. The list updates and a correction can be undone. A packaged product that is not in the barcode database? Photograph its nutrition panel, the numbers are read automatically and you check them before saving.',
   },
   {
     q: "Is my photo stored?",
@@ -33,7 +33,7 @@ export const FAQ_SG = [
   },
   {
     q: "Which phones work?",
-    a: "Android 8 and above through the Google Play closed test: join the Google testers group first, then install from the Play Store. iPhone with iOS 16.4 and above through TestFlight (public beta), and App Store version 1.0 is waiting for Apple's review. Or open joyorogo.com in your browser and choose Add to Home Screen: JoyoRogo appears as an icon and opens full screen, with the same account and data.",
+    a: "Android 8 and above through the Google Play closed test: join the Google testers group first, then install from the Play Store. iPhone with iOS 16.4 and above through the App Store. Or open joyorogo.com in your browser and choose Add to Home Screen: JoyoRogo appears as an icon and opens full screen, with the same account and data.",
   },
   {
     q: "Is the app in English?",
@@ -141,7 +141,7 @@ export const HOW_WE_COUNT = [
   },
   {
     dish: "Kopi, teh, bubble tea",
-    rule: "The condensed milk, evaporated milk and sugar are already in the drink's kcal. \"Siew dai\" means less sugar, \"kosong\" no sugar, \"peng\" iced.",
+    rule: 'The condensed milk, evaporated milk and sugar are already in the drink\'s kcal. "Siew dai" means less sugar, "kosong" no sugar, "peng" iced.',
   },
 ] as const;
 
@@ -171,9 +171,9 @@ export const ANDROID_STEPS = [
 ] as const;
 
 export const IOS_STEPS = [
-  "Install TestFlight from the App Store if it is not on your iPhone yet.",
-  "Open the JoyoRogo TestFlight link on your iPhone and tap Accept.",
-  "Tap Install in TestFlight, then sign in with the same account as on the web. Your diary comes with you. On iPhone, JoyoRogo reads Apple Health.",
+  "Open JoyoRogo on the App Store on your iPhone.",
+  "Tap Get to install it. It is free to download.",
+  "Open JoyoRogo, then sign in with the same account as on the web. Your diary comes with you. On iPhone, JoyoRogo reads Apple Health.",
 ] as const;
 
 /** The dishes shown on the page and the names Singapore calls them. Keys are rows of the dish table. */

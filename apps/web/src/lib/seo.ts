@@ -201,7 +201,7 @@ export const FAQ = [
   },
   {
     q: "Hasil scan salah, bisa dikoreksi?",
-    a: "Bisa. Di hasil scan, ketik atau ucapkan koreksinya, misalnya \"nasinya setengah aja\", \"itu rolade bukan perkedel\", atau \"cuma 2\" untuk makanan yang dihitung per potong. Daftar makanan diperbarui, dan koreksinya bisa diurungkan. Barcode produk yang belum terdaftar? Foto tabel Informasi Nilai Gizi di kemasannya, angkanya dibaca otomatis dan kamu cek dulu sebelum disimpan.",
+    a: 'Bisa. Di hasil scan, ketik atau ucapkan koreksinya, misalnya "nasinya setengah aja", "itu rolade bukan perkedel", atau "cuma 2" untuk makanan yang dihitung per potong. Daftar makanan diperbarui, dan koreksinya bisa diurungkan. Barcode produk yang belum terdaftar? Foto tabel Informasi Nilai Gizi di kemasannya, angkanya dibaca otomatis dan kamu cek dulu sebelum disimpan.',
   },
   {
     q: "Bagaimana target kalori dihitung?",
@@ -209,7 +209,7 @@ export const FAQ = [
   },
   {
     q: IPHONE_FAQ_Q,
-    a: "Ada. Aplikasi iPhone-nya sudah bisa dicoba lewat TestFlight (beta publik), dan versi App Store 1.0 sedang menunggu review Apple. Aplikasinya membaca Apple Health. Kalau mau yang langsung, buka joyorogo.com di Safari, tap Bagikan, lalu Tambah ke Layar Utama: JoyoRogo muncul sebagai ikon dan terbuka layar penuh, dengan akun dan data yang sama seperti di Android dan laptop. Notifikasi pengingat di versi web iPhone butuh iOS 16.4 ke atas.",
+    a: "Ada. JoyoRogo sudah ada di App Store, gratis diunduh untuk iOS 16.4 ke atas. Aplikasinya membaca Apple Health. Kalau mau yang langsung, buka joyorogo.com di Safari, tap Bagikan, lalu Tambah ke Layar Utama: JoyoRogo muncul sebagai ikon dan terbuka layar penuh, dengan akun dan data yang sama seperti di Android dan laptop. Notifikasi pengingat di versi web iPhone butuh iOS 16.4 ke atas.",
   },
   {
     q: "Latihan beban dicatat di mana?",
@@ -233,4 +233,3 @@ export const FAQ = [
 export function pageHead(path: PublicPath) {
   return { meta: [{ title: PAGES[path].title }] };
 }
-

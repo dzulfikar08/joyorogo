@@ -73,8 +73,8 @@
       "title": "Your own key, free in the app",
       "body": "In the JoyoRogo phone app, Joyo AI can use your own API key without Pro. The web only uses JoyoRogo's engine.",
       "android": "Join the Android testers",
-      "iphone": "Try it on iPhone",
-      "webApp": "iPhone without TestFlight? Add the web app to your Home Screen"
+      "iphone": "Download on the App Store",
+      "webApp": "Or add the web app to your iPhone Home Screen"
     },
     "minor": {
       "title": "Joyo AI is not available for you yet",

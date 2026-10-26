@@ -53,7 +53,7 @@
   },
   "iosInstall": {
     "title": "Install on iPhone",
-    "description": "Try the iPhone app through TestFlight, or add the web app to your Home Screen so it opens full screen like an app. Same account, same data.",
+    "description": "Get the iPhone app from the App Store, or add the web app to your Home Screen so it opens full screen like an app. Same account, same data.",
     "copy": "Copy link",
     "copied": "Copied",
     "copiedStatus": "Link copied",
@@ -66,12 +66,10 @@
       "title": "This guide is for iPhone",
       "body": "Open this link on your iPhone, in Safari. Send it to yourself on WhatsApp or copy it first."
     },
-    "testflight": {
-      "title": "Try the iPhone app (public beta, TestFlight)",
-      "step1": "Install TestFlight from the App Store if you don't have it.",
-      "step2": "Open the invite link on your iPhone, tap Accept, then Install JoyoRogo.",
-      "open": "Open TestFlight",
-      "note": "Still in beta, so some things may be rough. App Store version 1.0 is waiting for Apple's review. Same account as the web version.",
+    "appStore": {
+      "title": "JoyoRogo is on the App Store",
+      "body": "Free to download, needs iOS 16.4 or later. Sign in with the same account as on the web.",
+      "open": "Download on the App Store",
       "orWeb": "Or use the web version"
     },
     "steps": {

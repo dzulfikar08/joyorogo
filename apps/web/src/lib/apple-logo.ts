@@ -1,6 +1,6 @@
 /**
  * The Apple logo as a monochrome glyph, from Simple Icons (https://simpleicons.org/?q=apple, CC0 path data). Used only
- * to mark iPhone/TestFlight links. The logo is Apple's trademark; do not recolour it into a badge or alter its shape.
+ * to mark iPhone/App Store links. The logo is Apple's trademark; do not recolour it into a badge or alter its shape.
  */
 export const APPLE_LOGO_VIEWBOX = "0 0 24 24";
 export const APPLE_LOGO_PATH =

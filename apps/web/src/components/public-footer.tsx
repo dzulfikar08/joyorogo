@@ -7,8 +7,8 @@ import { AppLink } from "@/components/app-link";
 import { AppleMark } from "@/components/apple-mark";
 import { FooterLandscape } from "@/components/footer-landscape";
 import { ANDROID_ROBOT_CREDIT } from "@/lib/credits";
-import { PLAY_STORE_URL, useAppConfig } from "@/lib/app-config";
-import { IOS_TESTFLIGHT_LIVE, JOYOROGO_TESTFLIGHT_URL } from "@/lib/testflight";
+import { useAppConfig } from "@/lib/app-config";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/store-urls";
 
 const SOURCE_URL = "https://github.com/dzulfikar08/joyorogo";
 const JOYOFIT_URL = "https://fit.joyorogo.com";
@@ -117,21 +117,19 @@ export function PublicFooter() {
                 Google Play
               </a>
             </li>
-            {IOS_TESTFLIGHT_LIVE && (
-              <li>
-                <a
-                  href={JOYOROGO_TESTFLIGHT_URL}
-                  target="_blank"
-                  rel="noopener"
-                  data-revklik-goal="ios_testflight_click"
-                  data-revklik-goal-location="footer"
-                  className={linkClass}
-                >
-                  <AppleMark className="size-4" />
-                  iPhone (TestFlight)
-                </a>
-              </li>
-            )}
+            <li>
+              <a
+                href={APP_STORE_URL}
+                target="_blank"
+                rel="noopener"
+                data-revklik-goal="ios_app_store_click"
+                data-revklik-goal-location="footer"
+                className={linkClass}
+              >
+                <AppleMark className="size-4" />
+                App Store
+              </a>
+            </li>
             <li>
               <AppLink to="/login" className={linkClass}>
                 Masuk

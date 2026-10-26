@@ -604,8 +604,7 @@ function HargaPage() {
             <h2 className="text-xl font-extrabold tracking-tight md:text-2xl">Pakai di HP-mu</h2>
             <p className="mt-2 text-[0.9375rem] leading-relaxed text-muted-foreground">
               Android: Google Play (tes tertutup, gabung sebagai tester). iPhone: aplikasi
-              beta publik lewat TestFlight (versi App Store 1.0 sedang menunggu review Apple), atau
-              web app yang dipasang ke Layar Utama. Akun dan datanya sama di semua perangkat.
+              di App Store, atau web app yang dipasang ke Layar Utama. Akun dan datanya sama di semua perangkat.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">

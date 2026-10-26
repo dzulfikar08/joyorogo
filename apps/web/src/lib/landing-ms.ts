@@ -17,7 +17,7 @@ export const FAQ_MS = [
   },
   {
     q: "Hasil imbasan salah, boleh dibetulkan?",
-    a: "Boleh. Di hasil imbasan, taip pembetulannya, contohnya \"nasi separuh sahaja\" atau \"cuma 2\" untuk makanan yang dikira per keping. Senarai dikemas kini dan pembetulan boleh dibatalkan. Produk berbungkus yang belum berdaftar? Foto jadual maklumat pemakanan pada bungkusnya, angkanya dibaca automatik dan anda semak dahulu sebelum menyimpan.",
+    a: 'Boleh. Di hasil imbasan, taip pembetulannya, contohnya "nasi separuh sahaja" atau "cuma 2" untuk makanan yang dikira per keping. Senarai dikemas kini dan pembetulan boleh dibatalkan. Produk berbungkus yang belum berdaftar? Foto jadual maklumat pemakanan pada bungkusnya, angkanya dibaca automatik dan anda semak dahulu sebelum menyimpan.',
   },
   {
     q: "Adakah foto saya disimpan?",
@@ -33,7 +33,7 @@ export const FAQ_MS = [
   },
   {
     q: "Telefon apa yang boleh digunakan?",
-    a: "Android 8 ke atas melalui ujian tertutup Google Play: sertai kumpulan Google penguji dahulu, kemudian pasang dari Play Store. iPhone dengan iOS 16.4 ke atas melalui TestFlight (beta awam), dan versi App Store 1.0 sedang menunggu semakan Apple. Atau buka joyorogo.com di pelayar dan pilih Tambah ke Skrin Utama: JoyoRogo muncul sebagai ikon dan dibuka skrin penuh, dengan akaun dan data yang sama.",
+    a: "Android 8 ke atas melalui ujian tertutup Google Play: sertai kumpulan Google penguji dahulu, kemudian pasang dari Play Store. iPhone dengan iOS 16.4 ke atas melalui App Store. Atau buka joyorogo.com di pelayar dan pilih Tambah ke Skrin Utama: JoyoRogo muncul sebagai ikon dan dibuka skrin penuh, dengan akaun dan data yang sama.",
   },
   {
     q: "Adakah aplikasinya dalam Bahasa Melayu?",
@@ -135,7 +135,7 @@ export const CARA_KIRA = [
   },
   {
     dish: "Teh tarik, kopi, Milo ais",
-    rule: "Susu pekat dan gula sudah termasuk dalam kcal minuman. \"Kurang manis\" mengurangkan gula, \"kosong\" bermaksud tanpa gula dan tanpa susu.",
+    rule: 'Susu pekat dan gula sudah termasuk dalam kcal minuman. "Kurang manis" mengurangkan gula, "kosong" bermaksud tanpa gula dan tanpa susu.',
   },
 ] as const;
 
@@ -167,7 +167,7 @@ export const ANDROID_LANGKAH = [
 ] as const;
 
 export const IOS_LANGKAH = [
-  "Pasang TestFlight dari App Store jika belum ada di iPhone anda.",
-  "Buka pautan TestFlight JoyoRogo di iPhone dan ketik Accept.",
-  "Ketik Install di TestFlight, kemudian log masuk dengan akaun yang sama seperti di web. Diari anda turut berpindah. Di iPhone, JoyoRogo membaca Apple Health.",
+  "Buka JoyoRogo di App Store pada iPhone anda.",
+  "Ketik Dapatkan untuk memasangnya. Percuma dimuat turun.",
+  "Buka JoyoRogo, kemudian log masuk dengan akaun yang sama seperti di web. Diari anda turut berpindah. Di iPhone, JoyoRogo membaca Apple Health.",
 ] as const;

@@ -89,11 +89,6 @@ export function apiUrl(path: string): string {
   return `${getServerUrl(env.VITE_SERVER_URL)}${path}`;
 }
 
-/** Store listings with the UTM convention from docs/utm.md (Play via `referrer`, App Store via `ct`). */
-export const PLAY_STORE_URL =
-  "https://play.google.com/store/apps/details?id=com.joyodigitama.joyorogo&referrer=utm_source%3Djoyorogo%26utm_medium%3Dreferral%26utm_campaign%3Devergreen-web";
-export const APP_STORE_URL = "https://apps.apple.com/id/app/id6823222101?ct=joyorogo-evergreen-web";
-
 /** Google Play closed test: join the group first, then opt in on Play. */
 export const TESTER_GROUP_URL = "https://groups.google.com/g/joyorogo-testers";
 export const TESTER_OPTIN_URL = "https://play.google.com/apps/testing/com.joyodigitama.joyorogo";

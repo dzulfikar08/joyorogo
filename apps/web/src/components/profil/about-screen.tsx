@@ -2,7 +2,7 @@ import { Download, FileText, ShieldCheck, Smartphone, Undo2 } from "lucide-react
 import { useTranslation } from "react-i18next";
 
 import { IconChip, ListAnchorRow, ListButtonRow, ListGroup, ListLinkRow, SectionTitle } from "@/components/kit/surface";
-import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/app-config";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/store-urls";
 import { openIosInstall } from "@/lib/ios-install";
 import { legalPath } from "@/lib/legal-path";
 import { usePlatform } from "@/lib/platform";

@@ -5,10 +5,10 @@ import { AndroidMark } from "@/components/android-mark";
 import { AppLink } from "@/components/app-link";
 import { AppleMark } from "@/components/apple-mark";
 import { TESTER_GROUP_URL, TESTER_OPTIN_URL } from "@/lib/app-config";
+import { APP_STORE_URL } from "@/lib/store-urls";
 import { ANDROID_STEPS, IOS_STEPS } from "@/lib/landing-sg";
 import { openIosInstall } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
-import { IOS_TESTFLIGHT_LIVE, JOYOROGO_TESTFLIGHT_URL } from "@/lib/testflight";
 
 function Steps({ steps, tone }: { steps: readonly string[]; tone: "soft" | "card" }) {
   return (
@@ -39,8 +39,8 @@ function Steps({ steps, tone }: { steps: readonly string[]; tone: "soft" | "card
 
 /**
  * Install steps for both phones, in the state the other landings describe: Android is a Google Play closed test (join
- * the group, then opt in), iPhone is the public TestFlight beta with the App Store version in review. Neither is a
- * store listing yet and the copy says so. The visitor's own phone is listed first.
+ * the group, then opt in), iPhone is the App Store listing, with the web app on the Home Screen as the
+ * alternative. The visitor's own phone is listed first.
  */
 export function InstallSg() {
   const { os } = usePlatform();
@@ -110,29 +110,26 @@ export function InstallSg() {
           data-section="iphone-beta"
           className={cn("scroll-mt-20 rounded-[1.75rem] bg-card p-6 md:p-8", os === "ios" && "md:order-first")}
         >
-          <h3 className="text-2xl font-extrabold tracking-tight">iPhone: public beta</h3>
+          <h3 className="text-2xl font-extrabold tracking-tight">iPhone: App Store</h3>
           <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
-            The iPhone app can be tried through TestFlight, and App Store version 1.0 is waiting for Apple's review.
-            Free, needs iOS 16.4 or newer.
+            JoyoRogo is on the App Store. Free to download, needs iOS 16.4 or newer.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            {IOS_TESTFLIGHT_LIVE && (
-              <Button
-                size="lg"
-                render={
-                  <a
-                    href={JOYOROGO_TESTFLIGHT_URL}
-                    target="_blank"
-                    rel="noopener"
-                    data-revklik-goal="ios_testflight_click"
-                    data-revklik-goal-location="sg-tester"
-                  />
-                }
-              >
-                <AppleMark />
-                Open TestFlight
-              </Button>
-            )}
+            <Button
+              size="lg"
+              render={
+                <a
+                  href={APP_STORE_URL}
+                  target="_blank"
+                  rel="noopener"
+                  data-revklik-goal="ios_app_store_click"
+                  data-revklik-goal-location="sg-tester"
+                />
+              }
+            >
+              <AppleMark />
+              Download on the App Store
+            </Button>
             <Button
               size="lg"
               variant="outline"

@@ -13,7 +13,7 @@ import { OG_IMAGE, PAGES } from "../src/lib/seo.ts";
 import { ANDROID_ROBOT_PATH, ANDROID_ROBOT_VIEWBOX } from "../src/lib/android-robot.ts";
 import { APPLE_LOGO_PATH, APPLE_LOGO_VIEWBOX } from "../src/lib/apple-logo.ts";
 import { ANDROID_ROBOT_CREDIT } from "../src/lib/credits.ts";
-import { JOYOROGO_TESTFLIGHT_URL } from "../src/lib/testflight.ts";
+import { APP_STORE_URL } from "../src/lib/store-urls.ts";
 import { alternatesFor, ogImageTags, PUBLIC_PATHS, type ShareImage } from "./pages.ts";
 import {
   CATEGORIES,
@@ -410,7 +410,7 @@ ${opts.main}
           <a href="/blog/" class="inline-flex min-h-11 items-center hover:text-primary">Blog</a>
           <a href="/privasi" class="inline-flex min-h-11 items-center hover:text-primary">Privasi</a>
           <a href="/#tester" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${ANDROID_ICON}Android (tes Google Play)</a>
-          <a href="${JOYOROGO_TESTFLIGHT_URL}" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${APPLE_ICON}iPhone (TestFlight)</a>
+          <a href="${APP_STORE_URL}" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${APPLE_ICON}iPhone (App Store)</a>
           <a href="${SOURCE_URL}" class="inline-flex min-h-11 items-center hover:text-primary">Kode sumber</a>
         </nav>
         <p class="text-muted-foreground">Artikel di blog ini informasi umum, bukan pengganti saran dokter atau ahli gizi.</p>

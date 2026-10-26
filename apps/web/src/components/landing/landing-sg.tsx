@@ -23,8 +23,8 @@ const HPB_TERMS_URL = "https://file.go.gov.sg/termsofuse-hpbsgfoodid.pdf";
 
 const INSTALL_LABELS = {
   androidLabel: "Join the Android testers",
-  iphoneLabel: "Try it on iPhone",
-  webAppLabel: "No TestFlight? Add the web app to your Home Screen",
+  iphoneLabel: "Download on the App Store",
+  webAppLabel: "Or add the web app to your iPhone Home Screen",
   testerHref: "#tester",
 } as const;
 
@@ -32,7 +32,7 @@ const INSTALL_LABELS = {
  * /sg: the landing for Singapore visitors, in English as written in Singapore. Same brand, tokens and mascot as the
  * other landings; the content is rebuilt around what a hawker plate needs (chicken rice, kopitiam units, cited kcal
  * rows from Singapore's own HPB database, S$ pricing from /api/config). Availability wording follows the other
- * landings: closed test and beta, never a store listing.
+ * landings: Android is a closed test, iPhone is on the App Store.
  */
 export function LandingSg() {
   const config = useAppConfig();

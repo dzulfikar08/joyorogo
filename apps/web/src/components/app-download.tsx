@@ -5,9 +5,9 @@ import { AndroidMark } from "@/components/android-mark";
 import { AppleMark } from "@/components/apple-mark";
 
 import { TESTER_SECTION_HREF } from "@/lib/app-config";
+import { APP_STORE_URL } from "@/lib/store-urls";
 import { openIosInstall } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
-import { IOS_TESTFLIGHT_LIVE, JOYOROGO_TESTFLIGHT_URL } from "@/lib/testflight";
 
 const ON_PRIMARY =
   "border-primary-foreground/35 text-primary-foreground hover:bg-primary-foreground/10 focus-visible:ring-primary-foreground/50";
@@ -18,16 +18,16 @@ const ON_PRIMARY =
  * gives theirs the stronger style.
  *
  * - Android: the Google Play closed test (the landing's tester section).
- * - iPhone: the public TestFlight beta (the install sheet while the beta flag
- *   is off), with the web app on the Home Screen as a small secondary link.
+ * - iPhone: the App Store, with the web app on the Home Screen as a small
+ *   secondary link.
  *
  * Renders a fragment so it drops into the caller's button row.
  */
 export function AppDownload({
   location,
-  iphoneLabel = "Coba di iPhone",
+  iphoneLabel = "Unduh di App Store",
   androidLabel = "Gabung tester Android",
-  webAppLabel = "iPhone tanpa TestFlight? Pasang web app ke Layar Utama",
+  webAppLabel = "Atau pasang web app ke Layar Utama iPhone",
   testerHref = TESTER_SECTION_HREF,
   onPrimary = false,
   align = "start",
@@ -71,32 +71,20 @@ export function AppDownload({
     </Button>
   );
 
-  const iphone = IOS_TESTFLIGHT_LIVE ? (
+  const iphone = (
     <Button
       size="lg"
       variant={variantFor(os === "ios")}
       className={cn(buttonClass, os === "android" && "order-last")}
       render={
         <a
-          href={JOYOROGO_TESTFLIGHT_URL}
+          href={APP_STORE_URL}
           target="_blank"
           rel="noopener"
-          data-revklik-goal="ios_testflight_click"
+          data-revklik-goal="ios_app_store_click"
           data-revklik-goal-location={location}
         />
       }
-    >
-      <AppleMark />
-      {iphoneLabel}
-    </Button>
-  ) : (
-    <Button
-      size="lg"
-      variant={variantFor(os === "ios")}
-      className={cn(buttonClass, os === "android" && "order-last")}
-      data-revklik-goal="ios_cta_click"
-      data-revklik-goal-location={location}
-      onClick={() => openIosInstall(location)}
     >
       <AppleMark />
       {iphoneLabel}
@@ -107,7 +95,7 @@ export function AppDownload({
     <>
       {android}
       {iphone}
-      {IOS_TESTFLIGHT_LIVE && !standalone && (
+      {!standalone && (
         <button
           type="button"
           data-revklik-goal="ios_cta_click"

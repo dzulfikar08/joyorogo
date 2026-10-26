@@ -53,7 +53,7 @@
   },
   "iosInstall": {
     "title": "Pasang di iPhone",
-    "description": "Coba aplikasi iPhone lewat TestFlight, atau pasang web app ke Layar Utama supaya terbuka layar penuh seperti aplikasi. Akun dan datanya sama.",
+    "description": "Unduh aplikasi iPhone dari App Store, atau pasang web app ke Layar Utama supaya terbuka layar penuh seperti aplikasi. Akun dan datanya sama.",
     "copy": "Salin link",
     "copied": "Tersalin",
     "copiedStatus": "Link tersalin",
@@ -66,12 +66,10 @@
       "title": "Panduan ini untuk iPhone",
       "body": "Buka link ini dari iPhone-mu, di Safari. Kirim ke dirimu sendiri lewat WhatsApp atau salin dulu."
     },
-    "testflight": {
-      "title": "Coba aplikasi iPhone (beta publik, TestFlight)",
-      "step1": "Pasang TestFlight dari App Store, kalau belum ada.",
-      "step2": "Buka link undangan di iPhone, ketuk Terima, lalu Pasang JoyoRogo.",
-      "open": "Buka TestFlight",
-      "note": "Masih beta, jadi mungkin ada yang belum rapi. Versi App Store 1.0 sedang menunggu review Apple. Akunnya sama dengan versi web.",
+    "appStore": {
+      "title": "JoyoRogo sudah ada di App Store",
+      "body": "Gratis diunduh, butuh iOS 16.4 ke atas. Masuk dengan akun yang sama seperti di web.",
+      "open": "Unduh di App Store",
       "orWeb": "Atau pakai versi web"
     },
     "steps": {

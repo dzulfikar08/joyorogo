@@ -71,8 +71,8 @@
       "title": "Kunci sendiri, percuma dalam aplikasi",
       "body": "Dalam aplikasi JoyoRogo untuk telefon, Joyo AI boleh menggunakan kunci API anda sendiri tanpa Pro. Web hanya menggunakan enjin JoyoRogo.",
       "android": "Sertai penguji Android",
-      "iphone": "Cuba di iPhone",
-      "webApp": "iPhone tanpa TestFlight? Pasang web app ke Skrin Utama"
+      "iphone": "Muat turun di App Store",
+      "webApp": "Atau pasang web app ke Skrin Utama iPhone"
     },
     "minor": {
       "title": "Joyo AI belum tersedia untuk anda",

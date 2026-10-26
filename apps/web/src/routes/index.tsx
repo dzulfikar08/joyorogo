@@ -60,9 +60,9 @@ import { landingSkipsForSignedIn } from "@/lib/hosts";
 import { sessionQuery } from "@/lib/auth-client";
 import { openIosInstall } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
+import { APP_STORE_URL } from "@/lib/store-urls";
 import { TESTIMONIALS } from "@/lib/testimonials";
 import { FAQ, IPHONE_FAQ_Q, pageHead } from "@/lib/seo";
-import { IOS_TESTFLIGHT_LIVE, JOYOROGO_TESTFLIGHT_URL } from "@/lib/testflight";
 import { CACHE_OWNER_KEY } from "@/utils/orpc";
 
 export const Route = createFileRoute("/")({
@@ -99,9 +99,9 @@ const ANDROID_STEPS = [
 ] as const;
 
 const IOS_STEPS = [
-  "Pasang TestFlight dari App Store, kalau belum ada di iPhone-mu.",
-  "Buka link TestFlight JoyoRogo di iPhone dan ketuk Terima.",
-  "Ketuk Pasang di TestFlight, lalu masuk dengan akun yang sama seperti di web. Diary-mu ikut pindah. Di iPhone, JoyoRogo membaca Apple Health.",
+  "Buka JoyoRogo di App Store dari iPhone-mu.",
+  "Ketuk Dapatkan untuk memasangnya. Gratis diunduh.",
+  "Buka JoyoRogo, lalu masuk dengan akun yang sama seperti di web. Diary-mu ikut pindah. Di iPhone, JoyoRogo membaca Apple Health.",
 ] as const;
 
 type InstallTab = "android" | "ios";
@@ -122,7 +122,7 @@ function InstallSteps({ steps }: { steps: readonly string[] }) {
 }
 
 /**
- * Android (Google Play closed test) and iPhone (public TestFlight beta) install
+ * Android (Google Play closed test) and iPhone (App Store) install
  * steps behind a segmented switch. Both panels are always in the HTML (the
  * inactive one is `hidden`) so the prerender carries both; the visitor's phone
  * decides which tab opens first. AppDownload links here (`/#tester`).
@@ -233,59 +233,56 @@ function InstallApp() {
           </div>
         </div>
 
-        {IOS_TESTFLIGHT_LIVE && (
-          <div
-            id="iphone-beta"
-            role="tabpanel"
-            aria-labelledby="install-tab-ios"
-            data-section="iphone-beta"
-            hidden={tab !== "ios"}
-            className="mt-6 scroll-mt-20"
-          >
-            <div className="grid gap-8 md:grid-cols-[1fr_1.1fr] md:items-start">
-              <div>
-                <h2 className="text-2xl font-extrabold tracking-tight text-makan-ink md:text-3xl">
-                  JoyoRogo di iPhone: beta publik
-                </h2>
-                <p className="mt-3 max-w-md text-[0.9375rem] leading-relaxed text-makan-ink/85">
-                  Aplikasi iPhone sudah bisa dicoba lewat TestFlight, dan versi App Store 1.0 sedang
-                  menunggu review Apple. Gratis, butuh iOS 16.4 ke atas.
-                </p>
-                <div className="mt-6">
-                  <Button
-                    size="lg"
-                    render={
-                      <a
-                        href={JOYOROGO_TESTFLIGHT_URL}
-                        target="_blank"
-                        rel="noopener"
-                        data-revklik-goal="ios_testflight_click"
-                        data-revklik-goal-location="tester"
-                      />
-                    }
-                  >
-                    <AppleMark />
-                    Buka TestFlight
-                  </Button>
-                </div>
-                <p className="mt-4 text-sm text-makan-ink/85">
-                  Belum mau memasang aplikasi?{" "}
-                  <button
-                    type="button"
-                    data-revklik-goal="ios_cta_click"
-                    data-revklik-goal-location="tester"
-                    onClick={() => openIosInstall("tester")}
-                    className="font-semibold underline underline-offset-4"
-                  >
-                    Pasang web app ke Layar Utama
-                  </button>
-                  .
-                </p>
+        <div
+          id="iphone-beta"
+          role="tabpanel"
+          aria-labelledby="install-tab-ios"
+          data-section="iphone-beta"
+          hidden={tab !== "ios"}
+          className="mt-6 scroll-mt-20"
+        >
+          <div className="grid gap-8 md:grid-cols-[1fr_1.1fr] md:items-start">
+            <div>
+              <h2 className="text-2xl font-extrabold tracking-tight text-makan-ink md:text-3xl">
+                JoyoRogo di iPhone: App Store
+              </h2>
+              <p className="mt-3 max-w-md text-[0.9375rem] leading-relaxed text-makan-ink/85">
+                JoyoRogo sudah ada di App Store. Gratis diunduh, butuh iOS 16.4 ke atas.
+              </p>
+              <div className="mt-6">
+                <Button
+                  size="lg"
+                  render={
+                    <a
+                      href={APP_STORE_URL}
+                      target="_blank"
+                      rel="noopener"
+                      data-revklik-goal="ios_app_store_click"
+                      data-revklik-goal-location="tester"
+                    />
+                  }
+                >
+                  <AppleMark />
+                  Unduh di App Store
+                </Button>
               </div>
-              <InstallSteps steps={IOS_STEPS} />
+              <p className="mt-4 text-sm text-makan-ink/85">
+                Belum mau memasang aplikasi?{" "}
+                <button
+                  type="button"
+                  data-revklik-goal="ios_cta_click"
+                  data-revklik-goal-location="tester"
+                  onClick={() => openIosInstall("tester")}
+                  className="font-semibold underline underline-offset-4"
+                >
+                  Pasang web app ke Layar Utama
+                </button>
+                .
+              </p>
             </div>
+            <InstallSteps steps={IOS_STEPS} />
           </div>
-        )}
+        </div>
       </div>
     </section>
   );
@@ -976,22 +973,20 @@ function Landing() {
                 Kalori makan dari JoyoRogo tampil di jammu, dan skor serta latihanmu bisa dibagikan ke
                 grup JoyoRogo. Sudah dicoba di Huawei Watch Fit 4 Pro; model lain masih tahap uji.
               </p>
-              {IOS_TESTFLIGHT_LIVE && (
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  Versi iPhone sudah bisa dicoba lewat{" "}
-                  <a
-                    href="https://testflight.apple.com/join/GXzrQ8GJ"
-                    target="_blank"
-                    rel="noopener"
-                    className="font-semibold text-foreground underline underline-offset-4"
-                    data-revklik-goal="joyofit_testflight_click"
-                    data-revklik-goal-location="smartwatch"
-                  >
-                    TestFlight (beta publik)
-                  </a>
-                  , dan versi App Store 1.0 sedang menunggu review Apple.
-                </p>
-              )}
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Versi iPhone sudah bisa dicoba lewat{" "}
+                <a
+                  href="https://testflight.apple.com/join/GXzrQ8GJ"
+                  target="_blank"
+                  rel="noopener"
+                  className="font-semibold text-foreground underline underline-offset-4"
+                  data-revklik-goal="joyofit_testflight_click"
+                  data-revklik-goal-location="smartwatch"
+                >
+                  TestFlight (beta publik)
+                </a>
+                , dan versi App Store 1.0 sedang menunggu review Apple.
+              </p>
               <Button
                 variant="outline"
                 size="sm"
