@@ -44,7 +44,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-svh flex-col items-center px-4 py-8 md:py-12">
       <main className="w-full max-w-md">
         <p className="mb-5 flex items-center justify-center gap-2 text-lg font-extrabold tracking-tight">
-          <img src="/brand/logo-mark.svg" alt="" className="h-7 w-auto" />
+          <img src="/brand/joyo-head.webp" alt="" width={104} height={96} className="h-7 w-auto" />
           JoyoRogo
         </p>
         {children}

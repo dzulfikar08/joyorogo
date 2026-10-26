@@ -48,7 +48,7 @@ function GabungPage() {
   return (
     <div className="flex min-h-svh flex-col">
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-10">
-        <img src="/brand/logo-mark.svg" alt="" className="h-16 w-auto" />
+        <img src="/brand/joyo-head.webp" alt="" width={104} height={96} className="h-16 w-auto" />
         <div className="mt-6 w-full max-w-sm rounded-3xl bg-card p-6 text-center">
           {!valid ? (
             <>

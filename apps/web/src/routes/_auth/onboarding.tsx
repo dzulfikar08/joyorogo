@@ -597,7 +597,7 @@ function OnboardingPage() {
     <Page className="max-w-xl">
       <header className="pt-2">
         <div className="flex items-center justify-between px-1">
-          <img src="/brand/logo-mark.svg" alt="" className="h-7 w-auto" />
+          <img src="/brand/joyo-head.webp" alt="" width={104} height={96} className="h-7 w-auto" />
           <p className="text-xs font-semibold text-muted-foreground tabular-nums">
             {step}/{STEP_COUNT}
           </p>

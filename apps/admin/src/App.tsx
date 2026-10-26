@@ -93,7 +93,7 @@ function SignInScreen({ notAdmin, email }: { notAdmin: boolean; email: string | 
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
-      <img src="/brand/logo-mark.svg" alt="" className="size-12" />
+      <img src="/brand/joyo-head.webp" alt="" width={104} height={96} className="h-12 w-auto" />
       <h1 className="text-xl font-bold">JoyoRogo Admin</h1>
       <p className="text-sm text-muted-foreground">Masuk dengan akun Google admin.</p>
       <Button onClick={() => signIn.mutate()} disabled={signIn.isPending}>
@@ -182,7 +182,7 @@ export default function App() {
   if (gate.isPending) {
     return (
       <div className="grid min-h-dvh place-items-center" role="status" aria-label="Memuat">
-        <img src="/brand/logo-mark.svg" alt="" className="size-10 animate-pulse" />
+        <img src="/brand/joyo-head.webp" alt="" width={104} height={96} className="h-10 w-auto animate-pulse" />
       </div>
     );
   }
@@ -203,7 +203,7 @@ export default function App() {
         {/* Phones: slim sticky top bar. */}
         <header className="sticky top-0 z-30 -mx-4 -mt-4 flex items-center justify-between gap-2 border-b border-border bg-background/95 px-4 py-1.5 backdrop-blur md:hidden">
           <div className="flex min-w-0 items-center gap-2.5">
-            <img src="/brand/logo-mark.svg" alt="JoyoRogo" className="size-8 shrink-0" />
+            <img src="/brand/joyo-head.webp" alt="JoyoRogo" width={104} height={96} className="h-8 w-auto shrink-0" />
             <h1 className="truncate text-base font-bold">{active.label}</h1>
           </div>
           <div className="flex items-center">
@@ -218,7 +218,7 @@ export default function App() {
         {/* Tablet and up: full header. */}
         <header className="hidden flex-wrap items-center justify-between gap-3 md:flex">
           <div className="flex items-center gap-2.5">
-            <img src="/brand/logo-mark.svg" alt="JoyoRogo" className="size-8" />
+            <img src="/brand/joyo-head.webp" alt="JoyoRogo" width={104} height={96} className="h-8 w-auto" />
             <h1 className="text-lg font-bold">JoyoRogo Admin</h1>
             <Badge tone="green">Admin</Badge>
           </div>

@@ -98,7 +98,7 @@ p{margin:0 0 1.1rem;color:var(--muted);font-size:.95rem}
 button,a.btn{display:block;width:100%;min-height:2.9rem;padding:.8rem 1rem;border:0;border-radius:9999px;background:var(--primary);color:var(--on-primary);font:inherit;font-weight:700;text-decoration:none;cursor:pointer}
 a.quiet{display:inline-block;margin-top:.9rem;color:var(--muted);font-size:.875rem}
 </style></head><body><main>
-<div class="brand"><img src="${WEB}/brand/logo-mark.svg" alt="" width="28" height="28">JoyoRogo</div>
+<div class="brand"><img src="${WEB}/brand/joyo-head.webp" alt="" width="30" height="28">JoyoRogo</div>
 ${body}
 </main></body></html>`;
 }

@@ -125,7 +125,7 @@ export function DesktopBar() {
     <header className="sticky top-0 z-40 hidden border-b border-border/70 bg-background/90 backdrop-blur-sm md:block">
       <div className="mx-auto flex h-16 max-w-5xl items-center gap-6 px-6">
         <Link to="/beranda" className="flex items-center gap-2">
-          <img src="/brand/logo-mark.svg" alt="" className="h-7 w-auto" />
+          <img src="/brand/joyo-head.webp" alt="" width={104} height={96} className="h-7 w-auto" />
           <span className="text-lg font-extrabold tracking-tight">JoyoRogo</span>
         </Link>
         <nav aria-label={t("nav.primary")} className="flex-1">

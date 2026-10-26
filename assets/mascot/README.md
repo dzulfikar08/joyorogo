@@ -72,6 +72,9 @@ deep-green radial gradient (`#2c9452` → `#157040` → `#083a25`), and from the
 | `apps/web/public/icons/icon-{192,512}.png` | PWA `any` icons, rounded tile (palette PNG) |
 | `apps/web/public/icons/icon-maskable-512.png`, `apple-touch-icon.png` | full-bleed square (palette PNG) |
 
-The public site's logo (landing header and footer, `/my`, `/sg`, blog header) is `apps/web/public/brand/joyo-head.webp`:
-`head.png` trimmed, 96 px tall (104×96), shown at 28–32 px. The JR mark (`apps/web/public/brand/logo-mark.svg`) is still the
-logo inside the signed-in app, onboarding, invite and AI-connection pages, the admin site and the unsubscribe page.
+The logo next to the "JoyoRogo" wordmark everywhere on the web (landing header and footer, `/my`, `/sg`, blog header, the
+signed-in app's desktop bar, onboarding, invite and AI-connection pages, the admin site, the unsubscribe page) is
+`brand/joyo-head.webp` (`head.png` trimmed, 208×192, shown at 28–64 px; a copy lives in `apps/admin/public/brand/`). The admin
+tab icon is `apps/admin/public/favicon.png`: the head on a green tile with an amber "A" badge. The JR mark
+(`apps/web/public/brand/logo-mark.svg`) remains only as the brand line in the marketing slide templates
+(`docs/marketing/content`).
