@@ -15,7 +15,7 @@ import {
 
 const config = parseVersionConfig({
   android: { minBuild: 100, latestBuild: 120, storeUrl: "https://play.google.com/x" },
-  ios: { minBuild: 10, latestBuild: 12, storeUrl: "https://testflight.apple.com/join/abc123" },
+  ios: { minBuild: 10, latestBuild: 12, storeUrl: "https://apps.apple.com/app/id1" },
 });
 
 describe("decideGate", () => {
@@ -105,11 +105,7 @@ describe("storeLinks", () => {
     });
   });
 
-  test("ios: TestFlight app link first, https fallback; App Store url as is", () => {
-    expect(storeLinks("ios", "https://testflight.apple.com/join/abc123").primary).toEqual([
-      "itms-beta://testflight.apple.com/join/abc123",
-      "https://testflight.apple.com/join/abc123",
-    ]);
+  test("ios: the App Store url as is", () => {
     expect(storeLinks("ios", "https://apps.apple.com/app/id1")).toEqual({
       primary: ["https://apps.apple.com/app/id1"],
     });

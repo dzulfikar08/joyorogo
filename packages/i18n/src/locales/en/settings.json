@@ -736,14 +736,14 @@
         "body": "The JoyoRogo version on your phone is out of date. Fixes we already released only work once the app is updated.",
         "how": {
           "android": "Open the Play Store, then tap Update.",
-          "ios": "Open TestFlight, then tap Update."
+          "ios": "Open the App Store, then tap Update."
         },
         "update": "Update now",
         "testing": "Open the testing page",
         "recheck": "Check again",
         "rechecking": "Checking…",
         "stillOld": "Your version isn't the latest yet. Finish the update first, then tap Check again.",
-        "openFailed": "Couldn't open the store. Open the Play Store or TestFlight yourself."
+        "openFailed": "Couldn't open the store. Open the Play Store or App Store yourself."
       },
       "banner": {
         "title": "New version available",

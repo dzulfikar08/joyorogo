@@ -9,12 +9,12 @@ Written 2026-10-19. Many reports were about bugs we had already fixed; the repor
 
    ```json
    { "android": { "minBuild": 0, "latestBuild": 0, "storeUrl": "https://play.google.com/store/apps/details?id=com.joyodigitama.joyorogo" },
-     "ios":     { "minBuild": 0, "latestBuild": 0, "storeUrl": "https://testflight.apple.com/join/gD8dPxW3" },
+     "ios":     { "minBuild": 0, "latestBuild": 0, "storeUrl": "https://apps.apple.com/id/app/id6823222101?ct=joyorogo-evergreen-update" },
      "message": "optional one-liner" }
    ```
 
    The app compares its `expo-application` `nativeBuildVersion` (Android versionCode, iOS CFBundleVersion) with it, on cold start and on resume (re-fetch at most every 15 min):
-   - build < `minBuild`: full-screen blocking "Update dulu, ya" over everything (Android back is swallowed). "Update sekarang" opens `market://details?id=com.joyodigitama.joyorogo` (https fallback); Android also shows "Buka halaman uji coba" (`https://play.google.com/apps/testing/com.joyodigitama.joyorogo`) for testers not on the track; iOS opens `itms-beta://testflight.apple.com/join/<code>` (https fallback), or the App Store URL as is. "Cek lagi" re-fetches.
+   - build < `minBuild`: full-screen blocking "Update dulu, ya" over everything (Android back is swallowed). "Update sekarang" opens `market://details?id=com.joyodigitama.joyorogo` (https fallback); Android also shows "Buka halaman uji coba" (`https://play.google.com/apps/testing/com.joyodigitama.joyorogo`) for testers not on the track; iOS opens the App Store URL as is. "Cek lagi" re-fetches.
    - `minBuild` <= build < `latestBuild`: dismissible "Ada versi baru" banner (24 h snooze), **iOS only**; Android already gets Play's own in-app update banner (`docs/in-app-updates.md`).
    - **Fail open:** no network, bad payload, unknown installed build, web: never blocks. The last good answer is cached in SecureStore for 1 h and used if the fetch fails; an older cache is ignored. A server that does not send `app` counts as "gate off".
 3. The gate and the Play/Apple billing paths do not interact; `/api/config` is the same endpoint `useAppConfig()` uses (`appConfigQuery()` in `components/billing.tsx`), so one cache entry serves both.
@@ -27,10 +27,10 @@ Written 2026-10-19. Many reports were about bugs we had already fixed; the repor
 | --- | --- |
 | `MIN_BUILD_ANDROID` / `MIN_BUILD_IOS` | builds below this are blocked |
 | `LATEST_BUILD_ANDROID` / `LATEST_BUILD_IOS` | iOS banner threshold (raised to at least the min) |
-| `ANDROID_STORE_URL` / `IOS_STORE_URL` | optional https overrides, e.g. the App Store URL once 1.0 is live |
+| `ANDROID_STORE_URL` / `IOS_STORE_URL` | optional https overrides of the defaults (Play listing, App Store listing) |
 | `UPDATE_MESSAGE` | optional one-line reason (200 chars), shown under the standard text |
 
-Steps: 1) the fixed build must already be live in Play / TestFlight (otherwise users are blocked with nothing to install); 2) read its number (Android versionCode = minutes since 2024-01-01 UTC, see `docs/ci-release.md`; iOS `buildNumber`); 3) set the var, `cd apps/server && CLOUDFLARE_ACCOUNT_ID=3268f27664d77716b648b00c8850469e bunx wrangler deploy`. Roll back by setting it to `"0"` and redeploying. Do not set a minimum above a build that App Review has not yet released: reviewers on an older build would see the block.
+Steps: 1) the fixed build must already be live in Play / the App Store (otherwise users are blocked with nothing to install); 2) read its number (Android versionCode = minutes since 2024-01-01 UTC, see `docs/ci-release.md`; iOS `buildNumber`); 3) set the var, `cd apps/server && CLOUDFLARE_ACCOUNT_ID=3268f27664d77716b648b00c8850469e bunx wrangler deploy`. Roll back by setting it to `"0"` and redeploying. Do not set a minimum above a build that App Review has not yet released: reviewers on an older build would see the block.
 
 ## Who gets this code
 

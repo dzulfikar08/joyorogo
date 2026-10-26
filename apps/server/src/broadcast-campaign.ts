@@ -13,6 +13,8 @@ export const BROADCAST_SENDER: { email: string; name: string; replyTo?: string }
 /** Play closed test: the Google group first, then the opt-in page (same links as apps/web app-config). */
 const TESTER_GROUP_URL = "https://groups.google.com/g/joyorogo-testers";
 const TESTER_OPTIN_URL = "https://play.google.com/apps/testing/com.joyodigitama.joyorogo";
+/** JoyoRogo on the App Store, `ct` campaign token per docs/utm.md. */
+const JOYOROGO_APP_STORE_URL = "https://apps.apple.com/id/app/id6823222101?ct=email-2026-10-broadcast";
 
 /** The announcement the admin console opens with (editable there before a test or the full send). */
 export const DEFAULT_CAMPAIGN: Campaign = {
@@ -25,9 +27,9 @@ Ada beberapa kabar dari JoyoRogo dan JoyoFit:
 **1. Hasil scan salah? Tinggal bilang.**
 Sekarang kamu bisa koreksi hasil foto makanan dengan mengetik atau bicara, misalnya "itu rolade bukan perkedel" atau "nasinya setengah aja". Hanya bagian yang kamu sebut yang berubah, kalorinya dihitung ulang, dan tidak mengurangi jatah scan. Hasil scan juga sekarang muncul bertahap, jadi lebih cepat terlihat.
 
-**2. JoyoRogo dan JoyoFit di iPhone (beta)**
-- JoyoRogo iPhone: https://testflight.apple.com/join/gD8dPxW3
-- JoyoFit iPhone (untuk jam Huawei): https://testflight.apple.com/join/GXzrQ8GJ
+**2. JoyoRogo sudah di App Store, JoyoFit iPhone masih beta**
+- JoyoRogo iPhone (App Store): ${JOYOROGO_APP_STORE_URL}
+- JoyoFit iPhone (beta TestFlight, untuk jam Huawei): https://testflight.apple.com/join/GXzrQ8GJ
 
 **3. Bantu kami masuk Play Store (Android)**
 Supaya JoyoRogo bisa dirilis untuk semua orang di Play Store, Google minta kami menjalankan tes dengan cukup banyak tester aktif selama 14 hari. Kalau kamu pakai Android, gabung sebentar ya:

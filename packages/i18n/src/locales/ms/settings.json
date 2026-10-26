@@ -756,14 +756,14 @@
         "body": "Versi JoyoRogo pada telefon anda sudah ketinggalan. Pembaikan yang sudah dikeluarkan hanya digunakan selepas aplikasi dikemas kini.",
         "how": {
           "android": "Buka Play Store, kemudian ketik Kemas kini.",
-          "ios": "Buka TestFlight, kemudian ketik Kemas kini."
+          "ios": "Buka App Store, kemudian ketik Kemas kini."
         },
         "update": "Kemas kini sekarang",
         "testing": "Buka halaman ujian",
         "recheck": "Semak semula",
         "rechecking": "Menyemak…",
         "stillOld": "Versi anda belum yang terkini. Selesaikan kemas kini dahulu, kemudian ketik Semak semula.",
-        "openFailed": "Kedai aplikasi belum dapat dibuka. Sila buka Play Store atau TestFlight sendiri."
+        "openFailed": "Kedai aplikasi belum dapat dibuka. Sila buka Play Store atau App Store sendiri."
       },
       "banner": {
         "title": "Ada versi baharu",

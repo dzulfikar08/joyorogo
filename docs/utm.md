@@ -84,4 +84,7 @@ swap `utm_source` and `utm_medium` for other channels (bio link: `utm_medium=bio
 | JoyoFit app, Today card (diary, site, Play) | `utm_source=joyofit&utm_medium=app&utm_campaign=evergreen-today-card` (Play via `referrer`) |
 | JoyoFit app, Settings cloud section to `/pro` | `utm_source=joyofit&utm_medium=app&utm_campaign=evergreen-cloud-settings` |
 | fit.joyorogo.com to `/harga` | `utm_source=joyofit&utm_medium=referral&utm_campaign=evergreen-site-cloud` |
+| joyorogo.com iPhone buttons (landing, footer, blog) | `ct=joyorogo-evergreen-web` (`apps/web/src/lib/store-urls.ts`) |
+| JoyoRogo app, update gate on iPhone (`/api/config` `app.ios.storeUrl`) | `ct=joyorogo-evergreen-update` (`apps/server/src/app-version.ts`) |
+| Broadcast email default campaign | `ct=email-2026-10-broadcast` (`apps/server/src/broadcast-campaign.ts`) |
 | Strava activity description (opt-in) | `fit.joyorogo.com/?utm_source=strava&utm_medium=referral&utm_campaign=evergreen-description` |

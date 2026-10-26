@@ -26,8 +26,8 @@ export type AppVersionConfig = {
 
 export const DEFAULT_ANDROID_STORE_URL =
   "https://play.google.com/store/apps/details?id=com.joyodigitama.joyorogo";
-/** Public TestFlight link; swap for the App Store URL (IOS_STORE_URL) once 1.0 is live. */
-export const DEFAULT_IOS_STORE_URL = "https://testflight.apple.com/join/gD8dPxW3";
+/** App Store listing, `ct` campaign token per docs/utm.md (the web uses `joyorogo-evergreen-web`). */
+export const DEFAULT_IOS_STORE_URL = "https://apps.apple.com/id/app/id6823222101?ct=joyorogo-evergreen-update";
 
 /** Positive integer, else 0. */
 export function parseBuild(raw: string | undefined): number {

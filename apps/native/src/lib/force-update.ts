@@ -119,8 +119,6 @@ export interface StoreLinks {
   testing?: string;
 }
 
-const TESTFLIGHT_JOIN = /^https:\/\/testflight\.apple\.com\/join\/([A-Za-z0-9]+)$/;
-
 /** Where the "Update" button goes. */
 export function storeLinks(platform: string, storeUrl: string): StoreLinks {
   const https = storeUrl.startsWith("https://") ? [storeUrl] : [];
@@ -130,6 +128,5 @@ export function storeLinks(platform: string, storeUrl: string): StoreLinks {
       testing: ANDROID_TESTING_URL,
     };
   }
-  const code = TESTFLIGHT_JOIN.exec(storeUrl)?.[1];
-  return { primary: code ? [`itms-beta://testflight.apple.com/join/${code}`, ...https] : https };
+  return { primary: https };
 }

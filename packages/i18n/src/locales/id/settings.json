@@ -716,14 +716,14 @@
         "body": "Versi JoyoRogo di HP kamu sudah ketinggalan. Perbaikan yang sudah rilis baru kepakai setelah aplikasinya diperbarui.",
         "how": {
           "android": "Buka Play Store, lalu ketuk Update.",
-          "ios": "Buka TestFlight, lalu ketuk Update."
+          "ios": "Buka App Store, lalu ketuk Update."
         },
         "update": "Update sekarang",
         "testing": "Buka halaman uji coba",
         "recheck": "Cek lagi",
         "rechecking": "Memeriksa…",
         "stillOld": "Versimu belum yang terbaru. Selesaikan update-nya dulu, lalu ketuk Cek lagi.",
-        "openFailed": "Toko aplikasinya belum bisa dibuka. Buka Play Store atau TestFlight sendiri, ya."
+        "openFailed": "Toko aplikasinya belum bisa dibuka. Buka Play Store atau App Store sendiri, ya."
       },
       "banner": {
         "title": "Ada versi baru",

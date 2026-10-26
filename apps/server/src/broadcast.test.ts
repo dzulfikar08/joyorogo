@@ -154,7 +154,7 @@ describe("renderBroadcast", () => {
     expect(mail.text.startsWith("Halo Rina,\n\nAda beberapa kabar dari JoyoRogo dan JoyoFit:\n\n1. Hasil scan salah? Tinggal bilang.\n")).toBe(true);
     expect(mail.text).toContain("1) Gabung grup: https://groups.google.com/g/joyorogo-testers\n");
     expect(mail.text).toContain('2) Buka https://play.google.com/apps/testing/com.joyodigitama.joyorogo lalu ketuk "Become a tester"\n');
-    expect(mail.text).toContain("- JoyoRogo iPhone: https://testflight.apple.com/join/gD8dPxW3\n- JoyoFit iPhone (untuk jam Huawei): https://testflight.apple.com/join/GXzrQ8GJ\n");
+    expect(mail.text).toContain("- JoyoRogo iPhone (App Store): https://apps.apple.com/id/app/id6823222101?ct=email-2026-10-broadcast\n- JoyoFit iPhone (beta TestFlight, untuk jam Huawei): https://testflight.apple.com/join/GXzrQ8GJ\n");
     expect(mail.text).toContain("Daftar di https://fit.joyorogo.com/strava, nanti kami kabari.");
     expect(mail.text).toContain("Salam,\nDzulfikar, JoyoRogo\n\nTidak mau terima email seperti ini lagi? Berhenti berlangganan: ");
     expect(mail.text).not.toContain("{");

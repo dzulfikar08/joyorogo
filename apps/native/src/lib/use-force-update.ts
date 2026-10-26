@@ -31,7 +31,7 @@ export async function openStore(links: string[]): Promise<boolean> {
       await Linking.openURL(link);
       return true;
     } catch {
-      // Scheme not handled (no Play Store / TestFlight): try the https fallback.
+      // Scheme not handled (no Play Store): try the https fallback.
     }
   }
   return false;
