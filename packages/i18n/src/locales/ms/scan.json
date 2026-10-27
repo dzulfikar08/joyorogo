@@ -33,7 +33,7 @@
   "idle": {
     "title": "Imbas makanan",
     "heading": "Halakan ke pinggan anda",
-    "referenceHint": "Petua: letakkan kad (ATM/MyKad) atau penimbang di sebelah makanan supaya hidangan lebih tepat.",
+    "referenceHint": "Petua: letakkan kad (ATM/MyKad) di sebelah makanan sebagai petunjuk saiz, atau penimbang supaya beratnya dibaca.",
     "referenceHintScale": "Petua: ada penimbang dapur? Letakkan pinggan di atasnya, bacaannya turut dibaca.",
     "referenceHintClose": "Tutup petunjuk",
     "tip": "1 pinggan setiap foto, dari dekat",
@@ -191,7 +191,16 @@
       "scaleGroup": "Pilih angka berat {{name}}",
       "scaleRead": "Dibaca daripada penimbang: {{value}}",
       "scaleReadShared_other": "Dibaca daripada penimbang: {{value}}, dibahagi kepada {{count}} item",
+      "scaleReadTared": "Dibaca daripada penimbang: {{value}}, ditolak {{container}} ~{{tare}}",
+      "scaleReadSharedTared_other": "Dibaca daripada penimbang: {{value}}, ditolak {{container}} ~{{tare}}, dibahagi kepada {{count}} item",
       "scaleAi": "Anggaran foto: {{grams}}",
+      "tareAppliedEstimate": "Bekas ~−{{grams}}",
+      "container_bowl": "mangkuk",
+      "container_plate": "pinggan",
+      "container_box": "kotak",
+      "container_cup": "cawan",
+      "container_bag": "beg",
+      "container_wrapper": "pembungkus",
       "tareChip": "Termasuk bekas?",
       "tareApplied": "Bekas −{{grams}}",
       "tareTitle": "Berat bekas kosong",
@@ -351,9 +360,9 @@
     }
   },
   "dishware": {
-    "matched": "Pinggan: {{name}} ({{cm}} cm), dijadikan panduan saiz hidangan.",
+    "matched": "Pinggan: {{name}} ({{cm}} cm) kelihatan, digunakan sebagai petunjuk saiz sahaja. Gram tetap anggaran.",
     "none": "Pinggan tidak dikenali, hidangan dianggarkan seperti biasa.",
-    "card": "Kad dikesan, dijadikan panduan saiz hidangan."
+    "card": "Kad kelihatan dalam foto, digunakan sebagai petunjuk saiz sahaja. Gram tetap anggaran."
   },
   "simple": {
     "title": "Semak hasilnya",

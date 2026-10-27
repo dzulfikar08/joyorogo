@@ -35,7 +35,7 @@ export type DishwareScanNote =
   | { status: "matched"; id: string; name: string; kind: DishwareKind; diameterCm: number; widthCm: number | null }
   | { status: "none" };
 
-/** A card lay next to the food and was the size reference ("Kartu terdeteksi"). Absent = it was not, so there is nothing to say. */
+/** A card lay next to the food and the model was told its size as a hint ("Kartu terlihat ..., petunjuk saja"). Absent = nothing to say. */
 export type CardScanNote = { status: "used" };
 
 /** What the ledger keeps of the card question (usage_json.card): the model's own detection, and whether it counted. */

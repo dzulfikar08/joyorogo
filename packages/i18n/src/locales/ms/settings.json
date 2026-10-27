@@ -804,7 +804,7 @@
   },
   "dishware": {
     "title": "Pinggan saya",
-    "intro": "Daftarkan pinggan dan mangkuk yang biasa anda guna, sekali sahaja. Saiznya menjadi rujukan apabila AI menganggar hidangan daripada foto, jadi gramnya lebih hampir dengan realiti. Makan di tempat lain? Tidak mengapa, imbas seperti biasa.",
+    "intro": "Daftarkan pinggan dan mangkuk yang biasa anda guna, sekali sahaja. AI diberitahu saiznya sebagai petunjuk apabila menganggar hidangan daripada foto, tetapi gram tetap anggaran. Makan di tempat lain? Tidak mengapa, imbas seperti biasa.",
     "empty": "Belum ada pinggan. Tambah satu, cukup sekali.",
     "add": "Tambah pinggan/mangkuk",
     "slots": "{{used}} daripada {{max}} pinggan",

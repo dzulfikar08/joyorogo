@@ -108,9 +108,16 @@ export function ScaleReadChips({
           onClick={scaleActive ? undefined : onSwap}
           className={chipClass(scaleActive)}
         >
-          {chip.count > 1
-            ? t("result.items.scaleReadShared", { value, count: chip.count })
-            : t("result.items.scaleRead", { value })}
+          {chip.tareKind && tare > 0
+            ? t(chip.count > 1 ? "result.items.scaleReadSharedTared" : "result.items.scaleReadTared", {
+                value,
+                count: chip.count,
+                container: t(`result.items.container_${chip.tareKind}`),
+                tare: fmtGramsLabel(tare),
+              })
+            : chip.count > 1
+              ? t("result.items.scaleReadShared", { value, count: chip.count })
+              : t("result.items.scaleRead", { value })}
         </button>
         <button
           type="button"
@@ -133,7 +140,7 @@ export function ScaleReadChips({
             className={chipClass(tare > 0 || open)}
           >
             {tare > 0
-              ? t("result.items.tareApplied", { grams: fmtGramsLabel(tare) })
+              ? t(chip.tareKind ? "result.items.tareAppliedEstimate" : "result.items.tareApplied", { grams: fmtGramsLabel(tare) })
               : t("result.items.tareChip")}
           </button>
         )}

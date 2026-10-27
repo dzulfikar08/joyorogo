@@ -784,7 +784,7 @@
   },
   "dishware": {
     "title": "My plates",
-    "intro": "Register the plates and bowls you usually eat from, once. Their size becomes the reference when the AI estimates portions from a photo, so grams land closer to reality. Eating somewhere else? No problem, the scan works as usual.",
+    "intro": "Register the plates and bowls you usually eat from, once. The AI is told their size as a hint when it estimates portions from a photo, but grams are still an estimate. Eating somewhere else? No problem, the scan works as usual.",
     "empty": "No plates yet. Add one, just once.",
     "add": "Add plate/bowl",
     "slots": "{{used}} of {{max}} plates",

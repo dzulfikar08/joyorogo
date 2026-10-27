@@ -50,7 +50,7 @@ import {
   swapPortionPrior,
   withoutPortionPrior,
 } from "@joyorogo/api/lib/portion-chip";
-import { swapScaleRead, tareScaleRows, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
+import { resplitScaleAfterCorrection, swapScaleRead, tareScaleRows, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { cupPick } from "@joyorogo/api/lib/drink-options";
@@ -662,12 +662,17 @@ function AiFoodPage() {
       return origin != null && origin >= 0 && origin < items.length ? origin : null;
     });
     const how = new Map(result.changes.map((change) => [change.index, change.kind]));
+    // Rows the scale reading covered that the correction removed hand their share back to the rows that stay.
+    const shown = resplitScaleAfterCorrection(base, result);
     const nextKcals: Record<number, string> = {};
     const nextKinds: Record<number, FoodKind> = {};
     result.items.forEach((item, index) => {
       const origin = origins[index];
       const kind = how.get(index);
-      nextKcals[index] = (origin != null && !kind ? kcals[origin] : undefined) ?? String(item.kcal);
+      nextKcals[index] =
+        shown[index] !== item
+          ? String(shown[index]!.kcal)
+          : ((origin != null && !kind ? kcals[origin] : undefined) ?? String(item.kcal));
       const picked =
         origin != null && (kind === undefined || kind === "portion") ? kinds[origin] : undefined;
       if (picked) nextKinds[index] = picked;
@@ -680,7 +685,7 @@ function AiFoodPage() {
       list: baseList,
       rows: origins.map((origin) => (origin === null ? null : (baseRows[origin] ?? null))),
     });
-    setItems(result.items);
+    setItems(shown);
     setMemoryChips([]);
     setKcals(nextKcals);
     setKinds(nextKinds);
@@ -698,7 +703,7 @@ function AiFoodPage() {
     );
     setCorrectionsLeft(result.correctionsLeft);
     realignTiles(
-      result.items,
+      shown,
       origins.map((origin) => (origin === null ? null : (crops[origin] ?? null))),
       origins.map((origin) => (origin === null ? null : (stickers[origin] ?? null))),
     );

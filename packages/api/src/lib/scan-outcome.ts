@@ -4,7 +4,8 @@
 // then gains, as the user moves along:
 //
 //   aiItems     what the model first answered for every scan, text only, no photo:
-//               compact items { n name, g grams, k kcal, p/c/f/fi macros, cf confidence }
+//               compact items { n name, g grams, gs where the grams came from, k kcal, p/c/f/fi macros,
+//               cf confidence }; savedItems carry the same gs (see GramSource)
 //   retries     "Hitung ulang" passes (count), retryAt, retryItems (latest pass),
 //               retryLog (every pass: i, at, model, hint, items)
 //   corrections successful ai.correctScan calls (count)
@@ -50,10 +51,20 @@ export const FEEDBACK_MARK = {
   keepPhoto: "keep_photo",
 } as const;
 
-/** n name, g grams, k kcal, p/c/f/fi protein/carbs/fat/fiber (g), cf model confidence 0-1. */
+/**
+ * Where an item's grams came from, so error can be split by source:
+ *   model  the photo estimate, as the vision model answered
+ *   scale  a kitchen-scale display read from the photo (lib/scale-reading.ts), container already taken off
+ *   prior  the user's usual or typical portion started the row (lib/portion-prior.ts)
+ *   user   the grams are not what the scan answered: typed, a chip, a correction, a container weight
+ */
+export type GramSource = "model" | "scale" | "prior" | "user";
+
+/** n name, g grams, gs where they came from, k kcal, p/c/f/fi protein/carbs/fat/fiber (g), cf model confidence 0-1. */
 export type CompactItem = {
   n: string;
   g?: number;
+  gs?: GramSource;
   k: number;
   p?: number;
   c?: number;
@@ -113,15 +124,30 @@ type ItemLike = {
   fat?: number | null;
   fiber?: number | null;
   confidence?: number | null;
+  /** The chips a scan answer carries: which side is showing says where the grams came from. */
+  scaleRead?: { active: string } | null;
+  portionPrior?: { active: string } | null;
 };
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
 
-/** At most 15 items, names cut at 80 chars: a ledger row stays a few KB even with retries. */
-export function compactItems(items: readonly ItemLike[]): CompactItem[] {
+/** Where the grams of a scan answer's item came from, read off the chip that is showing. */
+function gramSourceOf(item: ItemLike): GramSource {
+  if (item.scaleRead?.active === "scale") return "scale";
+  if (item.portionPrior?.active === "prior") return "prior";
+  return "model";
+}
+
+/**
+ * At most 15 items, names cut at 80 chars: a ledger row stays a few KB even with retries. `sources` (default on)
+ * stamps `gs` on every item with grams, for a scan answer; a diary row has no chip to read it from, so the save
+ * passes false and takes the sources from the answer (savedGramSources).
+ */
+export function compactItems(items: readonly ItemLike[], sources = true): CompactItem[] {
   return items.slice(0, 15).map((item) => ({
     n: item.name.slice(0, 80),
     ...(item.grams != null ? { g: Math.round(item.grams) } : {}),
+    ...(sources && item.grams != null ? { gs: gramSourceOf(item) } : {}),
     k: Math.round(item.kcal),
     ...(item.protein != null ? { p: round1(item.protein) } : {}),
     ...(item.carbs != null ? { c: round1(item.carbs) } : {}),
@@ -129,6 +155,27 @@ export function compactItems(items: readonly ItemLike[]): CompactItem[] {
     ...(item.fiber != null ? { fi: round1(item.fiber) } : {}),
     ...(item.confidence != null ? { cf: Math.round(item.confidence * 100) / 100 } : {}),
   }));
+}
+
+/**
+ * The saved items with where each one's grams came from: an item keeps the source of the answer's item it matches
+ * (same name, or same grams under another name) when the grams are unchanged, anything else is the user's.
+ */
+export function savedGramSources(saved: readonly CompactItem[], answer: readonly CompactItem[]): CompactItem[] {
+  const open = [...answer];
+  const take = (match: (a: CompactItem) => boolean): CompactItem | undefined => {
+    const at = open.findIndex(match);
+    return at < 0 ? undefined : open.splice(at, 1)[0];
+  };
+  const same = (a: number | undefined, b: number | undefined) => a !== undefined && b !== undefined && Math.abs(a - b) <= 1;
+  return saved.map((item) => {
+    if (item.g === undefined) return item;
+    const name = item.n.trim().toLowerCase();
+    const found =
+      take((a) => a.n.trim().toLowerCase() === name && same(a.g, item.g)) ??
+      take((a) => a.n.trim().toLowerCase() !== name && same(a.g, item.g));
+    return { ...item, gs: found ? (found.gs ?? "model") : "user" };
+  });
 }
 
 const toDataset = (item: CompactItem): DatasetItem => ({
@@ -380,8 +427,9 @@ export async function recordSessionSaved(
 ): Promise<(ScanSession & { savedItems: CompactItem[] }) | null> {
   const found = await loadSession(db, userId, photoId);
   if (!found) return null;
-  const savedItems = compactItems(saved);
-  const diff = scanDiff(currentAnswer(found.session), savedItems);
+  const answer = currentAnswer(found.session);
+  const savedItems = savedGramSources(compactItems(saved, false), answer);
+  const diff = scanDiff(answer, savedItems);
   const label = savedLabel(diff, found.session.corrections ?? 0);
   await patchSession(
     db,

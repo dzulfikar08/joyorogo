@@ -9,7 +9,8 @@
 // always was. Flag: SCALE_READOUT_USER_IDS (scaleReadoutEnabled); off = no call.
 import { itemAtGrams } from "./item-grams";
 import { numbersOf } from "./portion-chip";
-import type { ScaleReadChip, ScaleUnit } from "./scale-chip";
+import { splitGrams } from "./scale-chip";
+import type { ContainerKind, ScaleReadChip, ScaleUnit } from "./scale-chip";
 import { NAME_MATCH_MIN, nameScore } from "./scan-match";
 import type { CalibratedItem } from "./tkpi";
 import { DEFAULT_VISION_MODEL, defaultSchedule, extractJson, extractUsage, responseText } from "./vision";
@@ -23,12 +24,18 @@ const MAX_SCALE_GRAMS = 5000;
 /** The call runs beside the scan, so it only matters when it outlasts it; past this the scan answers without a reading. */
 const SCALE_TIMEOUT_MS = 12_000;
 
-/** Asks only for the display: `{"scale":null}` for almost every photo, a few dozen tokens otherwise. */
+/**
+ * Asks only for the display and what stands on it: `{"scale":null}` for almost every photo, a few dozen tokens
+ * otherwise. The container (bowl, plate, box...) and whether the display was zeroed with it on (tare) are what
+ * decide if the digits are food or food plus dishware; applyScaleReading does the arithmetic.
+ */
 export const SCALE_PROMPT = `Lihat foto ini. Apakah ada layar timbangan digital (angka LCD atau LED) yang menampilkan berat?
 Jawab HANYA JSON valid satu baris (tanpa \`\`\`), tanpa teks lain.
 Tidak ada layar timbangan, atau layarnya 0 atau 0.0 (kosong, tare): {"scale":null}
-Ada layar timbangan: {"scale":{"reading":"angka persis seperti di layar, mis. 100 atau 3.5","unit":"g|kg|oz|lb|ml","confidence":number,"appliesTo":"plate atau nama makanan yang ditimbang"}}
-Baca angka digit demi digit; angka yang tertutup, terpotong, atau buram tidak ditebak (confidence di bawah 0.5). unit sesuai tulisan di layar atau badan timbangan (g bila tidak terlihat). appliesTo "plate" bila yang ditimbang seluruh piring atau mangkuk, atau nama makanan dalam Bahasa Indonesia bila hanya itu yang ditimbang (beberapa nama dipisah "|"). Angka pada kemasan, struk, jam, atau layar ponsel bukan layar timbangan.`;
+Ada layar timbangan: {"scale":{"reading":"angka persis seperti di layar, mis. 100 atau 3.5","unit":"g|kg|oz|lb|ml","confidence":number,"appliesTo":"plate atau nama makanan yang ditimbang","container":"bowl|plate|box|cup|bag|wrapper|none","material":"ceramic|plastic|paper|other","tared":true atau false}}
+Baca angka digit demi digit; angka yang tertutup, terpotong, atau buram tidak ditebak (confidence di bawah 0.5). unit sesuai tulisan di layar atau badan timbangan (g bila tidak terlihat). appliesTo "plate" bila yang ditimbang seluruh piring atau mangkuk, atau nama makanan dalam Bahasa Indonesia bila hanya itu yang ditimbang (beberapa nama dipisah "|"). Angka pada kemasan, struk, jam, atau layar ponsel bukan layar timbangan.
+container: wadah yang ikut berdiri di atas timbangan bersama makanan: bowl (mangkuk), plate (piring), box (kotak makan atau dus), cup (gelas), bag (kantong), wrapper (bungkus kertas, daun, foil), none bila makanan langsung di atas timbangan. material: bahan wadah (ceramic = keramik atau kaca, plastic = plastik atau melamin, paper = kertas, karton, styrofoam atau daun, other = tidak jelas).
+tared: true HANYA bila layar menunjukkan tanda tare atau net (TARE, NET, T) atau wadahnya jelas sudah dinolkan; tidak yakin atau tidak ada tanda = false (angka itu termasuk berat wadah).`;
 
 /** What the scale call returned: the raw `scale` object (unvalidated; applyScaleReading decides what it is worth). */
 export type ScaleCall = {
@@ -66,7 +73,7 @@ export async function readScaleDisplay(
         ],
       },
     ],
-    max_tokens: 160,
+    max_tokens: 200,
     // Digits are transcribed, not sampled.
     temperature: 0,
     chat_template_kwargs: { enable_thinking: false },
@@ -107,7 +114,82 @@ export type RawScaleReading = {
   confidence: number;
   /** "plate" or the item names it applies to. */
   appliesTo: "plate" | string[];
+  /** What stands on the scale beside the food; absent when the model did not say (an answer from before the field). */
+  container?: RawContainer;
 };
+
+export type ContainerMaterial = "ceramic" | "plastic" | "paper" | "other";
+
+/** `tared` null = the model did not say. */
+export type RawContainer = { kind: ContainerKind | "none"; material: ContainerMaterial; tared: boolean | null };
+
+const CONTAINER_ALIASES: Record<string, ContainerKind | "none"> = {
+  bowl: "bowl",
+  mangkuk: "bowl",
+  mangkok: "bowl",
+  plate: "plate",
+  piring: "plate",
+  box: "box",
+  kotak: "box",
+  dus: "box",
+  cup: "cup",
+  mug: "cup",
+  gelas: "cup",
+  bag: "bag",
+  kantong: "bag",
+  kresek: "bag",
+  wrapper: "wrapper",
+  bungkus: "wrapper",
+  foil: "wrapper",
+  none: "none",
+  tidak: "none",
+  tanpa: "none",
+  "": "none",
+};
+
+const MATERIAL_ALIASES: Record<string, ContainerMaterial> = {
+  ceramic: "ceramic",
+  keramik: "ceramic",
+  porcelain: "ceramic",
+  porselen: "ceramic",
+  glass: "ceramic",
+  kaca: "ceramic",
+  plastic: "plastic",
+  plastik: "plastic",
+  melamine: "plastic",
+  melamin: "plastic",
+  paper: "paper",
+  kertas: "paper",
+  cardboard: "paper",
+  karton: "paper",
+  styrofoam: "paper",
+  daun: "paper",
+};
+
+/**
+ * Grams of the empty container by kind and material. Deliberately the light end of what such dishware weighs
+ * (a ceramic soup bowl is 250-450 g, a ceramic plate 300-500 g): a reading is only ever corrected by less than the
+ * container really weighs, and the person can set the true weight on the chip. An unnamed material is "other".
+ */
+export const CONTAINER_GRAMS: Readonly<Record<ContainerKind, Readonly<Record<ContainerMaterial, number>>>> = {
+  bowl: { ceramic: 250, plastic: 90, paper: 15, other: 120 },
+  plate: { ceramic: 300, plastic: 150, paper: 10, other: 120 },
+  box: { ceramic: 200, plastic: 100, paper: 40, other: 60 },
+  cup: { ceramic: 250, plastic: 15, paper: 12, other: 60 },
+  bag: { ceramic: 5, plastic: 5, paper: 5, other: 5 },
+  wrapper: { ceramic: 5, plastic: 5, paper: 5, other: 5 },
+};
+
+const wordOf = (raw: unknown): string => (typeof raw === "string" ? raw.trim().toLowerCase().split(/[\s,/]+/)[0] ?? "" : "");
+
+function parseContainer(o: Record<string, unknown>): RawContainer | undefined {
+  if (!("container" in o)) return undefined;
+  const kind = CONTAINER_ALIASES[wordOf(o.container)];
+  if (kind === undefined) return undefined;
+  const tared =
+    typeof o.tared === "boolean" ? o.tared : o.tared === "true" ? true : o.tared === "false" ? false : null;
+  return { kind, material: MATERIAL_ALIASES[wordOf(o.material)] ?? "other", tared };
+}
 
 const UNIT_ALIASES: Record<string, ScaleUnit> = {
   g: "g",
@@ -170,21 +252,24 @@ export function parseScaleReading(raw: unknown): RawScaleReading | null {
       : [];
   const names = targets.flatMap((t) => (typeof t === "string" && t.trim() ? [t.trim()] : []));
   const plate = names.length === 0 || names.some((n) => /^(plate|piring|mangkuk|bowl|semua|all)$/i.test(n));
+  const container = parseContainer(o);
   return {
     text: inline[1]!,
     unit,
     confidence: Math.min(1, Math.max(0, confidence)),
     appliesTo: plate ? "plate" : names,
+    ...(container ? { container } : {}),
   };
 }
 
 /**
  * The displayed number: "100", "3.5", "1,25" (either decimal mark). Null for
  * anything else, and for a grams display with three decimals ("1.250": a
- * thousands separator or a decimal, there is no telling which).
+ * thousands separator or a decimal, there is no telling which). A point after
+ * the last digit ("260.") is the LCD's own decimal point on a whole-gram display.
  */
 export function parseScaleDigits(text: string, unit: ScaleUnit): number | null {
-  const m = /^(\d{1,5})(?:[.,](\d{1,3}))?$/.exec(text.trim());
+  const m = /^(\d{1,5})(?:[.,](\d{1,3})?)?$/.exec(text.trim());
   if (!m) return null;
   if (m[2] !== undefined && m[2].length === 3 && (unit === "g" || unit === "ml")) return null;
   const value = Number(`${m[1]}${m[2] !== undefined ? `.${m[2]}` : ""}`);
@@ -218,7 +303,38 @@ export type ScaleOutcome = {
   skipped?: ScaleSkip;
   /** The model's own grams for the items it changed, by index into `applied`. */
   before?: number[];
+  /** What stood on the scale and what was done about it; absent when the model did not report a container. */
+  container?: ContainerOutcome;
 };
+
+/**
+ * `tare` is the grams taken off the reading (0 = the reading is all food): an estimate from CONTAINER_GRAMS, shown on
+ * the chip and replaceable there. `skipped` says why a container did not come off: the display was zeroed with it on
+ * ("tared"), the model did not say ("tare_unknown"), no container ("none"), or the reading is too small to hold
+ * this container plus food ("too_light": it can only have been zeroed).
+ */
+export type ContainerOutcome = {
+  kind: ContainerKind | "none";
+  material: ContainerMaterial;
+  tared: boolean | null;
+  tare: number;
+  skipped?: "tared" | "tare_unknown" | "none" | "too_light";
+};
+
+/** A container this light leaves at least this share of the reading (and 20 g) as food, or the display was zeroed. */
+const MIN_FOOD_SHARE = 0.2;
+const MIN_FOOD_GRAMS = 20;
+
+/** Grams to take off a reading of `total`, and why none when none. */
+function containerTare(container: RawContainer, total: number): ContainerOutcome {
+  const base = { kind: container.kind, material: container.material, tared: container.tared, tare: 0 };
+  if (container.kind === "none") return { ...base, skipped: "none" };
+  if (container.tared === true) return { ...base, skipped: "tared" };
+  if (container.tared === null) return { ...base, skipped: "tare_unknown" };
+  const grams = CONTAINER_GRAMS[container.kind][container.material];
+  if (total - grams < Math.max(MIN_FOOD_GRAMS, total * MIN_FOOD_SHARE)) return { ...base, skipped: "too_light" };
+  return { ...base, tare: grams };
+}
 
 type ScaleItem = CalibratedItem & { kind?: string; cup?: unknown };
 
@@ -229,6 +345,10 @@ type ScaleItem = CalibratedItem & { kind?: string; cup?: unknown };
  * A reading that is low-confidence, zero, unparseable, matches no item, or sits
  * more than SCALE_MAX_RATIO away from the model's total is set aside and the
  * items come back untouched. Never trusts a low-confidence read.
+ *
+ * The digits include whatever stands on the scale. When the model saw a container there and the display was not
+ * zeroed with it on, the container's estimated weight (CONTAINER_GRAMS) comes off before the weight is shared, and
+ * the chip says so (`tare`, `tareKind`): never a silent correction, and one tap puts the whole reading back.
  */
 export function applyScaleReading<T extends ScaleItem>(
   items: readonly T[],
@@ -262,7 +382,9 @@ export function applyScaleReading<T extends ScaleItem>(
   if (targets.length === 0 || modelTotal <= 0) return skip("no_target");
   if (total > modelTotal * SCALE_MAX_RATIO || total * SCALE_MAX_RATIO < modelTotal) return skip("implausible");
 
-  const shares = split(total, weights);
+  const tare = reading.container ? containerTare(reading.container, total) : null;
+  const food = total - (tare?.tare ?? 0);
+  const shares = splitGrams(food, weights);
   const next: Array<T & { scaleRead?: ScaleReadChip }> = [...items];
   const applied: number[] = [];
   const before: number[] = [];
@@ -281,11 +403,12 @@ export function applyScaleReading<T extends ScaleItem>(
         unit: reading.unit,
         grams: total,
         count: targets.length,
+        ...(tare && tare.tare > 0 && tare.kind !== "none" ? { tare: tare.tare, tareKind: tare.kind } : {}),
       },
     };
   });
   if (applied.length === 0) return skip("no_target");
-  return { items: next, outcome: { ...outcome, applied, before } };
+  return { items: next, outcome: { ...outcome, applied, before, ...(tare ? { container: tare } : {}) } };
 }
 
 function unreadableOutcome(raw: unknown): ScaleOutcome {
@@ -318,16 +441,6 @@ function targetIndexes(items: readonly ScaleItem[], appliesTo: "plate" | string[
   const named = open.filter((i) => appliesTo.some((n) => nameScore(items[i]!.name, n) >= NAME_MATCH_MIN));
   if (named.length > 0) return named;
   return open.length === 1 && items.length === 1 ? open : [];
-}
-
-/** `total` in whole grams split in the proportions of `weights`; the parts always add up to it. */
-function split(total: number, weights: number[]): number[] {
-  const sum = weights.reduce((a, b) => a + b, 0);
-  const parts = weights.map((w) => Math.max(1, Math.round((total * w) / sum)));
-  const drift = total - parts.reduce((a, b) => a + b, 0);
-  const biggest = parts.indexOf(Math.max(...parts));
-  parts[biggest] = Math.max(1, parts[biggest]! + drift);
-  return parts;
 }
 
 /**

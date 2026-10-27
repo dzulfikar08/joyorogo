@@ -131,8 +131,10 @@ export function referenceInstruction(plates: readonly PromptDishware[], card: bo
 }
 
 /**
- * Whether the scan can say a card was the size reference: the model reported one and was sure enough.
- * `seen` is what the ledger keeps to measure the model's own card detection, `used` what the user is told.
+ * Whether the scan can say a card was seen and offered to the model as a size hint: the model reported one and was
+ * sure enough. Nothing in code turns the card into grams (the model is told its size and keeps estimating), so the
+ * user is told "seen, a hint only", never that it set the portion. `seen` is what the ledger keeps to measure the
+ * model's own card detection, `used` whether the hint line is shown.
  */
 export function cardOutcome(answer: { seen: boolean; confidence: number } | undefined): {
   seen: boolean;

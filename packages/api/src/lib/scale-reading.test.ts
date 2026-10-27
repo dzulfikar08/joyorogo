@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { scaleGrams, scaleValue, swapScaleRead, withoutScaleRead } from "./scale-chip";
 import {
+  CONTAINER_GRAMS,
   SCALE_MIN_CONFIDENCE,
   SCALE_PROMPT,
   applyScaleReading,
@@ -42,6 +43,9 @@ describe("parseScaleDigits", () => {
     expect(parseScaleDigits("3,5", "oz")).toBe(3.5);
     expect(parseScaleDigits("1.25", "kg")).toBe(1.25);
     expect(parseScaleDigits("0.0", "g")).toBe(0);
+    // The LCD's decimal point after the last digit (the owner's 258. and 260. photos).
+    expect(parseScaleDigits("260.", "g")).toBe(260);
+    expect(parseScaleDigits("260,", "g")).toBe(260);
   });
 
   test("anything else is unreadable, and a grams display with three decimals is ambiguous", () => {
@@ -178,6 +182,98 @@ describe("applyScaleReading", () => {
   test("nothing from the model, nothing changed", () => {
     expect(applyScaleReading(PLATE, undefined)).toEqual({ items: PLATE, outcome: null });
     expect(applyScaleReading(PLATE, null).outcome).toBeNull();
+  });
+});
+
+describe("the container on the scale", () => {
+  const SOTO = [item("soto daging", 668, 418)];
+  const bowl = (over: Record<string, unknown> = {}) =>
+    reading({ reading: "668", appliesTo: "plate", container: "bowl", material: "ceramic", tared: false, ...over });
+
+  test("the prompt asks for the container, its material and whether the display was tared", () => {
+    expect(SCALE_PROMPT).toContain('"container":"bowl|plate|box|cup|bag|wrapper|none"');
+    expect(SCALE_PROMPT).toContain('"material":"ceramic|plastic|paper|other"');
+    expect(SCALE_PROMPT).toContain('"tared"');
+  });
+
+  test("parseScaleReading reads kind, material and tared, with Indonesian words and a safe default", () => {
+    expect(parseScaleReading(bowl())?.container).toEqual({ kind: "bowl", material: "ceramic", tared: false });
+    expect(parseScaleReading(bowl({ container: "Mangkuk", material: "keramik", tared: "true" }))?.container).toEqual({
+      kind: "bowl",
+      material: "ceramic",
+      tared: true,
+    });
+    expect(parseScaleReading(bowl({ container: "none", material: undefined, tared: undefined }))?.container).toEqual({
+      kind: "none",
+      material: "other",
+      tared: null,
+    });
+    expect(parseScaleReading(bowl({ container: "wok" }))).not.toHaveProperty("container");
+    expect(parseScaleReading(reading())).not.toHaveProperty("container");
+  });
+
+  test("not tared: the bowl comes off, the chip and the ledger say so, and kcal follow the food grams", () => {
+    const { items, outcome } = applyScaleReading(SOTO, bowl());
+    expect(items[0]!.grams).toBe(668 - CONTAINER_GRAMS.bowl.ceramic);
+    expect(items[0]!.kcal).toBeLessThan(418);
+    expect(items[0]!.scaleRead).toMatchObject({ active: "scale", grams: 668, tare: 250, tareKind: "bowl", count: 1 });
+    expect(outcome?.container).toEqual({ kind: "bowl", material: "ceramic", tared: false, tare: 250 });
+    // The photo estimate stays what the model said, one tap away.
+    expect(items[0]!.scaleRead!.other).toMatchObject({ grams: 668 });
+    expect(scaleLedger({ reading: bowl(), usage: null, ms: 1 }, outcome)).toMatchObject({
+      container: { kind: "bowl", tare: 250 },
+    });
+  });
+
+  test("a plate total shares reading minus container over the items, exactly", () => {
+    const { items } = applyScaleReading(
+      PLATE,
+      reading({ reading: "550", appliesTo: "plate", container: "plate", material: "ceramic", tared: false }),
+    );
+    expect(items.reduce((a, i) => a + i.grams!, 0)).toBe(550 - 300);
+    expect(items.every((i) => i.scaleRead?.tare === 300 && i.scaleRead.tareKind === "plate" && i.scaleRead.grams === 550)).toBe(true);
+  });
+
+  test("material picks the estimate; an unnamed material gets the light 'other' value", () => {
+    const grams = (over: Record<string, unknown>) => applyScaleReading(SOTO, bowl(over)).items[0]!.grams;
+    expect(grams({ material: "plastic" })).toBe(668 - 90);
+    expect(grams({ container: "box", material: "paper" })).toBe(668 - 40);
+    expect(grams({ material: undefined })).toBe(668 - 120);
+  });
+
+  test("tare detection: a tared display, no container, or no answer takes nothing off and says why", () => {
+    const why = (over: Record<string, unknown>) => {
+      const { items, outcome } = applyScaleReading(SOTO, bowl(over));
+      expect(items[0]!.grams).toBe(668);
+      expect(items[0]!.scaleRead).not.toHaveProperty("tare");
+      expect(items[0]!.scaleRead).not.toHaveProperty("tareKind");
+      return outcome?.container;
+    };
+    expect(why({ tared: true })).toMatchObject({ tare: 0, skipped: "tared" });
+    expect(why({ container: "none", tared: false })).toMatchObject({ tare: 0, skipped: "none" });
+    expect(why({ tared: undefined })).toMatchObject({ tare: 0, skipped: "tare_unknown" });
+  });
+
+  test("a reading too small to hold the container plus food can only have been zeroed", () => {
+    // 300 g on the display with a 250 g ceramic bowl would leave 50 g (< a fifth): the display was zeroed.
+    const small = applyScaleReading(SOTO, bowl({ reading: "300" }));
+    expect(small.items[0]!.grams).toBe(300);
+    expect(small.outcome?.container).toMatchObject({ tare: 0, skipped: "too_light" });
+    // Just enough food left (a fifth of 400 g = 80 g; 150 g remain): taken off.
+    expect(applyScaleReading(SOTO, bowl({ reading: "400" })).items[0]!.grams).toBe(150);
+  });
+
+  test("an answer without the container fields behaves as before", () => {
+    const { items, outcome } = applyScaleReading(SOTO, reading({ reading: "668", appliesTo: "plate" }));
+    expect(items[0]!.grams).toBe(668);
+    expect(outcome).not.toHaveProperty("container");
+  });
+
+  test("the gates run on the raw reading: a set-aside reading never reaches the container", () => {
+    const out = applyScaleReading(SOTO, bowl({ confidence: 0.3 }));
+    expect(out.outcome?.skipped).toBe("low_confidence");
+    expect(out.items).toEqual(SOTO);
+    expect(applyScaleReading(SOTO, bowl({ reading: "9000" })).outcome?.skipped).toBe("out_of_range");
   });
 });
 
