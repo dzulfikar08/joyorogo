@@ -150,6 +150,10 @@ describe("runDailyAccuracy", () => {
     expect(stored.scans.total).toBe(3);
     expect(stored.scans.outcomes).toMatchObject({ accurate: 1, corrected: 2 });
     expect(stored.dishes.renames).toEqual([{ from: "perkedel", to: "rolade", n: 2 }]);
+    // Photo rates come from the window rows with their user; the user id itself is not in the report.
+    expect(stored.scans.photo).toMatchObject({ scans: 3, saved: 3, unchanged: 1, users: 1, identityEdits: 2, gramsEdits: 0 });
+    expect(stored.scans.weekPhoto).toMatchObject({ scans: 3, users: 1 });
+    expect(JSON.stringify(stored.scans)).not.toContain('"u1"');
     expect(stored.health.failed).toEqual({ total: 1, byReason: { timeout: 1 } });
     expect(stored.ratings).toMatchObject({ total: 1, salah: 1 });
     expect(stored.latency.aiMs.p50).toBe(5000);
@@ -363,13 +367,23 @@ describe("sendAccuracyDigest", () => {
       ...report,
       regression: { ...report.regression!, flags: ["Akurasi nama turun: 80% → 70% (12 foto sama dengan 2026-10-15)"] },
     });
-    expect(draft.subject).toBe("[Regresi] Akurasi scan 16 Oktober 2026: 33% tanpa koreksi, 3 scan");
+    expect(draft.subject).toBe("[Regresi] Akurasi scan 16 Oktober 2026: 33% disimpan tanpa ubahan dari semua foto, 3 scan");
     expect(draft.text).toContain("3 scan (3 berlabel). 1 tanpa koreksi (33%), 2 dikoreksi, 0 hitung ulang.");
+    expect(draft.text).toContain("Semua scan foto:");
+    expect(draft.text).toContain("33% disimpan tanpa ubahan dari semua 3 scan foto (yang tidak disimpan ikut dihitung); per pengguna 33% (1 pengguna, terbanyak 100% dari scan)");
+    expect(draft.text).toContain("Dari 3 scan tersimpan (7 hari): 67% ganti/hapus/tambah dish, 0% hanya angka atau chip satu ketukan.");
     expect(draft.text).toContain("1. perkedel → rolade ×2");
     expect(draft.text).toContain("Akurasi nama turun: 80% → 70%");
     expect(draft.text).toContain("https://admin.joyorogo.com/#laporan?date=2026-10-16");
     expect(draft.text).not.toMatch(/u1@test|U One|photo0/);
     expect(draft.html).toContain("Buka laporan");
+  });
+
+  test("a report from before the photo rates keeps its old digest", () => {
+    const { photo: _day, weekPhoto: _week, ...scans } = report.scans;
+    const draft = accuracyDigestDraft({ ...report, scans });
+    expect(draft.subject).toContain("33% tanpa koreksi, 3 scan");
+    expect(draft.text).not.toContain("Semua scan foto");
   });
 
   test("the shadow section reports prod against shadow, and is absent without a sample", () => {

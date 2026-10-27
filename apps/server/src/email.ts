@@ -405,6 +405,31 @@ export function shadowDigestLines(shadow: ShadowReport | null): string[] {
 }
 
 /**
+ * The photo-scan rates, in plain words: saved unchanged over every scan (unsaved ones count), the same over the
+ * scans that were resolved, each pooled and with every user weighted equally, and how the saved scans were edited.
+ * Empty for reports from before these rates.
+ */
+function photoRateLines(scans: AccuracyReport["scans"]): string[] {
+  const { photo, weekPhoto } = scans;
+  if (!photo || !weekPhoto) return [];
+  const unchanged = (r: typeof photo) =>
+    `${pct(r.unchangedOfAll)} disimpan tanpa ubahan dari semua ${r.scans} scan foto (yang tidak disimpan ikut dihitung)`;
+  const lines = [
+    `Hari ini: ${unchanged(photo)}; per pengguna ${pct(photo.unchangedOfAllByUser)} (${photo.users} pengguna, terbanyak ${pct(photo.topUserShare)} dari scan). ` +
+      `Dari scan yang selesai (disimpan atau hitung ulang): ${pct(photo.unchangedOfResolved)}.`,
+    `7 hari: ${unchanged(weekPhoto)}; per pengguna ${pct(weekPhoto.unchangedOfAllByUser)} (${weekPhoto.users} pengguna, terbanyak ${pct(weekPhoto.topUserShare)}). ` +
+      `Dari scan yang selesai: ${pct(weekPhoto.unchangedOfResolved)}.`,
+  ];
+  if (weekPhoto.saved > 0) {
+    lines.push(
+      `Dari ${weekPhoto.saved} scan tersimpan (7 hari): ${pct(weekPhoto.identityRate)} ganti/hapus/tambah dish, ` +
+        `${pct(weekPhoto.gramsEditRate)} hanya angka atau chip satu ketukan.`,
+    );
+  }
+  return lines;
+}
+
+/**
  * Daily accuracy digest for the admins. Short, plain Indonesian: headline
  * numbers, the top problems with counts, regressions, a link. Dish names and
  * counts only; no user data. `report.scans.total` is never 0 here (the caller
@@ -421,8 +446,9 @@ export function accuracyDigestDraft(report: AccuracyReport): Draft {
     scans.labelled > 0
       ? `${scans.total} scan (${scans.labelled} berlabel). ${o.accurate} tanpa koreksi (${pct(scans.accurateRate)}), ${o.corrected} dikoreksi, ` +
         `${o.retried} hitung ulang${o.abandoned > 0 ? `, ${o.abandoned} ditinggal` : ""}. ` +
-        `Rata-rata 7 hari: ${pct(scans.weekRate)} tanpa koreksi.`
+        `Rata-rata 7 hari: ${pct(scans.weekRate)} tanpa koreksi, dari scan yang selesai (yang tidak pernah disimpan tidak masuk hitungan).`
       : `${scans.total} scan, tapi belum ada yang berlabel (scan dari sebelum label koreksi dicatat), jadi angka tanpa koreksi belum bisa dihitung.`;
+  const rateLines = photoRateLines(scans);
   const rated =
     ratings.total > 0
       ? `Penilaian: ${ratings.total} (${ratings.akurat} akurat, ${ratings.kurang} kurang akurat, ${ratings.salah} salah), ${ratings.notes.length} catatan baru.`
@@ -456,12 +482,17 @@ export function accuracyDigestDraft(report: AccuracyReport): Draft {
   const prefix = flags.length > 0 ? "[Regresi] " : "";
   const subject =
     scans.labelled > 0
-      ? `${prefix}Akurasi scan ${day}: ${pct(scans.accurateRate)} tanpa koreksi, ${scans.total} scan`
+      ? `${prefix}Akurasi scan ${day}: ${
+          scans.photo
+            ? `${pct(scans.photo.unchangedOfAll)} disimpan tanpa ubahan dari semua foto`
+            : `${pct(scans.accurateRate)} tanpa koreksi`
+        }, ${scans.total} scan`
       : `${prefix}Laporan scan ${day}: ${scans.total} scan, belum berlabel`;
 
   const textBlocks: string[] = [
     `Laporan akurasi scan, ${day}`,
     headline,
+    ...(rateLines.length > 0 ? [["Semua scan foto:", ...rateLines.map((t) => `- ${t}`)].join("\n")] : []),
     rated,
     problems.length > 0
       ? ["Masalah teratas:", ...problems.map((t, i) => `${i + 1}. ${t}`)].join("\n")
@@ -486,6 +517,7 @@ export function accuracyDigestDraft(report: AccuracyReport): Draft {
   const html = shell(
     escapeHtml(`Laporan akurasi scan, ${day}`),
     p(escapeHtml(headline)) +
+      (rateLines.length > 0 ? heading("Semua scan foto") + list(rateLines, false) : "") +
       p(escapeHtml(rated)) +
       (problems.length > 0
         ? heading("Masalah teratas") + list(problems, true)

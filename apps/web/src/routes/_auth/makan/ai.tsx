@@ -44,6 +44,7 @@ import type { Meal } from "@joyorogo/api/lib/engine";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { hasBone, setWithBone, stripBoneLabel } from "@joyorogo/api/lib/bone-chip";
 import { carryAlternates } from "@joyorogo/api/lib/name-alternates";
+import { gramsFromOf, stampGramsEdit, withoutGramsEdits } from "@joyorogo/api/lib/grams-edit";
 import { itemAtCount } from "@joyorogo/api/lib/piece-chip";
 import { gramsForTypedKcal, macrosForTypedKcal, scalePortion } from "@joyorogo/api/lib/portion";
 import {
@@ -534,18 +535,21 @@ function AiFoodPage() {
         },
         0.5,
       );
-      return {
-        ...item,
-        portionPrior: undefined,
-        usualDensity: undefined,
-        scaleRead: undefined,
-        kcal: half.kcal,
-        grams: half.grams ?? undefined,
-        protein: half.protein ?? undefined,
-        carbs: half.carbs ?? undefined,
-        fat: half.fat ?? undefined,
-        fiber: half.fiber ?? undefined,
-      };
+      return stampGramsEdit(
+        {
+          ...item,
+          portionPrior: undefined,
+          usualDensity: undefined,
+          scaleRead: undefined,
+          kcal: half.kcal,
+          grams: half.grams ?? undefined,
+          protein: half.protein ?? undefined,
+          carbs: half.carbs ?? undefined,
+          fat: half.fat ?? undefined,
+          fiber: half.fiber ?? undefined,
+        },
+        "half",
+      );
     });
     touchList();
     setFullPortion({ items, kcals });
@@ -622,7 +626,9 @@ function AiFoodPage() {
   const pickCup = (index: number, next: CupChoice) => {
     touchList();
     const picked = cupPick(next, getActiveLocale());
-    setItems((current) => current.map((item, i) => (i === index ? { ...item, ...picked } : item)));
+    setItems((current) =>
+      current.map((item, i) => (i === index ? stampGramsEdit({ ...item, ...picked }, "cup") : item)),
+    );
     setKcals((current) => ({ ...current, [index]: String(picked.kcal) }));
   };
 
@@ -1227,7 +1233,7 @@ function AiFoodPage() {
         meal,
         imageBase64: image.base64,
         mimeType: image.mimeType,
-        itemsJson: JSON.stringify(withoutScaleRead(withoutPortionPrior(baseList))),
+        itemsJson: JSON.stringify(withoutScaleRead(withoutPortionPrior(withoutGramsEdits(baseList)))),
         ...(photoId ? { scanPhotoId: photoId } : {}),
         ...(plateScanId ? { plateScanId } : {}),
         ...(plate.name || plate.place || plate.priceIdr != null ? { plate } : {}),
@@ -1242,6 +1248,7 @@ function AiFoodPage() {
           kcal: values[index]!,
           grams: gramsForTypedKcal(item, values[index]!),
           ...macrosForTypedKcal(item, values[index]!),
+          gramsFrom: gramsFromOf(item, values[index] !== item.kcal),
           box: item.box,
           // Already-cut stickers are promoted on save; unfinished ones are
           // cut by the server in the background.

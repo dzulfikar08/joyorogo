@@ -4,6 +4,7 @@
  * between them. kcal and macros do not change: they are already those of the meat that is eaten. Client-safe
  * (no library imports).
  */
+import { stampGramsEdit } from "./grams-edit";
 
 type BoneRow = {
   portion?: string;
@@ -32,10 +33,13 @@ export function setWithBone<T extends BoneRow>(item: T, withBone: boolean, label
   if (!hasBone(item) || (item.withBone ?? true) === withBone) return item;
   const base = stripBoneLabel(item.portion);
   const portion = withBone && base ? `${base}, ${label}` : base;
-  return {
-    ...item,
-    grams: withBone ? item.grossGrams : item.edibleGrams,
-    withBone,
-    portion,
-  } as T;
+  return stampGramsEdit(
+    {
+      ...item,
+      grams: withBone ? item.grossGrams : item.edibleGrams,
+      withBone,
+      portion,
+    } as T,
+    "bone",
+  );
 }

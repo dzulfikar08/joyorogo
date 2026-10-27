@@ -49,6 +49,7 @@ import { foodKind, isHeavyDish } from "@joyorogo/api/lib/food-kind";
 import { carryAlternates } from "@joyorogo/api/lib/name-alternates";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { hasBone, setWithBone, stripBoneLabel } from "@joyorogo/api/lib/bone-chip";
+import { gramsFromOf, stampGramsEdit, withoutGramsEdits } from "@joyorogo/api/lib/grams-edit";
 import { itemAtCount } from "@joyorogo/api/lib/piece-chip";
 import type { Pieces } from "@joyorogo/api/lib/piece-chip";
 import { gramsForTypedKcal, macrosForTypedKcal, scalePortion } from "@joyorogo/api/lib/portion";
@@ -1208,6 +1209,7 @@ export default function MakanAi() {
           kcal: parseNum(draft.kcal) ?? 0,
           grams: gramsForTypedKcal(item, parseNum(draft.kcal) ?? 0),
           ...macrosForTypedKcal(item, parseNum(draft.kcal) ?? 0),
+          gramsFrom: gramsFromOf(item, (parseNum(draft.kcal) ?? 0) !== item.kcal),
           box: item.box,
           // Already-cut stickers are promoted on save; unfinished ones are
           // cut by the server in the background.
@@ -1215,7 +1217,7 @@ export default function MakanAi() {
         })),
         ...(photoId ? { scanPhotoId: photoId } : {}),
         ...(plateScanId ? { plateScanId } : {}),
-        itemsJson: JSON.stringify(withoutScaleRead(withoutPortionPrior(aiItems))),
+        itemsJson: JSON.stringify(withoutScaleRead(withoutPortionPrior(withoutGramsEdits(aiItems)))),
         ...(plate ? { plate } : {}),
         ...(eatenAt !== null
           ? { eatenAt: eatenAtFromClock(scanDate ?? jakartaToday(), eatenAtClock(eatenAt)) ?? undefined }
@@ -1267,18 +1269,21 @@ export default function MakanAi() {
         },
         0.5,
       );
-      return {
-        ...item,
-        portionPrior: undefined,
-        usualDensity: undefined,
-        scaleRead: undefined,
-        kcal: half.kcal,
-        grams: half.grams ?? undefined,
-        protein: half.protein ?? undefined,
-        carbs: half.carbs ?? undefined,
-        fat: half.fat ?? undefined,
-        fiber: half.fiber ?? undefined,
-      };
+      return stampGramsEdit(
+        {
+          ...item,
+          portionPrior: undefined,
+          usualDensity: undefined,
+          scaleRead: undefined,
+          kcal: half.kcal,
+          grams: half.grams ?? undefined,
+          protein: half.protein ?? undefined,
+          carbs: half.carbs ?? undefined,
+          fat: half.fat ?? undefined,
+          fiber: half.fiber ?? undefined,
+        },
+        "half",
+      );
     });
     setFullPortion({ items, drafts });
     setItems(scaled);
@@ -1375,7 +1380,7 @@ export default function MakanAi() {
   const pickCup = (index: number, next: CupChoice) => {
     const picked = cupPick(next, getActiveLocale());
     setItems((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, ...picked } : item)),
+      prev.map((item, i) => (i === index ? stampGramsEdit({ ...item, ...picked }, "cup") : item)),
     );
     setDrafts((prev) =>
       prev.map((draft, i) => (i === index ? { ...draft, kcal: String(picked.kcal) } : draft)),

@@ -31,6 +31,7 @@ import type {
   Outcomes,
   RegressionCaseResult,
   RegressionReport,
+  WindowScan,
 } from "@joyorogo/api/lib/accuracy-report";
 import { DATASET_PREFIX, EXTERNAL_DATASET_PREFIX } from "@joyorogo/api/lib/dataset";
 import type { DatasetMeta } from "@joyorogo/api/lib/dataset";
@@ -38,7 +39,7 @@ import { shiftDate, jakartaToday } from "@joyorogo/api/lib/engine";
 import { FEEDBACK_PREFIX } from "@joyorogo/api/lib/feedback-keep";
 import type { FeedbackKeepMeta } from "@joyorogo/api/lib/feedback-keep";
 import type { MatchItem } from "@joyorogo/api/lib/scan-match";
-import { isSessionSql, outcomeSql, wibDaySql } from "@joyorogo/api/lib/scan-outcome";
+import { isSessionSql, outcomeSql, parseSession, wibDaySql } from "@joyorogo/api/lib/scan-outcome";
 import type { ScanDiff, ScanOutcome } from "@joyorogo/api/lib/scan-outcome";
 import { bytesToBase64 } from "@joyorogo/api/lib/sticker";
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
@@ -152,7 +153,7 @@ export async function loadReportInput(db: Database, date: string, nowMs: number)
   const outcome = outcomeSql(nowMs);
   const day = wibDaySql(aiUsage.createdAt);
 
-  const [scans, failed, corrections, feedback, priorRows, diffRows] = await Promise.all([
+  const [scans, failed, corrections, feedback, priorRows, diffRows, windowRows] = await Promise.all([
     ledgerOfDay("user"),
     ledgerOfDay("failed"),
     ledgerOfDay("correction"),
@@ -180,6 +181,15 @@ export async function loadReportInput(db: Database, date: string, nowMs: number)
           inWindow,
         ),
       ),
+    // Every photo scan of the window with its user, minus the heavy answer keys: the per-user rates.
+    db
+      .select({
+        userId: aiUsage.userId,
+        createdAt: aiUsage.createdAt,
+        usage: sql<string | null>`json_remove(${aiUsage.usageJson}, '$.aiItems', '$.retryItems', '$.retryLog', '$.savedItems', '$.shadow')`,
+      })
+      .from(aiUsage)
+      .where(and(isSessionSql(), inWindow)),
   ]);
 
   const prior = new Map<string, Outcomes>();
@@ -204,6 +214,10 @@ export async function loadReportInput(db: Database, date: string, nowMs: number)
     feedback: feedback.map((row): FeedbackRow => ({ ...row, createdAt: row.createdAt.getTime() })),
     priorDays: [...prior].map(([priorDay, outcomes]) => ({ day: priorDay, outcomes })),
     weekDiffs,
+    window: windowRows.flatMap((row): WindowScan[] => {
+      const session = parseSession(row.usage);
+      return session ? [{ userId: row.userId ?? "", createdAt: row.createdAt.getTime(), session }] : [];
+    }),
   };
 }
 

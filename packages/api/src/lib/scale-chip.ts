@@ -3,6 +3,7 @@
  * the photo (lib/scale-reading.ts), the model's own photo estimate is one tap
  * away. Client-safe (no library imports): both apps swap the two sides with this.
  */
+import { stampGramsEdit } from "./grams-edit";
 import { numbersOf } from "./portion-chip";
 import type { PortionNumbers } from "./portion-chip";
 
@@ -43,15 +44,18 @@ export function swapScaleRead<T extends Swappable>(item: T): T {
   const chip = item.scaleRead;
   if (!chip || item.grams === undefined) return item;
   const { portion: _drop, ...rest } = item;
-  return {
-    ...rest,
-    ...chip.other,
-    scaleRead: {
-      ...chip,
-      active: chip.active === "scale" ? "ai" : "scale",
-      other: numbersOf({ ...item, grams: item.grams }),
-    },
-  } as T;
+  return stampGramsEdit(
+    {
+      ...rest,
+      ...chip.other,
+      scaleRead: {
+        ...chip,
+        active: chip.active === "scale" ? "ai" : "scale",
+        other: numbersOf({ ...item, grams: item.grams }),
+      },
+    } as T,
+    "scale",
+  );
 }
 
 /**
@@ -149,7 +153,7 @@ export function tareScaleRows<T extends Swappable>(items: readonly T[], tare: nu
     const { tare: _old, tareKind: _kind, ...base } = it.scaleRead!;
     const chip: ScaleReadChip = tare > 0 ? { ...base, tare: Math.round(tare) } : base;
     return chip.active === "scale"
-      ? ({ ...it, ...next, scaleRead: chip } as T)
+      ? stampGramsEdit({ ...it, ...next, scaleRead: chip } as T, "tare")
       : ({ ...it, scaleRead: { ...chip, other: next } } as T);
   });
 }
@@ -185,11 +189,14 @@ export function resplitScaleRows<T extends Swappable>(items: readonly T[], inclu
     const row = items[index]!;
     if (row.grams === shares[n] && row.scaleRead!.count === pool.length) return;
     const { portion: _stale, ...rest } = row;
-    next[index] = {
-      ...rest,
-      ...scaledBy(numbersOf({ ...rest, grams: row.grams! }), shares[n]!),
-      scaleRead: { ...row.scaleRead!, count: pool.length },
-    } as T;
+    next[index] = stampGramsEdit(
+      {
+        ...rest,
+        ...scaledBy(numbersOf({ ...rest, grams: row.grams! }), shares[n]!),
+        scaleRead: { ...row.scaleRead!, count: pool.length },
+      } as T,
+      "scale",
+    );
   });
   return next;
 }

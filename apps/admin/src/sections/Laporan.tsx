@@ -7,6 +7,7 @@ import {
   fmtDateTime,
   fmtNum,
   get,
+  type AccuracyPhotoRates,
   type AccuracyReport,
   type AccuracyReportSummary,
   type Paged,
@@ -66,8 +67,25 @@ const LIST_COLUMNS = (open: (date: string) => void): Column<AccuracyReportSummar
   },
   { key: "total", header: "Scan", numeric: true, cell: (r) => fmtNum(r.total) },
   {
+    key: "photoRate",
+    header: "Tanpa ubahan, dari semua foto",
+    numeric: true,
+    cell: (r) =>
+      r.photo ? (
+        <>
+          <span className="font-semibold">{pct(r.photo.unchangedOfAll)}</span>
+          <span className="text-muted-foreground">
+            {" "}
+            (7 hari {pct(r.weekPhoto?.unchangedOfAll ?? null)}, per pengguna {pct(r.weekPhoto?.unchangedOfAllByUser ?? null)})
+          </span>
+        </>
+      ) : (
+        "—"
+      ),
+  },
+  {
     key: "rate",
-    header: "Tanpa koreksi",
+    header: "Tanpa koreksi, dari scan selesai",
     numeric: true,
     cell: (r) => (
       <>
@@ -128,9 +146,17 @@ function ReportList() {
                       <EmailBadge status={r.email} />
                     </span>
                   </div>
-                  <p className="mt-1.5 text-2xl font-bold tabular-nums">
+                  {r.photo && (
+                    <p className="mt-1.5 text-2xl font-bold tabular-nums">
+                      {pct(r.photo.unchangedOfAll)}
+                      <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                        disimpan tanpa ubahan, dari semua foto; 7 hari {pct(r.weekPhoto?.unchangedOfAll ?? null)}
+                      </span>
+                    </p>
+                  )}
+                  <p className={`${r.photo ? "mt-1" : "mt-1.5"} ${r.photo ? "text-base" : "text-2xl"} font-bold tabular-nums`}>
                     {pct(r.accurateRate)}
-                    <span className="ml-1.5 text-xs font-normal text-muted-foreground">tanpa koreksi, 7 hari {pct(r.weekRate)}</span>
+                    <span className="ml-1.5 text-xs font-normal text-muted-foreground">tanpa koreksi, dari scan selesai; 7 hari {pct(r.weekRate)}</span>
                   </p>
                   {r.problems.length > 0 && <p className="mt-1.5 text-xs break-words">{r.problems.join("; ")}</p>}
                   <CardFacts
@@ -191,6 +217,54 @@ function CountTable({ head, rows, empty }: { head: [string, string]; rows: Array
   );
 }
 
+const SOURCE_LABEL = {
+  prior: "Biasanya / porsi kebiasaan",
+  count: "Jumlah",
+  bone: "Tulang",
+  tare: "Wadah (tare)",
+  scale: "Timbangan",
+  half: "Setengah porsi",
+  cup: "Pilihan gelas",
+  alt: "Mungkin juga (nama)",
+  typed: "Diketik",
+} as const;
+
+/** Rates over every photo scan: unsaved scans stay in the denominator, and each user counts once. */
+function PhotoRatesCard({ day, week }: { day: AccuracyPhotoRates; week: AccuracyPhotoRates }) {
+  const row = (label: string, pick: (r: AccuracyPhotoRates) => string, strong = false) => (
+    <tr>
+      <td>{label}</td>
+      <td className={`${num} ${strong ? "font-semibold" : ""}`}>{pick(day)}</td>
+      <td className={`${num} ${strong ? "font-semibold" : ""}`}>{pick(week)}</td>
+    </tr>
+  );
+  const sources = (Object.keys(SOURCE_LABEL) as Array<keyof typeof SOURCE_LABEL>).filter((key) => (week.sources[key] ?? 0) > 0);
+  return (
+    <SectionCard title="Semua scan foto (yang tidak disimpan ikut dihitung)" flush>
+      <StatTable head={["Ukuran", "Hari ini", "7 hari"]}>
+        {row("Scan foto (tidak termasuk yang masih menunggu)", (r) => fmtNum(r.scans))}
+        {row("Pengguna", (r) => fmtNum(r.users))}
+        {row("Pengguna terbanyak, bagian dari scan", (r) => pct(r.topUserShare))}
+        {row("Disimpan tanpa ubahan ÷ semua scan foto", (r) => pct(r.unchangedOfAll), true)}
+        {row("… rata-rata per pengguna", (r) => pct(r.unchangedOfAllByUser))}
+        {row("Disimpan tanpa ubahan ÷ scan selesai (disimpan/hitung ulang)", (r) => pct(r.unchangedOfResolved))}
+        {row("… rata-rata per pengguna", (r) => pct(r.unchangedOfResolvedByUser))}
+        {row("Scan tersimpan", (r) => fmtNum(r.saved))}
+        {row("Koreksi dish (ganti nama, hapus, tambah) ÷ tersimpan", (r) => pct(r.identityRate), true)}
+        {row("… rata-rata per pengguna", (r) => pct(r.identityRateByUser))}
+        {row("Ubah angka atau chip saja ÷ tersimpan", (r) => pct(r.gramsEditRate), true)}
+        {row("… rata-rata per pengguna", (r) => pct(r.gramsEditRateByUser))}
+      </StatTable>
+      {sources.length > 0 && (
+        <p className="px-4 py-3 text-xs text-muted-foreground">
+          Sumber angka yang berubah, 7 hari (scan tersimpan):{" "}
+          {sources.map((key) => `${SOURCE_LABEL[key]} ${fmtNum(week.sources[key] ?? 0)}`).join(", ")}.
+        </p>
+      )}
+    </SectionCard>
+  );
+}
+
 function Detail({ report }: { report: AccuracyReport }) {
   const { scans, ratings, dishes, bias, health, latency, corrections, regression } = report;
   const o = scans.outcomes;
@@ -207,17 +281,19 @@ function Detail({ report }: { report: AccuracyReport }) {
           }
         />
         <StatCard
-          label="Tanpa koreksi"
+          label="Tanpa koreksi, dari scan selesai"
           value={pct(scans.accurateRate)}
-          hint={`${fmtNum(o.accurate)} dari ${fmtNum(scans.resolved)} scan selesai`}
+          hint={`${fmtNum(o.accurate)} dari ${fmtNum(scans.resolved)} scan selesai (disimpan atau hitung ulang)`}
         />
-        <StatCard label="Rata-rata 7 hari" value={pct(scans.weekRate)} hint="tanpa koreksi" />
+        <StatCard label="Rata-rata 7 hari" value={pct(scans.weekRate)} hint="tanpa koreksi, dari scan selesai" />
         <StatCard
           label="Gagal"
           value={fmtNum(health.failed.total)}
           hint={`${fmtNum(health.tooMany)} terlalu banyak, ${fmtNum(health.repaired)} JSON diperbaiki`}
         />
       </div>
+
+      {scans.photo && scans.weekPhoto && <PhotoRatesCard day={scans.photo} week={scans.weekPhoto} />}
 
       <SectionCard title="Regresi (foto berlabel dijalankan ulang)" flush>
         {!regression || regression.error ? (

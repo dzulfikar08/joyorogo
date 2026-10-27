@@ -9,6 +9,7 @@ import {
   FEEDBACK_MARK,
   buildFeedbackReasons,
   compactItems,
+  editOf,
   loadSession,
   markRetryTapFeedback,
   markSessionKeep,
@@ -17,6 +18,7 @@ import {
   recordSessionCorrection,
   recordSessionRetry,
   recordSessionSaved,
+  savedEdit,
   savedGramSources,
   scanDiff,
   scanOutcome,
@@ -259,6 +261,90 @@ describe("session outcomes", () => {
     const usage = JSON.parse(String(row.rows[0]!.usage_json));
     expect(usage).toMatchObject({ keep: 1, corrections: 1, photoId, serverTiming: { aiMs: 5 } });
     expect(await recordSessionSaved(db, "someone-else", photoId, AI)).toBeNull();
+  });
+});
+
+describe("edit kind", () => {
+  const SIDE = [
+    { n: "nasi goreng", g: 300, k: 600 },
+    { n: "ayam goreng", g: 100, k: 250 },
+  ];
+
+  test("unchanged is none, with no sources", () => {
+    expect(editOf(scanDiff(SIDE, SIDE))).toEqual({ kind: "none" });
+  });
+
+  test("a grams-only change is a grams edit; with no stamp it was typed", () => {
+    const diff = scanDiff(SIDE, [{ ...SIDE[0]!, g: 200, k: 400 }, SIDE[1]!]);
+    expect(editOf(diff)).toEqual({ kind: "grams", src: ["typed"] });
+  });
+
+  test("a changed number takes the chips its row was stamped with", () => {
+    const diff = scanDiff(SIDE, [{ ...SIDE[0]!, g: 200, k: 400 }, { ...SIDE[1]!, g: 50, k: 125 }]);
+    const stamps = new Map<string, readonly ("prior" | "count" | "bone" | "tare")[]>([
+      ["nasigoreng", ["prior"]],
+      ["ayamgoreng", ["count", "bone"]],
+    ]);
+    expect(editOf(diff, [], stamps)).toEqual({ kind: "grams", src: ["prior", "count", "bone"] });
+  });
+
+  test("a rename, a removal and an addition are identity edits, even beside chips", () => {
+    expect(editOf(scanDiff(SIDE, [{ ...SIDE[0]!, n: "nasi uduk" }, SIDE[1]!])).kind).toBe("identity");
+    expect(editOf(scanDiff(SIDE, [SIDE[0]!])).kind).toBe("identity");
+    expect(editOf(scanDiff(SIDE, [...SIDE, { n: "sambal", g: 5, k: 20 }])).kind).toBe("identity");
+    const stamps = new Map([["nasigoreng", ["prior"] as const]]);
+    expect(editOf(scanDiff(SIDE, [{ ...SIDE[0]!, g: 200, k: 400 }, SIDE[1]!, { n: "sambal", g: 5, k: 20 }]), [], stamps).kind).toBe("identity");
+  });
+
+  test("a rename a Mungkin-juga tap explains is a chip edit, a chain of taps too, anything else is identity", () => {
+    const renamed = scanDiff(SIDE, [{ ...SIDE[0]!, n: "Nasi Uduk" }, SIDE[1]!]);
+    expect(editOf(renamed, [{ f: "nasi goreng", t: "nasi uduk" }])).toEqual({ kind: "grams", src: ["alt"] });
+    const chained = scanDiff(SIDE, [{ ...SIDE[0]!, n: "nasi liwet" }, SIDE[1]!]);
+    expect(
+      editOf(chained, [
+        { f: "nasi goreng", t: "nasi uduk" },
+        { f: "nasi uduk", t: "nasi liwet" },
+      ]).kind,
+    ).toBe("grams");
+    expect(editOf(renamed, [{ f: "nasi goreng", t: "nasi kuning" }]).kind).toBe("identity");
+    // grams moved a lot with the tap: the pair is a removal and an addition, still explained
+    const far = scanDiff(SIDE, [{ n: "nasi uduk", g: 100, k: 200 }, SIDE[1]!]);
+    expect(far.renamed).toEqual([]);
+    expect(editOf(far, [{ f: "nasi goreng", t: "nasi uduk" }]).kind).toBe("grams");
+  });
+
+  test("savedEdit reads the stored edit, derives it for older saves, and is null for an unsaved scan", () => {
+    const diff = scanDiff(SIDE, [SIDE[0]!]);
+    expect(savedEdit({})).toBeNull();
+    expect(savedEdit({ savedLabel: "corrected", diff })).toEqual({ kind: "identity" });
+    expect(savedEdit({ savedLabel: "corrected", diff, edit: { kind: "grams", src: ["bone"] } })).toEqual({ kind: "grams", src: ["bone"] });
+    expect(savedEdit({ savedLabel: "accurate" })).toBeNull();
+  });
+
+  test("the save stores the edit: chip stamps, typed, and an alt tap kept apart from identity", async () => {
+    const chip = await seedScan();
+    await recordSessionSaved(db, USER, chip, [{ ...AI[0]!, grams: 200, kcal: 400 }, AI[1]!, AI[2]!], [
+      { name: "nasi goreng", from: ["prior"] },
+    ]);
+    expect((await loadSession(db, USER, chip))!.session.edit).toEqual({ kind: "grams", src: ["prior"] });
+
+    const typed = await seedScan();
+    await recordSessionSaved(db, USER, typed, [{ ...AI[0]!, grams: 200, kcal: 400 }, AI[1]!, AI[2]!]);
+    expect((await loadSession(db, USER, typed))!.session.edit).toEqual({ kind: "grams", src: ["typed"] });
+
+    const removed = await seedScan();
+    await recordSessionSaved(db, USER, removed, [AI[0]!, AI[1]!]);
+    expect((await loadSession(db, USER, removed))!.session.edit).toEqual({ kind: "identity" });
+
+    const alt = await seedScan({ items: [{ name: "nasi kuning", grams: 200, kcal: 320 }] });
+    await recordSessionCorrection(db, USER, alt, { from: "nasi kuning", to: "nasi uduk" });
+    const saved = await recordSessionSaved(db, USER, alt, [{ name: "nasi uduk", grams: 200, kcal: 330 }]);
+    expect(saved?.savedLabel).toBe("corrected");
+    expect(saved?.edit).toEqual({ kind: "grams", src: ["alt"] });
+
+    const same = await seedScan();
+    await recordSessionSaved(db, USER, same, AI);
+    expect((await loadSession(db, USER, same))!.session.edit).toEqual({ kind: "none" });
   });
 });
 
