@@ -73,6 +73,44 @@
     "badgesTitle": "Badges",
     "noBadges": "No badges yet",
     "locked": "Not earned yet",
-    "tier": "Level {{n}}"
+    "tier": "Level {{n}}",
+    "aliasPlaceholder": "e.g. steady_eater",
+    "aliasHint": "{{min}}-{{max}} characters: lowercase letters, digits, dot, underscore, dash.",
+    "save": "Save",
+    "saved": "Saved",
+    "optInBody": "See where you stand each week. Only your name or alias and your logging counts are shown, never body weight.",
+    "optInCta": "Join now",
+    "manage": "Board settings",
+    "emptyHint": "Be the first: join from Privacy.",
+    "total": "{{count}} people",
+    "weekOf": "Week of {{date}}",
+    "closed": "Final",
+    "rowDays": "{{n}}/7 days",
+    "pickGroup": "Pick a group",
+    "noGroups": "You are not in a group yet.",
+    "privacyNote": "The board is optional and off by default.",
+    "leave": "Leave the board",
+    "rank": "#{{rank}}",
+    "optOutNote": "Leaving deletes your data from the board."
+  },
+  "shelf": {
+    "count": "{{earned}} of {{total}}",
+    "open": "See all badges"
+  },
+  "detail": {
+    "earned": "Earned {{date}}",
+    "next": "Next level: {{n}}",
+    "ruleLabel": "How to earn it"
+  },
+  "unlock": {
+    "title": "New badge!",
+    "view": "View"
+  },
+  "share": {
+    "title": "Share badge",
+    "cta": "Share"
+  },
+  "public": {
+    "title": "Badges"
   }
 }

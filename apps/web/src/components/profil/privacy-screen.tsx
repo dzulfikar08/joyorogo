@@ -9,6 +9,7 @@ import { Button } from "@joyorogo/ui/components/button";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { IconChip, ListButtonRow, ListGroup, ListLinkRow, ListRow } from "@/components/kit/surface";
 import { Switch } from "@/components/kit/switch";
+import { LeaderboardPrefs } from "@/components/badges/leaderboard-prefs";
 import { useAccountActions } from "@/components/profil/account-actions";
 import { ConfirmSheet } from "@/components/profil/confirm-sheet";
 import { profileOptions } from "@/components/profil/shared";
@@ -28,6 +29,7 @@ export function PrivacyScreen({ ctx }: { ctx: ProfilCtx }) {
   return (
     <>
       {!targets.maternal && <ShareSection enabled={row.shareEnabled} code={row.shareCode} />}
+      <LeaderboardPrefs />
       <KeepPhotosSection keep={row.keepPhotos} />
       <SleepConsentSection />
       <ListGroup className="mt-3">

@@ -222,3 +222,10 @@ export type MealPlanSwapResult = Awaited<ReturnType<AppRouterClient["mealPlan"][
 
 /** mealPlan.eat output: the diary row it created and the new plan. */
 export type MealPlanEatResult = Awaited<ReturnType<AppRouterClient["mealPlan"]["eat"]>>;
+
+type BadgeMineOutput = Awaited<ReturnType<AppRouterClient["badge"]["mine"]>>;
+type LeaderboardBoardOutput = Awaited<ReturnType<AppRouterClient["leaderboard"]["board"]>>;
+/** One badge (earned or locked) of badge.mine. */
+export type BadgeView = BadgeMineOutput["badges"][number];
+/** One row of the weekly consistency board. */
+export type BoardRow = LeaderboardBoardOutput["rows"][number];

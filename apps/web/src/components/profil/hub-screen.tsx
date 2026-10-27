@@ -33,6 +33,7 @@ import {
   SectionTitle,
 } from "@/components/kit/surface";
 import { useAccountActions } from "@/components/profil/account-actions";
+import { BadgeShelf } from "@/components/badges/badge-shelf";
 import { ConfirmSheet } from "@/components/profil/confirm-sheet";
 import type { ProfilCtx } from "@/components/profil/shared";
 import { useTheme } from "@/components/theme-provider";
@@ -117,6 +118,7 @@ export function HubScreen({ ctx }: { ctx: ProfilCtx }) {
   return (
     <>
       <SummaryCard ctx={ctx} />
+      <BadgeShelf />
 
       <Group title={t("hub.groups.account")}>
         <ListLinkRow

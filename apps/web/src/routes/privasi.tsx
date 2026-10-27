@@ -476,6 +476,16 @@ function PrivasiPage() {
               teman hanya melihat tercapai atau tidak. Kamu bisa keluar dari tantangan kapan saja
               dan datamu di papan peringkatnya ikut hilang.
             </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              Papan konsistensi mingguan itu opsional dan mati secara bawaan. Kalau kamu ikut, orang
+              lain melihat namamu atau nama samaran pilihanmu, jumlah hari kamu mencatat, hari
+              latihan, hari protein, dan streakmu di minggu itu. Berat badan dan data tubuh tidak
+              pernah ikut tampil, dan papan tidak pernah diurutkan berdasarkan berat. Papan tidak
+              tersedia saat hamil atau menyusui. Keluar dari papan langsung menghapus datamu di
+              papan, dan Hapus semua data atau hapus akun juga menghapus lencana dan datamu di
+              papan. Lencana dihitung dari catatanmu; di profil publik, lencana hanya terlihat
+              kalau profil publikmu menyala.
+            </p>
           </section>
 
           <section className="rounded-3xl bg-card p-5" id="keluarga">

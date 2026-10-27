@@ -33,6 +33,7 @@ import {
 } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
+import { Leaderboard, useLeaderboardAvailable } from "@/components/badges/leaderboard";
 import { ConfirmSheet } from "@/components/confirm-sheet";
 import { ChallengesSection } from "@/components/challenge/challenges-section";
 import { useToast } from "@/components/toast";
@@ -203,7 +204,7 @@ function MemberCard({
 
 
 export default function GroupDetail() {
-  const { t } = useTranslation(["grup", "common"]);
+  const { t } = useTranslation(["grup", "common", "badges"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const router = useRouter();
@@ -214,7 +215,8 @@ export default function GroupDetail() {
   const detail = useQuery(orpc.group.detail.queryOptions({ input: { groupId } }));
   const activityQuery = useQuery(orpc.group.activity.queryOptions({ input: { groupId, limit: 30 } }));
 
-  const [tab, setTab] = useState<"anggota" | "aktivitas" | "tantangan">("anggota");
+  const [tab, setTab] = useState<"anggota" | "aktivitas" | "tantangan" | "papan">("anggota");
+  const boardAvailable = useLeaderboardAvailable();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -470,8 +472,9 @@ export default function GroupDetail() {
             { value: "anggota", label: t("detail.tab.members") },
             { value: "aktivitas", label: t("detail.tab.activity") },
             { value: "tantangan", label: t("detail.tab.challenges") },
+            ...(boardAvailable ? [{ value: "papan" as const, label: t("badges:board.title") }] : []),
           ]}
-          value={tab}
+          value={boardAvailable ? tab : tab === "papan" ? "anggota" : tab}
           onChange={setTab}
         />
 
@@ -540,9 +543,11 @@ export default function GroupDetail() {
               </ListGroup>
             )}
           </View>
-        ) : (
+        ) : tab === "papan" && boardAvailable ? (
+          <Leaderboard scope="team" teamId={groupId} />
+        ) : tab === "tantangan" ? (
           <ChallengesSection groupId={groupId} />
-        )}
+        ) : null}
 
         {/* Settings sheet: invite, owner tools, privacy, leave. */}
         <Sheet visible={settingsOpen} onClose={() => setSettingsOpen(false)} title={t("settings.title")}>

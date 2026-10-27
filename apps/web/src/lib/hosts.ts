@@ -31,6 +31,7 @@ export const APP_SEGMENTS: readonly string[] = [
   "latihan",
   "makan",
   "olahraga",
+  "papan",
   "pro",
   "profil",
   "rekap",

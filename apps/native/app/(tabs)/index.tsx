@@ -25,6 +25,7 @@ import { gainEatTone, gainRemaining } from "@joyorogo/api/lib/gain";
 import { DEFAULT_ADD_BACK_SETTINGS } from "@joyorogo/api/lib/exercise-credit";
 import { clockHourIn, fmtNumber, instantIn } from "@joyorogo/i18n";
 
+import { useBadges } from "@/components/badges/use-badges";
 import { CalibrationChip } from "@/components/calibration-chip";
 import { AskJoyoHeaderButton } from "@/components/joyo/ask-button";
 import { CalibrationNotice } from "@/components/calibration-notice";
@@ -208,13 +209,15 @@ function MacroStat({
 
 export default function Dashboard() {
   const { theme } = useUnistyles();
-  const { t } = useTranslation(["home", "common", "berat", "maternal", "gain", "scan"]);
+  const { t } = useTranslation(["home", "common", "berat", "maternal", "gain", "scan", "badges"]);
   const gate = useSessionGate();
   const { today, now } = useJakartaClock();
   // null = follow the live day; a past day is pinned only once the person picks it.
   const [pickedDate, setPickedDate] = useState<string | null>(null);
   const date = pickedDate ?? today;
   const isToday = date === today;
+  const badges = useBadges();
+  const badgesEarned = badges.data?.enabled ? badges.data.badges.filter((b) => b.tier > 0).length : null;
   const summary = useQuery({
     ...orpc.day.summary.queryOptions({ input: { date } }),
     placeholderData: (prev) => prev,
@@ -1034,6 +1037,20 @@ export default function Dashboard() {
             <Num style={styles.streakChipText}>{data.streakDays}</Num>
           </Pressable>
         ) : null}
+        {badgesEarned === null ? null : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${t("badges:board.badgesTitle")}: ${t("badges:shelf.count", {
+              earned: badgesEarned,
+              total: badges.data?.badges.length ?? 0,
+            })}`}
+            style={({ pressed }) => [styles.badgeChip, pressed && styles.pressedSoft]}
+            onPress={() => router.push("/profil/lencana")}
+          >
+            <Ionicons name="medal" size={14} color={theme.colors.makanText} />
+            <Num style={styles.badgeChipText}>{badgesEarned}</Num>
+          </Pressable>
+        )}
         {maternal ? null : (
           <ShareStoryButton
             iconOnly
@@ -1502,6 +1519,20 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: theme.radius.pill,
     paddingHorizontal: 12,
     height: 40,
+  },
+  badgeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: theme.colors.makanSoft,
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 12,
+    height: 40,
+  },
+  badgeChipText: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.makanText,
   },
   streakChipText: {
     fontSize: theme.fontSize.sm,

@@ -73,6 +73,44 @@
     "badgesTitle": "Lencana",
     "noBadges": "Belum ada lencana",
     "locked": "Belum diperoleh",
-    "tier": "Tahap {{n}}"
+    "tier": "Tahap {{n}}",
+    "aliasPlaceholder": "cth. rajin_makan",
+    "aliasHint": "{{min}}-{{max}} aksara: huruf kecil, nombor, titik, garis bawah, sengkang.",
+    "save": "Simpan",
+    "saved": "Disimpan",
+    "optInBody": "Lihat kedudukan anda setiap minggu. Hanya nama atau nama samaran dan bilangan hari mencatat dipaparkan, tanpa berat badan.",
+    "optInCta": "Sertai sekarang",
+    "manage": "Tetapan papan",
+    "emptyHint": "Jadi yang pertama: sertai melalui Privasi.",
+    "total": "{{count}} peserta",
+    "weekOf": "Minggu {{date}}",
+    "closed": "Akhir",
+    "rowDays": "{{n}}/7 hari",
+    "pickGroup": "Pilih kumpulan",
+    "noGroups": "Anda belum berada dalam kumpulan.",
+    "privacyNote": "Papan adalah pilihan dan dimatikan secara lalai.",
+    "leave": "Keluar dari papan",
+    "rank": "#{{rank}}",
+    "optOutNote": "Keluar memadam data anda daripada papan."
+  },
+  "shelf": {
+    "count": "{{earned}} daripada {{total}}",
+    "open": "Lihat semua lencana"
+  },
+  "detail": {
+    "earned": "Diperoleh {{date}}",
+    "next": "Tahap seterusnya: {{n}}",
+    "ruleLabel": "Cara mendapatkannya"
+  },
+  "unlock": {
+    "title": "Lencana baru!",
+    "view": "Lihat"
+  },
+  "share": {
+    "title": "Kongsi lencana",
+    "cta": "Kongsi"
+  },
+  "public": {
+    "title": "Lencana"
   }
 }

@@ -1,4 +1,5 @@
 import "@/unistyles";
+import { useBadgeUnlock } from "@/components/badges/use-badge-unlock";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, router } from "expo-router";
@@ -45,6 +46,7 @@ function LocaleKeyed({ children }: { children: React.ReactElement }) {
 
 export default function TabLayout() {
   const { t } = useTranslation();
+  useBadgeUnlock();
   const unread = useUnreadCount();
   const unreadBadge = (unread.data?.count ?? 0) > 0 ? unread.data!.count : undefined;
   // Feed tab badge: social notifications (kudos/comment/follow), separate

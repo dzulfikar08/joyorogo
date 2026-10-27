@@ -73,6 +73,44 @@
     "badgesTitle": "Lencana",
     "noBadges": "Belum ada lencana",
     "locked": "Belum didapat",
-    "tier": "Tingkat {{n}}"
+    "tier": "Tingkat {{n}}",
+    "aliasPlaceholder": "mis. rajin_makan",
+    "aliasHint": "{{min}}-{{max}} karakter: huruf kecil, angka, titik, garis bawah, strip.",
+    "save": "Simpan",
+    "saved": "Tersimpan",
+    "optInBody": "Lihat posisimu tiap minggu. Yang tampil hanya nama atau nama samaranmu dan jumlah hari mencatat, tanpa berat badan.",
+    "optInCta": "Ikut sekarang",
+    "manage": "Pengaturan papan",
+    "emptyHint": "Jadi yang pertama: ikut lewat Privasi.",
+    "total": "{{count}} peserta",
+    "weekOf": "Minggu {{date}}",
+    "closed": "Final",
+    "rowDays": "{{n}}/7 hari",
+    "pickGroup": "Pilih grup",
+    "noGroups": "Kamu belum ada di grup.",
+    "privacyNote": "Papan bersifat opsional dan mati secara bawaan.",
+    "leave": "Keluar dari papan",
+    "rank": "#{{rank}}",
+    "optOutNote": "Keluar menghapus datamu dari papan."
+  },
+  "shelf": {
+    "count": "{{earned}} dari {{total}}",
+    "open": "Lihat semua lencana"
+  },
+  "detail": {
+    "earned": "Didapat {{date}}",
+    "next": "Tingkat berikutnya: {{n}}",
+    "ruleLabel": "Caranya"
+  },
+  "unlock": {
+    "title": "Lencana baru!",
+    "view": "Lihat"
+  },
+  "share": {
+    "title": "Bagikan lencana",
+    "cta": "Bagikan"
+  },
+  "public": {
+    "title": "Lencana"
   }
 }

@@ -6,6 +6,7 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 
+import { BadgeUnlockWatcher } from "@/components/badges/unlock-watcher";
 import { IosInstallBanner } from "@/components/ios-install";
 import BottomNav, { DesktopBar } from "@/components/bottom-nav";
 import { DayZoneSync } from "@/components/day-zone-sync";
@@ -43,6 +44,7 @@ function AuthLayout() {
       <LocaleSync />
       <DayZoneSync />
       <PrefsSync />
+      <BadgeUnlockWatcher />
       {showNav && <DesktopBar />}
       {showNav && <IosInstallBanner />}
       {showNav && <PushMoveBanner />}

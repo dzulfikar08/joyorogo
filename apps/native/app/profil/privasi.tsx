@@ -3,6 +3,7 @@ import * as WebBrowser from "expo-web-browser";
 import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
 
+import { LeaderboardSettings } from "@/components/badges/leaderboard-settings";
 import { serverUrl } from "@/components/billing";
 import { Group, ProfilDataPage } from "@/components/profil/page";
 import { PrivacyList, ShareRow } from "@/components/profil/sections";
@@ -35,6 +36,7 @@ function PrivasiContent({
       {profile && !maternal ? <ShareRow /> : null}
       {profile ? <PrivacyList keepPhotos={profile.keepPhotos} /> : null}
       <SleepConsentCard />
+      <LeaderboardSettings />
       <Group>
         <ListRow
           icon="shield-checkmark"

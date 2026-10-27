@@ -10,6 +10,7 @@ import { i18n } from "@joyorogo/i18n";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
 import { Avatar } from "@/components/avatar";
+import { PublicBadgeRow } from "@/components/badges/badge-shelf";
 import { PostCard } from "@/components/feed/post-card";
 import { PublicFooter } from "@/components/public-footer";
 import { PublicHeader } from "@/components/public-header";
@@ -181,6 +182,8 @@ function PublicProfilePage() {
             </dl>
           )}
         </section>
+
+        {data.publicProfile && data.badges.length > 0 && <PublicBadgeRow badges={data.badges} />}
 
         {!data.publicProfile ? (
           <EmptyHint title={t("profile.private.title")} pose="peek">
