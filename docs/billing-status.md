@@ -19,7 +19,7 @@ Play pieces I checked directly:
 - Service account `joyorogo-play-billing@joyorogo.iam.gserviceaccount.com` is authorised: `purchases.subscriptionsv2.get`, `subscriptions.acknowledge` and `voidedpurchases.list` answer 400 (bad token) or 200, never 401/403.
 - RTDN: Play Console, JoyoRogo, Monetize with Play, Monetization setup shows "Enable real-time notifications" ticked, topic `projects/joyorogo/topics/play-rtdn`, content "Subscriptions and voided purchases only". "Send test notification" was pressed on 2026-10-21 and the worker logged `POST /api/billing/google/rtdn 204` (Pub/Sub push, JWT accepted).
 - Endpoints without credentials: `/api/billing/google` 401, `/api/billing/google/rtdn` 401, Polar webhook without signature 403.
-- Prices follow `docs/pricing.md`: the intended ladder step (buyers 11-110) is Rp29.000 / Rp199.000, `founderYearlyPriceIdr` 199000, and both store products match it.
+- Prices follow `docs/pricing.md`: the intended ladder step (buyers 11-60) is Rp29.000 / Rp199.000, `founderYearlyPriceIdr` 199000, and both store products match it.
 
 ## What blocks a real Android user from buying today
 

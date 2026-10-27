@@ -3,7 +3,7 @@
 Source of truth: `FOUNDER_PRICE_LADDER` in `apps/server/wrangler.jsonc`, parsed by `packages/api/src/lib/tiers.ts`.
 
 ```
-10:15000/149000,110:29000/199000,:49000/349000
+10:15000/149000,60:29000/199000,:49000/349000
  ^  ^      ^
  |  |      yearly price while this step is current (optional)
  |  monthly price
@@ -13,8 +13,8 @@ Source of truth: `FOUNDER_PRICE_LADDER` in `apps/server/wrangler.jsonc`, parsed 
 | Step | Buyers | Monthly | Yearly |
 | --- | --- | --- | --- |
 | 1 | 1-10 | Rp15.000 | Rp149.000 |
-| 2 | 11-110 | Rp29.000 | Rp199.000 |
-| 3 | 111+ | Rp49.000 | Rp349.000 |
+| 2 | 11-60 | Rp29.000 | Rp199.000 |
+| 3 | 61+ | Rp49.000 | Rp349.000 |
 
 Buyers = distinct users with at least one paid, non-zero order (all gateways and stores). Without `/yearly` a step's yearly is `FOUNDER_YEARLY_PRICE_IDR` (capped at 10x monthly) or 10x monthly. `FOUNDER_YEARLY_PRICE_IDR` (199000 in production) is also the fallback for Apple/Play transactions not billed in IDR. A malformed ladder throws at startup of every billing route.
 
@@ -35,7 +35,7 @@ Store prices checked 2026-10-18 (read back after the change):
 | App Store Connect (IDN) | auto-renewable `com.joyodigitama.joyorogo.founder.monthly` / `.yearly` | Rp29.000 | **Rp199.000** |
 | Google Play | subscription `pro`, base plans `monthly` / `yearly` (ID region, Indonesia price shown; other regions below) | Rp29.000 | **Rp199.000** |
 
-The current step (buyers 11-110) matches both stores in Indonesia. The server accepts only the two auto-renewable Apple products (`DEFAULT_APPLE_SUB_*_PRODUCT_ID` in `packages/api/src/lib/apple.ts`).
+The current step (buyers 11-60; step 2 was 11-110 until 2026-10-27) matches both stores in Indonesia. The server accepts only the two auto-renewable Apple products (`DEFAULT_APPLE_SUB_*_PRODUCT_ID` in `packages/api/src/lib/apple.ts`).
 
 Outside Indonesia the price follows the web USD price (US$9.99/month, US$59.99/year), not the founder ladder. Apple, changed 2026-10-18 with `preserveCurrentPrice: true` (existing subscribers keep their old price): USA price point 9.99 / 59.99, every other territory on Apple's equalized price point of it, except Indonesia (unchanged) and 53 low/lower-middle-income territories (World Bank LIC/LMC) held at the old price pending an owner decision. Full territory list: `store-prices-plan.md` (outside the repo).
 
@@ -118,7 +118,7 @@ Polar (polar.sh) is the merchant of record for USD card subscriptions on the web
 
 **Go-live checklist:** (1) deploy the server with the vars above; (2) create the Polar webhook for the URL above and store its secret as `POLAR_WEBHOOK_SECRET`; (3) store the organization access token as `POLAR_ACCESS_TOKEN`; (4) buy the monthly plan once from a non-Indonesian IP or via the picker, confirm Pro turns on and `/api/billing/polar/subscription` shows it, then refund/cancel it in the Polar dashboard.
 
-## Runbook: buyer count crosses 110 (step 2 to step 3)
+## Runbook: buyer count crosses 60 (step 2 to step 3)
 
 Check the count: `/api/config` returns `promo` while on a step with a cap; once `promo` is `null` and `founderPriceIdr` is 49000, step 3 is live. Web prices change by themselves. Then:
 

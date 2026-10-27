@@ -21,8 +21,8 @@ export type PaywallEnv = {
   FOUNDER_YEARLY_PRICE_IDR?: string;
   /**
    * Urgency ladder "buyers:monthlyIdr[/yearlyIdr]" steps, e.g.
-   * "10:15000/149000,110:29000/199000,:49000/349000" (first 10 buyers Rp15k or
-   * Rp149k a year, buyers 11-110 Rp29k / Rp199k, then Rp49k / Rp349k). The last
+   * "10:15000/149000,60:29000/199000,:49000/349000" (first 10 buyers Rp15k or
+   * Rp149k a year, buyers 11-60 Rp29k / Rp199k, then Rp49k / Rp349k). The last
    * step may be open-ended. Empty = flat FOUNDER_PRICE_IDR, no promo.
    */
   FOUNDER_PRICE_LADDER?: string;
@@ -90,7 +90,7 @@ export function paywallConfig(env: PaywallEnv): PaywallConfig {
 }
 
 /**
- * Parses "10:15000/149000,110:29000/199000,:49000/349000" (buyers:monthly/yearly).
+ * Parses "10:15000/149000,60:29000/199000,:49000/349000" (buyers:monthly/yearly).
  * The "/yearly" part is optional per step; without it yearly falls back to
  * `yearlyOverride` (FOUNDER_YEARLY_PRICE_IDR, capped at 10x that step's monthly)
  * or 10x monthly. Loud on purpose: a typo must not silently sell Founder at
