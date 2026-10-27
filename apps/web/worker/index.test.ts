@@ -22,7 +22,7 @@ const call = (url: string, init?: RequestInit, override: Partial<typeof env> = {
 describe("joyorogo.com", () => {
   test("app paths redirect to the app host with the query untouched", async () => {
     const res = await call("https://joyorogo.com/login?redirect=%2Fgabung%2FABCD2345");
-    expect(res.status).toBe(302);
+    expect(res.status).toBe(301);
     expect(res.headers.get("Location")).toBe("https://app.joyorogo.com/login?redirect=%2Fgabung%2FABCD2345");
   });
 
@@ -32,7 +32,7 @@ describe("joyorogo.com", () => {
   });
 
   test("HEAD redirects too, other methods pass through", async () => {
-    expect((await call("https://joyorogo.com/makan", { method: "HEAD" })).status).toBe(302);
+    expect((await call("https://joyorogo.com/makan", { method: "HEAD" })).status).toBe(301);
     expect((await call("https://joyorogo.com/makan", { method: "POST", body: "x" })).status).toBe(200);
   });
 
@@ -48,13 +48,13 @@ describe("joyorogo.com", () => {
 describe("app.joyorogo.com", () => {
   test("root goes to the app home", async () => {
     const res = await call("https://app.joyorogo.com/?utm_source=x");
-    expect(res.status).toBe(302);
+    expect(res.status).toBe(301);
     expect(res.headers.get("Location")).toBe("https://app.joyorogo.com/beranda?utm_source=x");
   });
 
   test("marketing pages go back to the site", async () => {
     const res = await call("https://app.joyorogo.com/harga");
-    expect(res.status).toBe(302);
+    expect(res.status).toBe(301);
     expect(res.headers.get("Location")).toBe("https://joyorogo.com/harga");
   });
 

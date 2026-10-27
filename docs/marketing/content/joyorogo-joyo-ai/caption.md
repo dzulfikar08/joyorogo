@@ -42,5 +42,5 @@ Mesin JoyoRogo untuk Pro (web dan app). Di app, usia 18 tahun ke atas bisa memak
 - Slide 1 dan 2: layar `/joyo` asli dari web app dengan akun demo "Rina" (`_shots/rogo-joyo-ask.webp`, stack lokal). `joyo.status` dibuat tetap sebagai akun Pro, jadi "0 dari 20" adalah angka contoh; persetujuan sudah diterima; pertanyaan ada di kolom tulis seperti yang dilakukan titik masuk "Tanya Joyo AI" (tidak dikirim). Tidak ada jawaban yang ditampilkan: aliran jawaban tidak ditiru.
 - Slide 3: angka dari `packages/api/src/lib/tkpi2019-data.ts` (ER073 pepaya 1,6; ER067 melon 1,0; ER105 semangka 0,4 g serat per 100 g). Bukan kutipan jawaban Joyo AI; slide menjelaskannya.
 - Entri rilis menandai `available: test-build` sedangkan git log menyebut "JoyoRogo Joyo AI shipped by OTA". Perbarui entri, lalu pastikan mesin hosted (Pro) memang jalan di produksi sebelum posting.
-- Versi JoyoFit (JRG-382) tidak dibuat; itu build tes JoyoFit dan balasan Threads yang meminta kunci API sendiri (di entri) layak jadi posting terpisah setelah build itu keluar.
+- Versi JoyoFit (FIT-114) tidak dibuat; itu build tes JoyoFit dan balasan Threads yang meminta kunci API sendiri (di entri) layak jadi posting terpisah setelah build itu keluar.
 - Jangan sebut penyedia "tidak menyimpan" data. Bukan saran medis.

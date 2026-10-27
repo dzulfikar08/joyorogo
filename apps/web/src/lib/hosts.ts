@@ -59,11 +59,8 @@ export const SHARED_SEGMENTS: readonly string[] = ["gabung", "u", "p"];
 /** Where `/` goes on the app host. */
 export const APP_HOME = "/beranda";
 
-/**
- * 302, not 301: browsers cache a 301 for good, which would make the cut-over impossible to roll back. Once the split
- * has soaked, switching this to 301 is the only change needed.
- */
-export const REDIRECT_STATUS = 302;
+/** Permanent since the 2026-10-27 soak ended; browsers cache it, so a rollback needs new URLs, not a status flip. */
+export const REDIRECT_STATUS = 301;
 
 export function areaOf(pathname: string): Area {
   const segment = pathname.split("/")[1] ?? "";

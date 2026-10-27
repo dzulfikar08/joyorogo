@@ -1,6 +1,6 @@
 # joyofit-lari-jalan
 
-Carousel 8 slide, 1080x1350. Atur JRG-399. Release entry: `watch-fit/docs/marketing/releases/2026-10-23-lari-jalan-mulai-lari-lagi.md`. Post: Threads (utas 3 post) dan Instagram. Post ke komunitas Running Threads.
+Carousel 8 slide, 1080x1350. Atur FIT-120. Release entry: `watch-fit/docs/marketing/releases/2026-10-23-lari-jalan-mulai-lari-lagi.md`. Post: Threads (utas 3 post) dan Instagram. Post ke komunitas Running Threads.
 
 Slide: 1 cover (teks), 2 pemilih rencana (screenshot), 3 susunan sesi minggu 1, 4 delapan minggu, 5 detak jantung yang memimpin, 6 deskripsi rencana di app (screenshot), 7 tes ulang 1 km, 8 CTA.
 

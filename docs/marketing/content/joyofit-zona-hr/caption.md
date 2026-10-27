@@ -1,6 +1,6 @@
 # joyofit-zona-hr
 
-Carousel 6 slide, 1080x1350. Atur JRG-371 (Zona HR) dan koreksi strain (watch-fit `48cf38f`). Release entry: `watch-fit/docs/marketing/releases/2026-10-22-zona-hr.md`. Post: Threads (utas 2 post, Running dan Cycling Threads) dan Instagram.
+Carousel 6 slide, 1080x1350. Atur FIT-108 (Zona HR) dan koreksi strain (watch-fit `48cf38f`). Release entry: `watch-fit/docs/marketing/releases/2026-10-22-zona-hr.md`. Post: Threads (utas 2 post, Running dan Cycling Threads) dan Instagram.
 
 Slide: 1 cover (teks), 2 tiga metode (screenshot pemilih), 3 tabel zona (screenshot), 4 hitung dari data (screenshot), 5 strain tidak ikut zona (screenshot), 6 CTA.
 
