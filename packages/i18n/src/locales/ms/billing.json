@@ -44,21 +44,40 @@
   "benefits": {
     "scansUnlimited": "Imbasan AI tanpa had",
     "scansCapped_other": "{{count}} imbasan AI sehari",
-    "advice": "Saranan makan daripada skor JoyoFit",
-    "backup": "Sandaran cloud JoyoFit",
-    "badge": "Lencana Pro pada profil anda",
-    "support": "Sokong pembangunan JoyoRogo",
     "free_other": "Percuma sentiasa ada: {{count}} imbasan AI sehari, selamanya."
   },
-  "value": {
+  "pro": {
     "title": "Apa yang anda dapat dengan Pro",
-    "scans": "{{pro}} imbasan AI sehari, bukan {{free}}",
-    "scansUnlimited": "Imbasan AI tanpa had, bukan {{free}} sehari",
-    "mealPlan": "Pelan makan mingguan, resipi dan senarai belian daripada sasaran anda",
-    "advice": "Saranan hidangan dan menu harian daripada skor JoyoFit",
-    "sleep": "Pandangan tidur dan refleksi mingguan yang ditulis AI",
-    "cloud": "Tanya coach dan sandaran cloud dalam JoyoFit",
-    "challenge": "Cipta cabaran kumpulan sebagai hos"
+    "cardSummary": "Semua ciri Pro: AI, pelan makan, sandaran cloud JoyoFit, cabaran kumpulan dan sokongan keutamaan",
+    "groups": {
+      "ai": "AI",
+      "meals": "Makan",
+      "joyofit": "JoyoFit",
+      "social": "Sosial",
+      "more": "Lain-lain"
+    },
+    "items": {
+      "joyoChat": "Joyo AI: tanya tentang makanan dan data anda",
+      "coach": "Tanya coach dalam JoyoFit dan segerakkan pelan latihan anda",
+      "connect": "Sambungan AI: tanya Claude atau ChatGPT tentang data JoyoRogo anda",
+      "recap": "Refleksi AI dalam rekap mingguan",
+      "sleep": "Penemuan tidur peribadi: corak tidur anda dikaitkan dengan tabiat makan",
+      "mealPlan": "Pelan makan mingguan, resipi dan senarai belian",
+      "advice": "Saranan makan daripada skor JoyoFit",
+      "cloud": "Sandaran cloud JoyoFit: senaman, tidur, laluan, penderia dan latihan beban",
+      "challenge": "Cipta cabaran kumpulan sebagai hos (menyertai cabaran rakan kekal percuma)",
+      "workoutDetail": "Butiran senaman rakan dalam suapan: degupan jantung, split, zon dan laluan yang mereka kongsi",
+      "reminders": "Peringatan apabila menu mingguan anda siap",
+      "badge": "Lencana Pro pada profil anda",
+      "support_other": "Sokongan keutamaan melalui DM Threads, dibalas selewat-lewatnya {{count}} hari bekerja"
+    },
+    "support": {
+      "title": "Sokongan keutamaan",
+      "how_other": "Hantar DM dan nyatakan e-mel akaun JoyoRogo anda. Dibalas selewat-lewatnya {{count}} hari bekerja.",
+      "open": "Buka Threads",
+      "copyEmail": "Salin e-mel akaun saya",
+      "copied": "E-mel disalin."
+    }
   },
   "nudge": {
     "chip": "Pro",

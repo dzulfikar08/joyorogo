@@ -94,7 +94,7 @@ Data gizi lokal dari Tabel Komposisi Pangan Indonesia (TKPI) 2019. Halaman
 
 |                                                             | Untuk siapa                                                         | Biaya                                                                 |
 | ----------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| [JoyoRogo Cloud](https://joyorogo.com)                      | Kebanyakan orang. Langsung pakai, tanpa setup.                      | Gratis dengan jatah scan AI harian. Pro untuk scan lebih banyak, bulanan atau tahunan, rupiah di Indonesia dan USD di luar Indonesia. Harga: [joyorogo.com/harga](https://joyorogo.com/harga), [docs/pricing.md](docs/pricing.md). |
+| [JoyoRogo Cloud](https://joyorogo.com)                      | Kebanyakan orang. Langsung pakai, tanpa setup.                      | Gratis dengan jatah scan AI harian. Pro untuk scan lebih banyak, fitur AI, rencana makan, cadangan cloud JoyoFit, tantangan grup, dan dukungan prioritas, bulanan atau tahunan, rupiah di Indonesia dan USD di luar Indonesia. Harga: [joyorogo.com/harga](https://joyorogo.com/harga), [docs/pricing.md](docs/pricing.md). |
 | [Deploy di CloudAgni](https://cloudagni.id/deploy/joyorogo) | Klinik, gym, ahli gizi, atau keluarga yang ingin servernya sendiri. | Paket CloudAgni, kuota AI sudah termasuk.                             |
 | Cloudflare sendiri                                          | Developer yang ingin mengurus semuanya sendiri.                     | Akun Cloudflare-mu, termasuk tagihan Workers AI.                      |
 

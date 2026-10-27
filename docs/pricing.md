@@ -20,6 +20,35 @@ Buyers = distinct users with at least one paid, non-zero order (all gateways and
 
 Grandfathering: anyone who paid before keeps their lowest paid monthly-equivalent (yearly orders count as amount/10). Yearly checkout = min(step yearly, locked monthly x 10); monthly = locked monthly.
 
+## What Pro unlocks
+
+One paid tier, JoyoRogo Pro, covers JoyoRogo and JoyoFit. The marketing list is `PRO_BENEFIT_GROUPS` in `packages/i18n/src/pro-benefits.ts` (text in the `billing` i18n namespace, `pro.*`): `/harga` (page, comparison table, FAQ), the landing pricing block, `/my` and `/sg` pricing, `/pro`, the web Profil > Langganan screen and the native paywall all read it, so a benefit is added or removed in one place. Add an item only when its gate exists; each row below is the gate behind an item. `cloudUnlocked` (`lib/watch-workout-store.ts`) and `premiumUnlocked` (`lib/readiness-food.ts`) are the same rule: a paid or comped Pro account, or any account on a server without a paywall.
+
+| Benefit (item id) | Gate (`packages/api/src`) |
+| --- | --- |
+| Scan quota above the free one (`scans`) | `lib/tiers.ts` (`dailyScanQuota`, `scanAllowance`), `lib/quota.ts` |
+| Joyo AI chat, hosted engine (`joyoChat`) | `routers/joyo.ts` `chat` (`cloudUnlocked`) |
+| JoyoFit coach plan and "Tanya coach" (`coach`) | `routers/coach.ts` `putDoc`, `chat` (`cloudUnlocked`; reading the plan stays open) |
+| Koneksi AI, Claude/ChatGPT connector (`connect`) | `routers/mcp-connection.ts` `info`, `apps/server/src/mcp.ts` (`cloudUnlocked`) |
+| Weekly recap AI reflection (`recap`) | `routers/stats.ts`, `lib/recap-reflection.ts` (`cloudUnlocked`) |
+| Personal sleep findings (`sleep`) | `routers/sleep-insights.ts` `get` (`premiumUnlocked`) |
+| Meal plan, recipes, shopping list (`mealPlan`) | `routers/meal-plan.ts` `requirePro` (`cloudUnlocked`) |
+| Meal suggestions from the JoyoFit score (`advice`) | `routers/day.ts` `readinessGuidance` (`premiumUnlocked`) |
+| JoyoFit cloud backup: workouts, sleep, routes, sensors, strength (`cloud`) | `routers/fitness.ts` `cloudAccess`, `routers/sync.ts` (`fit` namespace writes), `routers/strength.ts`, `routers/fit-web.ts`, `lib/watch-workout-store.ts` (`cloudUnlocked`) |
+| Host group challenges (`challenge`) | `routers/challenge.ts` `create` (`canHostChallenge` in `lib/challenge-host.ts`; refuses with `FORBIDDEN`, `data.paywall`, `reason: "challenge"`). Joining stays free, and a challenge that already exists is not touched when its host stops being Pro. |
+| Friends' workout details in the feed (`workoutDetail`) | `routers/social.ts` post workout detail (`premiumUnlocked`). A free viewer gets `locked: true` with no heart rate, route or analysis; a Pro viewer gets them, but only the route the author chose to share (trimmed and simplified), never the full-resolution track. |
+| Reminder when the weekly menu is ready (`reminders`) | `lib/reminders.ts` `plan` kind (`premiumUnlocked`) |
+| Pro badge (`badge`) | the Pro pill on Profil, by `tier` |
+| Priority support (`support`) | Not a server gate: a person answers. See below. |
+
+Free for everyone, not gated: diary, weight trend, waist, groups, joining challenges, free workout logging, and the free scan quota (`freeDailyScans`, 3 by default, read live from `/api/config`).
+
+### Priority support
+
+Pro accounts get a Threads DM channel, answered within one working day. `PRIORITY_SUPPORT` in `packages/i18n/src/pro-benefits.ts` is the only place that holds the handle (`@dzulfikar.at`, the owner's account for now), the Threads URL and the promised days; every surface reads it, so moving to an official account or changing the promise is one edit. It is shown on the web Profil > Langganan screen and the native Langganan screen, to Pro accounts only (strings `billing:pro.support.*`), with a button that opens Threads and one that copies the account email. Free accounts are not promised a reply time and keep the contact email (`CONTACT_EMAIL`, `apps/web/src/lib/contact.ts`).
+
+Anyone can DM that account, so the person is asked to name the email of their JoyoRogo account. To check it, open admin.joyorogo.com > Users and search the email ("Cari nama atau email", `GET /api/admin/users?q=`); the Plan column and the user detail show whether the account is Pro.
+
 ## What follows the step automatically
 
 Web (DOKU/Pakasir) checkout amounts, `/api/config`, `/harga`, the landing page, the paywall and `/pro`. All read `founderYearlyPriceIdr` from `/api/config`, which is the current step's yearly.

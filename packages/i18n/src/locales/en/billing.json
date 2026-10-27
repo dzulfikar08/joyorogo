@@ -45,22 +45,43 @@
     "scansUnlimited": "Unlimited AI scans",
     "scansCapped_one": "{{count}} AI scan per day",
     "scansCapped_other": "{{count}} AI scans per day",
-    "advice": "Meal tips from your JoyoFit score",
-    "backup": "JoyoFit cloud backup",
-    "badge": "Pro badge on your profile",
-    "support": "Support JoyoRogo's development",
     "free_one": "The free plan keeps {{count}} AI scan per day, forever.",
     "free_other": "The free plan keeps {{count}} AI scans per day, forever."
   },
-  "value": {
-    "title": "What Pro gives you",
-    "scans": "{{pro}} AI scans a day instead of {{free}}",
-    "scansUnlimited": "Unlimited AI scans instead of {{free}} a day",
-    "mealPlan": "A weekly meal plan, recipes and a shopping list built from your targets",
-    "advice": "Daily portion and menu tips from your JoyoFit score",
-    "sleep": "Sleep insights and a weekly reflection written by AI",
-    "cloud": "Ask the coach and back up to the cloud in JoyoFit",
-    "challenge": "Host group challenges"
+  "pro": {
+    "title": "What you get with Pro",
+    "cardSummary": "Every Pro feature: AI, meal plans, JoyoFit cloud backup, group challenges and priority support",
+    "groups": {
+      "ai": "AI",
+      "meals": "Meals",
+      "joyofit": "JoyoFit",
+      "social": "Social",
+      "more": "More"
+    },
+    "items": {
+      "joyoChat": "Joyo AI: ask about your food and your data",
+      "coach": "Ask the coach in JoyoFit and sync your training plan",
+      "connect": "AI connection: ask Claude or ChatGPT about your JoyoRogo data",
+      "recap": "AI reflection in the weekly recap",
+      "sleep": "Personal sleep findings: your sleep patterns tied to what you eat",
+      "mealPlan": "Weekly meal plan, recipes and a shopping list",
+      "advice": "Meal tips from your JoyoFit score",
+      "cloud": "JoyoFit cloud backup: workouts, sleep, routes, sensors and strength training",
+      "challenge": "Host group challenges (joining a friend's challenge stays free)",
+      "workoutDetail": "Friends' workout details in the feed: heart rate, splits, zones and the route they share",
+      "reminders": "A reminder when your weekly menu is ready",
+      "badge": "Pro badge on your profile",
+      "support_one": "Priority support by Threads DM, answered within {{count}} working day",
+      "support_other": "Priority support by Threads DM, answered within {{count}} working days"
+    },
+    "support": {
+      "title": "Priority support",
+      "how_one": "Send a DM and name the email of your JoyoRogo account. Answered within {{count}} working day.",
+      "how_other": "Send a DM and name the email of your JoyoRogo account. Answered within {{count}} working days.",
+      "open": "Open Threads",
+      "copyEmail": "Copy my account email",
+      "copied": "Email copied."
+    }
   },
   "nudge": {
     "chip": "Pro",

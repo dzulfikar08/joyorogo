@@ -195,6 +195,39 @@ describe("create: Founder gate and validation", () => {
   });
 });
 
+describe("a host whose Pro lapsed", () => {
+  test("only creating is gated: the running challenge still lists, shows, takes joins and can be deleted", async () => {
+    const lapsedUntil = Date.now() - 24 * 60 * 60 * 1000;
+    await client.executeMultiple(`
+      INSERT INTO "user" (id, name, email, tier, founder_until) VALUES
+        ('lapsed', 'Lapsed', 'lapsed@test.id', 'free', ${lapsedUntil});
+      INSERT INTO team (id, name, invite_code, owner_id) VALUES ('t-lapsed', 'Tim Lewat', 'DDDDDDDD', 'lapsed');
+      INSERT INTO team_member (team_id, user_id, role) VALUES
+        ('t-lapsed', 'lapsed', 'owner'), ('t-lapsed', 'free', 'member');
+      INSERT INTO team_challenge (id, team_id, created_by, title, goal, target, duration_days, start_date, end_date)
+        VALUES ('c-lapsed', 't-lapsed', 'lapsed', 'Dari host lama', 'steps', 8000, 7, '${today}', '${shiftDate(today, 6)}');
+      INSERT INTO team_challenge_member (challenge_id, user_id, from_date, target)
+        VALUES ('c-lapsed', 'lapsed', '${today}', NULL);
+    `);
+
+    const list = await call(challengeRouter.list, { groupId: "t-lapsed" }, as("lapsed"));
+    expect(list.canHost).toBe(false);
+    expect(list.challenges.map((c) => c.id)).toEqual(["c-lapsed"]);
+    expect((await detail("lapsed", "c-lapsed")).challenge.status).toBe("active");
+
+    await call(challengeRouter.join, { challengeId: "c-lapsed" }, as("free"));
+    expect((await detail("free", "c-lapsed")).leaderboard).toHaveLength(2);
+
+    const input = { groupId: "t-lapsed", goal: "steps", target: 8000, durationDays: 7 } as const;
+    await expect(call(challengeRouter.create, input, as("lapsed"))).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      data: { paywall: true, reason: "challenge" },
+    });
+
+    await call(challengeRouter.remove, { challengeId: "c-lapsed" }, as("lapsed"));
+  });
+});
+
 describe("steps: leaderboard, streaks, joining", () => {
   test("ranks by hit days, judges today on what is already reached", async () => {
     await seed("c-steps", "t1", "steps", 8000, 3, [{ userId: "comp" }, { userId: "free" }]);

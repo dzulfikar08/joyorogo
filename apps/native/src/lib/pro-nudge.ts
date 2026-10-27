@@ -4,6 +4,9 @@
  * and goes away when dismissed.
  */
 
+import { PRO_BENEFIT_GROUPS } from "@joyorogo/i18n/pro-benefits";
+import type { ProBenefitGroup } from "@joyorogo/i18n/pro-benefits";
+
 /** Streak lengths that earn a Pro card on Beranda, once each. */
 export const STREAK_NUDGE_MILESTONES = [7, 14, 30, 60, 100] as const;
 
@@ -66,29 +69,26 @@ export function paywallMoment(value: unknown): PaywallMoment {
   return PAYWALL_MOMENTS.find((moment) => moment === value) ?? "banner";
 }
 
-export const BENEFIT_KEYS = ["scans", "mealPlan", "advice", "sleep", "cloud", "challenge"] as const;
-export type BenefitKey = (typeof BENEFIT_KEYS)[number];
-
-/** The benefit each moment is about; it leads the list so the paywall opens on what the person came for. */
-const LEAD_BENEFIT: Record<PaywallMoment, BenefitKey> = {
-  onboarding: "scans",
-  quota: "scans",
-  scanleft: "scans",
-  banner: "scans",
-  chip: "scans",
-  profile: "scans",
-  streak: "scans",
-  fitness: "advice",
-  challenge: "challenge",
-  joyofit: "cloud",
-  mealplan: "mealPlan",
-  sleep: "sleep",
-  recap: "sleep",
-  workout: "cloud",
+/** The benefit group each moment is about; it leads the list so the paywall opens on what the person came for. */
+const LEAD_GROUP: Record<PaywallMoment, ProBenefitGroup> = {
+  onboarding: "ai",
+  quota: "ai",
+  scanleft: "ai",
+  banner: "ai",
+  chip: "ai",
+  profile: "ai",
+  streak: "ai",
+  fitness: "meals",
+  challenge: "social",
+  joyofit: "joyofit",
+  mealplan: "meals",
+  sleep: "ai",
+  recap: "ai",
+  workout: "social",
 };
 
-/** All Pro benefits, the one this moment is about first, the rest in their usual order. */
-export function benefitOrder(moment: PaywallMoment): BenefitKey[] {
-  const lead = LEAD_BENEFIT[moment];
-  return [lead, ...BENEFIT_KEYS.filter((key) => key !== lead)];
+/** All Pro benefit groups (the shared list in @joyorogo/i18n), the one this moment is about first, the rest in their usual order. */
+export function benefitOrder(moment: PaywallMoment): ProBenefitGroup[] {
+  const lead = LEAD_GROUP[moment];
+  return [lead, ...PRO_BENEFIT_GROUPS.map((group) => group.id).filter((id) => id !== lead)];
 }

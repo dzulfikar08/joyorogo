@@ -44,21 +44,40 @@
   "benefits": {
     "scansUnlimited": "Scan AI tanpa batas",
     "scansCapped_other": "{{count}} scan AI per hari",
-    "advice": "Saran makan dari skor JoyoFit",
-    "backup": "Cadangan cloud JoyoFit",
-    "badge": "Badge Pro di profilmu",
-    "support": "Dukung pengembangan JoyoRogo",
     "free_other": "Gratis tetap ada: {{count}} scan AI per hari, selamanya."
   },
-  "value": {
+  "pro": {
     "title": "Yang kamu dapat di Pro",
-    "scans": "{{pro}} scan AI per hari, bukan {{free}}",
-    "scansUnlimited": "Scan AI tanpa batas, bukan {{free}} per hari",
-    "mealPlan": "Rencana makan mingguan, resep, dan daftar belanja dari targetmu",
-    "advice": "Saran porsi dan menu harian dari skor JoyoFit",
-    "sleep": "Insight tidur dan refleksi mingguan yang ditulis AI",
-    "cloud": "Tanya coach dan cadangan cloud di JoyoFit",
-    "challenge": "Buat tantangan grup sebagai host"
+    "cardSummary": "Semua fitur Pro: AI, rencana makan, cadangan cloud JoyoFit, tantangan grup, dan dukungan prioritas",
+    "groups": {
+      "ai": "AI",
+      "meals": "Makan",
+      "joyofit": "JoyoFit",
+      "social": "Sosial",
+      "more": "Lainnya"
+    },
+    "items": {
+      "joyoChat": "Joyo AI: tanya soal makanan dan datamu",
+      "coach": "Tanya coach di JoyoFit dan sinkron rencana latihanmu",
+      "connect": "Koneksi AI: tanya Claude atau ChatGPT soal data JoyoRogo-mu",
+      "recap": "Refleksi AI di rekap mingguan",
+      "sleep": "Temuan tidur pribadi: pola tidurmu dikaitkan dengan kebiasaan makanmu",
+      "mealPlan": "Rencana makan mingguan, resep, dan daftar belanja",
+      "advice": "Saran makan dari skor JoyoFit",
+      "cloud": "Cadangan cloud JoyoFit: latihan, tidur, rute, sensor, dan latihan beban",
+      "challenge": "Buat tantangan grup sebagai host (ikut tantangan teman tetap gratis)",
+      "workoutDetail": "Detail latihan temanmu di feed: detak jantung, split, zona, dan rute yang mereka bagikan",
+      "reminders": "Pengingat saat menu mingguanmu siap",
+      "badge": "Badge Pro di profilmu",
+      "support_other": "Dukungan prioritas lewat DM Threads, dibalas paling lambat {{count}} hari kerja"
+    },
+    "support": {
+      "title": "Dukungan prioritas",
+      "how_other": "Kirim DM dan sebutkan email akun JoyoRogo-mu. Dibalas paling lambat {{count}} hari kerja.",
+      "open": "Buka Threads",
+      "copyEmail": "Salin email akunku",
+      "copied": "Email disalin."
+    }
   },
   "nudge": {
     "chip": "Pro",

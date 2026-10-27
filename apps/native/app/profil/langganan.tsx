@@ -5,6 +5,7 @@ import { StyleSheet } from "react-native-unistyles";
 
 import { FounderCards, useAppConfig } from "@/components/billing";
 import { ProfilDataPage, type ProfileData } from "@/components/profil/page";
+import { PrioritySupportCard } from "@/components/profil/priority-support";
 import { usePlanStatus } from "@/components/profil/status";
 import { Card, Text } from "@/components/ui";
 
@@ -32,6 +33,7 @@ function LanggananContent({ profile }: { profile: ProfileData }) {
           <Text style={styles.status}>{status.text}</Text>
         </Card>
       ) : null}
+      {profile.tier === "founder" ? <PrioritySupportCard /> : null}
     </>
   );
 }
