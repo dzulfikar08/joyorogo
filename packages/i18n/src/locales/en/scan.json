@@ -190,6 +190,8 @@
       "cupSize": "Cup size",
       "priorGroup": "Pick the portion for {{name}}",
       "priorAi": "AI: {{grams}}",
+      "altTitle": "Could also be:",
+      "altGroup": "Other dishes {{name}} could be",
       "priorUsual": "Your usual: {{grams}}",
       "priorTypical": "Typical: {{grams}}",
       "usual": "As usual, from your log · AI said {{kcal}}",

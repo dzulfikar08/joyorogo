@@ -81,6 +81,20 @@ describe("compactItems", () => {
   test("a diary row has no chip: sources are only stamped on request", () => {
     expect(compactItems([AI[0]!], false)[0]).not.toHaveProperty("gs");
   });
+
+  test("keeps the alternate names the scan offered, two at most and cut like names", () => {
+    expect(
+      compactItems([
+        { name: "nasi kuning", kcal: 300, alt: ["nasi uduk", "nasi liwet", "nasi kebuli"] },
+        { name: "a", kcal: 1, alt: ["b".repeat(100)] },
+        { name: "c", kcal: 1, alt: [] },
+      ]),
+    ).toEqual([
+      { n: "nasi kuning", k: 300, a: ["nasi uduk", "nasi liwet"] },
+      { n: "a", k: 1, a: ["b".repeat(80)] },
+      { n: "c", k: 1 },
+    ]);
+  });
 });
 
 describe("savedGramSources", () => {
@@ -187,6 +201,21 @@ describe("session outcomes", () => {
     const photoId = await seedScan();
     await recordSessionCorrection(db, USER, photoId);
     await recordSessionSaved(db, USER, photoId, AI);
+    expect(await outcomeOf(photoId)).toBe("corrected");
+  });
+
+  test("an alternate-chip tap is a correction and is logged on the scan, tap by tap", async () => {
+    const photoId = await seedScan({ items: [{ name: "nasi kuning", grams: 200, kcal: 320 }] });
+    await recordSessionCorrection(db, USER, photoId, { from: "nasi kuning", to: "nasi uduk" });
+    await recordSessionCorrection(db, USER, photoId, { from: "nasi uduk", to: "nasi liwet" });
+    await recordSessionCorrection(db, USER, photoId);
+    const { session } = (await loadSession(db, USER, photoId))!;
+    expect(session.corrections).toBe(3);
+    expect(session.altTaps).toEqual([
+      { f: "nasi kuning", t: "nasi uduk" },
+      { f: "nasi uduk", t: "nasi liwet" },
+    ]);
+    await recordSessionSaved(db, USER, photoId, [{ name: "nasi liwet", grams: 200, kcal: 330 }]);
     expect(await outcomeOf(photoId)).toBe("corrected");
   });
 

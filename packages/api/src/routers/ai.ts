@@ -1065,6 +1065,9 @@ export const aiRouter = {
         text: z.string().trim().min(2).max(300).optional(),
         // Same ≤60 s voice notes as describeFood.
         audioBase64: z.base64().min(100).max(3_000_000).optional(),
+        // Set when the text comes from a tap on an alternate-name chip ("Mungkin juga"): the name it
+        // replaced and the alternate. Only logged (ledger rows and the scan session), never read as an instruction.
+        altTap: z.object({ from: z.string().trim().min(1).max(120), to: z.string().trim().min(1).max(120) }).optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -1140,6 +1143,7 @@ export const aiRouter = {
               via,
               ...(input.photoId ? { photoId: input.photoId } : {}),
               outcome: failure ? failure.reason : "ok",
+              ...(input.altTap ? { altTap: input.altTap } : {}),
               itemCount: input.items.length,
               ...(run ? { usage: run.usage } : {}),
               ...(via === "voice" ? { transcribe: { model: TRANSCRIBE_MODEL, ...transcribeUsage } } : {}),
@@ -1159,7 +1163,7 @@ export const aiRouter = {
       }
       if (input.photoId) {
         context.waitUntil(
-          recordSessionCorrection(context.db, userId, input.photoId).catch((error: unknown) =>
+          recordSessionCorrection(context.db, userId, input.photoId, input.altTap).catch((error: unknown) =>
             console.error("[ai] correction outcome failed", error),
           ),
         );

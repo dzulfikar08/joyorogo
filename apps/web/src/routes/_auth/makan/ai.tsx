@@ -43,6 +43,7 @@ import { parseIdrInput } from "@joyorogo/api/lib/format";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { hasBone, setWithBone, stripBoneLabel } from "@joyorogo/api/lib/bone-chip";
+import { carryAlternates } from "@joyorogo/api/lib/name-alternates";
 import { itemAtCount } from "@joyorogo/api/lib/piece-chip";
 import { gramsForTypedKcal, macrosForTypedKcal, scalePortion } from "@joyorogo/api/lib/portion";
 import {
@@ -55,6 +56,7 @@ import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { cupPick } from "@joyorogo/api/lib/drink-options";
 import type { CupChoice } from "@joyorogo/api/lib/drink-options";
+import { AlternateChips } from "@/components/scan/alternate-chips";
 import { CupChoices } from "@/components/scan/cup-choices";
 import { BoneChips, PieceCountChip } from "@/components/scan/piece-chips";
 import { PortionPriorChips } from "@/components/scan/portion-prior-chips";
@@ -654,9 +656,11 @@ function AiFoodPage() {
   // Applies ai.correctScan in place. `origins` maps every new row to the row
   // it came from, so the per-row state (kcal draft, tapped kind, crop, cutout,
   // baseline) follows it; rows the server touched show their new kcal.
-  const applyCorrection = (result: CorrectScanResult, base: AiFoodItem[]): boolean => {
+  const applyCorrection = (answer: CorrectScanResult, base: AiFoodItem[]): boolean => {
     // The list moved on (Setengah porsi) while the request ran: its origins no longer line up.
     if (base !== items) return false;
+    // The server echoes no "Mungkin juga" chips: rows the correction left alone keep theirs.
+    const result = carryAlternates(answer, items);
     const origins = result.items.map((_, index) => {
       const origin = result.origins[index];
       return origin != null && origin >= 0 && origin < items.length ? origin : null;
@@ -1797,6 +1801,17 @@ function AiFoodPage() {
                       item={item}
                       onSwap={() => swapScale(index)}
                       onTare={tareScale}
+                    />
+                  )}
+                  {item.alt && !item.cup && (
+                    <AlternateChips
+                      index={index}
+                      photoId={photoId}
+                      items={items}
+                      kcals={kcals}
+                      kinds={kinds}
+                      disabled={retrying || saving}
+                      onApply={applyCorrection}
                     />
                   )}
                 </div>

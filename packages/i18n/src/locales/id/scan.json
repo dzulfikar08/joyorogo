@@ -185,6 +185,8 @@
       "cupSize": "Ukuran gelas",
       "priorGroup": "Pilih angka porsi {{name}}",
       "priorAi": "AI: {{grams}}",
+      "altTitle": "Mungkin juga:",
+      "altGroup": "Hidangan lain yang mungkin untuk {{name}}",
       "priorUsual": "Biasanya kamu: {{grams}}",
       "priorTypical": "Biasanya: {{grams}}",
       "usual": "Seperti biasanya, dari catatanmu · AI hitung {{kcal}}",

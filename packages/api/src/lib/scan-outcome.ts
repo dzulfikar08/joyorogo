@@ -60,7 +60,7 @@ export const FEEDBACK_MARK = {
  */
 export type GramSource = "model" | "scale" | "prior" | "user";
 
-/** n name, g grams, gs where they came from, k kcal, p/c/f/fi protein/carbs/fat/fiber (g), cf model confidence 0-1. */
+/** n name, g grams, gs where they came from, k kcal, p/c/f/fi protein/carbs/fat/fiber (g), cf model confidence 0-1, a the alternate names the scan offered ("Mungkin juga"). */
 export type CompactItem = {
   n: string;
   g?: number;
@@ -71,6 +71,7 @@ export type CompactItem = {
   f?: number;
   fi?: number;
   cf?: number;
+  a?: string[];
 };
 
 export type ScanDiff = {
@@ -106,6 +107,8 @@ export type ScanSession = {
   /** Every "Hitung ulang" pass in order: i (1-based), at, model, hint, items. */
   retryLog?: Array<{ i: number; at: number; model: string; hint?: string; items: CompactItem[] }>;
   corrections?: number;
+  /** Every alternate-name chip tapped ("Mungkin juga"): f = the name it replaced, t = the alternate. */
+  altTaps?: Array<{ f: string; t: string }>;
   savedAt?: number;
   savedLabel?: "accurate" | "corrected";
   savedItems?: CompactItem[];
@@ -127,6 +130,7 @@ type ItemLike = {
   /** The chips a scan answer carries: which side is showing says where the grams came from. */
   scaleRead?: { active: string } | null;
   portionPrior?: { active: string } | null;
+  alt?: readonly string[] | null;
 };
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
@@ -154,6 +158,7 @@ export function compactItems(items: readonly ItemLike[], sources = true): Compac
     ...(item.fat != null ? { f: round1(item.fat) } : {}),
     ...(item.fiber != null ? { fi: round1(item.fiber) } : {}),
     ...(item.confidence != null ? { cf: Math.round(item.confidence * 100) / 100 } : {}),
+    ...(item.alt?.length ? { a: item.alt.slice(0, 2).map((name) => name.slice(0, 80)) } : {}),
   }));
 }
 
@@ -385,18 +390,21 @@ export function recordSessionRetry(
   );
 }
 
-/** A successful typed/spoken correction. */
+/** A successful correction: typed, spoken, or a tap on an alternate-name chip (`altTap`, which is also logged). */
 export function recordSessionCorrection(
   db: Database,
   userId: string,
   photoId: string,
+  altTap?: { from: string; to: string },
 ): Promise<unknown> {
-  return patchSession(
-    db,
-    userId,
-    photoId,
-    setSql([["$.corrections", sql`coalesce(json_extract(${aiUsage.usageJson}, '$.corrections'), 0) + 1`]]),
-  );
+  const pairs: Array<[string, SQL]> = [
+    ["$.corrections", sql`coalesce(json_extract(${aiUsage.usageJson}, '$.corrections'), 0) + 1`],
+  ];
+  if (altTap) {
+    const tap = jsonArg({ f: altTap.from.slice(0, 80), t: altTap.to.slice(0, 80) });
+    pairs.push(["$.altTaps", sql`json(json_insert(coalesce(json_extract(${aiUsage.usageJson}, '$.altTaps'), '[]'), '$[#]', ${tap}))`]);
+  }
+  return patchSession(db, userId, photoId, setSql(pairs));
 }
 
 /** The shadow variant's answer for this scan, stored beside the production answer. */
