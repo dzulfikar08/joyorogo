@@ -116,7 +116,7 @@ export const PAGES: Record<PublicPath, PageMeta> = {
   "/harga": {
     title: "Harga | JoyoRogo",
     description:
-      "Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan jatah foto AI harian. Pro menambah jatah foto AI harian dan mendukung JoyoRogo.",
+      "Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan jatah foto AI harian. Pro menambah jatah scan, fitur AI, rencana makan, cadangan cloud JoyoFit, tantangan grup, dan dukungan prioritas.",
   },
   "/privasi": {
     title: "Privasi | JoyoRogo",

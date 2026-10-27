@@ -36,10 +36,7 @@ export function UsdPlans({
     config.founderDailyCap === null
       ? te("benefits.scansUnlimited")
       : te("benefits.scansCapped", { count: config.founderDailyCap }),
-    te("benefits.advice"),
-    te("benefits.backup"),
-    te("benefits.badge"),
-    te("benefits.support"),
+    te("pro.cardSummary"),
   ];
 
   const plans = [

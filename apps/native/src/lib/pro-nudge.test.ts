@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
-import { BENEFIT_KEYS, PAYWALL_MOMENTS, benefitOrder, paywallMoment, showScanAllowance, streakNudge } from "./pro-nudge";
+import { PRO_BENEFIT_GROUPS } from "@joyorogo/i18n/pro-benefits";
+
+import { PAYWALL_MOMENTS, benefitOrder, paywallMoment, showScanAllowance, streakNudge } from "./pro-nudge";
 
 describe("streakNudge", () => {
   test("shows the milestone the streak just reached", () => {
@@ -53,16 +55,18 @@ describe("paywallMoment", () => {
 });
 
 describe("benefitOrder", () => {
-  test("every moment lists every benefit once, led by the one it is about", () => {
+  test("every moment lists every group once, led by the one it is about", () => {
+    const groups = PRO_BENEFIT_GROUPS.map((group) => group.id);
     for (const moment of PAYWALL_MOMENTS) {
-      const order = benefitOrder(moment);
-      expect([...order].sort()).toEqual([...BENEFIT_KEYS].sort());
+      expect([...benefitOrder(moment)].sort()).toEqual([...groups].sort());
     }
-    expect(benefitOrder("mealplan")[0]).toBe("mealPlan");
-    expect(benefitOrder("sleep")[0]).toBe("sleep");
-    expect(benefitOrder("recap")[0]).toBe("sleep");
-    expect(benefitOrder("workout")[0]).toBe("cloud");
-    expect(benefitOrder("quota")[0]).toBe("scans");
-    expect(benefitOrder("challenge")[0]).toBe("challenge");
+    expect(benefitOrder("mealplan")[0]).toBe("meals");
+    expect(benefitOrder("fitness")[0]).toBe("meals");
+    expect(benefitOrder("sleep")[0]).toBe("ai");
+    expect(benefitOrder("recap")[0]).toBe("ai");
+    expect(benefitOrder("workout")[0]).toBe("social");
+    expect(benefitOrder("joyofit")[0]).toBe("joyofit");
+    expect(benefitOrder("quota")[0]).toBe("ai");
+    expect(benefitOrder("challenge")[0]).toBe("social");
   });
 });

@@ -8,6 +8,8 @@ import { useTranslation } from "react-i18next";
 import { AppState, Linking, Platform, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { PRIORITY_SUPPORT, proBenefitItems } from "@joyorogo/i18n";
+import type { ProBenefit } from "@joyorogo/i18n";
 
 import {
   BootLoader,
@@ -37,7 +39,7 @@ import { useToast } from "@/components/toast";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { errorMessage, fmtIdr } from "@/utils/format";
 import { PressableScale, useEnter } from "@/components/motion";
-import { benefitOrder, paywallMoment, type BenefitKey } from "@/src/lib/pro-nudge";
+import { benefitOrder, paywallMoment } from "@/src/lib/pro-nudge";
 import { privacyUrl, termsUrl } from "@/src/lib/legal-url";
 import { formatStorePrice, yearlySaving, type StorePrice } from "@/src/lib/pro-plans";
 import { orpc } from "@/utils/orpc";
@@ -284,13 +286,14 @@ export default function FounderPaywall() {
       ]
     : [t("details.step.web.one"), t("details.step.web.two"), t("details.step.done")];
 
-  const benefitText = (key: BenefitKey): string => {
-    if (key === "scans") {
+  const benefitText = (item: ProBenefit): string => {
+    if (item === "scans") {
       return cfg.founderDailyCap === null
-        ? t("value.scansUnlimited", { free: freeScans })
-        : t("value.scans", { pro: cfg.founderDailyCap, free: freeScans });
+        ? t("benefits.scansUnlimited")
+        : t("benefits.scansCapped", { count: cfg.founderDailyCap });
     }
-    return t(`value.${key}`);
+    if (item === "support") return t("pro.items.support", { count: PRIORITY_SUPPORT.replyWorkdays });
+    return t(`pro.items.${item}`);
   };
   const chargeLine = `${t(yearly ? "plan.chargeYearly" : "plan.chargeMonthly", { price: priceOf(plan) })} ${renewalNote}`;
   const legalTerms = ios ? APPLE_TERMS_URL : PLAY_ACTIVE ? termsUrl(SITE_URL, i18n.language) : null;
@@ -354,9 +357,14 @@ export default function FounderPaywall() {
       </Animated.View>
 
       <Card style={styles.benefitsCard}>
-        <Text style={styles.bundle}>{t("value.title")}</Text>
-        {benefitOrder(moment).map((key, index) => (
-          <BenefitRow key={key} index={index + 2} text={benefitText(key)} />
+        <Text style={styles.bundle}>{t("pro.title")}</Text>
+        {benefitOrder(moment).map((group, groupIndex) => (
+          <View key={group} style={styles.benefitGroup}>
+            <Text style={styles.groupTitle}>{t(`pro.groups.${group}`)}</Text>
+            {proBenefitItems(group).map((item) => (
+              <BenefitRow key={item} index={groupIndex + 2} text={benefitText(item)} />
+            ))}
+          </View>
         ))}
         <Text style={styles.freeNote}>{t("benefits.free", { count: freeScans })}</Text>
       </Card>
@@ -480,6 +488,16 @@ const styles = StyleSheet.create((theme) => ({
     fontWeight: "800",
     color: theme.colors.foreground,
     marginBottom: 4,
+  },
+  benefitGroup: {
+    marginTop: theme.spacing.sm,
+  },
+  groupTitle: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: "700",
+    color: theme.colors.mutedForeground,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
   },
   benefitRow: {
     flexDirection: "row",

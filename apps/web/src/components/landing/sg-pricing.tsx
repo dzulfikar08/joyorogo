@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { AppLink } from "@/components/app-link";
 import { WhatsAppLink } from "@/components/landing/my-whatsapp";
+import { ProBenefitGroups, useProBenefits } from "@/components/pro-benefits";
 import { useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { CONTACT_EMAIL } from "@/lib/contact";
@@ -53,6 +54,7 @@ function Point({ children, tone }: { children: ReactNode; tone: "free" | "pro" }
  */
 export function PricingSg() {
   const config = useAppConfig();
+  const benefits = useProBenefits("en");
   const data = config.data;
 
   if (config.isPending) {
@@ -132,8 +134,6 @@ export function PricingSg() {
               ? "Unlimited AI photos a day"
               : `Up to ${data.founderDailyCap} AI photos a day`}
           </Point>
-          <Point tone="pro">A Pro badge on your profile</Point>
-          <Point tone="pro">Priority support: your reports and feature requests go first</Point>
           {data.sgd && (
             <>
               <Point tone="pro">
@@ -147,6 +147,14 @@ export function PricingSg() {
             </>
           )}
         </ul>
+        <p className="mt-6 text-sm font-bold">{benefits.t("pro.title")}</p>
+        <ProBenefitGroups
+          founderDailyCap={data.founderDailyCap}
+          lng="en"
+          tone="makan"
+          exclude={["scans"]}
+          className="mt-3 grid gap-x-6 gap-y-4 sm:grid-cols-2 sm:space-y-0"
+        />
         <p className="mt-5 text-sm leading-relaxed text-makan-ink/90">
           Questions about price or payment?{" "}
           <WhatsAppLink

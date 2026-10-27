@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { AppLink } from "@/components/app-link";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   CalendarX,
@@ -12,6 +12,8 @@ import {
   X,
 } from "lucide-react";
 
+import { PRIORITY_SUPPORT, PRO_BENEFIT_GROUPS } from "@joyorogo/i18n";
+
 import { AppDownload } from "@/components/app-download";
 import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
@@ -20,10 +22,13 @@ import { useCheckoutPicker } from "@/components/checkout-picker";
 import { PublicFooter } from "@/components/public-footer";
 import { PublicHeader } from "@/components/public-header";
 import { UsdPlans } from "@/components/usd-plans";
+import { useProBenefits } from "@/components/pro-benefits";
+import type { ProBenefitsText } from "@/components/pro-benefits";
 import { FounderPromo } from "@/components/founder-promo";
 import { ProgressBar } from "@/components/progress-bar";
-import { fmtRupiah, fmtUsd, founderScans, useAppConfig } from "@/lib/app-config";
+import { fmtRupiah, fmtUsd, useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
+import { CONTACT_EMAIL } from "@/lib/contact";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/harga")({
@@ -32,28 +37,31 @@ export const Route = createFileRoute("/harga")({
 });
 
 /**
- * Features that are NOT gated (verified: the gated ones are the daily AI scan
- * quota in packages/api ai.ts, day.readinessGuidance and the JoyoFit cloud worker via fitness.cloudAccess). Every package gets these.
+ * What every package gets, because no server gate checks it. The Pro side is `PRO_BENEFIT_GROUPS`
+ * (packages/i18n/src/pro-benefits.ts), where each item names the gate in packages/api that enforces it; docs/pricing.md
+ * ("What Pro unlocks") lists the same gates. Keep both lists in step with the code, not with the marketing.
  */
-function sharedFeatures(config: AppConfig): string[] {
+function sharedFeatures(): string[] {
   return [
     "Diary makan, olahraga, berat, dan tidur",
     "Tren berat + perkiraan tanggal sampai target",
     "Lingkar perut + rasio perut terhadap tinggi",
     "Grup: colek, catatan, VAR perut",
+    "Ikut tantangan grup temanmu",
     "Latihan beban",
     "Tanpa iklan",
   ];
 }
 
-/** Pro-only extras besides the scan quota. */
-function founderFeatures(config: AppConfig): string[] {
+/** The short Pro list on the plan cards; the full grouped list is the comparison table below them. */
+function founderFeatures(
+  config: AppConfig,
+  benefits: ProBenefitsText,
+): string[] {
   return [
-    founderScans(config),
-    "Saran makan dari skor JoyoFit",
-    "Cadangan cloud JoyoFit (langkah, detak jantung, tidur, latihan dari jam)",
-    "Badge Pro di profilmu",
-    "Dukungan prioritas: laporan dan permintaan fiturmu didahulukan",
+    benefits.text("scans", config.founderDailyCap),
+    benefits.t("pro.cardSummary"),
+    benefits.text("support", config.founderDailyCap),
     "Harga terkunci saat perpanjang (pembayaran web)",
   ];
 }
@@ -124,6 +132,21 @@ function TierCard({
   );
 }
 
+/** A group heading inside the comparison table. */
+function GroupRow({ title }: { title: string }) {
+  return (
+    <tr className="border-t border-border/70">
+      <th
+        scope="colgroup"
+        colSpan={3}
+        className="bg-muted/40 px-4 py-2 text-left text-xs font-bold tracking-wide text-muted-foreground uppercase md:px-6"
+      >
+        {title}
+      </th>
+    </tr>
+  );
+}
+
 /** One comparison row: feature, free value, founder value. String = quota text. */
 function CompareRow({
   feature,
@@ -187,7 +210,11 @@ function pricingFaq(config: AppConfig): Array<{ q: string; a: string }> {
   return [
     {
       q: "Gratisnya sampai kapan?",
-      a: `Selamanya. Diary, tren berat, lingkar perut, grup, dan latihan bebas dipakai tanpa bayar. Yang dibatasi cuma scan AI (${config.freeDailyScans} foto atau cerita per hari), saran makan dari skor JoyoFit, dan cadangan cloud JoyoFit. JoyoFit sendiri tetap gratis dipakai di HP, tanpa akun.`,
+      a: `Selamanya. Diary, tren berat, lingkar perut, grup, ikut tantangan teman, dan latihan bebas dipakai tanpa bayar, dengan ${config.freeDailyScans} scan AI (foto atau cerita) per hari. Pro menambah jatah scan, fitur AI, rencana makan, cadangan cloud JoyoFit, tantangan grup buatanmu sendiri, dan dukungan prioritas; daftar lengkapnya ada di tabel "Isi tiap paket". JoyoFit sendiri tetap gratis dipakai di HP, tanpa akun.`,
+    },
+    {
+      q: "Seperti apa dukungan prioritas?",
+      a: `Untuk Pro: kirim DM ke ${PRIORITY_SUPPORT.handle} di Threads dan sebutkan email akun JoyoRogo-mu, supaya akunnya bisa dicek. Dibalas paling lambat ${PRIORITY_SUPPORT.replyWorkdays} hari kerja. Pengguna gratis tetap bisa menulis ke ${CONTACT_EMAIL}, tanpa janji waktu balas.`,
     },
     {
       q: "Apakah ini langganan otomatis?",
@@ -219,6 +246,8 @@ function HargaPage() {
   const checkoutYearly = useCheckoutPicker("yearly");
   const [showUsd, setShowUsd] = useState(false);
   const usd = config.data?.usd ?? null;
+  // The page is Indonesian whatever the UI language is, so the shared Pro list is pinned to it.
+  const benefits = useProBenefits("id");
 
   // Sticky mobile CTA only when checkout actually exists on this server.
   const stickyCta = config.data?.paywall === true && config.data.billing === true;
@@ -269,9 +298,9 @@ function HargaPage() {
             {config.data?.paywall && (
               <>
                 <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
-                  Mulai gratis, selamanya. Pro menambah jatah scan AI untuk hari-hari yang butuh
-                  lebih dari {config.data.freeDailyScans} kali, plus saran makan dari skor JoyoFit dan
-                  cadangan cloud JoyoFit.
+                  Mulai gratis, selamanya. Pro menambah jatah scan AI di atas {config.data.freeDailyScans}{" "}
+                  kali sehari, plus fitur AI, rencana makan, cadangan cloud JoyoFit, tantangan grup, dan
+                  dukungan prioritas.
                 </p>
                 <p className="mt-2 text-[0.9375rem] font-semibold leading-relaxed">
                   Pro mencakup JoyoRogo + JoyoFit.
@@ -371,7 +400,7 @@ function HargaPage() {
                 per="selalu gratis"
                 features={[
                   `${config.data.freeDailyScans} scan AI per hari`,
-                  ...sharedFeatures(config.data).slice(0, 2),
+                  ...sharedFeatures().slice(0, 2),
                 ]}
                 cta={
                   <Button variant="secondary" render={<AppLink to="/login" />}>
@@ -387,7 +416,7 @@ function HargaPage() {
                 badge={yearlyBadge}
                 highlight
                 features={[
-                  ...founderFeatures(config.data),
+                  ...founderFeatures(config.data, benefits),
                   "Aktif 12 bulan sekaligus",
                 ]}
                 cta={
@@ -410,7 +439,7 @@ function HargaPage() {
                 price={fmtRupiah(config.data.founderPriceIdr)}
                 per="per bulan"
                 badge={promo ? "Harga perkenalan" : undefined}
-                features={founderFeatures(config.data)}
+                features={founderFeatures(config.data, benefits)}
                 cta={
                   config.data.billing ? (
                     <Button disabled={checkout.isPending} onClick={() => checkout.start()}>
@@ -425,10 +454,12 @@ function HargaPage() {
               />
             </div>
 
-            {/* The honest core of this page: the quota is the only difference. */}
+            {/* What differs, said plainly: the grouped list is the comparison table below. */}
             <p className="mx-auto mt-6 max-w-xl text-center text-sm leading-relaxed text-muted-foreground">
-              Yang dibedakan cuma jatah scan AI per hari. Diary, tren berat, lingkar perut, grup,
-              dan latihan bebas dipakai di semua paket.
+              Diary, tren berat, lingkar perut, grup, ikut tantangan teman, dan latihan bebas dipakai
+              di semua paket. Pro menambah jatah scan, fitur AI, rencana makan, cadangan cloud
+              JoyoFit, tantangan grup buatanmu sendiri, dan dukungan prioritas. Daftar lengkapnya ada
+              di tabel di bawah.
             </p>
           </>
         )}
@@ -523,22 +554,35 @@ function HargaPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  <CompareRow
-                    feature="Scan AI dari foto & cerita"
-                    free={`${config.data.freeDailyScans}/hari`}
-                    founder={
-                      config.data.founderDailyCap === null
-                        ? "Tanpa batas"
-                        : `${config.data.founderDailyCap}/hari`
-                    }
-                  />
-                  {sharedFeatures(config.data).map((feature) => (
+                  {sharedFeatures().map((feature) => (
                     <CompareRow key={feature} feature={feature} free founder />
                   ))}
-                  <CompareRow feature="Saran makan dari skor JoyoFit" free={false} founder />
-                  <CompareRow feature="Cadangan cloud JoyoFit" free={false} founder />
-                  <CompareRow feature="Badge Pro di profil" free={false} founder />
-                  <CompareRow feature="Dukungan prioritas dan permintaan fitur" free={false} founder />
+                  {PRO_BENEFIT_GROUPS.map((group) => (
+                    <Fragment key={group.id}>
+                      <GroupRow title={benefits.groupTitle(group.id)} />
+                      {group.items.map((item) =>
+                        item === "scans" ? (
+                          <CompareRow
+                            key={item}
+                            feature="Scan AI dari foto & cerita"
+                            free={`${config.data.freeDailyScans}/hari`}
+                            founder={
+                              config.data.founderDailyCap === null
+                                ? "Tanpa batas"
+                                : `${config.data.founderDailyCap}/hari`
+                            }
+                          />
+                        ) : (
+                          <CompareRow
+                            key={item}
+                            feature={benefits.text(item, config.data.founderDailyCap)}
+                            free={false}
+                            founder
+                          />
+                        ),
+                      )}
+                    </Fragment>
+                  ))}
                 </tbody>
               </table>
             </div>

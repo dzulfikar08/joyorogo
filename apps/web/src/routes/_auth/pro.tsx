@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
-import { Check, ChevronDown, CircleCheck, CircleHelp, Loader } from "lucide-react";
+import { ChevronDown, CircleCheck, CircleHelp, Loader } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -11,8 +11,9 @@ import { useCheckoutPicker } from "@/components/checkout-picker";
 import { Mascot } from "@/components/mascot";
 import { FounderPromo } from "@/components/founder-promo";
 import { Page, Segmented } from "@/components/kit/surface";
+import { ProBenefitGroups } from "@/components/pro-benefits";
 import { ScreenError } from "@/components/screen-state";
-import { fmtRupiah, fmtUsd, founderScans, useAppConfig } from "@/lib/app-config";
+import { fmtRupiah, fmtUsd, useAppConfig } from "@/lib/app-config";
 import { validatePaywallSearch } from "@/lib/billing";
 import type { CheckoutPlan } from "@/lib/billing";
 import { useEnglishBilling } from "@/lib/usd-copy";
@@ -209,20 +210,10 @@ function FounderPage() {
             </p>
           )}
         </div>
-        <ul className="mt-3 space-y-1.5">
-          {[
-            founderScans(config.data),
-            t("benefits.advice"),
-            t("benefits.backup"),
-            t("benefits.badge"),
-            t("benefits.support"),
-          ].map((feature) => (
-            <li key={feature} className="flex gap-2.5 text-sm leading-snug">
-              <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-              <span>{feature}</span>
-            </li>
-          ))}
-        </ul>
+        <ProBenefitGroups
+          founderDailyCap={config.data.founderDailyCap}
+          className="mt-4"
+        />
         {config.data.freeDailyScans !== null && (
           <p className="mt-3 text-xs leading-snug text-muted-foreground">
             {t("benefits.free", { count: config.data.freeDailyScans })}

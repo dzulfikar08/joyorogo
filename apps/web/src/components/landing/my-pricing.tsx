@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { AppLink } from "@/components/app-link";
 import { WhatsAppLink } from "@/components/landing/my-whatsapp";
+import { ProBenefitGroups, useProBenefits } from "@/components/pro-benefits";
 import { useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { CONTACT_EMAIL } from "@/lib/contact";
@@ -53,6 +54,7 @@ function Point({ children, tone }: { children: ReactNode; tone: "free" | "pro" }
  */
 export function HargaMy() {
   const config = useAppConfig();
+  const benefits = useProBenefits("ms");
   const data = config.data;
 
   if (config.isPending) {
@@ -131,8 +133,6 @@ export function HargaMy() {
               ? "Foto AI tanpa had harian"
               : `Sehingga ${data.founderDailyCap} foto AI sehari`}
           </Point>
-          <Point tone="pro">Lencana Pro di profil anda</Point>
-          <Point tone="pro">Sokongan keutamaan: laporan dan permintaan ciri anda didahulukan</Point>
           {data.myr && (
             <>
               <Point tone="pro">
@@ -146,6 +146,14 @@ export function HargaMy() {
             </>
           )}
         </ul>
+        <p className="mt-6 text-sm font-bold">{benefits.t("pro.title")}</p>
+        <ProBenefitGroups
+          founderDailyCap={data.founderDailyCap}
+          lng="ms"
+          tone="makan"
+          exclude={["scans"]}
+          className="mt-3 grid gap-x-6 gap-y-4 sm:grid-cols-2 sm:space-y-0"
+        />
         <p className="mt-5 text-sm leading-relaxed text-makan-ink/90">
           Soalan tentang harga atau pembayaran?{" "}
           <WhatsAppLink

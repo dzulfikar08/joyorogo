@@ -45,6 +45,7 @@ import { GITHUB_URL, GithubMark, PublicHeader } from "@/components/public-header
 import { MyNotice } from "@/components/landing/my-notice";
 import { PublicFooter } from "@/components/public-footer";
 import { FounderPromo } from "@/components/founder-promo";
+import { useProBenefits } from "@/components/pro-benefits";
 import { Testimonials } from "@/components/testimonials";
 import {
   fmtRupiah,
@@ -434,13 +435,15 @@ function pricingFaq(config: AppConfig | undefined): Array<{ q: string; a: string
   return [
     {
       q: "Gratisnya sampai kapan?",
-      a: `Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan ${config.freeDailyScans} foto AI per hari. Pro ${fmtRupiah(config.founderPriceIdr)} per bulan: ${founderScans(config).toLowerCase()}. Paket tahunan ${fmtRupiah(config.founderYearlyPriceIdr)}, setara ${fmtRupiah(Math.round(config.founderYearlyPriceIdr / 12))} per bulan.${config.usd?.preferred ? ` Di luar Indonesia harganya dalam dolar: ${fmtUsd(config.usd.monthlyCents)} per bulan atau ${fmtUsd(config.usd.yearlyCents)} per tahun, dibayar dengan kartu lewat Polar.` : ""}`,
+      a: `Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan ${config.freeDailyScans} foto AI per hari. Pro ${fmtRupiah(config.founderPriceIdr)} per bulan: ${founderScans(config).toLowerCase()}, plus fitur AI lain, rencana makan, cadangan cloud JoyoFit, tantangan grup buatanmu sendiri, dan dukungan prioritas lewat DM Threads (daftar lengkap ada di halaman Harga). Paket tahunan ${fmtRupiah(config.founderYearlyPriceIdr)}, setara ${fmtRupiah(Math.round(config.founderYearlyPriceIdr / 12))} per bulan.${config.usd?.preferred ? ` Di luar Indonesia harganya dalam dolar: ${fmtUsd(config.usd.monthlyCents)} per bulan atau ${fmtUsd(config.usd.yearlyCents)} per tahun, dibayar dengan kartu lewat Polar.` : ""}`,
     },
   ];
 }
 
 function Landing() {
   const config = useAppConfig();
+  // The landing is Indonesian whatever the UI language is, so the shared Pro list is pinned to it.
+  const benefits = useProBenefits("id");
   // Background check for visitors the beforeLoad gate let through.
   // `enabled: false` still returns a session persisted in this origin's query cache, so the redirect itself is gated.
   const skip = landingSkipsForSignedIn(HOSTS);
@@ -1191,6 +1194,19 @@ function Landing() {
                 <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
                   Tanpa iklan. Pro membantu JoyoRogo tetap independen.
                 </p>
+                <Button
+                  variant="outline"
+                  className="mt-5"
+                  render={
+                    <Link
+                      to="/harga"
+                      data-revklik-goal="pricing_click"
+                      data-revklik-goal-location="pricing_list"
+                    />
+                  }
+                >
+                  Lihat semua isi Pro
+                </Button>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="card-lift flex flex-col rounded-[1.75rem] bg-card p-6">
@@ -1232,15 +1248,15 @@ function Landing() {
                   <ul className="mt-5 space-y-2 text-sm">
                     <li className="flex gap-2">
                       <Check className="mt-0.5 size-4 shrink-0 text-makan-ink" aria-hidden />
-                      {founderScans(config.data)}
+                      {benefits.text("scans", config.data.founderDailyCap)}
                     </li>
                     <li className="flex gap-2">
                       <Check className="mt-0.5 size-4 shrink-0 text-makan-ink" aria-hidden />
-                      Badge Pro di profilmu
+                      {benefits.t("pro.cardSummary")}
                     </li>
                     <li className="flex gap-2">
                       <Check className="mt-0.5 size-4 shrink-0 text-makan-ink" aria-hidden />
-                      Dukungan prioritas: laporan dan permintaan fiturmu didahulukan
+                      {benefits.text("support", config.data.founderDailyCap)}
                     </li>
                     <li className="flex gap-2">
                       <Check className="mt-0.5 size-4 shrink-0 text-makan-ink" aria-hidden />
