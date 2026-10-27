@@ -1,6 +1,6 @@
 # Threads mention bot
 
-Someone tags the brand Threads account (`@joyorogo`) on a food photo, or replies "@joyorogo" under one, and the account
+Someone tags the brand Threads account (`@joyorogo_com`) on a food photo, or replies "@joyorogo_com" under one, and the account
 replies with a calorie estimate. The estimate is the same photo scan the app uses, run server-side on the image held in
 memory. **No photo is ever stored** (no R2, no dataset); the D1 row keeps only the media id, the author's username, the
 dish names, the kcal range, status and times.
