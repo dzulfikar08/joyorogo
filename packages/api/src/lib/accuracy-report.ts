@@ -10,10 +10,12 @@
 import { shiftDate } from "./engine";
 import { pairItems } from "./scan-match";
 import type { MatchItem } from "./scan-match";
+import type { GramsEditSource } from "./grams-edit";
 import {
   isRetryDerivedFeedback,
   parseFeedbackReasons,
   parseSession,
+  savedEdit,
   scanOutcome,
 } from "./scan-outcome";
 import type { CompactItem, ScanDiff, ScanOutcome, ScanSession } from "./scan-outcome";
@@ -35,6 +37,56 @@ const NOTE_MAX_CHARS = 300;
 const NOTES_MAX = 20;
 
 export type Outcomes = Record<ScanOutcome, number>;
+
+/**
+ * One photo scan of the trend window with what the rates need (usage_json without its heavy keys). `userId` only
+ * groups the scans: it never reaches a stored report.
+ */
+export type WindowScan = {
+  userId: string;
+  createdAt: number;
+  session: Pick<ScanSession, "retries" | "savedLabel" | "corrections" | "diff" | "altTaps" | "edit">;
+};
+
+/**
+ * The rates over photo scans. Two denominators and two weightings:
+ *   `unchangedOfAll`       saved unchanged / every scan old enough to judge, saved or not. A wrong first answer
+ *                          that is retaken or dropped stays in the denominator: fixing it in place and saving
+ *                          cannot move this number the way it moves `unchangedOfResolved`.
+ *   `unchangedOfResolved`  saved unchanged / (unchanged + corrected + retried): the digest's older "tanpa koreksi".
+ * Every rate comes pooled and `ByUser`: the mean of each user's own rate, so one user cannot move it. Reports
+ * from before this block have none of it.
+ */
+export type PhotoRates = {
+  /** Scans not still pending (a session is pending until ABANDON_AFTER_MS). */
+  scans: number;
+  /** accurate + corrected + retried. */
+  resolved: number;
+  /** Scans saved to the diary, retried-then-saved included. */
+  saved: number;
+  /** Saved unchanged. */
+  unchanged: number;
+  /** Distinct users with a scan in the window. */
+  users: number;
+  /** The busiest user's share of `scans`, 0..1. */
+  topUserShare: number | null;
+  unchangedOfAll: number | null;
+  unchangedOfAllByUser: number | null;
+  unchangedOfResolved: number | null;
+  unchangedOfResolvedByUser: number | null;
+  /** Saved scans where the person changed what the dish is (rename, removed, added), apart from chip taps. */
+  identityEdits: number;
+  /** Saved scans edited with no identity change: numbers moved, or a "Mungkin juga" name swap. */
+  gramsEdits: number;
+  /** identityEdits / saved, and the by-user mean. */
+  identityRate: number | null;
+  identityRateByUser: number | null;
+  /** gramsEdits / saved, and the by-user mean. */
+  gramsEditRate: number | null;
+  gramsEditRateByUser: number | null;
+  /** Saved scans in which each source moved a number (a scan can count under several). */
+  sources: Partial<Record<GramsEditSource, number>>;
+};
 
 /** An ai_usage row, as the report builder needs it. */
 export type LedgerRow = { createdAt: number; model: string; usageJson: string | null };
@@ -207,6 +259,9 @@ export type AccuracyReport = {
     trend: TrendDay[];
     /** Accurate rate over the whole trend window. */
     weekRate: number | null;
+    /** Rates over every photo scan of the day / of the trend window. Absent in reports from before they existed. */
+    photo?: PhotoRates;
+    weekPhoto?: PhotoRates;
   };
   ratings: {
     total: number;
@@ -259,6 +314,8 @@ export type ReportInput = {
   priorDays: ReadonlyArray<{ day: string; outcomes: Outcomes }>;
   /** Diffs of every corrected scan in the trend window, `date` included (the suggestions' evidence). */
   weekDiffs: readonly ScanDiff[];
+  /** Every photo scan of the trend window, `date` included, with its user: the per-user rates. Omitted = no `photo` blocks. */
+  window?: readonly WindowScan[];
   /** scan_type "failed" rows of `date`. */
   failed: readonly LedgerRow[];
   /** scan_type "correction" rows of `date`. */
@@ -279,7 +336,76 @@ export const dayStartMs = (day: string) => Date.parse(`${day}T00:00:00+07:00`);
 
 export const resolvedOf = (o: Outcomes) => o.accurate + o.corrected + o.retried;
 const ratio = (a: number, b: number) => (b > 0 ? a / b : null);
+const round4 = (n: number | null) => (n === null ? null : Math.round(n * 10_000) / 10_000);
 const round1 = (n: number) => Math.round(n * 10) / 10;
+
+type UserTally = {
+  scans: number;
+  resolved: number;
+  saved: number;
+  unchanged: number;
+  identity: number;
+  grams: number;
+};
+
+/** Mean of each user's own rate over the users it is defined for (denominator > 0). */
+function meanByUser(
+  tallies: Iterable<UserTally>,
+  num: (t: UserTally) => number,
+  den: (t: UserTally) => number,
+): number | null {
+  const rates: number[] = [];
+  for (const tally of tallies) if (den(tally) > 0) rates.push(num(tally) / den(tally));
+  return round4(meanOf(rates));
+}
+
+/** The rates of `PhotoRates` over the scans given. Pure: `nowMs` only decides which scans are still pending. */
+export function photoRates(scans: readonly WindowScan[], nowMs: number): PhotoRates {
+  const byUser = new Map<string, UserTally>();
+  const sources: Partial<Record<GramsEditSource, number>> = {};
+  for (const scan of scans) {
+    const outcome = scanOutcome(scan.session, scan.createdAt, nowMs);
+    if (outcome === "pending") continue;
+    const tally = byUser.get(scan.userId) ?? { scans: 0, resolved: 0, saved: 0, unchanged: 0, identity: 0, grams: 0 };
+    byUser.set(scan.userId, tally);
+    tally.scans += 1;
+    if (outcome === "accurate" || outcome === "corrected" || outcome === "retried") tally.resolved += 1;
+    if (outcome === "accurate") tally.unchanged += 1;
+    const edit = savedEdit(scan.session);
+    if (!edit) continue;
+    tally.saved += 1;
+    if (edit.kind === "identity") tally.identity += 1;
+    else if (edit.kind === "grams") tally.grams += 1;
+    for (const source of edit.src ?? []) sources[source] = (sources[source] ?? 0) + 1;
+  }
+  const all = [...byUser.values()];
+  const sum = (pick: (t: UserTally) => number) => all.reduce((total, t) => total + pick(t), 0);
+  const total = sum((t) => t.scans);
+  const resolved = sum((t) => t.resolved);
+  const saved = sum((t) => t.saved);
+  const unchanged = sum((t) => t.unchanged);
+  const identityEdits = sum((t) => t.identity);
+  const gramsEdits = sum((t) => t.grams);
+  return {
+    scans: total,
+    resolved,
+    saved,
+    unchanged,
+    users: byUser.size,
+    topUserShare: total > 0 ? round4(Math.max(...all.map((t) => t.scans)) / total) : null,
+    unchangedOfAll: round4(ratio(unchanged, total)),
+    unchangedOfAllByUser: meanByUser(all, (t) => t.unchanged, (t) => t.scans),
+    unchangedOfResolved: round4(ratio(unchanged, resolved)),
+    unchangedOfResolvedByUser: meanByUser(all, (t) => t.unchanged, (t) => t.resolved),
+    identityEdits,
+    gramsEdits,
+    identityRate: round4(ratio(identityEdits, saved)),
+    identityRateByUser: meanByUser(all, (t) => t.identity, (t) => t.saved),
+    gramsEditRate: round4(ratio(gramsEdits, saved)),
+    gramsEditRateByUser: meanByUser(all, (t) => t.grams, (t) => t.saved),
+    sources,
+  };
+}
 
 /** Nearest-rank percentile, integer ms. */
 function percentile(sorted: readonly number[], q: number): number | null {
@@ -549,6 +675,15 @@ export function buildAccuracyReport(input: ReportInput): AccuracyReport {
       accurateRate: ratio(outcomes.accurate, resolved),
       trend,
       weekRate: ratio(weekAccurate, weekResolved),
+      ...(input.window
+        ? {
+            photo: photoRates(
+              input.window.filter((scan) => scan.createdAt >= dayStartMs(date) && scan.createdAt < dayStartMs(shiftDate(date, 1))),
+              nowMs,
+            ),
+            weekPhoto: photoRates(input.window, nowMs),
+          }
+        : {}),
     },
     ratings: { ...ratings, retryTaps, notes },
     dishes: {
@@ -833,6 +968,9 @@ export type AccuracyReportSummary = {
   resolved: number;
   accurateRate: number | null;
   weekRate: number | null;
+  /** Of the day's / the week's photo scans, from the `photo` blocks; absent in older reports. */
+  photo?: PhotoRatesSummary;
+  weekPhoto?: PhotoRatesSummary;
   outcomes: Outcomes;
   ratings: number;
   /** Regression flags, as in the report. */
@@ -846,6 +984,31 @@ export type AccuracyReportSummary = {
   email: EmailState["status"] | null;
 };
 
+/** The list row's share of PhotoRates. */
+export type PhotoRatesSummary = Pick<
+  PhotoRates,
+  | "scans"
+  | "users"
+  | "unchangedOfAll"
+  | "unchangedOfAllByUser"
+  | "identityRate"
+  | "identityRateByUser"
+  | "gramsEditRate"
+  | "gramsEditRateByUser"
+>;
+
+const photoSummary = (rates: PhotoRates | undefined): PhotoRatesSummary | undefined =>
+  rates && {
+    scans: rates.scans,
+    users: rates.users,
+    unchangedOfAll: rates.unchangedOfAll,
+    unchangedOfAllByUser: rates.unchangedOfAllByUser,
+    identityRate: rates.identityRate,
+    identityRateByUser: rates.identityRateByUser,
+    gramsEditRate: rates.gramsEditRate,
+    gramsEditRateByUser: rates.gramsEditRateByUser,
+  };
+
 export function accuracyReportSummary(report: AccuracyReport): AccuracyReportSummary {
   return {
     date: report.date,
@@ -855,6 +1018,8 @@ export function accuracyReportSummary(report: AccuracyReport): AccuracyReportSum
     resolved: report.scans.resolved,
     accurateRate: report.scans.accurateRate,
     weekRate: report.scans.weekRate,
+    ...(report.scans.photo ? { photo: photoSummary(report.scans.photo) } : {}),
+    ...(report.scans.weekPhoto ? { weekPhoto: photoSummary(report.scans.weekPhoto) } : {}),
     outcomes: report.scans.outcomes,
     ratings: report.ratings.total,
     flags: report.regression?.flags ?? [],

@@ -13,6 +13,9 @@
 //   savedLabel  "accurate" (saved as the AI answered) | "corrected" (edited)
 //   savedItems  what the diary got, compact
 //   diff        compact summary AI answer -> saved items (ScanDiff)
+//   edit        what kind of edit the save was: SessionEdit { kind: none | identity | grams, src: where the
+//               changed numbers came from }. Absent on saves from before it existed: savedEdit() derives the
+//               kind from diff + altTaps (the chip sources are then unknown).
 //   keep        1 once the user opted in to keeping the photo (feedback consent)
 //   shadow      silent A/B on a sample of first scans (lib/shadow-scan.ts): what the
 //               shadow prompt variant answered for the same photo, beside aiItems.
@@ -37,6 +40,7 @@ import { aiUsage, scanFeedback } from "@joyorogo/db/schema/fitness";
 
 import { itemsDiff } from "./dataset";
 import type { DatasetItem } from "./dataset";
+import type { GramsEditSource } from "./grams-edit";
 
 /** A scan nobody saved this long after it ran counts as abandoned. */
 export const ABANDON_AFTER_MS = 60 * 60 * 1000;
@@ -85,6 +89,16 @@ export type ScanDiff = {
   savedKcal: number;
 };
 
+/**
+ * What a save changed, apart from "corrected" being true for any edit:
+ *   none      the diary has the answer's dishes and numbers (a typed correction that was undone, say)
+ *   identity  the person changed what the dish is: a rename, a removed or an added item, not offered by a chip
+ *   grams     only numbers (grams, kcal) moved, or a dish name was swapped by a "Mungkin juga" chip: edits
+ *             that cost one tap and say nothing about whether the model named the dish right
+ * `src` lists the distinct sources of the changed numbers (GramsEditSource), `alt` for a chip-swapped name.
+ */
+export type SessionEdit = { kind: "none" | "identity" | "grams"; src?: GramsEditSource[] };
+
 /** One shadow-variant answer for a scan (see lib/shadow-scan.ts). */
 export type ShadowRun = {
   variant: string;
@@ -113,6 +127,7 @@ export type ScanSession = {
   savedLabel?: "accurate" | "corrected";
   savedItems?: CompactItem[];
   diff?: ScanDiff;
+  edit?: SessionEdit;
   keep?: number;
 };
 
@@ -242,9 +257,76 @@ export function diffIsEmpty(diff: ScanDiff): boolean {
   return diff.renamed.length + diff.removed.length + diff.added.length + diff.changed.length === 0;
 }
 
-/** accurate = saved as answered; corrected = edited, or a correction was asked for. */
+/**
+ * accurate = saved as answered; corrected = edited, or a correction was asked for. Any edit counts, a chip tap
+ * included: what kind of edit it was is `editOf`.
+ */
 export function savedLabel(diff: ScanDiff, corrections: number): "accurate" | "corrected" {
   return corrections > 0 || !diffIsEmpty(diff) ? "corrected" : "accurate";
+}
+
+/** Case, spacing and punctuation folded away: one key for "Nasi Goreng" and "nasi-goreng". */
+const nameKey = (name: string) => name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+
+/**
+ * The kind of an edit and the sources of its numbers, from the diff the save produced. A rename that a "Mungkin
+ * juga" tap explains (the tap's chain of names leads from the answer's name to the saved one, a removed + added
+ * pair included) is a chip edit, not an identity correction. A changed number takes the stamps its row was sent
+ * with (`stamps`, keyed by dish name; see lib/grams-edit.ts), "typed" when it had none.
+ */
+export function editOf(
+  diff: ScanDiff,
+  altTaps: ReadonlyArray<{ f: string; t: string }> = [],
+  stamps: ReadonlyMap<string, readonly GramsEditSource[]> = new Map(),
+): SessionEdit {
+  const next = new Map<string, string[]>();
+  for (const tap of altTaps) next.set(nameKey(tap.f), [...(next.get(nameKey(tap.f)) ?? []), nameKey(tap.t)]);
+  const reaches = (from: string, to: string): boolean => {
+    const seen = new Set<string>();
+    const queue = [nameKey(from)];
+    const goal = nameKey(to);
+    for (let head = 0; head < queue.length; head++) {
+      const here = queue[head]!;
+      if (here === goal) return true;
+      if (seen.has(here)) continue;
+      seen.add(here);
+      queue.push(...(next.get(here) ?? []));
+    }
+    return false;
+  };
+  let chipNames = 0;
+  let identity = 0;
+  for (const { from, to } of diff.renamed) {
+    if (reaches(from.n, to.n)) chipNames += 1;
+    else identity += 1;
+  }
+  const added = [...diff.added];
+  for (const gone of diff.removed) {
+    const at = added.findIndex((item) => reaches(gone.n, item.n));
+    if (at < 0) identity += 1;
+    else {
+      added.splice(at, 1);
+      chipNames += 1;
+    }
+  }
+  identity += added.length;
+
+  const src = new Set<GramsEditSource>();
+  if (chipNames > 0) src.add("alt");
+  for (const change of diff.changed) {
+    const stamped = stamps.get(nameKey(change.n));
+    if (stamped && stamped.length > 0) for (const source of stamped) src.add(source);
+    else src.add("typed");
+  }
+  const kind = identity > 0 ? "identity" : chipNames + diff.changed.length > 0 ? "grams" : "none";
+  return src.size > 0 ? { kind, src: [...src] } : { kind };
+}
+
+/** The edit a saved session recorded; derived from its diff for saves from before `edit` was stored; null when unsaved. */
+export function savedEdit(session: ScanSession): SessionEdit | null {
+  if (!session.savedLabel) return null;
+  if (session.edit) return session.edit;
+  return session.diff ? editOf(session.diff, session.altTaps) : null;
 }
 
 export function parseSession(usageJson: string | null | undefined): ScanSession | null {
@@ -432,6 +514,8 @@ export async function recordSessionSaved(
   userId: string,
   photoId: string,
   saved: readonly ItemLike[],
+  /** Per saved dish, the chips that moved its numbers: what addScan received as `gramsFrom`. */
+  gramsFrom: ReadonlyArray<{ name: string; from?: readonly GramsEditSource[] }> = [],
 ): Promise<(ScanSession & { savedItems: CompactItem[] }) | null> {
   const found = await loadSession(db, userId, photoId);
   if (!found) return null;
@@ -439,6 +523,9 @@ export async function recordSessionSaved(
   const savedItems = savedGramSources(compactItems(saved, false), answer);
   const diff = scanDiff(answer, savedItems);
   const label = savedLabel(diff, found.session.corrections ?? 0);
+  const stamps = new Map<string, readonly GramsEditSource[]>();
+  for (const { name, from } of gramsFrom) if (from && from.length > 0) stamps.set(nameKey(name), from);
+  const edit = editOf(diff, found.session.altTaps, stamps);
   await patchSession(
     db,
     userId,
@@ -448,9 +535,10 @@ export async function recordSessionSaved(
       ["$.savedLabel", sql`${label}`],
       ["$.savedItems", jsonArg(savedItems)],
       ["$.diff", jsonArg(diff)],
+      ["$.edit", jsonArg(edit)],
     ]),
   );
-  return { ...found.session, savedAt: Date.now(), savedLabel: label, savedItems, diff };
+  return { ...found.session, savedAt: Date.now(), savedLabel: label, savedItems, diff, edit };
 }
 
 /** Parsed scan_feedback.reasons_json: the user's reasons apart from the reserved marks. */

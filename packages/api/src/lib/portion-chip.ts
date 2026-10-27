@@ -5,6 +5,7 @@
  * for plain rice, the typical eaten portion (a suggestion: the model's number stays).
  * Client-safe (no library imports): both apps swap the two numbers with this.
  */
+import { stampGramsEdit } from "./grams-edit";
 
 /** The numbers that change when a portion changes. */
 export type PortionNumbers = {
@@ -53,15 +54,18 @@ export function swapPortionPrior<T extends Omit<Swappable, "grams"> & { grams?: 
   if (!chip || item.grams === undefined) return item;
   // A swapped weight no longer matches the "usual density" note's model kcal: the note goes with the swap.
   const { portion: _drop, usualDensity: _note, ...rest } = item as T & { usualDensity?: unknown };
-  return {
-    ...rest,
-    ...chip.other,
-    portionPrior: {
-      ...chip,
-      active: chip.active === "prior" ? "ai" : "prior",
-      other: numbersOf({ ...item, grams: item.grams }),
-    },
-  } as T;
+  return stampGramsEdit(
+    {
+      ...rest,
+      ...chip.other,
+      portionPrior: {
+        ...chip,
+        active: chip.active === "prior" ? "ai" : "prior",
+        other: numbersOf({ ...item, grams: item.grams }),
+      },
+    } as T,
+    "prior",
+  );
 }
 
 /** The usual and the model's weight of a chipped item, whichever is showing. */

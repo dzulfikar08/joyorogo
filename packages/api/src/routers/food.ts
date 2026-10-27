@@ -39,6 +39,7 @@ import { purgeUnreferencedMedia } from "./saved-food";
 import type { StickerJob, StickersBucket } from "../lib/sticker";
 import { datasetEnabled, recordFinal } from "../lib/dataset";
 import { recordKeptSaved } from "../lib/feedback-keep";
+import { GRAMS_EDIT_SOURCES } from "../lib/grams-edit";
 import { compactItems, recordSessionSaved } from "../lib/scan-outcome";
 import { normalizeBox } from "../lib/vision";
 
@@ -57,6 +58,8 @@ const scanItemSchema = z.object({
   box: z.array(z.number()).length(4).optional(),
   // Cutout id from ai.scanSticker, when the client already has one for this item.
   scanId: z.string().regex(SCAN_ID_RE).optional(),
+  // The chips that moved this row's numbers (lib/grams-edit.ts): only read for the scan's accuracy label.
+  gramsFrom: z.array(z.enum(GRAMS_EDIT_SOURCES)).max(GRAMS_EDIT_SOURCES.length).optional(),
 });
 
 // Price attaches to the plate, never to components: one scan, one Cerita meal,
@@ -318,7 +321,13 @@ export const foodRouter = {
       if (input.scanPhotoId) {
         const scanPhotoId = input.scanPhotoId;
         context.waitUntil(
-          recordSessionSaved(context.db, userId, scanPhotoId, rows)
+          recordSessionSaved(
+            context.db,
+            userId,
+            scanPhotoId,
+            rows,
+            input.items.map((item) => ({ name: item.name, from: item.gramsFrom })),
+          )
             .then(async (session) => {
               if (session?.keep && bucket) {
                 await recordKeptSaved(bucket, userId, scanPhotoId, {

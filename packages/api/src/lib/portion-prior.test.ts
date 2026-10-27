@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import { withoutGramsEdits } from "./grams-edit";
 import { chipGrams, priorLabelKey, swapPortionPrior } from "./portion-chip";
 import {
   PRIOR_BIG_PLATE,
@@ -211,7 +212,7 @@ describe("withPortionPrior: a solid history starts at the usual grams", () => {
     expect(small.grams).toBe(100);
     const swapped = swapPortionPrior(small);
     expect(swapped).toMatchObject({ grams: 80, kcal: 104, portion: "1 centong", portionPrior: { active: "ai" } });
-    expect(swapPortionPrior(swapped)).toEqual(small);
+    expect(withoutGramsEdits([swapPortionPrior(swapped)])).toEqual([small]);
   });
 });
 
@@ -233,7 +234,7 @@ describe("withPortionPrior: the typical rice portion for everyone else", () => {
     const tapped = swapPortionPrior(out);
     expect(tapped).toMatchObject({ grams: 100, kcal: 130, portionPrior: { active: "prior", source: "typical", other: { grams: 150, kcal: 195, portion: "1 centong" } } });
     expect(tapped.portion).toBeUndefined();
-    expect(swapPortionPrior(tapped)).toEqual(out);
+    expect(withoutGramsEdits([swapPortionPrior(tapped)])).toEqual([out]);
   });
 
   test("every plain rice spelling, the ratio decides, other foods and kinds stay untouched", () => {

@@ -451,6 +451,27 @@ export const post = <T>(path: string) => api<T>(path, { method: "POST" });
 export type PagedUsers = Paged<"users", AdminUser>;
 export type PagedOrders = Paged<"orders", AdminOrder>;
 
+/** Rates over photo scans (lib/accuracy-report.ts PhotoRates). Absent in reports from before they existed. */
+export interface AccuracyPhotoRates {
+  scans: number;
+  resolved: number;
+  saved: number;
+  unchanged: number;
+  users: number;
+  topUserShare: number | null;
+  unchangedOfAll: number | null;
+  unchangedOfAllByUser: number | null;
+  unchangedOfResolved: number | null;
+  unchangedOfResolvedByUser: number | null;
+  identityEdits: number;
+  gramsEdits: number;
+  identityRate: number | null;
+  identityRateByUser: number | null;
+  gramsEditRate: number | null;
+  gramsEditRateByUser: number | null;
+  sources: Partial<Record<"prior" | "count" | "bone" | "tare" | "scale" | "half" | "cup" | "alt" | "typed", number>>;
+}
+
 /** Daily accuracy reports (R2, built by the server's accuracy job); one row of /api/admin/accuracy. */
 export interface AccuracyReportSummary {
   date: string;
@@ -460,6 +481,8 @@ export interface AccuracyReportSummary {
   resolved: number;
   accurateRate: number | null;
   weekRate: number | null;
+  photo?: Pick<AccuracyPhotoRates, "scans" | "users" | "unchangedOfAll" | "unchangedOfAllByUser" | "identityRate" | "gramsEditRate">;
+  weekPhoto?: Pick<AccuracyPhotoRates, "scans" | "users" | "unchangedOfAll" | "unchangedOfAllByUser" | "identityRate" | "gramsEditRate">;
   outcomes: OutcomeCounts;
   ratings: number;
   flags: string[];
@@ -500,6 +523,8 @@ export interface AccuracyReport {
     accurateRate: number | null;
     trend: Array<{ day: string; resolved: number; accurate: number; rate: number | null }>;
     weekRate: number | null;
+    photo?: AccuracyPhotoRates;
+    weekPhoto?: AccuracyPhotoRates;
   };
   ratings: {
     total: number;

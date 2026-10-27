@@ -3,6 +3,7 @@
  * row's stepper puts another count on it. Weight, kcal and macros follow the count. Client-safe (no library
  * imports): both apps and the server's hint reader use this.
  */
+import { stampGramsEdit } from "./grams-edit";
 import { scalePortion } from "./portion";
 
 /** Separate pieces of one row: how many, what one is called, and what one weighs as eaten. */
@@ -58,7 +59,7 @@ export function itemAtCount<T extends CountedRow>(item: T, next: number): T {
     count / pieces.count,
   );
   const { portionPrior: _prior, scaleRead: _scale, ...rest } = item;
-  return {
+  const counted = {
     ...rest,
     portion: `${count} ${pieces.unit}`,
     grams:
@@ -79,6 +80,7 @@ export function itemAtCount<T extends CountedRow>(item: T, next: number): T {
     ...(scaled.fiber !== null ? { fiber: scaled.fiber } : {}),
     pieces: { ...pieces, count },
   } as T;
+  return stampGramsEdit(counted, "count");
 }
 
 /** The unit labels the app has words for (scan namespace `result.items.unit.<key>`). */

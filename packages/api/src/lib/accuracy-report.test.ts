@@ -9,11 +9,12 @@ import {
   emptyOutcomes,
   failedRegressionCase,
   orderRegressionCandidates,
+  photoRates,
   scoreRegressionCase,
   summarizeRegression,
 } from "./accuracy-report";
-import type { LedgerRow, RegressionCaseResult } from "./accuracy-report";
-import { scanDiff } from "./scan-outcome";
+import type { LedgerRow, RegressionCaseResult, WindowScan } from "./accuracy-report";
+import { editOf, scanDiff } from "./scan-outcome";
 import type { CompactItem } from "./scan-outcome";
 
 const DATE = "2026-10-16";
@@ -374,5 +375,133 @@ describe("buildAccuracyReport: scans without a session record", () => {
     });
     expect(only.scans).toMatchObject({ total: 2, labelled: 0, resolved: 0, accurateRate: null });
     expect(accuracyReportSummary(only)).toMatchObject({ total: 2, labelled: 0 });
+  });
+});
+
+describe("photoRates: every photo scan, one voice per user", () => {
+  const SAME = [item("Nasi putih", 200, 260)];
+  const unchanged = (userId: string, hour: number): WindowScan => ({
+    userId,
+    createdAt: at(hour),
+    session: { savedLabel: "accurate", diff: scanDiff(SAME, SAME), edit: editOf(scanDiff(SAME, SAME)) },
+  });
+  const unsaved = (userId: string, hour: number): WindowScan => ({ userId, createdAt: at(hour), session: {} });
+  const edited = (
+    userId: string,
+    hour: number,
+    saved: CompactItem[],
+    extra: Partial<WindowScan["session"]> = {},
+  ): WindowScan => {
+    const diff = scanDiff(SAME, saved);
+    return {
+      userId,
+      createdAt: at(hour),
+      session: { savedLabel: "corrected", diff, edit: editOf(diff, extra.altTaps), ...extra },
+    };
+  };
+
+  test("scans that were never saved stay in the denominator of the headline, not of the saved-only rate", () => {
+    const rates = photoRates(
+      [unchanged("a", 8), unchanged("a", 9), edited("a", 10, [item("Nasi putih", 100, 130)]), unsaved("a", 11), unsaved("a", 12)],
+      NOW,
+    );
+    expect(rates).toMatchObject({ scans: 5, resolved: 3, saved: 3, unchanged: 2 });
+    expect(rates.unchangedOfAll).toBeCloseTo(2 / 5, 4);
+    expect(rates.unchangedOfResolved).toBeCloseTo(2 / 3, 4);
+  });
+
+  test("a wrong first answer fixed in place instead of retaken moves the saved-only rate, not the headline", () => {
+    const retaken = [unchanged("a", 8), unsaved("a", 9), unchanged("a", 10), unsaved("a", 11)];
+    const fixed = [unchanged("a", 8), edited("a", 9, [item("Nasi putih", 100, 130)]), unchanged("a", 10), edited("a", 11, [item("Nasi putih", 100, 130)])];
+    const before = photoRates(retaken, NOW);
+    const after = photoRates(fixed, NOW);
+    expect(before.unchangedOfAll).toBe(after.unchangedOfAll);
+    expect(before.unchangedOfResolved).toBe(1);
+    expect(after.unchangedOfResolved).toBe(0.5);
+  });
+
+  test("scans younger than the abandon window are not judged yet", () => {
+    const rates = photoRates([unchanged("a", 8), { userId: "a", createdAt: NOW - 60_000, session: {} }], NOW);
+    expect(rates.scans).toBe(1);
+    expect(rates.unchangedOfAll).toBe(1);
+  });
+
+  test("one heavy user cannot move the by-user rate, and the report says how many users and how big the biggest is", () => {
+    const heavy = Array.from({ length: 12 }, (_, i) => unchanged("heavy", 8 + (i % 8)));
+    const others = [
+      unsaved("b", 9),
+      edited("b", 10, [item("Nasi putih", 100, 130)]),
+      unsaved("c", 9),
+      edited("c", 10, [item("Nasi putih", 100, 130)]),
+    ];
+    const rates = photoRates([...heavy, ...others], NOW);
+    expect(rates.users).toBe(3);
+    expect(rates.topUserShare).toBeCloseTo(12 / 16, 4);
+    expect(rates.unchangedOfAll).toBeCloseTo(12 / 16, 4);
+    // heavy 100%, b 0%, c 0%
+    expect(rates.unchangedOfAllByUser).toBeCloseTo(1 / 3, 4);
+    const without = photoRates(others, NOW);
+    expect(without.unchangedOfAllByUser).toBe(0);
+    // the heavy user moves the by-user rate by their one voice, not twelve
+    expect(rates.unchangedOfAllByUser! - without.unchangedOfAllByUser!).toBeCloseTo(1 / 3, 4);
+  });
+
+  test("grams-only and chip-only edits are not identity corrections; renames and removals are", () => {
+    const gramsOnly = edited("a", 8, [item("Nasi putih", 100, 130)]);
+    const renamed = edited("a", 9, [item("Nasi uduk", 205, 270)]);
+    const removed = edited("a", 10, [item("Telur", 50, 80)]);
+    const altTap = edited("a", 11, [item("Nasi uduk", 200, 260)], { corrections: 1, altTaps: [{ f: "Nasi putih", t: "Nasi uduk" }] });
+    const rates = photoRates([gramsOnly, renamed, removed, altTap, unchanged("a", 12)], NOW);
+    expect(rates.saved).toBe(5);
+    expect(rates.identityEdits).toBe(2);
+    expect(rates.gramsEdits).toBe(2);
+    expect(rates.identityRate).toBeCloseTo(2 / 5, 4);
+    expect(rates.gramsEditRate).toBeCloseTo(2 / 5, 4);
+    expect(rates.sources).toEqual({ typed: 1, alt: 1 });
+  });
+
+  test("the sources a save recorded are counted per scan", () => {
+    const diff = scanDiff(SAME, [item("Nasi putih", 100, 130)]);
+    const chip: WindowScan = {
+      userId: "a",
+      createdAt: at(8),
+      session: { savedLabel: "corrected", diff, edit: editOf(diff, [], new Map([["nasiputih", ["prior"]]])) },
+    };
+    const rates = photoRates([chip, chip], NOW);
+    expect(rates.sources).toEqual({ prior: 2 });
+    expect(rates.identityRate).toBe(0);
+    expect(rates.gramsEditRate).toBe(1);
+  });
+
+  test("saves from before the edit kind was stored are classified from their diff", () => {
+    const diff = scanDiff(SAME, [item("Nasi uduk", 205, 270)]);
+    const rates = photoRates([{ userId: "a", createdAt: at(8), session: { savedLabel: "corrected", diff } }], NOW);
+    expect(rates.identityEdits).toBe(1);
+  });
+
+  test("an empty window has null rates", () => {
+    expect(photoRates([], NOW)).toMatchObject({ scans: 0, users: 0, topUserShare: null, unchangedOfAll: null, unchangedOfAllByUser: null, identityRate: null });
+  });
+});
+
+describe("buildAccuracyReport: photo blocks", () => {
+  const base = { date: DATE, nowMs: NOW, scans: [ledger(sessions[0]!)], priorDays: [], weekDiffs: [], failed: [], corrections: [], feedback: [] };
+
+  test("day and week come from the window; scans of other days stay out of the day", () => {
+    const window: WindowScan[] = [
+      { userId: "a", createdAt: at(8), session: { savedLabel: "accurate" } },
+      { userId: "b", createdAt: at(9), session: {} },
+      { userId: "a", createdAt: START - 60_000, session: {} },
+    ];
+    const report = buildAccuracyReport({ ...base, window });
+    expect(report.scans.photo).toMatchObject({ scans: 2, users: 2, unchanged: 1 });
+    expect(report.scans.weekPhoto).toMatchObject({ scans: 3, users: 2, unchanged: 1 });
+    expect(accuracyReportSummary(report).photo).toMatchObject({ scans: 2, unchangedOfAll: 0.5 });
+  });
+
+  test("without a window the report is the old shape", () => {
+    const report = buildAccuracyReport(base);
+    expect("photo" in report.scans).toBe(false);
+    expect("photo" in accuracyReportSummary(report)).toBe(false);
   });
 });
