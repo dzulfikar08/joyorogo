@@ -1,0 +1,78 @@
+{
+  "catatan-pertama": {
+    "name": "Catatan pertama",
+    "desc": "Mencatat makanan untuk pertama kalinya."
+  },
+  "konsisten": {
+    "name": "Konsisten",
+    "desc": "Catat makanan {{n}} hari berturut-turut."
+  },
+  "minggu-sempurna": {
+    "name": "Minggu sempurna",
+    "desc": "Catat makanan 7 dari 7 hari dalam satu minggu, Senin sampai Minggu."
+  },
+  "pemindai-pertama": {
+    "name": "Pemindai pertama",
+    "desc": "Menyimpan hasil scan foto pertamamu."
+  },
+  "perbaikan-pertama": {
+    "name": "Jujur soal porsi",
+    "desc": "Mengoreksi hasil scan untuk pertama kalinya."
+  },
+  "protein-target": {
+    "name": "Target protein",
+    "desc": "Capai target protein harian di {{n}} hari."
+  },
+  "air-putih": {
+    "name": "Air putih",
+    "desc": "Minum 8 gelas dalam sehari, di {{n}} hari."
+  },
+  "latihan-pertama": {
+    "name": "Latihan pertama",
+    "desc": "Latihan pertama yang tercatat dari perangkat atau JoyoFit."
+  },
+  "latihan-10": {
+    "name": "Rutin latihan",
+    "desc": "Berolahraga di {{n}} hari, tercatat dari perangkat atau JoyoFit."
+  },
+  "tantangan-selesai": {
+    "name": "Tantangan tuntas",
+    "desc": "Bertahan sampai akhir tantangan grup dan rajin mencatat."
+  },
+  "jejak-tim": {
+    "name": "Jejak tim",
+    "desc": "Bergabung di grup dan mencatat makanan {{n}} hari."
+  },
+  "ramadan-konsisten": {
+    "name": "Ramadan konsisten",
+    "desc": "Mencatat makanan di {{n}} hari selama Ramadan."
+  },
+  "board": {
+    "title": "Papan konsistensi",
+    "subtitle": "Peringkat mingguan dari seberapa rutin kamu mencatat. Bukan dari berat badan.",
+    "thisWeek": "Minggu ini",
+    "lastWeek": "Minggu lalu",
+    "global": "Semua",
+    "team": "Grup",
+    "anonymous": "Anonim #{{rank}}",
+    "you": "Kamu",
+    "empty": "Belum ada yang ikut.",
+    "notRanked": "Kamu belum masuk papan minggu ini. Catat makanan dulu.",
+    "daysLogged": "Hari tercatat",
+    "workoutDays": "Hari latihan",
+    "proteinDays": "Hari protein",
+    "streak": "Beruntun",
+    "optIn": "Ikut papan konsistensi",
+    "consent": "Papan menampilkan namamu atau nama samaran, jumlah hari tercatat, hari latihan, hari protein, dan beruntunmu. Berat badan dan data tubuh tidak pernah ditampilkan. Kamu bisa keluar kapan saja, dan datamu di papan ikut terhapus.",
+    "displayMode": "Tampil sebagai",
+    "displayUsername": "Nama pengguna",
+    "displayAnonymous": "Nama samaran",
+    "alias": "Nama samaran",
+    "streakNote": "Beruntun di lencana dan papan menghitung hari catat yang sah (ada kalori, ditulis paling lambat 2 hari setelah harinya), jadi bisa berbeda dari api di beranda.",
+    "maternal": "Papan tidak tersedia selama hamil atau menyusui.",
+    "badgesTitle": "Lencana",
+    "noBadges": "Belum ada lencana",
+    "locked": "Belum didapat",
+    "tier": "Tingkat {{n}}"
+  }
+}

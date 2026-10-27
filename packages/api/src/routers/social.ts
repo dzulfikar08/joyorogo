@@ -48,6 +48,7 @@ import { cleanImage } from "../lib/image-clean";
 import { serverT } from "../lib/messages";
 import { pushComment, pushFollow, pushKudos, pushNewPost } from "../lib/social-push";
 import type { PushContext } from "../lib/social-push";
+import { publicBadges } from "./badge";
 import { premiumUnlocked } from "../lib/readiness-food";
 import { paywallConfig } from "../lib/tiers";
 import { userZone } from "../lib/user-zone";
@@ -1346,6 +1347,7 @@ export const socialRouter = {
           isFollowing: null,
           blocked: false,
           stats: null,
+          badges: [],
           posts: { items: [], nextCursor: null },
         };
       }
@@ -1414,6 +1416,7 @@ export const socialRouter = {
         image: row.image,
         bio: row.bio,
         publicProfile: true,
+        badges: await publicBadges(db, context.env, row.userId),
         isSelf,
         isFollowing: me && !isSelf ? isFollowingRow !== undefined : null,
         blocked: false,

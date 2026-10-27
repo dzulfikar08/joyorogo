@@ -88,5 +88,15 @@
     "dailyLimit": "Foto pinggan hari ini sudah dibaca {{limit}} kali. Cuba lagi esok.",
     "full": "Maksimum {{max}} pinggan dan mangkuk. Padam satu dahulu.",
     "analysisFailed": "AI belum berjaya membaca foto pinggan. Cuba ambil foto semula dari atas dengan cahaya yang cukup."
+  },
+  "badges": {
+    "unavailable": "Lencana dan papan konsistensi belum tersedia untuk akaun anda.",
+    "profileNotFound": "Profil tidak ditemui.",
+    "badWeek": "Minggu tidak sah. Guna tarikh Isnin, tidak lewat daripada minggu ini.",
+    "teamRequired": "Pilih kumpulan dahulu.",
+    "notTeamMember": "Anda bukan ahli kumpulan ini.",
+    "leaderboardMaternal": "Papan konsistensi tidak tersedia semasa hamil atau menyusu.",
+    "aliasTaken": "Nama samaran itu sudah digunakan. Cuba yang lain.",
+    "aliasInvalid": "Nama samaran {{min}} hingga {{max}} aksara: huruf kecil, nombor, titik, garis bawah atau sengkang."
   }
 }

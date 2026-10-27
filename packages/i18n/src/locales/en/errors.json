@@ -89,5 +89,15 @@
     "dailyLimit": "Plate photos were read {{limit}} times today. Try again tomorrow.",
     "full": "Up to {{max}} plates and bowls. Remove one first.",
     "analysisFailed": "The AI could not read the plate photo. Try again from straight above with enough light."
+  },
+  "badges": {
+    "unavailable": "Badges and the consistency board are not available for your account yet.",
+    "profileNotFound": "Profile not found.",
+    "badWeek": "Invalid week. Use a Monday date, no later than this week.",
+    "teamRequired": "Pick a group first.",
+    "notTeamMember": "You are not a member of this group.",
+    "leaderboardMaternal": "The consistency board is not available during pregnancy or breastfeeding.",
+    "aliasInvalid": "An alias is {{min}} to {{max}} characters: lowercase letters, numbers, dot, underscore or dash.",
+    "aliasTaken": "That alias is taken. Try another one."
   }
 }

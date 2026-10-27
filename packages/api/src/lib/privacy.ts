@@ -36,6 +36,7 @@ import {
 } from "@joyorogo/db/schema/social";
 import { mealPlan, mealPlanSwap, mealPrefs, mealShoppingCheck } from "@joyorogo/db/schema/meal";
 import { dishware } from "@joyorogo/db/schema/dishware";
+import { badgeAward, leaderboardPref, leaderboardWeek } from "@joyorogo/db/schema/badges";
 import { foodQuickMark, savedFood } from "@joyorogo/db/schema/saved-foods";
 import { barcodeContribution } from "@joyorogo/db/schema/barcode";
 import { teamChallengeMember } from "@joyorogo/db/schema/challenge";
@@ -173,6 +174,10 @@ export function deleteAllUserData(db: Database, userId: string) {
     db.delete(corosAccount).where(eq(corosAccount.userId, userId)),
     db.delete(corosAuthState).where(eq(corosAuthState.userId, userId)),
     db.delete(garminAccount).where(eq(garminAccount.userId, userId)),
+    // Badges, the leaderboard consent and every weekly snapshot row (derived from the logs this wipe removes).
+    db.delete(badgeAward).where(eq(badgeAward.userId, userId)),
+    db.delete(leaderboardWeek).where(eq(leaderboardWeek.userId, userId)),
+    db.delete(leaderboardPref).where(eq(leaderboardPref.userId, userId)),
     db.delete(waterLog).where(eq(waterLog.userId, userId)),
     db.delete(dailyActivity).where(eq(dailyActivity.userId, userId)),
     db.delete(aiUsage).where(eq(aiUsage.userId, userId)),

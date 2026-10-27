@@ -60,6 +60,8 @@ export type ApiEnv = PaywallEnv & ShadowEnv & {
   COROS_CLIENT_ID?: string;
   /** Comma-separated user ids that get COROS (lib/coros-grant.ts corosEnabled), or `*` for everyone. Unset or empty = nobody. */
   COROS_USER_IDS?: string;
+  /** Comma-separated user ids that get badges and the weekly leaderboard (lib/badges.ts badgesEnabled), or `*` for everyone. Unset or empty = nobody. */
+  BADGES_USER_IDS?: string;
   /** Comma-separated user ids that get Garmin (lib/garmin-grant.ts garminEnabled), or `*` for everyone. Unset or empty = nobody. */
   GARMIN_USER_IDS?: string;
   /** Images binding for dish sticker cutouts (BiRefNet segmentation). */

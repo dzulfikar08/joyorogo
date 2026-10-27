@@ -53,6 +53,7 @@ declare module "cloudflare:workers" {
       DISHWARE_USER_IDS?: string;
       CORRECTION_MEMORY_USER_IDS?: string;
       SCALE_READOUT_USER_IDS?: string;
+      BADGES_USER_IDS?: string;
       REVIEW_LOGIN_EMAILS?: string;
       EMAIL_FROM?: string;
       EMAIL_FROM_NAME?: string;
