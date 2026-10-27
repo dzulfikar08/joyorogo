@@ -25,11 +25,7 @@ import {
 import { InfoAccordion } from "@/components/onboarding/info-accordion";
 import { StravaCard } from "@/components/strava-card";
 import { fmtDateLong, fmtDateMedium, fmtInt, fmtKcalLabel, parseNum } from "@/lib/format";
-import {
-  OptimisticCache,
-  useDelayedDelete,
-  useOptimisticMutation,
-} from "@/lib/optimistic";
+import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import { JoyoFitCard } from "@/components/workout/joyofit-card";
 import type { ExerciseItem, ExerciseType } from "@/lib/api-types";
 import { removeById, upsertById } from "@joyorogo/api/lib/optimistic";
@@ -58,10 +54,7 @@ import { useTranslation } from "react-i18next";
 
 import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 import { dayActiveKcal } from "@joyorogo/api/lib/exercise-credit";
-import {
-  EXERCISE_MAX_DURATION,
-  EXERCISE_MIN_DURATION,
-} from "@joyorogo/api/lib/exercise-edit";
+import { EXERCISE_MAX_DURATION, EXERCISE_MIN_DURATION } from "@joyorogo/api/lib/exercise-edit";
 import { estimateKcal } from "@joyorogo/api/lib/met";
 
 const listOptions = (date: string) => orpc.exercise.listByDate.queryOptions({ input: { date } });
@@ -153,7 +146,9 @@ function OlahragaScreen({
   // back to the start weight itself).
   const weightKg = profile.data?.profile == null ? null : profile.data.latestWeightKg;
   // Hamil / Menyusui has no burn target.
-  const burnTarget = summary.data?.targets?.maternal ? null : (summary.data?.targets?.burnKcal ?? null);
+  const burnTarget = summary.data?.targets?.maternal
+    ? null
+    : (summary.data?.targets?.burnKcal ?? null);
 
   // Server row replaces the provisional (temp id) once the add settles.
   const addTempId = useRef<string | null>(null);
@@ -168,20 +163,26 @@ function OlahragaScreen({
   const insertExercise = (cache: OptimisticCache, rowDate: string, row: ExerciseItem) => {
     cache.value<{ items: ExerciseItem[]; totalKcal: number }>(
       listOptions(rowDate).queryKey,
-      (old) => (old ? { ...old, items: upsertById(old.items, row), totalKcal: old.totalKcal + row.kcal } : old),
+      (old) =>
+        old
+          ? { ...old, items: upsertById(old.items, row), totalKcal: old.totalKcal + row.kcal }
+          : old,
     );
   };
 
   /** exercise.listByDate caches hold { items, totalKcal }: strip one row and pull the total down. */
   const stripExercise = (cache: OptimisticCache, row: ExerciseItem) => {
-    cache.value<{ items: ExerciseItem[]; totalKcal: number }>(listOptions(row.date).queryKey, (old) => {
-      if (!old || !old.items.some((item) => item.id === row.id)) return old;
-      return {
-        ...old,
-        items: removeById(old.items, row.id),
-        totalKcal: Math.max(0, old.totalKcal - row.kcal),
-      };
-    });
+    cache.value<{ items: ExerciseItem[]; totalKcal: number }>(
+      listOptions(row.date).queryKey,
+      (old) => {
+        if (!old || !old.items.some((item) => item.id === row.id)) return old;
+        return {
+          ...old,
+          items: removeById(old.items, row.id),
+          totalKcal: Math.max(0, old.totalKcal - row.kcal),
+        };
+      },
+    );
   };
 
   const add = useOptimisticMutation<
@@ -403,7 +404,7 @@ function OlahragaScreen({
           </SectionTitle>
           {items.length === 0 ? (
             <Card className="flex items-center gap-3 p-3">
-              <Mascot pose="gas" size="sm" />
+              <Mascot pose="watch" size="sm" />
               <div className="min-w-0">
                 <p className="text-sm font-bold">
                   {isToday
@@ -456,7 +457,10 @@ function OlahragaScreen({
 
         <section
           aria-label={t("picker.aria")}
-          className={cn("lg:col-start-2", historyByDate.size > 0 ? "lg:row-start-3" : "lg:row-start-2")}
+          className={cn(
+            "lg:col-start-2",
+            historyByDate.size > 0 ? "lg:row-start-3" : "lg:row-start-2",
+          )}
         >
           <SectionTitle className="mb-2">{t("picker.title")}</SectionTitle>
           {types.isPending ? (
@@ -549,7 +553,9 @@ function OlahragaScreen({
           setSheetOpen(open);
           if (!open) setError(null);
         }}
-        title={activeType ? t("form.titleType", { type: typeLabel(activeType.key) }) : t("form.title")}
+        title={
+          activeType ? t("form.titleType", { type: typeLabel(activeType.key) }) : t("form.title")
+        }
         description={t("form.description")}
       >
         <form

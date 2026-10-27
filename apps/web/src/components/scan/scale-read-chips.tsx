@@ -14,6 +14,7 @@ import { useId, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Mascot } from "@/components/mascot";
 import { fmtGramsLabel } from "@/lib/format";
 
 // The last empty containers this browser subtracted, newest first (a person reuses the same bowls). Local only.
@@ -109,12 +110,17 @@ export function ScaleReadChips({
           className={chipClass(scaleActive)}
         >
           {chip.tareKind && tare > 0
-            ? t(chip.count > 1 ? "result.items.scaleReadSharedTared" : "result.items.scaleReadTared", {
-                value,
-                count: chip.count,
-                container: t(`result.items.container_${chip.tareKind}`),
-                tare: fmtGramsLabel(tare),
-              })
+            ? t(
+                chip.count > 1
+                  ? "result.items.scaleReadSharedTared"
+                  : "result.items.scaleReadTared",
+                {
+                  value,
+                  count: chip.count,
+                  container: t(`result.items.container_${chip.tareKind}`),
+                  tare: fmtGramsLabel(tare),
+                },
+              )
             : chip.count > 1
               ? t("result.items.scaleReadShared", { value, count: chip.count })
               : t("result.items.scaleRead", { value })}
@@ -140,25 +146,44 @@ export function ScaleReadChips({
             className={chipClass(tare > 0 || open)}
           >
             {tare > 0
-              ? t(chip.tareKind ? "result.items.tareAppliedEstimate" : "result.items.tareApplied", { grams: fmtGramsLabel(tare) })
+              ? t(chip.tareKind ? "result.items.tareAppliedEstimate" : "result.items.tareApplied", {
+                  grams: fmtGramsLabel(tare),
+                })
               : t("result.items.tareChip")}
           </button>
         )}
       </span>
       {open && scaleActive && (
-        <form id={panelId} onSubmit={submit} className="space-y-2 rounded-xl border border-border p-3">
-          <div>
-            <p className="text-sm font-semibold">{t("result.items.tareTitle")}</p>
-            <p className="text-xs text-muted-foreground">{t("result.items.tareHint")}</p>
+        <form
+          id={panelId}
+          onSubmit={submit}
+          className="space-y-2 rounded-xl border border-border p-3"
+        >
+          <div className="flex items-center gap-3">
+            <Mascot pose="scale" size="sm" className="mx-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">{t("result.items.tareTitle")}</p>
+              <p className="text-xs text-muted-foreground">{t("result.items.tareHint")}</p>
+            </div>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {recent.map((g) => (
-              <button key={`r${g}`} type="button" onClick={() => apply(g)} className={chipClass(false)}>
+              <button
+                key={`r${g}`}
+                type="button"
+                onClick={() => apply(g)}
+                className={chipClass(false)}
+              >
                 {fmtGramsLabel(g)}
               </button>
             ))}
             {presets.map((p) => (
-              <button key={p.key} type="button" onClick={() => apply(p.grams)} className={chipClass(false)}>
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => apply(p.grams)}
+                className={chipClass(false)}
+              >
                 {t(`result.items.tare_${p.key}`, { grams: fmtGramsLabel(p.grams) })}
               </button>
             ))}

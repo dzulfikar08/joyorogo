@@ -52,7 +52,12 @@ import {
   swapPortionPrior,
   withoutPortionPrior,
 } from "@joyorogo/api/lib/portion-chip";
-import { resplitScaleAfterCorrection, swapScaleRead, tareScaleRows, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
+import {
+  resplitScaleAfterCorrection,
+  swapScaleRead,
+  tareScaleRows,
+  withoutScaleRead,
+} from "@joyorogo/api/lib/scale-chip";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { cupPick } from "@joyorogo/api/lib/drink-options";
@@ -91,7 +96,11 @@ import {
 } from "@/components/scan/correct-box";
 import { SimpleResult } from "@/components/scan/simple-result";
 import { HoldMic } from "@/components/scan/hold-mic";
-import type { CorrectScanResult, CorrectionInput, CorrectionKind } from "@/components/scan/correct-box";
+import type {
+  CorrectScanResult,
+  CorrectionInput,
+  CorrectionKind,
+} from "@/components/scan/correct-box";
 import { LiveRows } from "@/components/scan/live-rows";
 import { CountUp } from "@/components/kit/count-up";
 import { STICKER_FILTER, stickerReady, stickerUrl } from "@/components/sticker";
@@ -103,6 +112,7 @@ import { useGain } from "@/components/gain/use-gain";
 import { FoodSafetyNotes } from "@/components/maternal/food-safety-notes";
 import { MacroLine } from "@/components/macro-line";
 import type { AiFoodItem } from "@/lib/api-types";
+import { Mascot } from "@/components/mascot";
 import { KindCycleChip, SnackAdviceCard, useSnackAdvice } from "@/components/makan/snack-advice";
 import { isPaywallError } from "@/lib/billing";
 import { fmtGramsLabel, fmtInt, fmtKcalLabel, parseNum } from "@/lib/format";
@@ -627,7 +637,9 @@ function AiFoodPage() {
     touchList();
     const picked = cupPick(next, getActiveLocale());
     setItems((current) =>
-      current.map((item, i) => (i === index ? stampGramsEdit({ ...item, ...picked }, "cup") : item)),
+      current.map((item, i) =>
+        i === index ? stampGramsEdit({ ...item, ...picked }, "cup") : item,
+      ),
     );
     setKcals((current) => ({ ...current, [index]: String(picked.kcal) }));
   };
@@ -761,9 +773,10 @@ function AiFoodPage() {
   }, [correctionLive]);
 
   // Context spoken while the photo was being read: kept here until the result lands (the mic's `capture`).
-  const [queuedContext, setQueuedContext] = useState<{ input: CorrectionInput; text: string } | null>(
-    null,
-  );
+  const [queuedContext, setQueuedContext] = useState<{
+    input: CorrectionInput;
+    text: string;
+  } | null>(null);
   const [applyingContext, setApplyingContext] = useState(false);
   // The result came while the person was still talking: the analyzing screen (and its mic) stays until the take is
   // released and queued, then the result shows and the context applies. Swapping screens mid-hold lost the release.
@@ -1233,7 +1246,9 @@ function AiFoodPage() {
         meal,
         imageBase64: image.base64,
         mimeType: image.mimeType,
-        itemsJson: JSON.stringify(withoutScaleRead(withoutPortionPrior(withoutGramsEdits(baseList)))),
+        itemsJson: JSON.stringify(
+          withoutScaleRead(withoutPortionPrior(withoutGramsEdits(baseList))),
+        ),
         ...(photoId ? { scanPhotoId: photoId } : {}),
         ...(plateScanId ? { plateScanId } : {}),
         ...(plate.name || plate.place || plate.priceIdr != null ? { plate } : {}),
@@ -2141,12 +2156,7 @@ function AiFoodPage() {
       )}
 
       <Card className="flex flex-col items-center px-5 py-6 text-center">
-        <span
-          className="flex size-16 items-center justify-center rounded-full bg-makan-soft"
-          aria-hidden
-        >
-          <Camera className="size-7 text-makan-ink" />
-        </span>
+        <Mascot pose="scan" size="md" eager />
         <h2 className="mt-3 text-xl font-bold tracking-tight">{t("idle.heading")}</h2>
         <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-makan-soft px-3.5 py-1.5 text-sm font-semibold text-makan-ink">
           <Lightbulb className="size-4 shrink-0" aria-hidden />

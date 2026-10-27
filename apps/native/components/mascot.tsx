@@ -12,8 +12,11 @@ const POSES = {
   peek: { source: require("@/assets/mascot/peek.webp") },
   ready: { source: require("@/assets/mascot/ready.webp") },
   relax: { source: require("@/assets/mascot/relax.webp") },
+  scale: { source: require("@/assets/mascot/scale.webp") },
+  scan: { source: require("@/assets/mascot/scan.webp") },
   sleepy: { source: require("@/assets/mascot/sleepy.webp") },
   surprised: { source: require("@/assets/mascot/surprised.webp") },
+  watch: { source: require("@/assets/mascot/watch.webp") },
 } as const satisfies Record<string, { source: ImageSourcePropType }>;
 
 export type MascotPose = keyof typeof POSES;

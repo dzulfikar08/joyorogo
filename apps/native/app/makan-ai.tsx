@@ -53,10 +53,19 @@ import { gramsFromOf, stampGramsEdit, withoutGramsEdits } from "@joyorogo/api/li
 import { itemAtCount } from "@joyorogo/api/lib/piece-chip";
 import type { Pieces } from "@joyorogo/api/lib/piece-chip";
 import { gramsForTypedKcal, macrosForTypedKcal, scalePortion } from "@joyorogo/api/lib/portion";
-import { modelNumbers, swapPortionPrior, withoutPortionPrior } from "@joyorogo/api/lib/portion-chip";
+import {
+  modelNumbers,
+  swapPortionPrior,
+  withoutPortionPrior,
+} from "@joyorogo/api/lib/portion-chip";
 import type { PortionPriorChip } from "@joyorogo/api/lib/portion-chip";
 import type { UsualDensityNote } from "@joyorogo/api/lib/usual-density";
-import { resplitScaleRows, swapScaleRead, tareScaleRows, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
+import {
+  resplitScaleRows,
+  swapScaleRead,
+  tareScaleRows,
+  withoutScaleRead,
+} from "@joyorogo/api/lib/scale-chip";
 import type { ScaleReadChip } from "@joyorogo/api/lib/scale-chip";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 import { cupPick } from "@joyorogo/api/lib/drink-options";
@@ -77,6 +86,7 @@ import {
   Segmented,
   Text,
 } from "@/components/ui";
+import { Mascot } from "@/components/mascot";
 import { EASE_OUT, PressableScale, useEnter, usePopIn } from "@/components/motion";
 import { Disclosure } from "@/components/disclosure";
 import { KindCycleChip, SnackAdviceSection } from "@/components/makan/snack-advice";
@@ -156,7 +166,6 @@ type CorrectSnapshot = {
 type CorrectMark = "renamed" | "portion" | "added";
 
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
-
 
 const MAX_SIDE = 1024;
 
@@ -394,8 +403,12 @@ function TotalBlock({
         />
         <Text style={styles.totalUnit}>{kcalUnit()}</Text>
       </View>
-      {plain ? null : reactionText ? <Text style={styles.totalReaction}>{reactionText}</Text> : null}
-      {!plain && equivalentLine(totalKcal) ? <Text style={styles.totalGeprek}>{equivalentLine(totalKcal)}</Text> : null}
+      {plain ? null : reactionText ? (
+        <Text style={styles.totalReaction}>{reactionText}</Text>
+      ) : null}
+      {!plain && equivalentLine(totalKcal) ? (
+        <Text style={styles.totalGeprek}>{equivalentLine(totalKcal)}</Text>
+      ) : null}
     </Reanimated.View>
   );
 }
@@ -566,7 +579,8 @@ export default function MakanAi() {
   const [contextRun, setContextRun] = useState<
     { status: "applying" | "applied" } | { status: "error"; message: string } | null
   >(null);
-  const flushContextWaiters = () => contextIdleRef.current.splice(0).forEach((resolve) => resolve());
+  const flushContextWaiters = () =>
+    contextIdleRef.current.splice(0).forEach((resolve) => resolve());
   const dropContext = () => {
     queuedRef.current = null;
     setQueuedContext(null);
@@ -599,7 +613,11 @@ export default function MakanAi() {
   const suggestSlotFor = (scanned: Array<{ name: string }>) => {
     if (scanned.length === 0 || mealPickedRef.current) return;
     setMeal(
-      suggestMealForDish(new Date(), ramadan, scanned.some((item) => isHeavyDish(item.name))),
+      suggestMealForDish(
+        new Date(),
+        ramadan,
+        scanned.some((item) => isHeavyDish(item.name)),
+      ),
     );
   };
   const [flowError, setFlowError] = useState<ScanFailure | null>(null);
@@ -629,9 +647,9 @@ export default function MakanAi() {
   const [askFeedback, setAskFeedback] = useState(false);
   const [feedbackAnswered, setFeedbackAnswered] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState<"kurang_akurat" | "salah" | null>(null);
-  const [feedbackReasons, setFeedbackReasons] = useState<
-    Array<(typeof FEEDBACK_REASONS)[number]>
-  >([]);
+  const [feedbackReasons, setFeedbackReasons] = useState<Array<(typeof FEEDBACK_REASONS)[number]>>(
+    [],
+  );
   const [feedbackNote, setFeedbackNote] = useState("");
   const [feedbackKeepPhoto, setFeedbackKeepPhoto] = useState(false);
   // A negative rating sent with no reason and no note is held back once and the reason chips are asked again.
@@ -727,7 +745,9 @@ export default function MakanAi() {
       <Redirect
         href={{
           pathname: "/login",
-          params: { next: scanDate ? `/makan-ai?date=${encodeURIComponent(scanDate)}` : "/makan-ai" },
+          params: {
+            next: scanDate ? `/makan-ai?date=${encodeURIComponent(scanDate)}` : "/makan-ai",
+          },
         }}
       />
     );
@@ -1217,10 +1237,15 @@ export default function MakanAi() {
         })),
         ...(photoId ? { scanPhotoId: photoId } : {}),
         ...(plateScanId ? { plateScanId } : {}),
-        itemsJson: JSON.stringify(withoutScaleRead(withoutPortionPrior(withoutGramsEdits(aiItems)))),
+        itemsJson: JSON.stringify(
+          withoutScaleRead(withoutPortionPrior(withoutGramsEdits(aiItems))),
+        ),
         ...(plate ? { plate } : {}),
         ...(eatenAt !== null
-          ? { eatenAt: eatenAtFromClock(scanDate ?? jakartaToday(), eatenAtClock(eatenAt)) ?? undefined }
+          ? {
+              eatenAt:
+                eatenAtFromClock(scanDate ?? jakartaToday(), eatenAtClock(eatenAt)) ?? undefined,
+            }
           : {}),
       });
       // Miss log: AI estimate vs what the user kept. Never blocks the save.
@@ -1329,7 +1354,9 @@ export default function MakanAi() {
     setItems(next);
     setDrafts((prev) =>
       prev.map((draft, i) =>
-        next[i]?.scaleRead && next[i] !== items[i] ? { ...draft, kcal: String(next[i]!.kcal) } : draft,
+        next[i]?.scaleRead && next[i] !== items[i]
+          ? { ...draft, kcal: String(next[i]!.kcal) }
+          : draft,
       ),
     );
     return true;
@@ -1500,7 +1527,9 @@ export default function MakanAi() {
     setFullPortion(nextFull);
     setBaseline({
       items: cur.baseline.items,
-      origin: origins.map((origin) => (origin === null ? null : (cur.baseline.origin[origin] ?? null))),
+      origin: origins.map((origin) =>
+        origin === null ? null : (cur.baseline.origin[origin] ?? null),
+      ),
     });
     setFlagged({ marks, drafts: nextDrafts, kinds: nextKinds });
     refreshTiles(
@@ -1539,7 +1568,11 @@ export default function MakanAi() {
       <Text style={styles.errorText}>{contextRun.message}</Text>
     ) : (
       <Text style={styles.contextStatus} accessibilityLiveRegion="polite">
-        {t(contextRun.status === "applying" ? "analyzing.contextApplying" : "analyzing.contextApplied")}
+        {t(
+          contextRun.status === "applying"
+            ? "analyzing.contextApplying"
+            : "analyzing.contextApplied",
+        )}
       </Text>
     )
   ) : null;
@@ -1555,9 +1588,7 @@ export default function MakanAi() {
       return (
         <SafeAreaView style={styles.permissionSafe}>
           <View style={styles.permissionBody}>
-            <View style={[styles.permissionIcon, { backgroundColor: theme.colors.muted }]}>
-              <Ionicons name="camera-outline" size={26} color={theme.colors.mutedForeground} />
-            </View>
+            <Mascot pose="scan" size="md" />
             <Text style={styles.permissionTitle}>{t("camera.permissionTitle")}</Text>
             <Text style={styles.permissionText}>{t("camera.permissionBody")}</Text>
             <Text style={styles.permissionText}>
@@ -1704,7 +1735,8 @@ export default function MakanAi() {
       0,
     );
     const includedItems = items.filter((_, index) => drafts[index]?.include);
-    const marks = flagged && flagged.drafts === drafts && flagged.kinds === kinds ? flagged.marks : null;
+    const marks =
+      flagged && flagged.drafts === drafts && flagged.kinds === kinds ? flagged.marks : null;
     const adviceKind = dominantKind(
       items.flatMap((item, index) =>
         drafts[index]?.include ? [kinds[index] ?? item.kind ?? foodKind(item.name)] : [],
@@ -1748,7 +1780,12 @@ export default function MakanAi() {
             contentContainerStyle={styles.confirmContent}
             keyboardShouldPersistTaps="handled"
           >
-            <TotalBlock totalKcal={totalKcal} reactionText={null} heading={t("simple.title")} plain />
+            <TotalBlock
+              totalKcal={totalKcal}
+              reactionText={null}
+              heading={t("simple.title")}
+              plain
+            />
             {tooManyCard}
 
             <ListGroup>
@@ -1846,474 +1883,505 @@ export default function MakanAi() {
 
     return (
       <>
-      <SafeAreaView style={styles.safeArea}>
-        <KeyboardAwareScrollView
-          contentContainerStyle={styles.confirmContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <TotalBlock totalKcal={totalKcal} reactionText={reactionText} />
+        <SafeAreaView style={styles.safeArea}>
+          <KeyboardAwareScrollView
+            contentContainerStyle={styles.confirmContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <TotalBlock totalKcal={totalKcal} reactionText={reactionText} />
 
-          {tooManyCard}
+            {tooManyCard}
 
-          {/* Penilaian hasil: selalu bisa dilewati, tidak pernah blokir simpan */}
-          {askFeedback && !feedbackAnswered && photoId ? (
-            <View style={styles.feedbackCard}>
-              <View style={styles.feedbackHead}>
-                <Text style={styles.feedbackHeadTitle}>{t("feedback.title")}</Text>
-                <PressableScale
-                  accessibilityRole="button"
-                  accessibilityLabel={t("feedback.skip")}
-                  hitSlop={8}
-                  onPress={() => {
-                    sendFeedback("dilewati");
-                    setFeedbackAnswered(true);
-                  }}
-                  scaleTo={1}
-                  dimTo={0.35}
-                  style={styles.feedbackClose}
-                >
-                  <Ionicons name="close" size={20} color={theme.colors.mutedForeground} />
-                </PressableScale>
-              </View>
-              {feedbackRating === null ? (
-                <View style={styles.feedbackRow}>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    label={t("feedback.accurate")}
+            {/* Penilaian hasil: selalu bisa dilewati, tidak pernah blokir simpan */}
+            {askFeedback && !feedbackAnswered && photoId ? (
+              <View style={styles.feedbackCard}>
+                <View style={styles.feedbackHead}>
+                  <Text style={styles.feedbackHeadTitle}>{t("feedback.title")}</Text>
+                  <PressableScale
+                    accessibilityRole="button"
+                    accessibilityLabel={t("feedback.skip")}
+                    hitSlop={8}
                     onPress={() => {
-                      sendFeedback("akurat");
+                      sendFeedback("dilewati");
                       setFeedbackAnswered(true);
                     }}
-                  />
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    label={t("feedback.lessAccurate")}
-                    onPress={() => setFeedbackRating("kurang_akurat")}
-                  />
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    label={t("feedback.wrong")}
-                    onPress={() => setFeedbackRating("salah")}
-                  />
-                </View>
-              ) : null}
-              {feedbackRating !== null ? (
-                <View style={styles.feedbackDetail}>
-                  {reasonNudged && feedbackReasons.length === 0 ? (
-                    <Text style={styles.feedbackSubtitle} accessibilityRole="alert">
-                      {t("feedback.reasonNudge")}
-                    </Text>
-                  ) : null}
-                  <View style={styles.feedbackRow}>
-                    {FEEDBACK_REASONS.map((key) => (
-                      <Chip
-                        key={key}
-                        label={t(`feedback.reason.${key}`)}
-                        selected={feedbackReasons.includes(key)}
-                        onPress={() =>
-                          setFeedbackReasons((current) =>
-                            current.includes(key)
-                              ? current.filter((reason) => reason !== key)
-                              : [...current, key],
-                          )
-                        }
-                      />
-                    ))}
-                  </View>
-                  <Input
-                    value={feedbackNote}
-                    onChangeText={setFeedbackNote}
-                    placeholder={t("feedback.notePlaceholder")}
-                    accessibilityLabel={t("feedback.noteAria")}
-                    maxLength={300}
-                  />
-                  <PressableScale
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: feedbackKeepPhoto }}
-                    accessibilityLabel={t("feedback.keepPhoto.label")}
-                    onPress={() => setFeedbackKeepPhoto((current) => !current)}
                     scaleTo={1}
                     dimTo={0.35}
-                    style={styles.keepPhotoRow}
+                    style={styles.feedbackClose}
                   >
-                    <View style={[styles.keepPhotoBox, feedbackKeepPhoto && styles.keepPhotoBoxOn]}>
-                      {feedbackKeepPhoto ? (
-                        <Ionicons
-                          name="checkmark"
-                          size={16}
-                          color={theme.colors.primaryForeground}
-                        />
-                      ) : null}
-                    </View>
-                    <View style={styles.keepPhotoText}>
-                      <Text style={styles.keepPhotoLabel}>{t("feedback.keepPhoto.label")}</Text>
-                      <Text style={styles.keepPhotoHint}>{t("feedback.keepPhoto.hint")}</Text>
-                    </View>
+                    <Ionicons name="close" size={20} color={theme.colors.mutedForeground} />
                   </PressableScale>
+                </View>
+                {feedbackRating === null ? (
                   <View style={styles.feedbackRow}>
                     <Button
+                      variant="secondary"
                       size="sm"
-                      label={t("feedback.send")}
+                      label={t("feedback.accurate")}
                       onPress={() => {
-                        if (feedbackReasons.length === 0 && !feedbackNote.trim() && !reasonNudged) {
-                          setReasonNudged(true);
-                          return;
-                        }
-                        sendFeedback(
-                          feedbackRating,
-                          feedbackReasons,
-                          feedbackNote,
-                          feedbackKeepPhoto,
-                        );
-                        // The note is also what the user wants changed: apply it like the "Ada yang kurang pas?"
-                        // box does. A failed correction stays silent; the rating is already on its way.
-                        const fix = feedbackNote.trim();
-                        if (fix.length >= 2 && !correct.isPending && !retry.isPending) {
-                          void submitCorrection({ text: fix }).catch(() => {});
-                        }
+                        sendFeedback("akurat");
                         setFeedbackAnswered(true);
                       }}
                     />
                     <Button
-                      variant="ghost"
+                      variant="secondary"
                       size="sm"
-                      label={t("common:actions.back")}
-                      onPress={() => setFeedbackRating(null)}
+                      label={t("feedback.lessAccurate")}
+                      onPress={() => setFeedbackRating("kurang_akurat")}
+                    />
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      label={t("feedback.wrong")}
+                      onPress={() => setFeedbackRating("salah")}
                     />
                   </View>
-                </View>
-              ) : null}
-            </View>
-          ) : null}
-
-          {/* Editable item rows */}
-          <ListGroup>
-            {items.map((item, index) => {
-              const draft = drafts[index];
-              if (!draft) return null;
-              const hasMacros =
-                item.protein !== undefined ||
-                item.carbs !== undefined ||
-                item.fat !== undefined ||
-                item.fiber !== undefined;
-              const mark = marks?.get(index);
-              return (
-                <ItemCard key={`${item.name}-${index}`} index={index} include={draft.include} corrected={!!mark}>
-                <ListRow
-                  icon={draft.include ? "checkmark-circle" : "ellipse-outline"}
-                  iconTint={draft.include ? "makan" : "muted"}
-                  thumb={
-                    crops[index] || stickers[index] || (cropping && item.box) ? (
-                      <CropSlot
-                        uri={crops[index]}
-                        stickerId={stickers[index] ?? undefined}
-                        size={40}
-                        style={styles.cropThumb}
-                        label={t("result.cropLabel", { name: item.name })}
-                      />
-                    ) : undefined
-                  }
-                  title={item.name}
-                  wrapTitle
-                  footer={
-                    <View style={styles.itemMeta}>
-                      {mark ? (
-                        <View style={styles.correctBadge}>
-                          <Text style={styles.correctBadgeText}>{t(`correct.badge.${mark}`)}</Text>
-                        </View>
-                      ) : null}
-                      <MetaLine
-                        itemStyle={styles.itemMetaText}
-                        items={[
-                          hasBone(item) ? stripBoneLabel(item.portion) : item.portion,
-                          // a cup's portion already says "350 ml"; the same number as grams is noise
-                          hasBone(item)
-                            ? (item.withBone ?? true)
-                              ? t("result.items.boneOn", {
-                                  gross: fmtGramsLabel(item.grossGrams!),
-                                  edible: fmtGramsLabel(item.edibleGrams!),
-                                })
-                              : t("result.items.boneOff", { edible: fmtGramsLabel(item.edibleGrams!) })
-                            : item.grams !== undefined && !item.cup
-                              ? `±${fmtGramsLabel(item.grams)}`
-                              : null,
-                          t("result.items.estimate"),
-                        ]}
-                      />
-                      {item.cup ? (
-                        <CupChoices choice={item.cup} onPick={(next) => pickCup(index, next)} />
-                      ) : null}
-                      {item.pieces ? (
-                        <PieceCountChip
-                          name={item.name}
-                          pieces={item.pieces}
-                          onChange={(count) => setCount(index, count)}
-                        />
-                      ) : null}
-                      {hasBone(item) ? (
-                        <BoneChips name={item.name} item={item} onChange={(on) => setBone(index, on)} />
-                      ) : null}
-                      {item.portionPrior ? (
-                        <PortionPriorChips name={item.name} item={item} onSwap={() => swapPrior(index)} />
-                      ) : null}
-                      {item.usualDensity && draft.kcal === String(item.kcal) ? (
-                        <Text style={styles.itemMetaText}>
-                          {t("result.items.usual", { kcal: fmtKcalLabel(item.usualDensity.modelKcal) })}
-                        </Text>
-                      ) : null}
-                      {index === 0 && memoryChips.length > 0 ? (
-                        <MemoryChips
-                          names={memoryChips}
-                          disabled={correct.isPending}
-                          onPick={async (chip) => {
-                            const outcome = await submitCorrection({
-                              text: `bukan ${items[0]!.name}, ${chip}`,
-                            });
-                            if (outcome) setMemoryChips([]);
-                          }}
-                        />
-                      ) : null}
-                      {item.scaleRead ? (
-                        <ScaleReadChips
-                          name={item.name}
-                          item={item}
-                          onSwap={() => swapScale(index)}
-                          onTare={tareScale}
-                        />
-                      ) : null}
-                      {item.alt && !item.cup ? (
-                        <AlternateChips
-                          name={item.name}
-                          names={item.alt}
-                          disabled={correct.isPending}
-                          onPick={(alternate) =>
-                            submitCorrection({ text: `bukan ${item.name}, ${alternate}` }, { index, name: alternate })
+                ) : null}
+                {feedbackRating !== null ? (
+                  <View style={styles.feedbackDetail}>
+                    {reasonNudged && feedbackReasons.length === 0 ? (
+                      <Text style={styles.feedbackSubtitle} accessibilityRole="alert">
+                        {t("feedback.reasonNudge")}
+                      </Text>
+                    ) : null}
+                    <View style={styles.feedbackRow}>
+                      {FEEDBACK_REASONS.map((key) => (
+                        <Chip
+                          key={key}
+                          label={t(`feedback.reason.${key}`)}
+                          selected={feedbackReasons.includes(key)}
+                          onPress={() =>
+                            setFeedbackReasons((current) =>
+                              current.includes(key)
+                                ? current.filter((reason) => reason !== key)
+                                : [...current, key],
+                            )
                           }
                         />
-                      ) : null}
-                      <View style={styles.itemChips}>
-                        {hasMacros ? (
-                          <MacroLine
-                            compact
-                            protein={item.protein ?? null}
-                            carbs={item.carbs ?? null}
-                            fat={item.fat ?? null}
-                            fiber={item.fiber ?? null}
+                      ))}
+                    </View>
+                    <Input
+                      value={feedbackNote}
+                      onChangeText={setFeedbackNote}
+                      placeholder={t("feedback.notePlaceholder")}
+                      accessibilityLabel={t("feedback.noteAria")}
+                      maxLength={300}
+                    />
+                    <PressableScale
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: feedbackKeepPhoto }}
+                      accessibilityLabel={t("feedback.keepPhoto.label")}
+                      onPress={() => setFeedbackKeepPhoto((current) => !current)}
+                      scaleTo={1}
+                      dimTo={0.35}
+                      style={styles.keepPhotoRow}
+                    >
+                      <View
+                        style={[styles.keepPhotoBox, feedbackKeepPhoto && styles.keepPhotoBoxOn]}
+                      >
+                        {feedbackKeepPhoto ? (
+                          <Ionicons
+                            name="checkmark"
+                            size={16}
+                            color={theme.colors.primaryForeground}
                           />
                         ) : null}
-                        <KindCycleChip
-                          value={kinds[index] ?? item.kind ?? foodKind(item.name)}
-                          onChange={(next) => setKinds((prev) => ({ ...prev, [index]: next }))}
-                        />
                       </View>
-                    </View>
-                  }
-                  right={
-                    <View style={styles.kcalEdit}>
-                      <Input
-                        value={draft.kcal}
-                        keyboardType="number-pad"
-                        accessibilityLabel={t("result.items.kcalAria", { name: item.name })}
-                        onChangeText={(text) =>
-                          setDrafts((prev) =>
-                            prev.map((d, i) => (i === index ? { ...d, kcal: text } : d)),
-                          )
-                        }
-                        style={styles.kcalInput}
+                      <View style={styles.keepPhotoText}>
+                        <Text style={styles.keepPhotoLabel}>{t("feedback.keepPhoto.label")}</Text>
+                        <Text style={styles.keepPhotoHint}>{t("feedback.keepPhoto.hint")}</Text>
+                      </View>
+                    </PressableScale>
+                    <View style={styles.feedbackRow}>
+                      <Button
+                        size="sm"
+                        label={t("feedback.send")}
+                        onPress={() => {
+                          if (
+                            feedbackReasons.length === 0 &&
+                            !feedbackNote.trim() &&
+                            !reasonNudged
+                          ) {
+                            setReasonNudged(true);
+                            return;
+                          }
+                          sendFeedback(
+                            feedbackRating,
+                            feedbackReasons,
+                            feedbackNote,
+                            feedbackKeepPhoto,
+                          );
+                          // The note is also what the user wants changed: apply it like the "Ada yang kurang pas?"
+                          // box does. A failed correction stays silent; the rating is already on its way.
+                          const fix = feedbackNote.trim();
+                          if (fix.length >= 2 && !correct.isPending && !retry.isPending) {
+                            void submitCorrection({ text: fix }).catch(() => {});
+                          }
+                          setFeedbackAnswered(true);
+                        }}
                       />
-                      <Text style={styles.kcalUnit}>{kcalUnit()}</Text>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        label={t("common:actions.back")}
+                        onPress={() => setFeedbackRating(null)}
+                      />
                     </View>
-                  }
-                  onPress={() => toggleInclude(index)}
-                />
-                </ItemCard>
-              );
-            })}
-          </ListGroup>
-
-          {contextLine}
-
-          {/* Saran tips kalau ada minuman manis atau saus/gorengan */}
-          {gain ? null : <ContextualTip names={items.map((item) => item.name)} />}
-
-          {/* Hamil / Menyusui: catatan keamanan makanan, tidak pernah memblokir simpan */}
-          <FoodSafetyNotes
-            names={items.filter((_, i) => drafts[i]?.include ?? true).map((item) => item.name)}
-            addToDay
-          />
-          <PlateNote note={references} />
-
-          {/* Koreksi lewat ketikan atau suara; tersembunyi saat hitung ulang / simpan berjalan */}
-          {!retry.isPending && !addScan.isPending ? (
-            <CorrectBox
-              busy={correct.isPending}
-              canUndo={undoStack.length > 0}
-              onSubmit={submitUserCorrection}
-              onUndo={undoCorrection}
-            />
-          ) : null}
-
-          {/* Hitung ulang: foto yang sama, tanpa foto ulang, tanpa kuota harian */}
-          {photoId ? (
-            <View style={styles.retryBlock}>
-              <View style={styles.retryHead}>
-                <Text style={styles.feedbackTitle}>{t("retry.title")}</Text>
-                <Text style={styles.retryMeta}>
-                  {retriesLeft > 0
-                    ? t("retry.left", { count: retriesLeft })
-                    : t("retry.exhausted")}
-                </Text>
-              </View>
-              {retriesLeft > 0 ? (
-                <View style={styles.retryRow}>
-                  <Input
-                    value={retryHint}
-                    onChangeText={setRetryHint}
-                    placeholder={t("retry.hintPlaceholder")}
-                    accessibilityLabel={t("retry.hintLabel")}
-                    maxLength={200}
-                    style={styles.retryInput}
-                  />
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    label={retry.isPending ? t("retry.running") : t("retry.action")}
-                    icon="refresh"
-                    loading={retry.isPending}
-                    disabled={retry.isPending || correct.isPending}
-                    onPress={() => void retryAnalysis()}
-                  />
-                </View>
-              ) : (
-                <Text style={styles.feedbackSubtitle}>{t("retry.exhaustedHint")}</Text>
-              )}
-              {retry.isPending ? (
-                <Text style={styles.feedbackSubtitle}>{t("retry.keepPrevious")}</Text>
-              ) : null}
-            </View>
-          ) : null}
-
-          <View style={styles.mealBlock}>
-            <Text style={styles.mealLabel}>{t("result.meal.title")}</Text>
-            <Segmented
-              options={MEAL_KEYS.map((key) => ({
-                value: key,
-                label: t(`makan:diary.mealShort.${key}`),
-              }))}
-              value={meal}
-              onChange={(value) => {
-                mealPickedRef.current = true;
-                setMeal(value);
-              }}
-            />
-          </View>
-
-          <SnackAdviceSection
-            date={scanDate}
-            kcal={totalKcal}
-            kind={adviceKind}
-            slot={meal}
-            name={adviceName}
-            onHalf={halve}
-            halfApplied={fullPortion !== null}
-            onUndoHalf={undoHalf}
-          />
-
-          <PlateFields compact values={plateValues} onChange={setPlateValues} />
-
-          <EatenAtField
-            date={scanDate ?? jakartaToday()}
-            meal={meal}
-            value={eatenAt}
-            onChange={setEatenAt}
-          />
-
-          {/* Original photo and per-item crops, plus how the result is made */}
-          {previewUri ? (
-            <Disclosure title={t("result.photoToggle")}>
-              <View style={styles.reviewPhotoBlock}>
-                <Image
-                  source={{ uri: previewUri }}
-                  style={styles.reviewPhoto}
-                  resizeMode="cover"
-                  accessibilityLabel={t("result.photoAlt")}
-                />
-                {cropping || crops.some(Boolean) || stickers.some(Boolean) ? (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View style={styles.cropRow}>
-                      {items.map((item, index) =>
-                        crops[index] || stickers[index] || (cropping && item.box) ? (
-                          <View key={`crop-${item.name}-${index}`} style={styles.cropTile}>
-                            <CropSlot
-                              uri={crops[index]}
-                              stickerId={stickers[index] ?? undefined}
-                              size={96}
-                              style={styles.cropImage}
-                              label={t("result.cropLabel", { name: item.name })}
-                            />
-                            <Text style={styles.cropLabel} numberOfLines={1}>
-                              {item.name}
-                            </Text>
-                          </View>
-                        ) : null,
-                      )}
-                    </View>
-                  </ScrollView>
+                  </View>
                 ) : null}
               </View>
-            </Disclosure>
-          ) : null}
-          {photoId ? (
-            <Disclosure title={t("result.info.title")}>
-              <Text style={styles.infoText}>{t("result.info.retry")}</Text>
-              {askFeedback && !feedbackAnswered ? (
-                <Text style={styles.infoText}>{t("result.info.feedback")}</Text>
-              ) : null}
-            </Disclosure>
-          ) : null}
+            ) : null}
 
-          {flowErrorMessage ? <Text style={styles.errorText}>{flowErrorMessage}</Text> : null}
-          <AskJoyoAction
-            kind="scan"
-            question={scanQuestion(
-              askT,
-              includedItems.map((item) => ({ name: item.name, grams: item.cup ? null : item.grams })),
-            )}
-          />
-          <View style={styles.actionRow}>
-            <Button
-              variant="secondary"
-              label={t("result.retake")}
-              onPress={resetToCamera}
-              style={styles.actionSecondary}
+            {/* Editable item rows */}
+            <ListGroup>
+              {items.map((item, index) => {
+                const draft = drafts[index];
+                if (!draft) return null;
+                const hasMacros =
+                  item.protein !== undefined ||
+                  item.carbs !== undefined ||
+                  item.fat !== undefined ||
+                  item.fiber !== undefined;
+                const mark = marks?.get(index);
+                return (
+                  <ItemCard
+                    key={`${item.name}-${index}`}
+                    index={index}
+                    include={draft.include}
+                    corrected={!!mark}
+                  >
+                    <ListRow
+                      icon={draft.include ? "checkmark-circle" : "ellipse-outline"}
+                      iconTint={draft.include ? "makan" : "muted"}
+                      thumb={
+                        crops[index] || stickers[index] || (cropping && item.box) ? (
+                          <CropSlot
+                            uri={crops[index]}
+                            stickerId={stickers[index] ?? undefined}
+                            size={40}
+                            style={styles.cropThumb}
+                            label={t("result.cropLabel", { name: item.name })}
+                          />
+                        ) : undefined
+                      }
+                      title={item.name}
+                      wrapTitle
+                      footer={
+                        <View style={styles.itemMeta}>
+                          {mark ? (
+                            <View style={styles.correctBadge}>
+                              <Text style={styles.correctBadgeText}>
+                                {t(`correct.badge.${mark}`)}
+                              </Text>
+                            </View>
+                          ) : null}
+                          <MetaLine
+                            itemStyle={styles.itemMetaText}
+                            items={[
+                              hasBone(item) ? stripBoneLabel(item.portion) : item.portion,
+                              // a cup's portion already says "350 ml"; the same number as grams is noise
+                              hasBone(item)
+                                ? (item.withBone ?? true)
+                                  ? t("result.items.boneOn", {
+                                      gross: fmtGramsLabel(item.grossGrams!),
+                                      edible: fmtGramsLabel(item.edibleGrams!),
+                                    })
+                                  : t("result.items.boneOff", {
+                                      edible: fmtGramsLabel(item.edibleGrams!),
+                                    })
+                                : item.grams !== undefined && !item.cup
+                                  ? `±${fmtGramsLabel(item.grams)}`
+                                  : null,
+                              t("result.items.estimate"),
+                            ]}
+                          />
+                          {item.cup ? (
+                            <CupChoices choice={item.cup} onPick={(next) => pickCup(index, next)} />
+                          ) : null}
+                          {item.pieces ? (
+                            <PieceCountChip
+                              name={item.name}
+                              pieces={item.pieces}
+                              onChange={(count) => setCount(index, count)}
+                            />
+                          ) : null}
+                          {hasBone(item) ? (
+                            <BoneChips
+                              name={item.name}
+                              item={item}
+                              onChange={(on) => setBone(index, on)}
+                            />
+                          ) : null}
+                          {item.portionPrior ? (
+                            <PortionPriorChips
+                              name={item.name}
+                              item={item}
+                              onSwap={() => swapPrior(index)}
+                            />
+                          ) : null}
+                          {item.usualDensity && draft.kcal === String(item.kcal) ? (
+                            <Text style={styles.itemMetaText}>
+                              {t("result.items.usual", {
+                                kcal: fmtKcalLabel(item.usualDensity.modelKcal),
+                              })}
+                            </Text>
+                          ) : null}
+                          {index === 0 && memoryChips.length > 0 ? (
+                            <MemoryChips
+                              names={memoryChips}
+                              disabled={correct.isPending}
+                              onPick={async (chip) => {
+                                const outcome = await submitCorrection({
+                                  text: `bukan ${items[0]!.name}, ${chip}`,
+                                });
+                                if (outcome) setMemoryChips([]);
+                              }}
+                            />
+                          ) : null}
+                          {item.scaleRead ? (
+                            <ScaleReadChips
+                              name={item.name}
+                              item={item}
+                              onSwap={() => swapScale(index)}
+                              onTare={tareScale}
+                            />
+                          ) : null}
+                          {item.alt && !item.cup ? (
+                            <AlternateChips
+                              name={item.name}
+                              names={item.alt}
+                              disabled={correct.isPending}
+                              onPick={(alternate) =>
+                                submitCorrection(
+                                  { text: `bukan ${item.name}, ${alternate}` },
+                                  { index, name: alternate },
+                                )
+                              }
+                            />
+                          ) : null}
+                          <View style={styles.itemChips}>
+                            {hasMacros ? (
+                              <MacroLine
+                                compact
+                                protein={item.protein ?? null}
+                                carbs={item.carbs ?? null}
+                                fat={item.fat ?? null}
+                                fiber={item.fiber ?? null}
+                              />
+                            ) : null}
+                            <KindCycleChip
+                              value={kinds[index] ?? item.kind ?? foodKind(item.name)}
+                              onChange={(next) => setKinds((prev) => ({ ...prev, [index]: next }))}
+                            />
+                          </View>
+                        </View>
+                      }
+                      right={
+                        <View style={styles.kcalEdit}>
+                          <Input
+                            value={draft.kcal}
+                            keyboardType="number-pad"
+                            accessibilityLabel={t("result.items.kcalAria", { name: item.name })}
+                            onChangeText={(text) =>
+                              setDrafts((prev) =>
+                                prev.map((d, i) => (i === index ? { ...d, kcal: text } : d)),
+                              )
+                            }
+                            style={styles.kcalInput}
+                          />
+                          <Text style={styles.kcalUnit}>{kcalUnit()}</Text>
+                        </View>
+                      }
+                      onPress={() => toggleInclude(index)}
+                    />
+                  </ItemCard>
+                );
+              })}
+            </ListGroup>
+
+            {contextLine}
+
+            {/* Saran tips kalau ada minuman manis atau saus/gorengan */}
+            {gain ? null : <ContextualTip names={items.map((item) => item.name)} />}
+
+            {/* Hamil / Menyusui: catatan keamanan makanan, tidak pernah memblokir simpan */}
+            <FoodSafetyNotes
+              names={items.filter((_, i) => drafts[i]?.include ?? true).map((item) => item.name)}
+              addToDay
             />
-            <Button
-              label={
-                includedCount > 0
-                  ? t("result.save.items", { count: includedCount })
-                  : t("result.save.pickOne")
-              }
-              disabled={includedCount === 0 || retry.isPending || correct.isPending}
-              onPress={() => void saveIncluded()}
-              loading={addScan.isPending}
-              style={styles.actionPrimary}
+            <PlateNote note={references} />
+
+            {/* Koreksi lewat ketikan atau suara; tersembunyi saat hitung ulang / simpan berjalan */}
+            {!retry.isPending && !addScan.isPending ? (
+              <CorrectBox
+                busy={correct.isPending}
+                canUndo={undoStack.length > 0}
+                onSubmit={submitUserCorrection}
+                onUndo={undoCorrection}
+              />
+            ) : null}
+
+            {/* Hitung ulang: foto yang sama, tanpa foto ulang, tanpa kuota harian */}
+            {photoId ? (
+              <View style={styles.retryBlock}>
+                <View style={styles.retryHead}>
+                  <Text style={styles.feedbackTitle}>{t("retry.title")}</Text>
+                  <Text style={styles.retryMeta}>
+                    {retriesLeft > 0
+                      ? t("retry.left", { count: retriesLeft })
+                      : t("retry.exhausted")}
+                  </Text>
+                </View>
+                {retriesLeft > 0 ? (
+                  <View style={styles.retryRow}>
+                    <Input
+                      value={retryHint}
+                      onChangeText={setRetryHint}
+                      placeholder={t("retry.hintPlaceholder")}
+                      accessibilityLabel={t("retry.hintLabel")}
+                      maxLength={200}
+                      style={styles.retryInput}
+                    />
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      label={retry.isPending ? t("retry.running") : t("retry.action")}
+                      icon="refresh"
+                      loading={retry.isPending}
+                      disabled={retry.isPending || correct.isPending}
+                      onPress={() => void retryAnalysis()}
+                    />
+                  </View>
+                ) : (
+                  <Text style={styles.feedbackSubtitle}>{t("retry.exhaustedHint")}</Text>
+                )}
+                {retry.isPending ? (
+                  <Text style={styles.feedbackSubtitle}>{t("retry.keepPrevious")}</Text>
+                ) : null}
+              </View>
+            ) : null}
+
+            <View style={styles.mealBlock}>
+              <Text style={styles.mealLabel}>{t("result.meal.title")}</Text>
+              <Segmented
+                options={MEAL_KEYS.map((key) => ({
+                  value: key,
+                  label: t(`makan:diary.mealShort.${key}`),
+                }))}
+                value={meal}
+                onChange={(value) => {
+                  mealPickedRef.current = true;
+                  setMeal(value);
+                }}
+              />
+            </View>
+
+            <SnackAdviceSection
+              date={scanDate}
+              kcal={totalKcal}
+              kind={adviceKind}
+              slot={meal}
+              name={adviceName}
+              onHalf={halve}
+              halfApplied={fullPortion !== null}
+              onUndoHalf={undoHalf}
+            />
+
+            <PlateFields compact values={plateValues} onChange={setPlateValues} />
+
+            <EatenAtField
+              date={scanDate ?? jakartaToday()}
+              meal={meal}
+              value={eatenAt}
+              onChange={setEatenAt}
+            />
+
+            {/* Original photo and per-item crops, plus how the result is made */}
+            {previewUri ? (
+              <Disclosure title={t("result.photoToggle")}>
+                <View style={styles.reviewPhotoBlock}>
+                  <Image
+                    source={{ uri: previewUri }}
+                    style={styles.reviewPhoto}
+                    resizeMode="cover"
+                    accessibilityLabel={t("result.photoAlt")}
+                  />
+                  {cropping || crops.some(Boolean) || stickers.some(Boolean) ? (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <View style={styles.cropRow}>
+                        {items.map((item, index) =>
+                          crops[index] || stickers[index] || (cropping && item.box) ? (
+                            <View key={`crop-${item.name}-${index}`} style={styles.cropTile}>
+                              <CropSlot
+                                uri={crops[index]}
+                                stickerId={stickers[index] ?? undefined}
+                                size={96}
+                                style={styles.cropImage}
+                                label={t("result.cropLabel", { name: item.name })}
+                              />
+                              <Text style={styles.cropLabel} numberOfLines={1}>
+                                {item.name}
+                              </Text>
+                            </View>
+                          ) : null,
+                        )}
+                      </View>
+                    </ScrollView>
+                  ) : null}
+                </View>
+              </Disclosure>
+            ) : null}
+            {photoId ? (
+              <Disclosure title={t("result.info.title")}>
+                <Text style={styles.infoText}>{t("result.info.retry")}</Text>
+                {askFeedback && !feedbackAnswered ? (
+                  <Text style={styles.infoText}>{t("result.info.feedback")}</Text>
+                ) : null}
+              </Disclosure>
+            ) : null}
+
+            {flowErrorMessage ? <Text style={styles.errorText}>{flowErrorMessage}</Text> : null}
+            <AskJoyoAction
+              kind="scan"
+              question={scanQuestion(
+                askT,
+                includedItems.map((item) => ({
+                  name: item.name,
+                  grams: item.cup ? null : item.grams,
+                })),
+              )}
+            />
+            <View style={styles.actionRow}>
+              <Button
+                variant="secondary"
+                label={t("result.retake")}
+                onPress={resetToCamera}
+                style={styles.actionSecondary}
+              />
+              <Button
+                label={
+                  includedCount > 0
+                    ? t("result.save.items", { count: includedCount })
+                    : t("result.save.pickOne")
+                }
+                disabled={includedCount === 0 || retry.isPending || correct.isPending}
+                onPress={() => void saveIncluded()}
+                loading={addScan.isPending}
+                style={styles.actionPrimary}
+              />
+            </View>
+          </KeyboardAwareScrollView>
+        </SafeAreaView>
+        {totalKcal > 0 && (
+          <View pointerEvents="none" style={styles.confettiLayer}>
+            <ConfettiCannon
+              count={totalKcal > 1100 ? 160 : totalKcal > 550 ? 100 : 50}
+              origin={{ x: -10, y: 0 }}
+              autoStart
+              fadeOut
             />
           </View>
-        </KeyboardAwareScrollView>
-      </SafeAreaView>
-      {totalKcal > 0 && (
-        <View pointerEvents="none" style={styles.confettiLayer}>
-          <ConfettiCannon
-            count={totalKcal > 1100 ? 160 : totalKcal > 550 ? 100 : 50}
-            origin={{ x: -10, y: 0 }}
-            autoStart
-            fadeOut
-          />
-        </View>
-      )}
+        )}
       </>
     );
   }
@@ -2340,7 +2408,9 @@ export default function MakanAi() {
           fat: included.reduce((sum, entry) => sum + (entry.item.fat ?? 0), 0),
           reaction: savedKcal > 0 && !gain ? t(`reaction.${reactionKey(savedKcal)}`) : undefined,
           photoUri: previewUri,
-          ...(plateReadyId && plateReadyId === plateScanId ? { cutoutUri: stickerUrl(plateReadyId) } : {}),
+          ...(plateReadyId && plateReadyId === plateScanId
+            ? { cutoutUri: stickerUrl(plateReadyId) }
+            : {}),
         }
       : null;
   return (
@@ -2374,13 +2444,6 @@ const styles = StyleSheet.create((theme) => ({
     justifyContent: "center",
     gap: theme.spacing.md,
     paddingHorizontal: theme.spacing.xl,
-  },
-  permissionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
   },
   permissionTitle: {
     fontSize: theme.fontSize.xl,

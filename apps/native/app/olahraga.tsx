@@ -34,11 +34,20 @@ import {
 import { ExerciseEditSheet, type ExerciseEditRow } from "@/components/exercise-edit-sheet";
 import { Disclosure } from "@/components/disclosure";
 import { StravaCard } from "@/components/strava-card";
+import { Mascot } from "@/components/mascot";
 import { DaySwitcher } from "@/components/day-switcher";
 import { ShareToFeedSheet } from "@/components/feed/share-to-feed";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { openJoyoFit } from "@/lib/workout/joyofit";
-import { errorMessage, fmtDateMedium, fmtInt, fmtKcalLabel, fmtKg, kcalUnit, parseNum } from "@/utils/format";
+import {
+  errorMessage,
+  fmtDateMedium,
+  fmtInt,
+  fmtKcalLabel,
+  fmtKg,
+  kcalUnit,
+  parseNum,
+} from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import type { QueryKey } from "@tanstack/react-query";
@@ -97,9 +106,12 @@ export default function Olahraga() {
   const profileQuery = useQuery(orpc.profile.myProfile.queryOptions());
 
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [shareTarget, setShareTarget] = useState<
-    null | { kind: "latihan"; refId: string; title: string; preview: string }
-  >(null);
+  const [shareTarget, setShareTarget] = useState<null | {
+    kind: "latihan";
+    refId: string;
+    title: string;
+    preview: string;
+  }>(null);
   // Ubah aktivitas: baris yang sedang diedit.
   const [editRow, setEditRow] = useState<ExerciseEditRow | null>(null);
   const [sheetType, setSheetType] = useState<ExerciseTypeKey | null>(null);
@@ -113,9 +125,7 @@ export default function Olahraga() {
   const weightKg = profileQuery.data?.latestWeightKg ?? latestKg;
   const targetBurn = summaryQuery.data?.targets?.burnKcal ?? null;
 
-  type ExerciseRow = NonNullable<
-    NonNullable<typeof listQuery.data>["items"]
-  >[number];
+  type ExerciseRow = NonNullable<NonNullable<typeof listQuery.data>["items"]>[number];
   const exerciseListKey = orpc.exercise.listByDate.queryOptions({ input: { date } }).queryKey;
 
   /** exercise.listByDate caches hold { items, totalKcal }: land a row and lift the total. */
@@ -137,52 +147,51 @@ export default function Olahraga() {
     });
   };
 
-  const addExercise = useOptimisticMutation<
-    Parameters<typeof client.exercise.add>[0],
-    ExerciseRow
-  >({
-    mutationFn: async (input) => {
-      const row = await client.exercise.add(input);
-      if (!row) throw new Error(t("toast.saveFailed"));
-      return row;
+  const addExercise = useOptimisticMutation<Parameters<typeof client.exercise.add>[0], ExerciseRow>(
+    {
+      mutationFn: async (input) => {
+        const row = await client.exercise.add(input);
+        if (!row) throw new Error(t("toast.saveFailed"));
+        return row;
+      },
+      patch: (input, cache) => {
+        const rowDate = input.date ?? today;
+        insertExerciseRow(cache, exerciseListKey, {
+          id: "",
+          userId: "",
+          date: rowDate,
+          type: input.type ?? null,
+          name: input.name,
+          durationMin: input.durationMin ?? null,
+          kcal: input.kcal,
+          source: input.source ?? "manual",
+          externalId: input.externalId ?? null,
+          createdAt: new Date(),
+        });
+        cache.summary({ date: rowDate, burnKcal: input.kcal });
+      },
+      success: (input, data) => {
+        setFormError(null);
+        setName("");
+        setDuration("30");
+        setKcal("");
+        setKcalEdited(false);
+        setSheetOpen(false);
+        setSheetType(null);
+        return {
+          message: t("toast.logged", { name: input.name, kcal: fmtKcalLabel(input.kcal) }),
+          undo: () => {
+            void client.exercise.remove({ id: data.id }).then(() => {
+              void queryClient.invalidateQueries({ queryKey: orpc.exercise.key() });
+              void queryClient.invalidateQueries({ queryKey: orpc.day.key() });
+            });
+          },
+        };
+      },
+      onError: (e) => setFormError(errorMessage(e)),
+      invalidate: () => [orpc.exercise.key(), orpc.day.key()],
     },
-    patch: (input, cache) => {
-      const rowDate = input.date ?? today;
-      insertExerciseRow(cache, exerciseListKey, {
-        id: "",
-        userId: "",
-        date: rowDate,
-        type: input.type ?? null,
-        name: input.name,
-        durationMin: input.durationMin ?? null,
-        kcal: input.kcal,
-        source: input.source ?? "manual",
-        externalId: input.externalId ?? null,
-        createdAt: new Date(),
-      });
-      cache.summary({ date: rowDate, burnKcal: input.kcal });
-    },
-    success: (input, data) => {
-      setFormError(null);
-      setName("");
-      setDuration("30");
-      setKcal("");
-      setKcalEdited(false);
-      setSheetOpen(false);
-      setSheetType(null);
-      return {
-        message: t("toast.logged", { name: input.name, kcal: fmtKcalLabel(input.kcal) }),
-        undo: () => {
-          void client.exercise.remove({ id: data.id }).then(() => {
-            void queryClient.invalidateQueries({ queryKey: orpc.exercise.key() });
-            void queryClient.invalidateQueries({ queryKey: orpc.day.key() });
-          });
-        },
-      };
-    },
-    onError: (e) => setFormError(errorMessage(e)),
-    invalidate: () => [orpc.exercise.key(), orpc.day.key()],
-  });
+  );
   const removeExercise = useDelayedDelete<ExerciseRow>({
     remove: (row) => client.exercise.remove({ id: row.id }),
     patch: (row, cache) => {
@@ -237,7 +246,10 @@ export default function Olahraga() {
   const totalKcal = listQuery.data.totalKcal;
   // The ring is the day's activity as Sisa reads it (all-day total + workouts it does not contain), not the sum of the
   // listed rows: the summary kept from another day while a new one loads must not stand in for this one.
-  const burnedKcal = dayActiveKcal(summaryQuery.data?.date === date ? summaryQuery.data.exerciseCredit : null, totalKcal);
+  const burnedKcal = dayActiveKcal(
+    summaryQuery.data?.date === date ? summaryQuery.data.exerciseCredit : null,
+    totalKcal,
+  );
 
   const openSheet = (typeKey: ExerciseTypeKey | null) => {
     setSheetType(typeKey);
@@ -358,14 +370,15 @@ export default function Olahraga() {
       </View>
       {items.length === 0 ? (
         <Card style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>
-            {isToday
-              ? t("list.empty.today")
-              : t("list.empty.day", { date: fmtDateMedium(date) })}
-          </Text>
-          <Text style={styles.emptyText}>
-            {t("list.empty.hintNative", { health: healthSourceName })}
-          </Text>
+          <Mascot pose="watch" size="sm" />
+          <View style={styles.emptyBody}>
+            <Text style={styles.emptyTitle}>
+              {isToday ? t("list.empty.today") : t("list.empty.day", { date: fmtDateMedium(date) })}
+            </Text>
+            <Text style={styles.emptyText}>
+              {t("list.empty.hintNative", { health: healthSourceName })}
+            </Text>
+          </View>
         </Card>
       ) : (
         <ListGroup>
@@ -396,7 +409,11 @@ export default function Olahraga() {
                     }
                     style={({ pressed }) => [styles.deleteButton, pressed && styles.pressedSoft]}
                   >
-                    <Ionicons name="share-social-outline" size={18} color={theme.colors.foreground} />
+                    <Ionicons
+                      name="share-social-outline"
+                      size={18}
+                      color={theme.colors.foreground}
+                    />
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
@@ -531,9 +548,15 @@ export default function Olahraga() {
       <Sheet
         visible={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        title={sheetType === null ? t("form.title") : t("form.titleType", { type: typeLabel(sheetType) })}
+        title={
+          sheetType === null ? t("form.title") : t("form.titleType", { type: typeLabel(sheetType) })
+        }
         footer={
-          <Button label={t("common:actions.add")} onPress={submit} loading={addExercise.isPending} />
+          <Button
+            label={t("common:actions.add")}
+            onPress={submit}
+            loading={addExercise.isPending}
+          />
         }
       >
         <Field label={t("form.type")}>
@@ -665,8 +688,14 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.mutedForeground,
   },
   emptyCard: {
-    gap: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md,
     paddingVertical: theme.spacing.md,
+  },
+  emptyBody: {
+    flex: 1,
+    gap: 2,
   },
   emptyTitle: {
     fontSize: theme.fontSize.sm,
