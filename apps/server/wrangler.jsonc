@@ -107,6 +107,11 @@
     // The JoyoFit cloud API that /api/fit/* (the JoyoFit web app) forwards to.
     "JOYOFIT_API_URL": "https://api.fit.joyorogo.com",
     "FREE_DAILY_SCANS": "3",
+    // Threads mention bot (docs/threads-bot.md): off | review | auto. Caps count photo scans per WIB day. Secrets THREADS_APP_ID,
+    // THREADS_APP_SECRET, THREADS_WEBHOOK_VERIFY_TOKEN and optional THREADS_ACCESS_TOKEN are set with wrangler secret put.
+    "THREADS_BOT_MODE": "off",
+    "THREADS_BOT_USER_DAILY_CAP": "3",
+    "THREADS_BOT_DAILY_CAP": "200",
     // Strava application slots shared with JoyoFit (docs/strava.md "Capacity"): athletes Strava allows; when all are
     // taken nobody new can connect (plan-neutral, Strava API Policy 5.8).
     "STRAVA_CAPACITY": "10",

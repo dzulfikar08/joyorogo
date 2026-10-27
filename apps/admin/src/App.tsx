@@ -10,6 +10,7 @@ import {
   Mail,
   Megaphone,
   MessageSquareText,
+  MessagesSquare,
   Moon,
   Receipt,
   RotateCw,
@@ -29,6 +30,7 @@ import { FeedbackSection } from "./sections/Feedback";
 import { LaporanSection } from "./sections/Laporan";
 import { OverviewSection } from "./sections/Overview";
 import { ReportsSection } from "./sections/Reports";
+import { ThreadsBotSection } from "./sections/ThreadsBot";
 import { UsersSection } from "./sections/Users";
 
 /** Sun/Moon header toggle: switches light/dark; system default until first pick. */
@@ -56,6 +58,7 @@ const TABS: { id: string; label: string; icon: LucideIcon }[] = [
   { id: "feedback", label: "Feedback", icon: MessageSquareText },
   { id: "laporan", label: "Laporan", icon: FileText },
   { id: "email", label: "Email", icon: Megaphone },
+  { id: "threads", label: "Threads", icon: MessagesSquare },
 ];
 type Tab = (typeof TABS)[number]["id"];
 
@@ -280,13 +283,14 @@ export default function App() {
           {tab === "feedback" && <FeedbackSection />}
           {tab === "laporan" && <LaporanSection />}
           {tab === "email" && <EmailSection />}
+          {tab === "threads" && <ThreadsBotSection />}
         </main>
       </div>
 
       {/* Phones: bottom tabs. */}
       <nav
         aria-label="Bagian"
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-7 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-flow-col auto-cols-fr overflow-x-auto border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         {TABS.map((t) => (
           <a

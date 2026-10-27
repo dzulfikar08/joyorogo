@@ -55,6 +55,7 @@ import { registerPrivacyRoutes } from "./privacy";
 import { registerFamilyRoutes } from "./family";
 import { registerCorosRoutes } from "./coros";
 import { registerStravaRoutes } from "./strava";
+import { registerThreadsBotRoutes, runThreadsBotTick } from "./threads-bot";
 import {
   runTestflightNoticeSweep,
   sendTestflightNotice,
@@ -64,6 +65,8 @@ import { registerUnsubscribeRoutes } from "./unsubscribe";
 import { registerFitProxy } from "./fit-proxy";
 import { registerWatchWorkoutRoutes } from "./watch-workout";
 import { sweepMcp } from "@joyorogo/api/lib/mcp-connections";
+import { botConfig } from "@joyorogo/api/lib/threads-bot/config";
+import { analyzeFoodPhoto } from "@joyorogo/api/lib/vision";
 import { scrubExpiredStravaRows } from "@joyorogo/api/lib/strava-retention";
 import { env } from "./env.server";
 import { createAuth, getDb } from "./services";
@@ -148,6 +151,18 @@ registerAdminRoutes(app, {
       text: "Email dari JoyoRogo berhasil terkirim.",
     }),
 });
+
+// Threads mention bot (docs/threads-bot.md): Meta's webhook + OAuth redirect, and the review queue behind the admin gate above.
+// Photo scans use the same analyzeFoodPhoto as the app, on the image held in memory; nothing about the photo is stored.
+const threadsBot = {
+  getDb,
+  config: () => botConfig(env),
+  scan: (image: { imageBase64: string; mimeType: string }) =>
+    analyzeFoodPhoto(env.AI, { ...image, model: env.AI_VISION_MODEL || undefined }),
+  createAuth,
+  stateSecret: env.BETTER_AUTH_SECRET,
+};
+registerThreadsBotRoutes(app, threadsBot);
 
 // Announcement mail: console endpoints behind the admin gate above, key-gated CLI test/status
 // (BROADCAST_KEY), and the public unsubscribe page the mails link to.
@@ -851,6 +866,11 @@ export default {
     ctx.waitUntil(
       runPushCron({ db: getDb(), env }).catch((error: unknown) =>
         console.error("[push] cron failed", error),
+      ),
+    );
+    ctx.waitUntil(
+      runThreadsBotTick({ db: getDb(), config: botConfig(env), scan: threadsBot.scan }).catch((error: unknown) =>
+        console.error("[threads-bot] tick failed", error),
       ),
     );
     ctx.waitUntil(billing.reconcilePending());

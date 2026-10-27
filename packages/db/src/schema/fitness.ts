@@ -452,7 +452,8 @@ export const aiUsage = sqliteTable(
     // "joyo": one hosted Joyo AI question that reached the model (joyo.chat); Pro, capped per day by JOYO_AI_DAILY_CAP. Counts only, never text.
     // "recap": one model run of the weekly reflection (stats.generateWeekReflection); free, capped per week by its cache row.
     // "macros": P/K/L guessed for a typed name + kcal (food.add without macros, lib/macro-estimate.ts); free, capped per day.
-    scanType: text("scan_type", { enum: ["anon", "user", "retry", "failed", "correction", "label", "coach", "joyo", "recap", "dishware", "macros"] }).notNull(),
+    // "threads": one photo scan for the Threads mention bot (lib/threads-bot, docs/threads-bot.md); no user row, capped per day by THREADS_BOT_DAILY_CAP.
+    scanType: text("scan_type", { enum: ["anon", "user", "retry", "failed", "correction", "label", "coach", "joyo", "recap", "dishware", "macros", "threads"] }).notNull(),
     latencyMs: integer("latency_ms").notNull(),
     usageJson: text("usage_json"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
