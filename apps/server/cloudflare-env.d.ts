@@ -61,6 +61,7 @@ declare module "cloudflare:workers" {
       DOKU_CLIENT_ID?: string;
       DOKU_SECRET_KEY?: string;
       DOKU_BASE_URL?: string;
+      DOKU_NOTIFY_BASE_URL?: string;
       PAKASIR_SLUG?: string;
       PAKASIR_API_KEY?: string;
       PAKASIR_WEBHOOK_SECRET?: string;
