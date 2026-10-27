@@ -13,6 +13,7 @@ import { fmtDate } from "@joyorogo/i18n";
 
 import { MacroLine } from "@/components/macro-line";
 import { FoodSticker } from "@/components/sticker";
+import { Mascot } from "@/components/mascot";
 import { Card, Num, Segmented, Text } from "@/components/ui";
 import { fmtInt, fmtKcalLabel } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
@@ -53,7 +54,9 @@ export function FotoView({
   });
   const items = query.data?.items ?? [];
   const averageKcal =
-    items.length > 0 ? Math.round(items.reduce((sum, item) => sum + item.kcal, 0) / items.length) : null;
+    items.length > 0
+      ? Math.round(items.reduce((sum, item) => sum + item.kcal, 0) / items.length)
+      : null;
   const title =
     span === "minggu"
       ? t("photos.range", { from: fmtDate(from, "short"), to: fmtDate(to, "short") })
@@ -135,7 +138,11 @@ export function FotoView({
                       // A kind filter hides some rows of a scan: the plate's total would not match, so the tile opens its own cutout.
                       onPress={
                         item.scanId
-                          ? () => onViewSticker(kind === "semua" ? item : { ...item, plateScanId: null }, items)
+                          ? () =>
+                              onViewSticker(
+                                kind === "semua" ? item : { ...item, plateScanId: null },
+                                items,
+                              )
                           : undefined
                       }
                     />
@@ -161,6 +168,7 @@ export function FotoView({
         </View>
       ) : (
         <Card style={styles.empty}>
+          <Mascot pose="scan" size="md" />
           <Text style={styles.emptyTitle}>
             {query.isPending ? t("photos.loading") : t("photos.empty.title")}
           </Text>

@@ -93,7 +93,9 @@ export function FotoView({
   });
   const items = query.data?.items ?? [];
   const averageKcal =
-    items.length > 0 ? Math.round(items.reduce((sum, item) => sum + item.kcal, 0) / items.length) : null;
+    items.length > 0
+      ? Math.round(items.reduce((sum, item) => sum + item.kcal, 0) / items.length)
+      : null;
   const title =
     span === "minggu"
       ? t("photos.range", { from: dayMonth(from), to: dayMonth(to) })
@@ -155,7 +157,7 @@ export function FotoView({
         </ul>
       ) : (
         <div className="mt-3 rounded-3xl bg-card p-6 text-center">
-          <Mascot pose="ready" size="md" className="mb-3" />
+          <Mascot pose="scan" size="md" className="mb-3" />
           <p className="text-base font-bold">
             {query.isPending ? t("photos.loading") : t("photos.empty.title")}
           </p>

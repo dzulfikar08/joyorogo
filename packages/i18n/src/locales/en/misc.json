@@ -48,9 +48,12 @@
       "proud": "Joyo looking proud, eyes closed",
       "ready": "Joyo standing ready for action",
       "relax": "Joyo relaxing",
+      "scale": "Joyo pointing at a kitchen scale showing 250 g",
+      "scan": "Joyo photographing a plate of rice and fried chicken with a phone",
       "sleepy": "Joyo curled up asleep",
       "surprised": "Joyo looking surprised",
       "thinking": "Joyo thinking, chin in hand",
+      "watch": "Joyo running, checking a smartwatch",
       "wink": "Joyo winking",
       "working": "Joyo working on a laptop"
     }

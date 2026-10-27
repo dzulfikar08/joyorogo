@@ -26,6 +26,9 @@ poses are trimmed (no upscaling; `relax` downscaled to 600 px); `alert` and `hea
 | `working`                                  | typing on a laptop                                             | 512×512   | sheet "Focused"     |
 | `on-it`                                    | writing in a notebook (no lettering)                           | 512×512   | sheet "Working"     |
 | `eating`                                   | eating a bowl of food                                          | 512×512   | sheet "Eating"      |
+| `scan`                                     | photographing a plate with a phone                             | 512×512   | scan image          |
+| `scale`                                    | pointing at a kitchen scale (250 g)                            | 512×512   | scale image         |
+| `watch`                                    | running, checking a smartwatch                                 | 512×512   | watch image         |
 | `sleepy`                                   | asleep on folded arms, `Zzz`                                   | 512×512   | sheet "Resting"     |
 | `love`                                     | hugging a heart                                                | 512×512   | sheet "Love"        |
 | `icon`                                     | full rounded app-icon tile (not a cutout), transparent corners | 1024×1024 | icon tile           |
@@ -62,15 +65,15 @@ consumers reference assets by name.
 Built from the bust cut-out (shoulders extended sideways so a scaled-down bust never shows the frame's cut) on a
 deep-green radial gradient (`#2c9452` → `#157040` → `#083a25`), and from the monochrome glyph:
 
-| File | What |
-|---|---|
-| `apps/native/assets/images/icon.png` | iOS/Expo icon, 1024 opaque (iOS masks it) |
-| `apps/native/assets/images/android-icon-{background,foreground}.png` | adaptive icon, 432 px; the head sits in the 264 px safe circle |
-| `apps/native/assets/images/android-icon-monochrome.png` | themed icon and notification small icon: the glyph, ink as alpha |
-| `apps/native/assets/images/splash-icon{,-dark}.png` | rounded tile, transparent corners, 1024 (palette PNG) |
-| `apps/native/assets/images/favicon.png`, `apps/web/public/favicon.png` | head-only tile, 48 / 32 px |
-| `apps/web/public/icons/icon-{192,512}.png` | PWA `any` icons, rounded tile (palette PNG) |
-| `apps/web/public/icons/icon-maskable-512.png`, `apple-touch-icon.png` | full-bleed square (palette PNG) |
+| File                                                                   | What                                                             |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `apps/native/assets/images/icon.png`                                   | iOS/Expo icon, 1024 opaque (iOS masks it)                        |
+| `apps/native/assets/images/android-icon-{background,foreground}.png`   | adaptive icon, 432 px; the head sits in the 264 px safe circle   |
+| `apps/native/assets/images/android-icon-monochrome.png`                | themed icon and notification small icon: the glyph, ink as alpha |
+| `apps/native/assets/images/splash-icon{,-dark}.png`                    | rounded tile, transparent corners, 1024 (palette PNG)            |
+| `apps/native/assets/images/favicon.png`, `apps/web/public/favicon.png` | head-only tile, 48 / 32 px                                       |
+| `apps/web/public/icons/icon-{192,512}.png`                             | PWA `any` icons, rounded tile (palette PNG)                      |
+| `apps/web/public/icons/icon-maskable-512.png`, `apple-touch-icon.png`  | full-bleed square (palette PNG)                                  |
 
 The logo next to the "JoyoRogo" wordmark everywhere on the web (landing header and footer, `/my`, `/sg`, blog header, the
 signed-in app's desktop bar, onboarding, invite and AI-connection pages, the admin site, the unsubscribe page) is

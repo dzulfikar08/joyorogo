@@ -20,9 +20,12 @@ const POSES = [
   "proud",
   "ready",
   "relax",
+  "scale",
+  "scan",
   "sleepy",
   "surprised",
   "thinking",
+  "watch",
   "wink",
   "working",
 ] as const;

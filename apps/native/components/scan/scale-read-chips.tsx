@@ -14,6 +14,7 @@ import {
 } from "@joyorogo/api/lib/scale-chip";
 import type { ScaleReadChip } from "@joyorogo/api/lib/scale-chip";
 
+import { Mascot } from "@/components/mascot";
 import { Button, Chip, Input, Text } from "@/components/ui";
 import { fmtGramsLabel } from "@/utils/format";
 
@@ -93,12 +94,17 @@ export function ScaleReadChips({
           compact
           label={
             chip.tareKind && tare > 0
-              ? t(chip.count > 1 ? "result.items.scaleReadSharedTared" : "result.items.scaleReadTared", {
-                  value,
-                  count: chip.count,
-                  container: t(`result.items.container_${chip.tareKind}`),
-                  tare: fmtGramsLabel(tare),
-                })
+              ? t(
+                  chip.count > 1
+                    ? "result.items.scaleReadSharedTared"
+                    : "result.items.scaleReadTared",
+                  {
+                    value,
+                    count: chip.count,
+                    container: t(`result.items.container_${chip.tareKind}`),
+                    tare: fmtGramsLabel(tare),
+                  },
+                )
               : chip.count > 1
                 ? t("result.items.scaleReadShared", { value, count: chip.count })
                 : t("result.items.scaleRead", { value })
@@ -117,7 +123,10 @@ export function ScaleReadChips({
             compact
             label={
               tare > 0
-                ? t(chip.tareKind ? "result.items.tareAppliedEstimate" : "result.items.tareApplied", { grams: fmtGramsLabel(tare) })
+                ? t(
+                    chip.tareKind ? "result.items.tareAppliedEstimate" : "result.items.tareApplied",
+                    { grams: fmtGramsLabel(tare) },
+                  )
                 : t("result.items.tareChip")
             }
             selected={tare > 0 || open}
@@ -130,8 +139,13 @@ export function ScaleReadChips({
       </View>
       {open && scaleActive ? (
         <View style={styles.panel}>
-          <Text style={styles.title}>{t("result.items.tareTitle")}</Text>
-          <Text style={styles.hint}>{t("result.items.tareHint")}</Text>
+          <View style={styles.head}>
+            <Mascot pose="scale" size="sm" />
+            <View style={styles.headText}>
+              <Text style={styles.title}>{t("result.items.tareTitle")}</Text>
+              <Text style={styles.hint}>{t("result.items.tareHint")}</Text>
+            </View>
+          </View>
           <View style={styles.row}>
             {recent.map((g) => (
               <Chip key={`r${g}`} compact label={fmtGramsLabel(g)} onPress={() => apply(g)} />
@@ -165,7 +179,12 @@ export function ScaleReadChips({
               onPress={() => apply(Math.round(typedGrams))}
             />
             {tare > 0 ? (
-              <Button size="sm" variant="ghost" label={t("result.items.tareRemove")} onPress={() => apply(0)} />
+              <Button
+                size="sm"
+                variant="ghost"
+                label={t("result.items.tareRemove")}
+                onPress={() => apply(0)}
+              />
             ) : null}
           </View>
           {tooHeavy ? (
@@ -195,13 +214,21 @@ const styles = StyleSheet.create((theme) => ({
     borderWidth: 1,
     borderColor: theme.colors.hairline,
   },
+  head: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  headText: {
+    flex: 1,
+    gap: theme.spacing.xs,
+  },
   title: {
     fontSize: theme.fontSize.sm,
     fontFamily: theme.fonts.medium,
     color: theme.colors.foreground,
   },
   hint: {
-    marginTop: -theme.spacing.xs,
     fontSize: theme.fontSize.xs,
     color: theme.colors.mutedForeground,
   },
