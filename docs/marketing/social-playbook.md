@@ -107,8 +107,10 @@ The owner decided on the handle `joyorogo` for TikTok and Instagram on 18 Oct (a
 | joyofit.id, joyofit.app, joyofitapp | Free | Free | |
 
 `joyorogo` cannot be identical on both platforms because TikTok is taken, and Instagram rejects `joyorogo.com` as a
-username (tested 20 Oct). Handle: `joyorogocom` on Instagram (created 20 Oct, signup email dzulfikar@joyorogo.com),
-TikTok and (through Instagram) Threads. Register `joyofit.id` on Instagram and TikTok to hold the name, without posting.
+username (tested 20 Oct). The first account, `joyorogocom` (created 20 Oct from a desktop browser), was disabled by
+Instagram the same day without review (JRG-307). Its replacement, `joyorogo_com`, was created on 27 Oct from the
+phone app and runs a week of normal use before any link or automation; TikTok takes the same handle once the brand SIM
+exists, and Threads follows Instagram. Register `joyofit.id` on Instagram and TikTok to hold the name, without posting.
 One brand account carries both apps until JoyoFit has its own weekly content volume: Pro is shared, the domain is
 shared, and one person runs it.
 
