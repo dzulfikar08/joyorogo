@@ -128,6 +128,8 @@
     "BILLING_PROVIDER": "doku",
     "DOKU_CLIENT_ID": "BRN-0177-1790860845392",
     "DOKU_BASE_URL": "https://api.doku.com",
+    // DOKU notifications skip the zone's Bot Fight Mode by posting to workers.dev (.env.schema DOKU_NOTIFY_BASE_URL).
+    "DOKU_NOTIFY_BASE_URL": "https://joyorogo-server-live-dzul-btifrf7qulj3wn55.dzulfikar-at.workers.dev",
     "PAKASIR_SLUG": "joyorogo",
     // Polar USD checkout (docs/pricing.md). Secrets POLAR_ACCESS_TOKEN and POLAR_WEBHOOK_SECRET are set with wrangler secret put.
     "POLAR_PRODUCT_MONTHLY_ID": "0eccddaa-1f8d-404c-b68c-7bfc99026f0c",

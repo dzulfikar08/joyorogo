@@ -87,6 +87,7 @@ export type BillingEnv = PaywallEnv & GooglePlayEnv & PolarEnv & AppVersionEnv &
   DOKU_CLIENT_ID?: string;
   DOKU_SECRET_KEY?: string;
   DOKU_BASE_URL?: string;
+  DOKU_NOTIFY_BASE_URL?: string;
   PAKASIR_SLUG?: string;
   PAKASIR_API_KEY?: string;
   PAKASIR_WEBHOOK_SECRET?: string;
@@ -181,6 +182,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   const paymentMethods = PAYMENT_METHODS.filter((method) => configured[METHOD_GATEWAY[method]]);
   const appUrl = (env.APP_URL || env.BETTER_AUTH_URL).replace(/\/$/, "");
   const apiUrl = env.BETTER_AUTH_URL.replace(/\/$/, "");
+  const dokuNotifyUrl = `${(env.DOKU_NOTIFY_BASE_URL || apiUrl).replace(/\/$/, "")}${DOKU_WEBHOOK_PATH}`;
 
   const sessionUser = async (headers: Headers) =>
     (await (await deps.createAuth()).api.getSession({ headers }))?.user ?? null;
@@ -391,7 +393,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
               itemName: plan === "yearly" ? "JoyoRogo Pro 1 tahun" : "JoyoRogo Pro 1 bulan",
               customerEmail: me.email,
               customerName: me.name,
-              notifyUrl: `${apiUrl}${DOKU_WEBHOOK_PATH}`,
+              notifyUrl: dokuNotifyUrl,
               returnUrl,
             });
       await db.update(payment).set({ paymentUrl }).where(eq(payment.orderId, orderId));
