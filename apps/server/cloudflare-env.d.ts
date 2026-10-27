@@ -93,6 +93,20 @@ declare module "cloudflare:workers" {
       VAPID_PUBLIC_KEY?: string;
       VAPID_PRIVATE_KEY?: string;
       VAPID_SUBJECT?: string;
+      // Threads mention bot (docs/threads-bot.md). Mode: off (default) | review | auto.
+      THREADS_BOT_MODE?: string;
+      // Scans per Threads user / in total per WIB day; empty = 3 / 200.
+      THREADS_BOT_USER_DAILY_CAP?: string;
+      THREADS_BOT_DAILY_CAP?: string;
+      // kcal range half-width as a fraction; empty = 0.2 (±20%).
+      THREADS_BOT_KCAL_BAND?: string;
+      THREADS_APP_ID?: string;
+      THREADS_APP_SECRET?: string;
+      THREADS_WEBHOOK_VERIFY_TOKEN?: string;
+      // Optional: the Meta app secret, accepted besides THREADS_APP_SECRET as the key of webhook signatures.
+      THREADS_WEBHOOK_SECRET?: string;
+      // Optional long-lived token that seeds the D1 row (the admin Connect flow replaces it).
+      THREADS_ACCESS_TOKEN?: string;
     }
   }
 }

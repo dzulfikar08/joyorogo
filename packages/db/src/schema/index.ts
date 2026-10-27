@@ -17,3 +17,4 @@ export * from "./meal";
 export * from "./push";
 export * from "./sleep-insights";
 export * from "./dishware";
+export * from "./threads";

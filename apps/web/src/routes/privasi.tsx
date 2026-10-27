@@ -128,6 +128,19 @@ function PrivasiPage() {
           </section>
 
           <section className="rounded-3xl bg-card p-5">
+            <h2 className="text-base font-bold tracking-tight">Bot kalori di Threads</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Kalau kamu menandai akun Threads JoyoRogo di postingan publik berisi foto makanan (atau
+              di balasan di bawah foto makanan), kami membaca postingan itu lewat API resmi Threads,
+              mengirim fotonya ke AI untuk memperkirakan kalori, lalu membalas di Threads. Fotonya
+              hanya dibaca ke memori untuk satu kali scan dan tidak disimpan. Yang kami simpan hanya
+              username Threads-mu, nama makanan dan rentang kalori dari AI, status balasan, dan
+              waktunya. Postingan privat tidak terbaca. Mau datamu dihapus? Kirim email ke
+              kontak di bawah.
+            </p>
+          </section>
+
+          <section className="rounded-3xl bg-card p-5">
             <h2 className="text-base font-bold tracking-tight">Lokasi tempat makan</h2>
             <p className="mt-3 text-sm leading-relaxed">
               Lokasi mati secara bawaan. Kalau kamu menyalakan "Simpan lokasi tempat makan" saat

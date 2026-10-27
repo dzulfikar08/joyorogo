@@ -614,3 +614,45 @@ export interface BroadcastSendResult {
   batch: { sent: number; failed: number; stopped: string | null };
   status: BroadcastStatus;
 }
+
+/** Threads mention bot (/api/admin/threads-bot, docs/threads-bot.md). */
+export interface ThreadsBotStatus {
+  mode: "off" | "review" | "auto";
+  caps: { user: number; global: number };
+  band: number;
+  configured: { app: boolean; webhook: boolean; seed: boolean };
+  redirectUri: string;
+  webhookUrl: string;
+  account: {
+    username: string | null;
+    source: "oauth" | "seed";
+    status: "ok" | "expiring" | "expired";
+    expiresAt: string | number;
+    refreshedAt: string | number | null;
+    lastPolledAt: string | number | null;
+    lastError: string | null;
+  } | null;
+  today: { scans: number; sent: number; pending: number };
+}
+
+export interface ThreadsMentionItem {
+  mediaId: string;
+  author: string;
+  status: "received" | "scanning" | "skipped" | "pending_review" | "publishing" | "sent" | "rejected" | "failed";
+  skipReason: string | null;
+  kind: "estimate" | "unclear" | null;
+  dishes: { name: string; kcal: number; low: number; high: number }[];
+  kcalLow: number | null;
+  kcalHigh: number | null;
+  replyText: string | null;
+  mode: "review" | "auto" | null;
+  replyMediaId: string | null;
+  error: string | null;
+  reviewedBy: string | null;
+  createdAt: string | number;
+  sentAt: string | number | null;
+  /** Read live from Threads for queued drafts only; the console never stores the photo. */
+  photoUrl?: string | null;
+  permalink?: string | null;
+}
+

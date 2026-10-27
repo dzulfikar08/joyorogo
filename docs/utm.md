@@ -31,12 +31,13 @@ JoyoRogo linking to JoyoFit uses `utm_source=joyorogo`. Add new sources to this 
 | `dm` | Direct message or private chat |
 | `referral` | A link placed on another page, including a Strava description |
 | `app` | A link opened from inside one of our apps |
+| `reply` | A reply our Threads mention bot posts (docs/threads-bot.md): `utm_source=threads&utm_medium=reply&utm_campaign=mention-bot` |
 
 ## utm_campaign: `<yyyy-mm>-<topic>`
 
 Month the campaign started plus a short topic: `2026-10-launch`, `2026-11-ramadan-diary`. Links that live in code for
 years (app cards, site buttons, the Strava description) are not dated; use `evergreen-<where>`, for example
-`evergreen-today-card`.
+`evergreen-today-card`. The Threads mention bot's replies use the undated `mention-bot` for the same reason.
 
 ## utm_content: post id
 
