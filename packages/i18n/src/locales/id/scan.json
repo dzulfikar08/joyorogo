@@ -33,7 +33,7 @@
   "idle": {
     "title": "Pindai makanan",
     "heading": "Arahkan ke piringmu",
-    "referenceHint": "Tips: taruh kartu (ATM/KTP) atau timbangan di samping makanan biar porsinya lebih pas.",
+    "referenceHint": "Tips: taruh kartu (ATM/KTP) di samping makanan sebagai petunjuk ukuran, atau timbangan biar beratnya terbaca.",
     "referenceHintScale": "Tips: punya timbangan dapur? Taruh piringnya di atas timbangan, angkanya ikut terbaca.",
     "referenceHintClose": "Tutup petunjuk",
     "tip": "1 piring per foto, dari dekat",
@@ -191,7 +191,16 @@
       "scaleGroup": "Pilih angka berat {{name}}",
       "scaleRead": "Terbaca dari timbangan: {{value}}",
       "scaleReadShared_other": "Terbaca dari timbangan: {{value}}, dibagi ke {{count}} item",
+      "scaleReadTared": "Terbaca dari timbangan: {{value}}, dikurangi {{container}} ~{{tare}}",
+      "scaleReadSharedTared_other": "Terbaca dari timbangan: {{value}}, dikurangi {{container}} ~{{tare}}, dibagi ke {{count}} item",
       "scaleAi": "Perkiraan foto: {{grams}}",
+      "tareAppliedEstimate": "Wadah ~−{{grams}}",
+      "container_bowl": "mangkuk",
+      "container_plate": "piring",
+      "container_box": "kotak",
+      "container_cup": "gelas",
+      "container_bag": "kantong",
+      "container_wrapper": "bungkus",
       "tareChip": "Termasuk wadah?",
       "tareApplied": "Wadah −{{grams}}",
       "tareTitle": "Berat wadah kosong",
@@ -351,9 +360,9 @@
     }
   },
   "dishware": {
-    "matched": "Piring: {{name}} ({{cm}} cm), jadi patokan ukuran porsi.",
+    "matched": "Piring: {{name}} ({{cm}} cm) terlihat, dipakai sebagai petunjuk ukuran saja. Gramnya tetap perkiraan.",
     "none": "Piring tidak dikenali, porsi diperkirakan biasa.",
-    "card": "Kartu terdeteksi, jadi patokan ukuran porsi."
+    "card": "Kartu terlihat di foto, dipakai sebagai petunjuk ukuran saja. Gramnya tetap perkiraan."
   },
   "simple": {
     "title": "Cek hasilnya",

@@ -7,7 +7,7 @@ type ScanResult = Awaited<ReturnType<AppRouterClient["ai"]["analyzeFood"]>>;
 export type PlateNoteData = Pick<ScanResult, "plate" | "card">;
 
 /**
- * One muted line under the scan total. A card the model was sure of is the reference ("Kartu terdeteksi");
+ * One muted line under the scan total. A card the model was sure of is "seen, a size hint only" (nothing turns it into grams);
  * without one, the registered plate it saw or "Piring tidak dikenali". Nothing when neither was asked.
  */
 export function PlateNote({ note }: { note: PlateNoteData | null | undefined }) {

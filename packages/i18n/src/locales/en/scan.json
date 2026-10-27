@@ -33,7 +33,7 @@
   "idle": {
     "title": "Scan food",
     "heading": "Point at your plate",
-    "referenceHint": "Tip: put a card (ATM/ID) or a kitchen scale next to your food so the portion comes out closer.",
+    "referenceHint": "Tip: put a card (ATM/ID) next to your food as a size hint, or a kitchen scale so the weight gets read.",
     "referenceHintScale": "Tip: got a kitchen scale? Put your plate on it and the number gets read too.",
     "referenceHintClose": "Dismiss tip",
     "tip": "One plate per photo, up close",
@@ -197,6 +197,16 @@
       "scaleRead": "Read from the scale: {{value}}",
       "scaleReadShared_one": "Read from the scale: {{value}}, split over {{count}} item",
       "scaleReadShared_other": "Read from the scale: {{value}}, split over {{count}} items",
+      "scaleReadTared": "Read from the scale: {{value}}, minus the {{container}} ~{{tare}}",
+      "scaleReadSharedTared_one": "Read from the scale: {{value}}, minus the {{container}} ~{{tare}}, split over {{count}} item",
+      "scaleReadSharedTared_other": "Read from the scale: {{value}}, minus the {{container}} ~{{tare}}, split over {{count}} items",
+      "tareAppliedEstimate": "Container ~−{{grams}}",
+      "container_bowl": "bowl",
+      "container_plate": "plate",
+      "container_box": "box",
+      "container_cup": "cup",
+      "container_bag": "bag",
+      "container_wrapper": "wrapper",
       "scaleAi": "Photo estimate: {{grams}}",
       "tareChip": "Includes the bowl?",
       "tareApplied": "Container −{{grams}}",
@@ -376,9 +386,9 @@
     }
   },
   "dishware": {
-    "matched": "Plate: {{name}} ({{cm}} cm), used as the size reference for portions.",
+    "matched": "Plate: {{name}} ({{cm}} cm) spotted, used as a size hint only. Grams are still an estimate.",
     "none": "Plate not recognised, portions estimated as usual.",
-    "card": "Card detected, used as the size reference for portions."
+    "card": "Card seen in the photo, used as a size hint only. Grams are still an estimate."
   },
   "simple": {
     "title": "Check the result",

@@ -8,6 +8,10 @@ import type { PortionNumbers } from "./portion-chip";
 
 export type ScaleUnit = "g" | "kg" | "oz" | "lb" | "ml" | "fl oz";
 
+/** What the model saw standing on the scale beside the food (lib/scale-reading.ts takes its weight off the reading). */
+export const CONTAINER_KINDS = ["bowl", "plate", "box", "cup", "bag", "wrapper"] as const;
+export type ContainerKind = (typeof CONTAINER_KINDS)[number];
+
 export type ScaleReadChip = {
   /** Which numbers the row shows: the scale's or the photo estimate's. */
   active: "scale" | "ai";
@@ -25,6 +29,11 @@ export type ScaleReadChip = {
    * the food). Absent = the reading is all food. The rows then share `grams - tare`.
    */
   tare?: number;
+  /**
+   * The container the scan itself saw on the scale and took off (lib/scale-reading.ts): `tare` is then an estimate for
+   * that kind of container, not a weighed one. Gone once the person sets a weight themselves (tareScaleRows).
+   */
+  tareKind?: ContainerKind;
 };
 
 type Swappable = Omit<PortionNumbers, "grams"> & { grams?: number; scaleRead?: ScaleReadChip };
@@ -137,12 +146,117 @@ export function tareScaleRows<T extends Swappable>(items: readonly T[], tare: nu
     if (!side) return it;
     const share = rows.length === 1 ? net : Math.max(1, Math.round((side.grams / sum) * net));
     const next = scaledBy(side, share);
-    const { tare: _old, ...base } = it.scaleRead!;
+    const { tare: _old, tareKind: _kind, ...base } = it.scaleRead!;
     const chip: ScaleReadChip = tare > 0 ? { ...base, tare: Math.round(tare) } : base;
     return chip.active === "scale"
       ? ({ ...it, ...next, scaleRead: chip } as T)
       : ({ ...it, scaleRead: { ...chip, other: next } } as T);
   });
+}
+
+/** `total` in whole grams split in the proportions of `weights`; the parts always add up to it. */
+export function splitGrams(total: number, weights: readonly number[]): number[] {
+  const sum = weights.reduce((a, b) => a + b, 0);
+  const parts = weights.map((w) => Math.max(1, Math.round((total * w) / sum)));
+  const drift = total - parts.reduce((a, b) => a + b, 0);
+  const biggest = parts.indexOf(Math.max(...parts));
+  parts[biggest] = Math.max(1, parts[biggest]! + drift);
+  return parts;
+}
+
+/**
+ * A row left out of the meal (the checkmark on a scan row): the reading weighed everything that was on the scale, so
+ * the rows that stay share all of it (minus the container), in the proportions of the photo estimates the reading was
+ * first spread by. Worked out from scratch on every toggle, so leaving a row out and putting it back restores the
+ * first split. Null when there is nothing to do: no covered row, a covered row showing the photo estimate (the person
+ * chose that side), or every covered row left out. A row whose object differs from `items[i]` was re-split.
+ */
+export function resplitScaleRows<T extends Swappable>(items: readonly T[], included: readonly boolean[]): T[] | null {
+  const rows = items.flatMap((it, i) => (it.scaleRead && it.grams !== undefined ? [i] : []));
+  const first = items[rows[0] ?? -1]?.scaleRead;
+  if (!first || rows.some((i) => items[i]!.scaleRead!.active !== "scale")) return null;
+  const net = netScaleGrams(first, first.tare ?? 0);
+  const pool = rows.filter((i) => included[i] !== false);
+  const weights = pool.map((i) => Math.max(0, items[i]!.scaleRead!.other.grams));
+  if (net === null || pool.length === 0 || weights.reduce((a, b) => a + b, 0) <= 0) return null;
+  const shares = pool.length === 1 ? [net] : splitGrams(net, weights);
+  const next = [...items];
+  pool.forEach((index, n) => {
+    const row = items[index]!;
+    if (row.grams === shares[n] && row.scaleRead!.count === pool.length) return;
+    const { portion: _stale, ...rest } = row;
+    next[index] = {
+      ...rest,
+      ...scaledBy(numbersOf({ ...rest, grams: row.grams! }), shares[n]!),
+      scaleRead: { ...row.scaleRead!, count: pool.length },
+    } as T;
+  });
+  return next;
+}
+
+type CorrectionRow = Omit<PortionNumbers, "grams"> & { grams?: number; kind?: string };
+
+/**
+ * The list after a typed or spoken correction (ai.correctScan) that removed rows the scale reading covered: the reading
+ * is the weight of everything that was on the scale, so the removed rows hand their share back to the rows that stay,
+ * in the proportions those rows had. What the person fixed themselves keeps its weight and comes off the pool first
+ * (a "portion" change, and an added row with grams; an added drink was never on the scale). A renamed row stays in the
+ * pool: its new name, not its place on the plate, changed. Every row that shares the reading gets its chip back (the
+ * server's answer carries none) with the container still taken off.
+ *
+ * Returns the correction's own items untouched when no covered row was removed, when a covered row shows the photo
+ * estimate (the person chose that side), or when the pool would be left empty or under a tenth of the reading. A row
+ * whose object differs from `patch.items[i]` is one that was re-split (its kcal draft needs the new number).
+ */
+export function resplitScaleAfterCorrection<B extends CorrectionRow & { scaleRead?: ScaleReadChip }, P extends CorrectionRow>(
+  base: readonly B[],
+  patch: {
+    items: readonly P[];
+    origins: ReadonlyArray<number | null>;
+    changes: ReadonlyArray<{ index: number; kind: string }>;
+  },
+): Array<P & { scaleRead?: ScaleReadChip }> {
+  const unchanged = (): Array<P & { scaleRead?: ScaleReadChip }> => [...patch.items];
+  const covered = new Set(base.flatMap((it, i) => (it.scaleRead && it.grams !== undefined ? [i] : [])));
+  const first = base.find((_it, i) => covered.has(i))?.scaleRead;
+  if (!first) return unchanged();
+  const kept = new Set(patch.origins.filter((o): o is number => o !== null));
+  if ([...covered].every((i) => kept.has(i))) return unchanged();
+  if ([...covered].some((i) => kept.has(i) && base[i]!.scaleRead!.active !== "scale")) return unchanged();
+  const net = netScaleGrams(first, first.tare ?? 0);
+  if (net === null) return unchanged();
+
+  const how = new Map(patch.changes.map((change) => [change.index, change.kind]));
+  const pool: number[] = [];
+  let fixed = 0;
+  patch.items.forEach((row, index) => {
+    const origin = patch.origins[index] ?? null;
+    const kind = how.get(index);
+    if (origin !== null && covered.has(origin)) {
+      if (kind === undefined || kind === "renamed") pool.push(index);
+      else fixed += row.grams ?? 0;
+    } else if (origin === null && kind === "added" && row.kind !== "minuman") {
+      fixed += row.grams ?? 0;
+    }
+  });
+  const poolNet = Math.round(net - fixed);
+  const weights = pool.map((i) => patch.items[i]!.grams ?? 0);
+  if (pool.length === 0 || poolNet < Math.max(pool.length, net * 0.1) || weights.reduce((a, b) => a + b, 0) <= 0) {
+    return unchanged();
+  }
+  const shares = pool.length === 1 ? [poolNet] : splitGrams(poolNet, weights);
+  const out = unchanged();
+  pool.forEach((index, n) => {
+    const row = patch.items[index]!;
+    const origin = patch.origins[index]!;
+    const { portion: _stale, ...rest } = row;
+    const own = numbersOf({ ...rest, grams: row.grams ?? 0 });
+    const other = how.get(index) === "renamed" ? numbersOf({ ...row, grams: row.grams ?? 0 }) : base[origin]!.scaleRead!.other;
+    out[index] = { ...rest, ...scaledBy(own, shares[n]!), scaleRead: { ...first, active: "scale", count: pool.length, other } } as P & {
+      scaleRead?: ScaleReadChip;
+    };
+  });
+  return out;
 }
 
 /** The list as stored in a diary row's items_json: without the chip's second set of numbers. */

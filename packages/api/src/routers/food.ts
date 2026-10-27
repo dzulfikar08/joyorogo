@@ -322,7 +322,7 @@ export const foodRouter = {
             .then(async (session) => {
               if (session?.keep && bucket) {
                 await recordKeptSaved(bucket, userId, scanPhotoId, {
-                  items: compactItems(rows),
+                  items: compactItems(rows, false),
                   at: session.savedAt ?? Date.now(),
                 });
               }

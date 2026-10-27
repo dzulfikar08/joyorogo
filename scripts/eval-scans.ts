@@ -83,6 +83,7 @@ import { PRIOR_BIG_PLATE, PRIOR_MIN_ENTRIES, TYPICAL_MIN_RATIO, TYPICAL_PORTIONS
 import type { HistoryRow } from "../packages/api/src/lib/portion-prior";
 import { swapPortionPrior } from "../packages/api/src/lib/portion-chip";
 import { applyScaleReading, parseScaleDigits, readScaleDisplay, scaleReadingGrams, SCALE_PROMPT } from "../packages/api/src/lib/scale-reading";
+import type { ContainerKind } from "../packages/api/src/lib/scale-chip";
 import type { ScaleOutcome } from "../packages/api/src/lib/scale-reading";
 import type { ScaleUnit } from "../packages/api/src/lib/scale-chip";
 import { NAME_MATCH_MIN, nameScore, pairItems } from "../packages/api/src/lib/scan-match";
@@ -266,24 +267,54 @@ const ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID ?? "b7e6f8457bd39fa37a7eea5249
 const CLOSE_PCT = 5;
 const SCALE_DIR = join(EVAL_DIR, "scale");
 
+/** The values `scale.json` takes for `container` (a type-only import of ContainerKind keeps this file runnable against code from before the field). */
+const SCALE_CONTAINERS = ["bowl", "plate", "box", "cup", "bag", "wrapper", "none"] as const satisfies ReadonlyArray<ContainerKind | "none">;
+
 /** What a kitchen-scale display in a photo shows, as labelled by a person who read it. */
-type ScaleTruth = { text: string; unit: ScaleUnit; appliesTo: "plate" | string[] };
+type ScaleTruth = {
+  text: string;
+  unit: ScaleUnit;
+  appliesTo: "plate" | string[];
+  /** What stands on the scale beside the food, as labelled by hand; absent = nobody said. */
+  container?: ContainerKind | "none";
+  /** The display was zeroed with the container on (tare). Absent = false whenever a container is labelled. */
+  tared?: boolean;
+  /** The food's own weight when the container was weighed; the error columns are against this instead of the display. */
+  foodGrams?: number;
+};
 
 /**
  * `scale.json` beside a photo ({"reading":"100","unit":"g","appliesTo":"plate" or ["nasi putih"]}) says
  * the photo shows a scale display and what it reads. Written by hand after looking at the photo; a photo
- * without the file is taken to show none.
+ * without the file is taken to show none. Optional: `container` (bowl, plate, box, cup, bag, wrapper, none: what
+ * stands on the scale), `tared` (true when the display was zeroed with it on) and `foodGrams` (the food's own weight,
+ * when the container was weighed).
  */
 async function loadScaleTruth(dir: string): Promise<ScaleTruth | undefined> {
   const file = join(dir, "scale.json");
   if (!existsSync(file)) return undefined;
-  const raw = (await Bun.file(file).json()) as { reading?: unknown; unit?: unknown; appliesTo?: unknown };
+  const raw = (await Bun.file(file).json()) as {
+    reading?: unknown;
+    unit?: unknown;
+    appliesTo?: unknown;
+    container?: unknown;
+    tared?: unknown;
+    foodGrams?: unknown;
+  };
   const unit = raw.unit as ScaleUnit;
   if (typeof raw.reading !== "string" || !["g", "kg", "oz", "lb", "ml", "fl oz"].includes(unit) || scaleReadingGrams(raw.reading, unit) === null) {
     throw new Error(`${file}: needs "reading" (the digits as shown, e.g. "100") and "unit" (g, kg, oz, lb, ml, fl oz)`);
   }
   const appliesTo = Array.isArray(raw.appliesTo) && raw.appliesTo.every((n) => typeof n === "string") && raw.appliesTo.length ? (raw.appliesTo as string[]) : "plate";
-  return { text: raw.reading, unit, appliesTo };
+  const container = typeof raw.container === "string" && (SCALE_CONTAINERS as readonly string[]).includes(raw.container) ? (raw.container as ContainerKind | "none") : undefined;
+  return {
+    text: raw.reading,
+    unit,
+    appliesTo,
+    ...(container ? { container } : {}),
+    ...(typeof raw.tared === "boolean" ? { tared: raw.tared } : {}),
+    ...(typeof raw.foodGrams === "number" && raw.foodGrams > 0 ? { foodGrams: raw.foodGrams } : {}),
+  };
 }
 
 /**
@@ -1127,13 +1158,14 @@ function scaleSection(variants: string[], cases: Case[], runs: Array<Run & { var
       md.push("");
     }
     if (withDisplay.length) {
-      md.push("Photos with a display: the weight of what the display covers, before (" + (reference ?? "no reference variant") + ") and after, against the display's grams.", "", "| Run | Display | Read | Conf | Result | Reference g | After g | Display g | Error before | Error after |", "|---|---|---|---|---|---|---|---|---|---|");
+      md.push("Photos with a display: the weight of what the display covers, before (" + (reference ?? "no reference variant") + ") and after, against the display's grams (or the food's own weight when `scale.json` has `foodGrams`). A photo whose display includes a container (`scale.json` container, not tared) has no food truth unless `foodGrams` is given: its error columns show the distance from the display, so a container taken off reads as a change there; read Tare g and After g.", "", "| Run | Display | Read | Conf | Result | Container read | Tare g | Reference g | After g | Truth g | Error before | Error after |", "|---|---|---|---|---|---|---|---|---|---|---|---|");
       const before: number[] = [];
       const after: number[] = [];
       for (const r of withDisplay) {
         const t = r.c.scale!;
-        const truthGrams = scaleReadingGrams(t.text, t.unit);
+        const truthGrams = t.foodGrams ?? scaleReadingGrams(t.text, t.unit);
         const o = outcomeOf(r);
+        const kind = o?.container ? `${o.container.kind}${o.container.tared === true ? " (tared)" : o.container.tared === false ? "" : " (tared ?)"}${o.container.skipped ? ` [${o.container.skipped}]` : ""}` : "-";
         const base = reference ? runs.find((x) => x.variant === reference && x.c.id === r.c.id && x.rep === r.rep) : undefined;
         const baseGrams = base ? coveredGrams(base, t) : NaN;
         const afterGrams = coveredGrams(r, t);
@@ -1143,9 +1175,29 @@ function scaleSection(variants: string[], cases: Case[], runs: Array<Run & { var
           after.push(Math.abs(err(afterGrams)));
         }
         const result = !o ? "no reading" : o.applied.length ? `used on ${o.applied.length} item(s)` : `set aside: ${o.skipped ?? "-"}`;
-        md.push(`| ${r.c.id}#${r.rep} | ${t.text} ${t.unit} | ${o ? `${o.text} ${o.unit}` : "-"} | ${o ? f(o.confidence, 2) : "-"} | ${result} | ${f(baseGrams, 0)} | ${f(afterGrams, 0)} | ${f(truthGrams ?? NaN, 0)} | ${f(err(baseGrams), 0)}% | ${f(err(afterGrams), 0)}% |`);
+        md.push(`| ${r.c.id}#${r.rep} | ${t.text} ${t.unit} | ${o ? `${o.text} ${o.unit}` : "-"} | ${o ? f(o.confidence, 2) : "-"} | ${result} | ${kind} | ${o?.container?.tare ?? 0} | ${f(baseGrams, 0)} | ${f(afterGrams, 0)} | ${f(truthGrams ?? NaN, 0)} | ${f(err(baseGrams), 0)}% | ${f(err(afterGrams), 0)}% |`);
       }
       md.push("", `Mean |grams error| over ${before.length} paired run(s): before ${f(mean(before), 1)}%, after ${f(mean(after), 1)}%.`, "");
+      const labelled = withDisplay.filter((r) => r.c.scale!.container !== undefined);
+      if (labelled.length) {
+        const read = (r: Run) => outcomeOf(r)?.container;
+        const untared = (r: Run) => r.c.scale!.container !== "none" && r.c.scale!.tared !== true;
+        const right = (r: Run) => read(r)?.kind === r.c.scale!.container;
+        const taredRight = (r: Run) => read(r) !== undefined && (read(r)!.tared === true) === (r.c.scale!.tared === true);
+        const heavy = labelled.filter(untared);
+        const lightOrTared = labelled.filter((r) => !untared(r));
+        md.push(
+          "Container (photos labelled in `scale.json`):",
+          "",
+          "| Metric | Value |",
+          "|---|---|",
+          `| container kind read right | ${labelled.filter(right).length} of ${labelled.length} |`,
+          `| tared flag read right | ${labelled.filter(taredRight).length} of ${labelled.length} |`,
+          `| container on the scale, not tared: container weight taken off | ${heavy.filter((r) => (read(r)?.tare ?? 0) > 0).length} of ${heavy.length} |`,
+          `| no container or tared: wrongly taken off | ${lightOrTared.filter((r) => (read(r)?.tare ?? 0) > 0).length} of ${lightOrTared.length} |`,
+          "",
+        );
+      }
     }
   }
   return [...md, ""];

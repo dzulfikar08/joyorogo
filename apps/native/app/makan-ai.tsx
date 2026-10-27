@@ -54,7 +54,7 @@ import { gramsForTypedKcal, macrosForTypedKcal, scalePortion } from "@joyorogo/a
 import { modelNumbers, swapPortionPrior, withoutPortionPrior } from "@joyorogo/api/lib/portion-chip";
 import type { PortionPriorChip } from "@joyorogo/api/lib/portion-chip";
 import type { UsualDensityNote } from "@joyorogo/api/lib/usual-density";
-import { swapScaleRead, tareScaleRows, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
+import { resplitScaleRows, swapScaleRead, tareScaleRows, withoutScaleRead } from "@joyorogo/api/lib/scale-chip";
 import type { ScaleReadChip } from "@joyorogo/api/lib/scale-chip";
 import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 import { cupPick } from "@joyorogo/api/lib/drink-options";
@@ -1327,6 +1327,25 @@ export default function MakanAi() {
   };
 
   /**
+   * The checkmark on a row. A row the scale reading covered that is left out hands its share of the reading to the
+   * rows that stay (and takes it back when it is put back in): the display weighed everything on the scale.
+   */
+  const toggleInclude = (index: number) => {
+    const included = drafts.map((draft, i) => (i === index ? !draft.include : draft.include));
+    const next = resplitScaleRows(items, included);
+    setDrafts((prev) =>
+      prev.map((draft, i) =>
+        i === index
+          ? { ...draft, include: included[i]! }
+          : next && next[i] !== items[i]
+            ? { ...draft, kcal: String(next[i]!.kcal) }
+            : draft,
+      ),
+    );
+    if (next) setItems(next);
+  };
+
+  /**
    * "Jumlah": one tap on the stepper puts another count on a row of pieces; weight, kcal (the typed one scales
    * too) and macros follow. The AI breakdown stays as the model answered, so the new count is a correction.
    */
@@ -1755,11 +1774,7 @@ export default function MakanAi() {
                           {fmtKcalLabel(parseNum(draft.kcal) ?? item.kcal)}
                         </Num>
                       }
-                      onPress={() =>
-                        setDrafts((prev) =>
-                          prev.map((d, i) => (i === index ? { ...d, include: !d.include } : d)),
-                        )
-                      }
+                      onPress={() => toggleInclude(index)}
                     />
                   </ItemCard>
                 );
@@ -2086,11 +2101,7 @@ export default function MakanAi() {
                       <Text style={styles.kcalUnit}>{kcalUnit()}</Text>
                     </View>
                   }
-                  onPress={() =>
-                    setDrafts((prev) =>
-                      prev.map((d, i) => (i === index ? { ...d, include: !d.include } : d)),
-                    )
-                  }
+                  onPress={() => toggleInclude(index)}
                 />
                 </ItemCard>
               );

@@ -764,7 +764,7 @@
   },
   "dishware": {
     "title": "Piring saya",
-    "intro": "Daftarkan piring dan mangkuk yang biasa kamu pakai, sekali saja. Ukurannya jadi patokan waktu AI memperkirakan porsi dari foto, jadi gramnya lebih dekat ke kenyataan. Makan di tempat lain? Tidak masalah, scan jalan seperti biasa.",
+    "intro": "Daftarkan piring dan mangkuk yang biasa kamu pakai, sekali saja. AI diberi tahu ukurannya waktu memperkirakan porsi dari foto sebagai petunjuk, tapi gramnya tetap perkiraan. Makan di tempat lain? Tidak masalah, scan jalan seperti biasa.",
     "empty": "Belum ada piring. Tambah satu, cukup sekali.",
     "add": "Tambah piring/mangkuk",
     "slots": "{{used}} dari {{max}} piring",

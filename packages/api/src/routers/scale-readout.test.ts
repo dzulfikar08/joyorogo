@@ -89,6 +89,19 @@ describe("ai.analyzeFood with the kitchen-scale readout", () => {
     expect(usage.scale).toMatchObject({ text: "100", unit: "g", applied: [0], before: [150], usage: { completion_tokens: 30 } });
   });
 
+  test("a bowl on the scale that was not tared: its weight comes off, the chip and the ledger say so", async () => {
+    const BOWL = { reading: "668", unit: "g", confidence: 0.95, appliesTo: "plate", container: "bowl", material: "ceramic", tared: false };
+    const { ai } = fakeAi(scaleAnswer(BOWL));
+    const result = await call(aiRouter.analyzeFood, INPUT, { context: ctx("on", ai, "on") });
+    const [rice, ayam] = result.items;
+    expect(rice!.scaleRead).toMatchObject({ grams: 668, tare: 250, tareKind: "bowl", count: 2 });
+    expect(rice!.grams! + ayam!.grams!).toBe(668 - 250);
+    await Promise.all(background);
+    const { rows } = await client.execute(`SELECT usage_json FROM ai_usage WHERE user_id = 'on' ORDER BY rowid DESC LIMIT 1`);
+    const usage = JSON.parse(String(rows[0]!.usage_json));
+    expect(usage.scale.container).toEqual({ kind: "bowl", material: "ceramic", tared: false, tare: 250 });
+  });
+
   test("no display, a low-confidence read or a failing scale call: the scan is untouched", async () => {
     for (const scale of [scaleAnswer(null), scaleAnswer({ ...READ, confidence: 0.4 }), new Error("scale model down")]) {
       const { ai, calls } = fakeAi(scale);

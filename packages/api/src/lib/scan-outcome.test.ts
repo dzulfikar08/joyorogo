@@ -17,6 +17,7 @@ import {
   recordSessionCorrection,
   recordSessionRetry,
   recordSessionSaved,
+  savedGramSources,
   scanDiff,
   scanOutcome,
 } from "./scan-outcome";
@@ -58,9 +59,71 @@ async function outcomeOf(photoId: string, now = Date.now()): Promise<string> {
 describe("compactItems", () => {
   test("keeps name, grams, kcal, macros and confidence; drops nulls", () => {
     expect(compactItems([AI[0]!, { name: "x", grams: null, kcal: 10.4, protein: null }])).toEqual([
-      { n: "nasi goreng", g: 300, k: 600, p: 12, c: 90, f: 20, cf: 0.8 },
+      { n: "nasi goreng", g: 300, gs: "model", k: 600, p: 12, c: 90, f: 20, cf: 0.8 },
       { n: "x", k: 10 },
     ]);
+  });
+
+  test("gs says where the grams came from: the chip that is showing, else the model", () => {
+    const row = (name: string, extra: Record<string, unknown>) => ({ name, grams: 100, kcal: 100, ...extra });
+    expect(
+      compactItems([
+        row("a", {}),
+        row("b", { scaleRead: { active: "scale" } }),
+        row("c", { scaleRead: { active: "ai" } }),
+        row("d", { portionPrior: { active: "prior" } }),
+        row("e", { portionPrior: { active: "ai" } }),
+        { name: "no grams", kcal: 10 },
+      ]).map((i) => i.gs),
+    ).toEqual(["model", "scale", "model", "prior", "model", undefined]);
+  });
+
+  test("a diary row has no chip: sources are only stamped on request", () => {
+    expect(compactItems([AI[0]!], false)[0]).not.toHaveProperty("gs");
+  });
+});
+
+describe("savedGramSources", () => {
+  const answer = compactItems([
+    { name: "nasi putih", grams: 100, kcal: 130, scaleRead: { active: "scale" } },
+    { name: "ayam goreng", grams: 80, kcal: 200, portionPrior: { active: "prior" } },
+    { name: "telur dadar", grams: 50, kcal: 90 },
+  ]);
+
+  test("unchanged grams keep the answer's source, edited grams are the user's", () => {
+    const saved = compactItems(
+      [
+        { name: "nasi putih", grams: 100, kcal: 130 },
+        { name: "ayam goreng", grams: 120, kcal: 300 },
+        { name: "telur dadar", grams: 50, kcal: 90 },
+      ],
+      false,
+    );
+    expect(savedGramSources(saved, answer).map((i) => i.gs)).toEqual(["scale", "user", "model"]);
+  });
+
+  test("a renamed row at the same grams keeps the source; an added row is the user's; no grams, no source", () => {
+    const saved = compactItems(
+      [
+        { name: "nasi uduk", grams: 100, kcal: 150 },
+        { name: "serundeng", grams: 30, kcal: 120 },
+        { name: "es teh", kcal: 50 },
+      ],
+      false,
+    );
+    const out = savedGramSources(saved, answer);
+    expect(out.map((i) => i.gs)).toEqual(["scale", "user", undefined]);
+  });
+
+  test("one answer item is matched once", () => {
+    const saved = compactItems(
+      [
+        { name: "nasi putih", grams: 100, kcal: 130 },
+        { name: "nasi putih", grams: 100, kcal: 130 },
+      ],
+      false,
+    );
+    expect(savedGramSources(saved, answer).map((i) => i.gs)).toEqual(["scale", "user"]);
   });
 });
 
@@ -107,6 +170,19 @@ describe("session outcomes", () => {
     expect(session.diff?.changed[0]).toMatchObject({ n: "nasi goreng", g: [300, 200] });
   });
 
+  test("the ledger says where every grams came from, answer and diary", async () => {
+    const photoId = await seedScan();
+    // The user edited the nasi to 200 g and kept the rest.
+    await recordSessionSaved(db, USER, photoId, [{ ...AI[0]!, grams: 200, kcal: 400 }, AI[1]!, AI[2]!]);
+    const { session } = (await loadSession(db, USER, photoId))!;
+    expect(session.aiItems!.map((i) => i.gs)).toEqual(["model", "model", "model"]);
+    expect(session.savedItems!.map((i) => [i.n, i.gs])).toEqual([
+      ["nasi goreng", "user"],
+      ["ayam goreng", "model"],
+      ["kangkung", "model"],
+    ]);
+  });
+
   test("a typed correction makes a save corrected even when the list ends up equal", async () => {
     const photoId = await seedScan();
     await recordSessionCorrection(db, USER, photoId);
@@ -125,7 +201,7 @@ describe("session outcomes", () => {
       [1, "m1", undefined],
       [2, "m2", "ada telur"],
     ]);
-    expect(session.retryItems).toEqual([{ n: "nasi goreng telur", g: 260, k: 520 }]);
+    expect(session.retryItems).toEqual([{ n: "nasi goreng telur", g: 260, gs: "model", k: 520 }]);
     // The save diffs against the answer on screen (the last retry), not the first pass.
     const saved = await recordSessionSaved(db, USER, photoId, [{ name: "nasi goreng telur", grams: 260, kcal: 520 }]);
     expect(saved?.diff?.changed).toEqual([]);
