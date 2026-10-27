@@ -46,6 +46,7 @@ import idGarmin from "./locales/id/garmin.json";
 import idJoyoAi from "./locales/id/joyoAi.json";
 import idJoyoAiApp from "./locales/id/joyoAiApp.json";
 import idJoyoAiWeb from "./locales/id/joyoAiWeb.json";
+import idBadges from "./locales/id/badges.json";
 
 import enAuth from "./locales/en/auth.json";
 import enBerat from "./locales/en/berat.json";
@@ -95,6 +96,7 @@ import enGarmin from "./locales/en/garmin.json";
 import enJoyoAi from "./locales/en/joyoAi.json";
 import enJoyoAiApp from "./locales/en/joyoAiApp.json";
 import enJoyoAiWeb from "./locales/en/joyoAiWeb.json";
+import enBadges from "./locales/en/badges.json";
 
 import msAuth from "./locales/ms/auth.json";
 import msBerat from "./locales/ms/berat.json";
@@ -144,6 +146,7 @@ import msGarmin from "./locales/ms/garmin.json";
 import msJoyoAi from "./locales/ms/joyoAi.json";
 import msJoyoAiApp from "./locales/ms/joyoAiApp.json";
 import msJoyoAiWeb from "./locales/ms/joyoAiWeb.json";
+import msBadges from "./locales/ms/badges.json";
 
 import type { Locale } from "./locale";
 
@@ -197,6 +200,7 @@ const id = {
   joyoAi: idJoyoAi,
   joyoAiApp: idJoyoAiApp,
   joyoAiWeb: idJoyoAiWeb,
+  badges: idBadges,
 };
 
 /**
@@ -252,6 +256,7 @@ const en: typeof id = {
   joyoAi: enJoyoAi,
   joyoAiApp: enJoyoAiApp,
   joyoAiWeb: enJoyoAiWeb,
+  badges: enBadges,
 };
 
 const ms: typeof id = {
@@ -303,6 +308,7 @@ const ms: typeof id = {
   joyoAi: msJoyoAi,
   joyoAiApp: msJoyoAiApp,
   joyoAiWeb: msJoyoAiWeb,
+  badges: msBadges,
 };
 
 export const resources = { id, en, ms } satisfies Record<Locale, typeof id>;

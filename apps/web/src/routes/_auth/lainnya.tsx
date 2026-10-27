@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Bell, CalendarCheck, MessagesSquare, Plug, Scale, Sparkles, Tag, Users, Watch } from "lucide-react";
+import { PapanLinkRow } from "@/components/badges/badge-shelf";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useTranslation } from "react-i18next";
 
@@ -110,6 +111,7 @@ function LainnyaPage() {
           subtitle={t("more.groups.subtitleWeb")}
           value={count > 0 ? <UnreadValue count={count} /> : undefined}
         />
+        <PapanLinkRow />
         <ListLinkRow
           to="/inbox"
           icon={

@@ -1,0 +1,116 @@
+{
+  "catatan-pertama": {
+    "name": "First entry",
+    "desc": "Logged food for the first time."
+  },
+  "konsisten": {
+    "name": "Consistent",
+    "desc": "Log food {{n}} days in a row."
+  },
+  "minggu-sempurna": {
+    "name": "Perfect week",
+    "desc": "Log food on 7 of 7 days in one week, Monday to Sunday."
+  },
+  "pemindai-pertama": {
+    "name": "First scan",
+    "desc": "Saved your first photo scan."
+  },
+  "perbaikan-pertama": {
+    "name": "Honest about portions",
+    "desc": "Corrected a scan result for the first time."
+  },
+  "protein-target": {
+    "name": "Protein target",
+    "desc": "Reach your daily protein target on {{n}} days."
+  },
+  "air-putih": {
+    "name": "Water",
+    "desc": "Drink 8 glasses in a day, on {{n}} days."
+  },
+  "latihan-pertama": {
+    "name": "First workout",
+    "desc": "Your first workout recorded by a device or JoyoFit."
+  },
+  "latihan-10": {
+    "name": "Training routine",
+    "desc": "Work out on {{n}} days, recorded by a device or JoyoFit."
+  },
+  "tantangan-selesai": {
+    "name": "Challenge finished",
+    "desc": "Stayed to the end of a group challenge and kept logging."
+  },
+  "jejak-tim": {
+    "name": "Team footprint",
+    "desc": "Join a group and log food on {{n}} days."
+  },
+  "ramadan-konsisten": {
+    "name": "Consistent Ramadan",
+    "desc": "Log food on {{n}} days during Ramadan."
+  },
+  "board": {
+    "title": "Consistency board",
+    "subtitle": "A weekly ranking of how regularly you log. Not about body weight.",
+    "thisWeek": "This week",
+    "lastWeek": "Last week",
+    "global": "Everyone",
+    "team": "Group",
+    "anonymous": "Anonymous #{{rank}}",
+    "you": "You",
+    "empty": "Nobody has joined yet.",
+    "notRanked": "You are not on this week's board yet. Log a meal first.",
+    "daysLogged": "Days logged",
+    "workoutDays": "Workout days",
+    "proteinDays": "Protein days",
+    "streak": "Streak",
+    "optIn": "Join the consistency board",
+    "consent": "The board shows your name or alias, days logged, workout days, protein days and your streak. Body weight and body data are never shown. You can leave any time, and your board data is deleted with it.",
+    "displayMode": "Show me as",
+    "displayUsername": "Username",
+    "displayAnonymous": "Alias",
+    "alias": "Alias",
+    "streakNote": "The streak on badges and the board counts valid logged days (with calories, written within 2 days of the day), so it can differ from the flame on Home.",
+    "maternal": "The board is not available during pregnancy or breastfeeding.",
+    "badgesTitle": "Badges",
+    "noBadges": "No badges yet",
+    "locked": "Not earned yet",
+    "tier": "Level {{n}}",
+    "aliasPlaceholder": "e.g. steady_eater",
+    "aliasHint": "{{min}}-{{max}} characters: lowercase letters, digits, dot, underscore, dash.",
+    "save": "Save",
+    "saved": "Saved",
+    "optInBody": "See where you stand each week. Only your name or alias and your logging counts are shown, never body weight.",
+    "optInCta": "Join now",
+    "manage": "Board settings",
+    "emptyHint": "Be the first: join from Privacy.",
+    "total": "{{count}} people",
+    "weekOf": "Week of {{date}}",
+    "closed": "Final",
+    "rowDays": "{{n}}/7 days",
+    "pickGroup": "Pick a group",
+    "noGroups": "You are not in a group yet.",
+    "privacyNote": "The board is optional and off by default.",
+    "leave": "Leave the board",
+    "rank": "#{{rank}}",
+    "optOutNote": "Leaving deletes your data from the board."
+  },
+  "shelf": {
+    "count": "{{earned}} of {{total}}",
+    "open": "See all badges"
+  },
+  "detail": {
+    "earned": "Earned {{date}}",
+    "next": "Next level: {{n}}",
+    "ruleLabel": "How to earn it"
+  },
+  "unlock": {
+    "title": "New badge!",
+    "view": "View"
+  },
+  "share": {
+    "title": "Share badge",
+    "cta": "Share"
+  },
+  "public": {
+    "title": "Badges"
+  }
+}

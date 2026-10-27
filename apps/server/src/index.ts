@@ -13,6 +13,7 @@ import { buildPlan, gainedKg, planQueries } from "@joyorogo/api/lib/plan";
 import { budgetKcal } from "@joyorogo/api/lib/exercise-credit";
 import { loadDayCredit } from "@joyorogo/api/lib/exercise-credit-store";
 import { sendPush, vapidConfigured } from "@joyorogo/api/lib/webpush";
+import { runBadgesCron } from "@joyorogo/api/lib/badge-cron";
 import { runPushCron } from "@joyorogo/api/lib/push-cron";
 import { paywallConfig } from "@joyorogo/api/lib/tiers";
 import { zoneOfUser, zonesOfUsers } from "@joyorogo/api/lib/user-zone";
@@ -139,6 +140,7 @@ registerGooglePlayRoutes(app, { env, getDb, createAuth });
 // Operator console API for admin.joyorogo.com (ADMIN_EMAILS allowlist).
 registerAdminRoutes(app, {
   adminEmails: env.ADMIN_EMAILS,
+  badgesUserIds: env.BADGES_USER_IDS,
   getDb,
   createAuth,
   getBucket: () => ("STICKERS" in env ? env.STICKERS : undefined),
@@ -867,6 +869,9 @@ export default {
       runPushCron({ db: getDb(), env }).catch((error: unknown) =>
         console.error("[push] cron failed", error),
       ),
+    );
+    ctx.waitUntil(
+      runBadgesCron({ db: getDb(), env }).catch((error: unknown) => console.error("[badges] cron failed", error)),
     );
     ctx.waitUntil(
       runThreadsBotTick({ db: getDb(), config: botConfig(env), scan: threadsBot.scan }).catch((error: unknown) =>

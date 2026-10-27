@@ -7,6 +7,7 @@ import { exerciseLog } from "@joyorogo/db/schema/fitness";
 import { workoutSession } from "@joyorogo/db/schema/plans";
 
 import { protectedProcedure } from "../index";
+import { WRITE_BADGE, awardOnWrite } from "../lib/badge-store";
 import { userZone } from "../lib/user-zone";
 import { jakartaToday, shiftDate } from "../lib/engine";
 import {
@@ -92,6 +93,8 @@ export const exerciseRouter = {
           externalId: input.externalId,
         })
         .returning();
+      // "Latihan pertama": only a device-written workout counts (a typed-in row is not verified).
+      if (input.source !== "manual") context.waitUntil(awardOnWrite(context.db, context.env, userId, WRITE_BADGE.workout));
       return row;
     }),
 
@@ -145,6 +148,7 @@ export const exerciseRouter = {
           set: { date: input.date, name: input.name, durationMin: input.durationMin, kcal: input.kcal },
         })
         .returning();
+      context.waitUntil(awardOnWrite(context.db, context.env, userId, WRITE_BADGE.workout));
       return row;
     }),
 

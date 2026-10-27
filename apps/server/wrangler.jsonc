@@ -99,6 +99,8 @@
     "CORRECTION_MEMORY_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
     // Everyone since 2026-10-24 (docs/scale-readout.md): ~4.5 neurons per scan, 7 of 7 owner readings real, 0 false in 29.
     "SCALE_READOUT_USER_IDS": "*",
+    // Badges and the weekly leaderboard (docs/badges.md): owner only until the rollout is decided; "*" for everyone.
+    "BADGES_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
     "SHADOW_SAMPLE_RATE": "0.2",
     "SHADOW_DAILY_CAP": "60",
     // The signed-in app (docs/app-subdomain.md); SITE_URL is the landing/marketing site.

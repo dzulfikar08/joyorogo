@@ -88,5 +88,15 @@
     "dailyLimit": "Foto piring hari ini sudah dibaca {{limit}} kali. Coba lagi besok ya.",
     "full": "Maksimal {{max}} piring dan mangkuk. Hapus satu dulu ya.",
     "analysisFailed": "AI belum berhasil membaca foto piringnya. Coba foto lagi dari atas dengan cahaya yang cukup."
+  },
+  "badges": {
+    "unavailable": "Lencana dan papan konsistensi belum tersedia untuk akunmu.",
+    "profileNotFound": "Profil tidak ditemukan.",
+    "badWeek": "Minggu tidak valid. Pakai tanggal Senin, tidak lebih dari minggu ini.",
+    "teamRequired": "Pilih grup dulu.",
+    "notTeamMember": "Kamu bukan anggota grup ini.",
+    "leaderboardMaternal": "Papan konsistensi tidak tersedia selama hamil atau menyusui.",
+    "aliasInvalid": "Nama samaran {{min}} sampai {{max}} karakter: huruf kecil, angka, titik, garis bawah, atau strip.",
+    "aliasTaken": "Nama samaran itu sudah dipakai. Coba yang lain ya."
   }
 }

@@ -11,6 +11,7 @@ import { foodQuickMark, savedFood } from "@joyorogo/db/schema/saved-foods";
 import { protectedProcedure } from "../index";
 import { assertEatenAt, eatenAtDay, eatenAtProblem, eatenAtSchema } from "../lib/eaten-at";
 import { MEALS, jakartaToday } from "../lib/engine";
+import { awardAfterFood } from "../lib/badge-store";
 import { insertFoodRows } from "../lib/food-rows";
 import { habitKey } from "../lib/favorite-offer";
 import { parseSavedItems } from "../lib/saved-foods";
@@ -308,6 +309,7 @@ export const foodRouter = {
           plateScanId,
         })),
       );
+      context.waitUntil(awardAfterFood(context.db, context.env, userId, () => userZone(context), rows));
       const queued = jobs.filter((job): job is StickerJob => job !== null);
       if (bucket && queued.length > 0) {
         context.waitUntil(storeStickers(images, bucket, bytes, queued));
@@ -465,6 +467,7 @@ export const foodRouter = {
       if (bucket && images && productCode && productImage && productScanId) {
         context.waitUntil(storeProductSticker(images, bucket, productCode, productImage, productScanId));
       }
+      context.waitUntil(awardAfterFood(context.db, context.env, context.session.user.id, () => userZone(context), row ? [row] : []));
       return row;
     }),
 

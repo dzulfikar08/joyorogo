@@ -97,6 +97,16 @@ function storyShareBody(story: StorySpec): string {
     : i18n.t("makan:story.card.share.progress");
 }
 
+/** Hands a badge card PNG to the system share sheet with a short caption and the tracked link. */
+export async function shareBadgeImage(fileUri: string, caption: string): Promise<void> {
+  await Share.open({
+    url: fileUri,
+    type: "image/png",
+    message: `${caption}\n${shareUrl("/", "badge")}`,
+    failOnCancel: false,
+  });
+}
+
 /** Whether the Instagram app is installed (hidden in the sheet when it is not). */
 export async function instagramInstalled(): Promise<boolean> {
   try {

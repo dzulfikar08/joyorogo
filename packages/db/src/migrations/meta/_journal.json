@@ -484,6 +484,13 @@
       "when": 1793091954853,
       "tag": "0068_threads_bot",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "6",
+      "when": 1793112719446,
+      "tag": "0069_badges_leaderboard",
+      "breakpoints": true
     }
   ]
 }

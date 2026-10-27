@@ -18,7 +18,8 @@ export type ShareMedium =
   | "recap"
   | "challenge"
   | "invite"
-  | "profile";
+  | "profile"
+  | "badge";
 
 /** `path` is a site path, e.g. "/" or "/gabung/ABCD2345". */
 export function shareUrl(path: string, medium: ShareMedium): string {

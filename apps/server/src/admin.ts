@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { readChunked } from "@joyorogo/api/lib/d1";
 import { commentPhotoKeysOf } from "@joyorogo/api/lib/comment-attachment";
+import { backfillBadges } from "@joyorogo/api/lib/badge-cron";
 import { shiftDate } from "@joyorogo/api/lib/engine";
 import { feedbackPhotoKey } from "@joyorogo/api/lib/feedback-keep";
 import { accuracyReportSummary } from "@joyorogo/api/lib/accuracy-report";
@@ -106,6 +107,8 @@ type Deps = {
   reconcileById: (orderId: string) => Promise<string>;
   /** Sends a test email to `to`; returns the send outcome text. */
   sendTestEmail: (to: string) => Promise<string>;
+  /** BADGES_USER_IDS, for the badge backfill (only allowlisted users are evaluated). */
+  badgesUserIds?: string;
   /** Clock in ms; tests pin it to hit Jakarta day boundaries. Default Date.now. */
   now?: () => number;
 };
@@ -145,6 +148,20 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
   });
 
   app.get("/api/admin/me", (c) => c.json({ ok: true }));
+
+  // Badge backfill: awards what the allowlisted users (BADGES_USER_IDS) already earned. Pages of `limit` users (default 50,
+  // max 200) in user-id order after `after`; call again with the returned `next` until it is null. Idempotent.
+  const backfillQuery = z.object({
+    after: z.string().min(1).max(100).optional(),
+    limit: z.coerce.number().int().min(1).max(200).default(50),
+  });
+  app.post("/api/admin/badges/backfill", async (c) => {
+    const query = backfillQuery.safeParse(c.req.query());
+    if (!query.success) return c.json({ error: "bad query" }, 400);
+    return c.json(
+      await backfillBadges(deps.getDb(), { BADGES_USER_IDS: deps.badgesUserIds }, { after: query.data.after, limit: query.data.limit, now: new Date((deps.now ?? Date.now)()) }),
+    );
+  });
 
   // One row of the users list / detail: profile, plan, and per-user scan
   // activity (see admin-scans.ts for what a "scan" is). Correlated subqueries

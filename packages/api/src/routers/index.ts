@@ -4,6 +4,7 @@ import { protectedProcedure, publicProcedure } from "../index";
 import { activityRouter } from "./activity";
 import { aiRouter } from "./ai";
 import { avatarRouter } from "./avatar";
+import { badgeRouter } from "./badge";
 import { barcodeRouter } from "./barcode";
 import { challengeRouter } from "./challenge";
 import { coachRouter } from "./coach";
@@ -17,6 +18,7 @@ import { fitWebRouter } from "./fit-web";
 import { foodRouter } from "./food";
 import { groupRouter } from "./group";
 import { joyoRouter } from "./joyo";
+import { leaderboardRouter } from "./leaderboard";
 import { mcpConnectionRouter } from "./mcp-connection";
 import { mealPlanRouter } from "./meal-plan";
 import { plateRouter } from "./plate";
@@ -76,6 +78,8 @@ export const appRouter = {
   group: groupRouter,
   challenge: challengeRouter,
   social: socialRouter,
+  badge: badgeRouter,
+  leaderboard: leaderboardRouter,
   stats: statsRouter,
   savedFood: savedFoodRouter,
   barcode: barcodeRouter,

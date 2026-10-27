@@ -481,7 +481,11 @@ export const scanCorrection = sqliteTable(
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),
   },
-  (table) => [index("scan_correction_created_idx").on(table.createdAt)],
+  (table) => [
+    index("scan_correction_created_idx").on(table.createdAt),
+    // Account wipe and the "first correction" badge look rows up by user.
+    index("scan_correction_user_idx").on(table.userId, table.createdAt),
+  ],
 );
 
 // Scan accuracy feedback ("Hasilnya akurat?" on the result screen): one row

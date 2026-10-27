@@ -31,6 +31,7 @@ import type {
 } from "../lib/sticker";
 
 import { protectedProcedure } from "../index";
+import { WRITE_BADGE, awardOnWrite } from "../lib/badge-store";
 import { insertChunked } from "../lib/d1";
 import { serverT } from "../lib/messages";
 import { scanFailMessage } from "../lib/scan-fail-message";
@@ -1370,6 +1371,7 @@ export const aiRouter = {
           aiConfidence: item.aiConfidence ?? null,
         })),
       );
+      context.waitUntil(awardOnWrite(context.db, context.env, userId, WRITE_BADGE.correction));
       return { logged: input.items.length };
     }),
 
