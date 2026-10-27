@@ -31,7 +31,7 @@ Update 2026-10-20: social execution (Threads, Instagram, TikTok, JoyoFit include
 | Foto makanan tidak disimpan kecuali "Simpan foto asli" | README, landing promises | Do not stretch this to VAR perut: belly photos are stored privately in R2 and can be deleted (`group.ts` varAnalyze, varDelete) |
 | Tanpa iklan; satu tombol hapus semua data di Profil | landing | |
 | Gratis 3 scan AI per hari (README default; live value comes from `/api/config`), Founder tanpa batas | README, `tiers.ts` | Any price or quota not read from `/api/config` the same day |
-| Founder: Rp15.000/bulan atau Rp149.000/tahun untuk 10 pembeli pertama, Rp29.000 / Rp199.000 untuk pembeli 11 sampai 110, lalu Rp49.000 / Rp349.000; harga tahunan mengikuti langkah tangga (sekarang Rp199.000, ~Rp16.600/bulan), ditampilkan tahunan lebih dulu; harga terkunci di harga terendah yang pernah dibayar; tanpa perpanjangan otomatis; harga Apple/Play diubah manual (`docs/pricing.md`) | `FOUNDER_PRICE_LADDER`, `FOUNDER_YEARLY_PRICE_IDR`, `tiers.ts`, `harga.tsx` | "Harga naik besok" or countdowns that are not tied to the buyer count |
+| Founder: Rp15.000/bulan atau Rp149.000/tahun untuk 10 pembeli pertama, Rp29.000 / Rp199.000 untuk pembeli 11 sampai 60, lalu Rp49.000 / Rp349.000; harga tahunan mengikuti langkah tangga (sekarang Rp199.000, ~Rp16.600/bulan), ditampilkan tahunan lebih dulu; harga terkunci di harga terendah yang pernah dibayar; tanpa perpanjangan otomatis; harga Apple/Play diubah manual (`docs/pricing.md`) | `FOUNDER_PRICE_LADDER`, `FOUNDER_YEARLY_PRICE_IDR`, `tiers.ts`, `harga.tsx` | "Harga naik besok" or countdowns that are not tied to the buyer count |
 | Grup: maksimal 20 anggota, satu akun maksimal 5 grup, colek sekali per jam per orang, catatan 140 karakter (20 per hari) | `group.ts` | |
 | VAR di grup: kamera ke teman, makanan yang ia catat hari ini tampil, vonis aman atau offside terhadap target kalorinya | `group.ts` varScan, `varVerdict` | That friends' food is hidden by default: `share_food` defaults to on, each member can switch it off per group. `share_var` (belly verdict) defaults to off |
 | Tantangan grup: Founder membuat tantangan 7, 14, atau 30 hari di dalam grup (langkah, protein, kalori, latihan, strain atau tidur JoyoFit); semua anggota, termasuk akun gratis, bisa ikut; papan peringkat dan streak per anggota, kartu hasil untuk dibagikan | `challenge.ts`, `lib/challenge.ts`, `lib/challenge-host.ts` | That every number is verified. Langkah dan skor JoyoFit datang dari perangkat; makanan dan latihan yang diketik tampil sebagai "Dicatat manual", makanan dari scan sebagai "Dari scan foto". Protein dan kalori dibandingkan dengan target pribadi yang dibekukan saat bergabung, hari ini baru dinilai setelah selesai untuk kalori |
@@ -425,7 +425,7 @@ Week 4, 9 to 15 Nov: Founder, build in public, Ramadan prep
 | 29 | Mon 16 Nov | Post hook 9 | Publish "Yang kami pelajari 30 hari" (real numbers only) |
 | 30 | Tue 17 Nov | 30-day retro: keep, drop, next 30 days | Start the Ramadan track |
 
-If a Founder rung sells out, that is a real event. Post it plainly ("Slot Rp15.000 sudah habis, pembeli ke-11 sampai 110 bayar Rp29.000"), and only then.
+If a Founder rung sells out, that is a real event. Post it plainly ("Slot Rp15.000 sudah habis, pembeli ke-11 sampai 60 bayar Rp29.000"), and only then.
 
 30-day goals (adjust after the day-7 baseline; these are goals, not forecasts):
 - 15 Android testers opted in; production access applied for.
