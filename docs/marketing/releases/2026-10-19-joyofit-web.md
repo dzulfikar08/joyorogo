@@ -5,7 +5,7 @@ shipped: 2026-10-19
 available: web
 tier: pro
 post: planned 2026-10-25
-atur: JRG-304
+atur: FIT-75
 ---
 
 **Apa:** Buka app.fit.joyorogo.com di laptop untuk melihat ringkasan, daftar dan detail latihan, tidur dan pemulihan lengkap dengan tahapnya, unggah file FIT, GPX, atau TCX, perpustakaan watch face, serta koneksi AI dan ekspor GPX, FIT, atau JSON.

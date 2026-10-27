@@ -52,9 +52,10 @@ atur: JRG-123            # atur issue key; empty if atur was unreachable
 
 ## After writing the file
 
-Create an atur issue in workspace `joyodigitama`, project Joyorogo (`JRG`): title `[Konten] JoyoRogo: <feature>` or
-`[Konten] JoyoFit: <feature>`, state Todo, sub-issue of JRG-235 (`parent_id`
-`62fc3334-ca8a-4427-b236-ce1c50b2bc52`), description = the angle plus the entry's path. Put the key in `atur:`.
+Create an atur issue in workspace `joyodigitama`: title `[Konten] JoyoRogo: <feature>` in project Joyorogo (`JRG`), or
+`[Konten] JoyoFit: <feature>` in project JoyoFit (`FIT`, `a10d50f0-4920-47d1-9a61-c0c0ff504f0c`). State Todo, sub-issue
+of JRG-235 for both apps (`parent_id` `62fc3334-ca8a-4427-b236-ce1c50b2bc52`), description = the angle plus the entry's
+path. Put the key in `atur:`.
 
 ## Claims
 
