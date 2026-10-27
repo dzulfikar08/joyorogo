@@ -11,6 +11,7 @@ import type { ItemScanEvent } from "./item-stream";
 import type { ScanFailReason } from "./scan-errors";
 import { CUP_CONFIDENCE, cupItem, guessCupChoice } from "./drink-options";
 import type { CupChoice } from "./drink-options";
+import { normalizeAlternates, withMaterialAlternates } from "./name-alternates";
 import { reconcileCount } from "./piece-count";
 import type { Pieces } from "./piece-chip";
 import { calibrateItems } from "./tkpi";
@@ -34,7 +35,7 @@ export const DEFAULT_VISION_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 export function visionPrompt(locale: Locale = DEFAULT_LOCALE, region: Region = DEFAULT_REGION): string {
   return `Anda adalah ahli gizi. Identifikasi makanan pada foto ini (${regionFocus(region)}). Sebutkan SETIAP makanan atau minuman berbeda yang terlihat, termasuk yang kecil (mis. donat di samping segelas kopi), urut dari yang paling menonjol, maksimal 10 item.
 Jawab HANYA JSON valid satu baris (tanpa indentasi, tanpa \`\`\`) tanpa teks lain, dengan bentuk persis:
-{"items":[{"name":"nama masakan",${localNameShape(locale)}"kind":"makanan|camilan|minuman","portion":"porsi, maks 3 kata","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":number,"box":[ymin,xmin,ymax,xmax]}]}
+{"items":[{"name":"nama masakan",${localNameShape(locale)}"kind":"makanan|camilan|minuman","portion":"porsi, maks 3 kata","grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":number,"box":[ymin,xmin,ymax,xmax]${ALT_SHAPE}}]}
 Semua angka bulat kecuali confidence. Tidak ada makanan atau minuman di foto: {"items":[],"problem":"bukan_makanan"}. Foto terlalu gelap atau buram sampai makanan tidak bisa dikenali: {"items":[],"problem":"gelap"} atau {"items":[],"problem":"buram"}.
 kind: "makanan" = makanan berat (nasi, lauk, sayur, mi, sup), "camilan" = gorengan, kue, keripik, martabak, es krim, jajanan ringan, "minuman" = semua yang diminum.
 box = kotak pembatas item itu di foto, skala 0-1000 relatif tinggi dan lebar foto.
@@ -46,8 +47,18 @@ ${SAUCE_RULE}
 ${COUNT_RULE}
 ${PRINTED_TEXT_RULE}
 ${LOOKALIKE_RULE}
-${JUICE_RULE}${regionRule(region)}`;
+${JUICE_RULE}${regionRule(region)}
+${ALT_RULE}`;
 }
+
+/**
+ * "Mungkin juga" chips (lib/name-alternates.ts): up to two other dishes the model finds plausible for an item
+ * it is not sure of. Last key of the item, after the box, so a cut-off or garbled tail costs only the chips;
+ * the scale readout once broke the item's keys when it was asked for inside the scan (docs/scale-readout.md).
+ */
+export const ALT_SHAPE = ',"alt":["nama lain","nama lain"]';
+export const ALT_RULE =
+  'alt = paling banyak 2 nama masakan lain yang juga masuk akal untuk item itu, HANYA bila kamu tidak yakin dengan name (mis. nasi kuning: ["nasi uduk","nasi liwet"]; kue basah mirip lain). Yakin atau hanya satu kemungkinan: "alt":[]. Isi dengan hidangan yang berbeda, bukan variasi tulisan atau bahasa dari name, dalam Bahasa Indonesia seperti name.';
 
 /**
  * Drinks need their own rules: a zero-calorie drink is a valid 0 (not "nothing
@@ -159,6 +170,8 @@ export const visionItemSchema = z.object({
   cup: z.string().optional().catch(undefined),
   // Bounding box [ymin, xmin, ymax, xmax] on a 0-1000 grid; validated by normalizeBox.
   box: z.unknown().optional(),
+  // Other dishes the model finds plausible (ALT_RULE); validated by normalizeAlternates, never rejects the item.
+  alt: z.unknown().optional(),
 });
 
 export type ItemBox = [number, number, number, number];
@@ -211,7 +224,7 @@ export function extractUsage(result: unknown): Record<string, unknown> | null {
 }
 
 export type VisionAnalysis = {
-  items: Array<CalibratedItem & { box?: ItemBox; kind: FoodKind; cup?: CupChoice }>;
+  items: Array<CalibratedItem & { box?: ItemBox; kind: FoodKind; cup?: CupChoice; alt?: string[] }>;
   /** Model actually used — callers pass `model` through unresolved. */
   model: string;
   usage: Record<string, unknown> | null;
@@ -585,8 +598,10 @@ const MODEL_FLAG_MIN_ITEMS = 8;
 type ParsedItem = z.infer<typeof visionItemSchema>;
 
 /** A model item with bounded numbers and a validated box; `kcal` is gone when it was not a number. */
-type BoundItem = Omit<ParsedItem, "box" | "kind" | "kcal" | "cup"> & {
+type BoundItem = Omit<ParsedItem, "box" | "kind" | "kcal" | "cup" | "alt"> & {
   box: ItemBox | undefined;
+  /** Other dishes the model finds plausible, cleaned (lib/name-alternates.ts). */
+  alt: string[] | undefined;
   kind: string | undefined;
   kcal: number | undefined;
   /** Cup size the model read off a cup whose contents it could not see; set = contents hidden. */
@@ -596,11 +611,12 @@ type BoundItem = Omit<ParsedItem, "box" | "kind" | "kcal" | "cup"> & {
 };
 type UsableItem = BoundItem & { kcal: number };
 
-function boundItem({ box, kind, cup, ...parsed }: ParsedItem): BoundItem {
+function boundItem({ box, kind, cup, alt, ...parsed }: ParsedItem): BoundItem {
   const item = reconcileCount({ ...parsed, grams: clamp(parsed.grams, 1, 5000), kcal: clamp(parsed.kcal, 0, 5000) });
   return {
     ...item,
     box: normalizeBox(box),
+    alt: normalizeAlternates(alt, parsed.name),
     kind,
     cup: cup?.trim() || undefined,
     // A hidden cup needs no number from the model: its numbers come from the cup table.
@@ -628,6 +644,7 @@ function isUsable(item: BoundItem): item is UsableItem {
 /** Detected item as it leaves calibration; `cup` marks a drink whose contents the photo hides. */
 type CalibratedRaw = CalibratedItem & {
   box: ItemBox | undefined;
+  alt?: string[];
   kind: FoodKind;
   localName: string | undefined;
   cup?: CupChoice;
@@ -651,7 +668,7 @@ function calibrateRaw(
 ): CalibratedRaw[] {
   const visible = raw.filter((item) => item.cup === undefined);
   const calibrated = calibrateItems(
-    visible.map(({ box: _box, kind, cup: _cup, ...item }) => ({
+    visible.map(({ box: _box, alt: _alt, kind, cup: _cup, ...item }) => ({
       ...item,
       drink: resolveFoodKind(item.name, kind) === "minuman",
       asSeen: true,
@@ -672,10 +689,13 @@ function calibrateRaw(
       };
     }
     const item = calibrated[next++]!;
+    const alt = normalizeAlternates(entry.alt, item.name, entry.name);
     return {
       ...item,
       ...(item.edibleGrams !== undefined ? { portion: boneInPortion(item, locale) } : {}),
       box: entry.box,
+      // The library may have renamed the item to the very dish an alternate names.
+      ...(alt ? { alt } : {}),
       kind: resolveFoodKind(item.name, entry.kind),
       // An English name the library renamed to its Indonesian row stays what an English reader sees.
       localName: entry.localName ?? (item.name !== entry.name ? entry.name : undefined),
@@ -751,8 +771,8 @@ export function parseAnswer(
     return parsed.success ? [parsed.data] : [];
   });
   const raw = valid.slice(0, MAX_ITEMS).map(boundItem).filter(isUsable);
-  const items = dropDuplicateBroth(dedupeItems(calibrateRaw(raw, locale, calibration))).map((item) =>
-    localizeName(item, locale),
+  const items = withMaterialAlternates(
+    dropDuplicateBroth(dedupeItems(calibrateRaw(raw, locale, calibration))).map((item) => localizeName(item, locale)),
   );
   return {
     items,

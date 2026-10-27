@@ -76,7 +76,7 @@ import { parseFoodStory } from "../packages/api/src/lib/story";
 import { cardOutcome, dishwareInstruction, dishwareLabel, plateRefSchema, referenceInstruction } from "../packages/api/src/lib/dishware";
 import type { PlateRef } from "../packages/api/src/lib/dishware";
 
-import { analyzeFoodPhoto, COUNT_RULE, DEFAULT_VISION_MODEL, DRINK_RULE, JUICE_RULE, LOOKALIKE_RULE, PACKAGE_RULE, PRINTED_TEXT_RULE, SAUCE_RULE, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
+import { ALT_RULE, ALT_SHAPE, analyzeFoodPhoto, COUNT_RULE, DEFAULT_VISION_MODEL, DRINK_RULE, JUICE_RULE, LOOKALIKE_RULE, PACKAGE_RULE, PRINTED_TEXT_RULE, SAUCE_RULE, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
 import type { AiRunner, CardAnswer } from "../packages/api/src/lib/vision";
 import type { CalibrateOptions } from "../packages/api/src/lib/tkpi";
 import { PRIOR_BIG_PLATE, PRIOR_MIN_ENTRIES, TYPICAL_MIN_RATIO, TYPICAL_PORTIONS, buildPriors, userSetSamples, withPortionPrior } from "../packages/api/src/lib/portion-prior";
@@ -143,8 +143,41 @@ const UDUK_RULE =
   'Nasi putih yang mengilap berminyak dan bertabur bawang goreng bersama lauk kering (telur suwir atau iris, teri, kering tempe, bihun, emping), terutama di daun pisang atau kertas bungkus, adalah nasi uduk: tulis "nasi uduk" (satu item dengan taburannya), bukan "nasi putih dengan bawang goreng".';
 const KUNING_RULE = "Nasi kuning hanya bila butir nasinya kuning merata; nasi putih di foto yang hangat atau kekuningan oleh lampu tetap nasi putih.";
 
+/** The shipped prompt with the "Mungkin juga" alternates taken out: what production sent before them. */
+function withoutAlt(base: string): string {
+  const out = base.replace(ALT_SHAPE, "").replace(`\n${ALT_RULE}`, "");
+  if (out === base) throw new Error("no-alt: the production prompt no longer carries ALT_SHAPE / ALT_RULE");
+  return out;
+}
+
+/** The alternates asked for right after the item's name (same rule text). */
+function altAfterName(plain: string): string {
+  const out = plain.replace('{"items":[{"name":"nama masakan",', `{"items":[{"name":"nama masakan"${ALT_SHAPE},`).concat(`\n${ALT_RULE}`);
+  if (out === plain || !out.includes(`"nama masakan"${ALT_SHAPE},`)) throw new Error("alt-first: the item shape in the production prompt changed");
+  return out;
+}
+
+const ALT_STRICT_RULE =
+  'alt = paling banyak 2 nama hidangan LAIN yang benar-benar bisa menjadi jawaban yang benar bila name salah karena rupanya mirip (nasi kuning: ["nasi uduk","nasi liwet"]; bakwan sayur: ["tempe goreng tepung"]; ayam goreng: ["bebek goreng"]). BUKAN alt: nama lain untuk hidangan yang sama (telur mata sapi = telur ceplok), nama yang lebih umum atau lebih rinci dari name (nasi putih / nasi), terjemahan. Beri alt HANYA pada item yang kamu ragu identitasnya; item yang jelas (telur rebus utuh, nasi putih polos, kerupuk, minuman berlabel) "alt":[], dan di kebanyakan foto sebagian besar item tidak punya alt.';
+
 const VARIANTS: Record<string, Variant> = {
   baseline: { notes: "Production exactly: default model, shipped prompt, TKPI calibration." },
+  "no-alt": {
+    promptTransform: (base) => withoutAlt(base),
+    notes: "The shipped prompt without the alternate dish names (ALT_SHAPE, ALT_RULE): exactly the prompt before the \"Mungkin juga\" chips, the paired 'before' for them.",
+  },
+  "alt-strict": {
+    promptTransform: (base) => {
+      const out = base.replace(ALT_RULE, ALT_STRICT_RULE);
+      if (out === base) throw new Error("alt-strict: the production prompt no longer carries ALT_RULE");
+      return out;
+    },
+    notes: "Candidate: ALT_RULE rewritten so that alternates are only for items whose identity can really be wrong (lookalike dishes), never a synonym or a broader name, and most items have none.",
+  },
+  "alt-first": {
+    promptTransform: (base) => altAfterName(withoutAlt(base)),
+    notes: "Candidate: the alternates asked for right after the item's name instead of last, so the model lists them while it is unsure of the name.",
+  },
   "no-printed-text": {
     promptTransform: (base) => base.replace(`\n${PRINTED_TEXT_RULE}`, ""),
     notes: "The shipped prompt without the printed-text rule (PRINTED_TEXT_RULE): the paired 'before' for that rule, run the same day as baseline.",
@@ -515,13 +548,16 @@ function parseArgs(argv: string[]): Args {
 
 // ---------------------------------------------------------------- scoring
 type ErrPoint = { err: number; pct: number };
+/** An answer item as the harness keeps it: `alt` = the alternate names the scan offered. */
+type RunItem = EvalItem & { alt?: string[] };
+
 type Scored = {
   /** Item names: matches, answer items, truth items (owner/feedback/external). */
   names: { tp: number; ai: number; truth: number } | null;
   /** Wikimedia: the dish name appears among the answer items. */
   nameHit: boolean | null;
   /** Wrong-food: each check (a dish the answer had to name) and whether the answer did. */
-  checks: Array<{ what: string; hit: boolean }> | null;
+  checks: Array<{ what: string; hit: boolean; /** hit, or an alternate the scan offered names it (a tap away) */ hitAlt: boolean }> | null;
   itemKcal: ErrPoint[];
   grams: ErrPoint[];
   /** `grams` split: rice (the truth item is a nasi) and everything else (side dishes: lauk, sayur). */
@@ -543,7 +579,7 @@ const point = (ai: number, truth: number): ErrPoint => ({
   pct: truth > 0 ? ((ai - truth) / truth) * 100 : 0,
 });
 
-function scoreCase(c: Case, items: EvalItem[]): Scored {
+function scoreCase(c: Case, items: RunItem[]): Scored {
   const aiKcal = total(items);
   if (c.wiki) {
     const { dish, min, max } = c.wiki;
@@ -566,8 +602,11 @@ function scoreCase(c: Case, items: EvalItem[]): Scored {
   if (c.wrong) {
     const words = (s: string) => ` ${s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim()} `;
     const checks = c.wrong.checks.map((check) => {
-      const named = items.filter((item) => check.accept.some((a) => words(item.name).includes(words(a))));
-      return { what: check.what, hit: named.length > 0 && sum(named.map((i) => i.grams ?? 0)) >= (check.minGrams ?? 0) };
+      const matches = (name: string) => check.accept.some((a) => words(name).includes(words(a)));
+      const named = items.filter((item) => matches(item.name));
+      const hit = named.length > 0 && sum(named.map((i) => i.grams ?? 0)) >= (check.minGrams ?? 0);
+      // A weight check cannot be met by a tap on a name: the rename brings its own grams.
+      return { what: check.what, hit, hitAlt: hit || (check.minGrams === undefined && items.some((item) => item.alt?.some(matches))) };
     });
     const truthKcal = c.truth ? total(c.truth) : 0;
     return {
@@ -688,7 +727,7 @@ function restRunner(token: string): AiRunner {
 }
 
 type RunResult =
-  | { ok: true; items: EvalItem[]; ms: number; modelMs: number; tooMany: boolean; cached: boolean; plate?: string | null; card?: CardAnswer; scale?: ScaleOutcome | null; scaleError?: string; chips?: { you: number; typical: number; tapped: number; items: number } }
+  | { ok: true; items: RunItem[]; attempts?: number; repaired?: boolean; ms: number; modelMs: number; tooMany: boolean; cached: boolean; plate?: string | null; card?: CardAnswer; scale?: ScaleOutcome | null; scaleError?: string; chips?: { you: number; typical: number; tapped: number; items: number } }
   | { ok: false; reason: string; ms: number; cached: false };
 
 /** Cache key of a variant for one case: model, final prompt (variant diff + the case's own line) and calibration. */
@@ -799,7 +838,9 @@ async function runOne(
       : shown;
     const result: RunResult = {
       ok: true,
-      items: answered.map((item) => ({ name: item.name, grams: item.grams, kcal: item.kcal })),
+      items: answered.map((item) => ({ name: item.name, grams: item.grams, kcal: item.kcal, ...(item.alt ? { alt: item.alt } : {}) })),
+      attempts: analysis.timing.attempts,
+      ...(analysis.repaired ? { repaired: true } : {}),
       ...(read ? { scale: read.outcome, ...(call?.error ? { scaleError: call.error } : {}) } : {}),
       ms: Date.now() - started,
       modelMs: analysis.timing.modelMs,
@@ -1212,7 +1253,9 @@ type Agg = {
   name: { precision: number; recall: number; f1: number; macroF1: number } | null;
   nameHit: { hit: number; of: number } | null;
   /** Wrong-food checks hit, over every (run, check). */
-  checks: { hit: number; of: number } | null;
+  checks: { hit: number; hitAlt: number; of: number } | null;
+  /** How the answers parsed: runs that needed a second attempt or key repair, and the alternates the answers carried. */
+  parse: { runs: number; retried: number; repaired: number; items: number; withAlt: number; alts: number };
   inBand: { hit: number; of: number } | null;
   itemKcal: ErrStats;
   plate: ErrStats;
@@ -1264,8 +1307,9 @@ function aggregate(group: Group, variant: string, runs: Run[]): Agg {
     nameHit: wiki.length ? { hit: wiki.filter((s) => s.nameHit).length, of: wiki.length } : null,
     // A scan that failed (not_food, unclear) named nothing: every check of its case is a miss.
     checks: runs.some((r) => r.c.wrong)
-      ? { hit: sum(scored.map((s) => s.checks?.filter((c) => c.hit).length ?? 0)), of: sum(runs.map((r) => r.c.wrong?.checks.length ?? 0)) }
+      ? { hit: sum(scored.map((s) => s.checks?.filter((c) => c.hit).length ?? 0)), hitAlt: sum(scored.map((s) => s.checks?.filter((c) => c.hitAlt).length ?? 0)), of: sum(runs.map((r) => r.c.wrong?.checks.length ?? 0)) }
       : null,
+    parse: parseStats(runs),
     inBand: band.length ? { hit: band.filter((s) => s.inBand).length, of: band.length } : null,
     itemKcal: errStats(scored.flatMap((s) => s.itemKcal)),
     plate: errStats(scored.flatMap((s) => (s.plate ? [s.plate] : []))),
@@ -1278,6 +1322,19 @@ function aggregate(group: Group, variant: string, runs: Run[]): Agg {
     // Only variants that ask the plate question have an answer to count.
     plateRef: VARIANTS[variant]?.asksPlate ? plateRefStats(runs) : null,
     cardRef: VARIANTS[variant]?.asksCard ? cardRefStats(runs) : null,
+  };
+}
+
+function parseStats(runs: Run[]): Agg["parse"] {
+  const answered = runs.flatMap((r) => (r.result.ok ? [r.result] : []));
+  const items = answered.flatMap((r) => r.items);
+  return {
+    runs: runs.length,
+    retried: answered.filter((r) => (r.attempts ?? 1) > 1).length,
+    repaired: answered.filter((r) => r.repaired).length,
+    items: items.length,
+    withAlt: items.filter((i) => i.alt?.length).length,
+    alts: sum(items.map((i) => i.alt?.length ?? 0)),
   };
 }
 
@@ -1334,7 +1391,12 @@ function aggTable(a: Agg): string[] {
     rows.push(`| item names macro F1 | ${f(a.name.macroF1 * 100, 0)}% |`);
   }
   if (a.nameHit) rows.push(`| dish named | ${a.nameHit.hit} of ${a.nameHit.of} |`);
-  if (a.checks) rows.push(`| wrong-food checks hit | ${a.checks.hit} of ${a.checks.of} (${f((a.checks.hit / a.checks.of) * 100, 0)}%) |`);
+  if (a.checks) {
+    rows.push(`| wrong-food checks hit by name | ${a.checks.hit} of ${a.checks.of} (${f((a.checks.hit / a.checks.of) * 100, 0)}%) |`);
+    if (a.parse.alts > 0) rows.push(`| wrong-food checks hit by name or alternates | ${a.checks.hitAlt} of ${a.checks.of} (${f((a.checks.hitAlt / a.checks.of) * 100, 0)}%) |`);
+  }
+  rows.push(`| answers that failed / needed a second attempt / needed key repair | ${sum(Object.values(a.failures))} / ${a.parse.retried} / ${a.parse.repaired} of ${a.parse.runs} |`);
+  if (a.parse.alts > 0) rows.push(`| items with alternates / alternates per item | ${a.parse.withAlt} of ${a.parse.items} (${f((a.parse.withAlt / a.parse.items) * 100, 0)}%) / ${f(a.parse.alts / a.parse.items, 2)} |`);
   if (a.inBand) rows.push(`| plate kcal in expected band | ${a.inBand.hit} of ${a.inBand.of} |`);
   const plateLabel = a.group === "wikimedia" ? "plate (outside band)" : "plate kcal";
   rows.push(...statsRows(plateLabel, a.plate, "kcal"));
@@ -1453,7 +1515,9 @@ function wrongDetail(variants: string[], runsOf: (variant: string) => Run[]): st
     c.wrong!.checks.forEach((check, k) => {
       const cells = variants.map((v) => {
         const rs = runsOf(v).filter((r) => r.c.id === id);
-        return `${rs.filter((r) => r.scored?.checks?.[k]?.hit).length}/${rs.length}`;
+        const byName = rs.filter((r) => r.scored?.checks?.[k]?.hit).length;
+        const byAlt = rs.filter((r) => r.scored?.checks?.[k]?.hitAlt).length;
+        return byAlt > byName ? `${byName}/${rs.length} (+alt ${byAlt}/${rs.length})` : `${byName}/${rs.length}`;
       });
       lines.push(`| ${id} (${c.label}) | ${check.what} | ${cells.join(" | ")} |`);
     });
@@ -1464,7 +1528,7 @@ function wrongDetail(variants: string[], runsOf: (variant: string) => Run[]): st
     for (const id of ids) {
       const names = runsOf(v)
         .filter((r) => r.c.id === id && r.result.ok)
-        .map((r) => (r.result.ok ? r.result.items.map((i) => `${i.name} ${Math.round(i.grams ?? 0)}g`).join(" + ") : ""));
+        .map((r) => (r.result.ok ? r.result.items.map((i) => `${i.name} ${Math.round(i.grams ?? 0)}g${i.alt?.length ? ` [alt: ${i.alt.join(", ")}]` : ""}`).join(" + ") : ""));
       lines.push(`- ${id}: ${names.join(" | ")}`);
     }
     lines.push("");

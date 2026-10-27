@@ -46,6 +46,7 @@ import type { Meal } from "@joyorogo/api/lib/engine";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { equivalentLine } from "@joyorogo/api/lib/facts";
 import { foodKind, isHeavyDish } from "@joyorogo/api/lib/food-kind";
+import { carryAlternates } from "@joyorogo/api/lib/name-alternates";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { hasBone, setWithBone, stripBoneLabel } from "@joyorogo/api/lib/bone-chip";
 import { itemAtCount } from "@joyorogo/api/lib/piece-chip";
@@ -90,6 +91,7 @@ import { CorrectBox } from "@/components/scan/correct-box";
 import { CupChoices } from "@/components/scan/cup-choices";
 import { BoneChips, PieceCountChip } from "@/components/scan/piece-chips";
 import { PortionPriorChips } from "@/components/scan/portion-prior-chips";
+import { AlternateChips } from "@/components/scan/alternate-chips";
 import { MemoryChips } from "@/components/scan/memory-chips";
 import { ReferenceHint } from "@/components/scan/reference-hint";
 import { ScanAllowance } from "@/components/scan/scan-allowance";
@@ -122,6 +124,8 @@ type AnalyzedItem = {
   /** [ymin, xmin, ymax, xmax] on 0-1000 relative to the image we sent. */
   box?: number[];
   kind?: FoodKind;
+  /** Other dishes the scan thinks this could be ("Mungkin juga"): one tap renames the row. */
+  alt?: string[];
   /** Set when the weight started at the user's usual portion: the model's number is one tap away. */
   portionPrior?: PortionPriorChip;
   /** Set when the weight was read off a kitchen-scale display in the photo: the photo estimate is one tap away. */
@@ -1408,9 +1412,13 @@ export default function MakanAi() {
    * tiles; added rows start fresh. The AI baseline is never replaced, only
    * re-pointed. Resolves null when a reset or retry made the answer stale.
    */
-  const submitCorrection = async (input: CorrectInput): Promise<CorrectOutcome | null> => {
+  const submitCorrection = async (
+    input: CorrectInput,
+    tap?: { index: number; name: string },
+  ): Promise<CorrectOutcome | null> => {
     const run = ++correctRunRef.current;
-    const result = await correct.mutateAsync({
+    const sent = items;
+    const answer = await correct.mutateAsync({
       ...(photoId ? { photoId } : {}),
       items: items.map((item, index) => ({
         name: item.name,
@@ -1429,8 +1437,11 @@ export default function MakanAi() {
         edibleGrams: item.edibleGrams,
         withBone: item.withBone,
       })),
+      ...(tap ? { altTap: { from: sent[tap.index]!.name, to: tap.name } } : {}),
       ...input,
     });
+    // The server echoes no "Mungkin juga" chips: the tapped row offers its other alternates, the rest keep theirs.
+    const result = carryAlternates(answer, sent, tap);
     if (correctRunRef.current !== run) return null;
     // Rows may have been edited while the answer was on its way: merge into the latest.
     const cur = live.current;
@@ -2066,6 +2077,16 @@ export default function MakanAi() {
                           item={item}
                           onSwap={() => swapScale(index)}
                           onTare={tareScale}
+                        />
+                      ) : null}
+                      {item.alt && !item.cup ? (
+                        <AlternateChips
+                          name={item.name}
+                          names={item.alt}
+                          disabled={correct.isPending}
+                          onPick={(alternate) =>
+                            submitCorrection({ text: `bukan ${item.name}, ${alternate}` }, { index, name: alternate })
+                          }
                         />
                       ) : null}
                       <View style={styles.itemChips}>

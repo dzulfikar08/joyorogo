@@ -43,7 +43,7 @@ const GARBLED_NO_VALUE = new RegExp(
   String.raw`([{,])\s*"(?:${NUMERIC_KEY_ALTERNATIVES})(?!")[^\d{}\[\],":]{0,400}(?:,|(?=\}))`,
   "g",
 );
-const ANY_KEY = ["name", "localName", "kind", "portion", "unit", "cup", "box", ...NUMERIC_KEYS].join("|");
+const ANY_KEY = ["name", "localName", "kind", "portion", "unit", "cup", "box", "alt", ...NUMERIC_KEYS].join("|");
 /** `,"protein Too many items, limit 10","carbs":70`: free text instead of a value, up to the next real key. */
 const GARBLED_SPAN = new RegExp(
   String.raw`([{,])\s*"(?:${NUMERIC_KEY_ALTERNATIVES})(?!")[^{}\[\]]{0,300}?,\s*(?="(?:${ANY_KEY})"\s*:)`,
@@ -90,6 +90,8 @@ const STRING_PATTERNS = STRING_KEYS.map(
 const NUMBER_PATTERNS = NUMERIC_KEYS.map(
   (key) => [key, new RegExp(String.raw`"${key}"\s*:\s*"?(${NUM})"?(?=\s*[,}\]])`)] as const,
 );
+// `"alt":["nasi uduk","nasi liwet"]`: only a complete array of strings counts.
+const ALT_PATTERN = /"alt"\s*:\s*(\[\s*(?:"(?:[^"\\]|\\.)*"\s*(?:,\s*"(?:[^"\\]|\\.)*"\s*)*)?\])/;
 const BOX_PATTERN = new RegExp(
   String.raw`"box"\s*:\s*\[\s*(${NUM})\s*,\s*(${NUM})\s*,\s*(${NUM})\s*,\s*(${NUM})\s*\]`,
 );
@@ -112,6 +114,14 @@ export function lenientItem(text: string): Record<string, unknown> | null {
   }
   const box = BOX_PATTERN.exec(text);
   if (box) item.box = box.slice(1, 5).map(Number);
+  const alt = ALT_PATTERN.exec(text);
+  if (alt) {
+    try {
+      item.alt = JSON.parse(alt[1]!) as unknown;
+    } catch {
+      // The chips are optional: an unreadable array is no chips.
+    }
+  }
   return typeof item.name === "string" && typeof item.kcal === "number" ? item : null;
 }
 
