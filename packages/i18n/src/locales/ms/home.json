@@ -331,7 +331,10 @@
     "days_other": "Penentukuran, paling cepat {{count}} hari lagi",
     "weigh": "Penentukuran bermula dengan timbangan pertama anda",
     "waiting": "Penentukuran bermula {{date}}",
-    "hint": "Buka kemajuan penentukuran sasaran makan"
+    "hint": "Buka kemajuan penentukuran sasaran makan",
+    "shortDays_other": "Penentukuran {{count}} hari",
+    "shortWeigh": "Penentukuran: timbang dahulu",
+    "shortWaiting": "Penentukuran {{date}}"
   },
   "setup": {
     "title": "Mulakan di sini",

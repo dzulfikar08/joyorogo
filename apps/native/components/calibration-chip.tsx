@@ -13,11 +13,12 @@ import { fmtDateMedium } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 /**
- * One line on Beranda while the automatic calibration is still collecting data (or holding for Monday): how long at the
- * earliest, or what it waits for. Gone once the calibration is active, off, or manual; the note about the target
- * moving stays with the notices. Reads the same verdict as Profil > Target & tubuh (`profile.activityGuide`).
+ * While the automatic calibration is still collecting data (or holding for Monday): how long at the earliest, or what
+ * it waits for. Gone once the calibration is active, off, or manual; the note about the target moving stays with the
+ * notices. Reads the same verdict as Profil > Target & tubuh (`profile.activityGuide`). `compact` is the short form for
+ * the Beranda chip row; the full sentence stays as its accessibility label.
  */
-export function CalibrationChip({ enabled }: { enabled: boolean }) {
+export function CalibrationChip({ enabled, compact = false }: { enabled: boolean; compact?: boolean }) {
   const { t } = useTranslation("home");
   const { theme } = useUnistyles();
   const guide = useQuery({
@@ -34,6 +35,13 @@ export function CalibrationChip({ enabled }: { enabled: boolean }) {
       : chip.kind === "waiting"
         ? t("calChip.waiting", { date: fmtDateMedium(chip.date) })
         : t("calChip.weigh");
+  const shown = !compact
+    ? text
+    : chip.kind === "days"
+      ? t("calChip.shortDays", { count: chip.days })
+      : chip.kind === "waiting"
+        ? t("calChip.shortWaiting", { date: fmtDateMedium(chip.date) })
+        : t("calChip.shortWeigh");
   return (
     <View style={styles.row}>
       <PressableScale
@@ -43,20 +51,20 @@ export function CalibrationChip({ enabled }: { enabled: boolean }) {
         onPress={() => router.push("/profil/target")}
         scaleTo={0.97}
         dimTo={0.8}
-        style={styles.chip}
+        style={[styles.chip, compact && styles.chipCompact]}
       >
-        <Ionicons name="speedometer-outline" size={16} color={theme.colors.mutedForeground} />
+        <Ionicons name="speedometer-outline" size={compact ? 14 : 16} color={theme.colors.mutedForeground} />
         <Text style={styles.text} numberOfLines={1}>
-          {text}
+          {shown}
         </Text>
-        <Ionicons name="chevron-forward" size={14} color={theme.colors.mutedForeground} />
+        {compact ? null : <Ionicons name="chevron-forward" size={14} color={theme.colors.mutedForeground} />}
       </PressableScale>
     </View>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
-  row: { flexDirection: "row" },
+  row: { flexDirection: "row", flexShrink: 1 },
   chip: {
     flexShrink: 1,
     flexDirection: "row",
@@ -67,6 +75,7 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: theme.radius.pill,
     backgroundColor: theme.colors.muted,
   },
+  chipCompact: { minHeight: 40, paddingHorizontal: 12, gap: 5 },
   text: {
     flexShrink: 1,
     fontSize: theme.fontSize.sm,

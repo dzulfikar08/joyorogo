@@ -1002,6 +1002,27 @@ export default function Dashboard() {
             <ProChip />
           </View>
         </View>
+        {maternal ? null : (
+          <ShareStoryButton
+            iconOnly
+            label={t("header.share")}
+            story={progressStory}
+          />
+        )}
+        <AskJoyoHeaderButton />
+        <Link href="/profil" asChild>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("header.openProfile", { name: displayName })}
+            style={({ pressed }) => [pressed && styles.pressedSoft]}
+          >
+            <Avatar name={displayName} image={sessionData?.user.image ?? null} />
+          </Pressable>
+        </Link>
+      </View>
+
+      {/* Status chips under the greeting, so the name keeps the full width above. */}
+      <View style={styles.chipRow}>
         {/* One streak, as the home-screen widget shows it: a lit flame with the run (hollow while today is still blank), or, once it broke, a cold flame with the days since the last log that opens the scan camera. */}
         {!maternal && data.streak && data.streak.status === "broken" ? (
           <Link href="/makan-ai" asChild>
@@ -1051,23 +1072,8 @@ export default function Dashboard() {
             <Num style={styles.badgeChipText}>{badgesEarned}</Num>
           </Pressable>
         )}
-        {maternal ? null : (
-          <ShareStoryButton
-            iconOnly
-            label={t("header.share")}
-            story={progressStory}
-          />
-        )}
-        <AskJoyoHeaderButton />
-        <Link href="/profil" asChild>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("header.openProfile", { name: displayName })}
-            style={({ pressed }) => [pressed && styles.pressedSoft]}
-          >
-            <Avatar name={displayName} image={sessionData?.user.image ?? null} />
-          </Pressable>
-        </Link>
+        {/* While the calibration is still collecting: its short chip here instead of a line of its own. */}
+        <CalibrationChip compact enabled={isToday && !maternal && checklist.settled && checklist.list === null} />
       </View>
 
       {/* Day switcher */}
@@ -1076,7 +1082,7 @@ export default function Dashboard() {
       {/* Free account that just hit a streak milestone: one Pro card, once per milestone */}
       {maternal ? null : <StreakNudge userId={sessionData?.user.id ?? null} streakDays={data.streakDays} />}
 
-      {/* New account: the setup checklist. Afterwards, and while the calibration is still collecting: its one-line chip. */}
+      {/* New account: the setup checklist. */}
       {isToday && checklist.list ? (
         <SetupChecklist
           list={checklist.list}
@@ -1085,9 +1091,6 @@ export default function Dashboard() {
           onWeigh={() => setWeighOpen(true)}
         />
       ) : null}
-      <CalibrationChip
-        enabled={isToday && !maternal && checklist.settled && checklist.list === null}
-      />
 
       {/* The cards, in the order this person arranged them (daily report first by default) */}
       {visibleHomeCards(cardPrefs).map((id) => (
@@ -1311,6 +1314,11 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     gap: theme.spacing.md,
     marginTop: theme.spacing.sm,
+  },
+  chipRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
   },
   founderBanner: {
     flexDirection: "row",
