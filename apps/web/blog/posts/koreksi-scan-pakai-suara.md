@@ -1,6 +1,6 @@
 ---
 title: Sekarang bisa koreksi scan pakai suara
-description: Hasil scan kurang pas? Ucapkan "nasinya setengah aja", "itu rolade bukan perkedel", atau "cuma 2", dan daftar makanan diperbarui. Fitur baru di JoyoRogo, sudah ada di versi tes Android.
+description: Hasil scan kurang pas? Ucapkan "nasinya setengah aja", "itu rolade bukan perkedel", atau "cuma 2", dan daftar makanan diperbarui. Fitur baru di JoyoRogo, sudah ada di aplikasi iPhone dan versi tes Android.
 date: 2026-10-18
 category: Tips
 related: panduan-koreksi-scan-suara-teks, catat-kalori-lewat-foto-dan-cerita
@@ -33,4 +33,4 @@ Kalau kamu bilang "itu rolade bukan perkedel", JoyoRogo tidak hanya mengganti la
 - Rekaman suara diteruskan ke AI untuk dibaca, tidak disimpan, dan tidak dipakai melatih model. Selengkapnya di [Privasi](/privasi).
 - Koreksi yang menghapus semua item ditolak. Kalau fotonya salah total, foto ulang.
 
-Langkah lengkapnya ada di [panduan koreksi scan](/blog/panduan-koreksi-scan-suara-teks/). Fiturnya sudah bisa dipakai di versi tes Android; kalau kamu belum ikut, [gabung tester di sini](/#tester).
+Langkah lengkapnya ada di [panduan koreksi scan](/blog/panduan-koreksi-scan-suara-teks/). Fiturnya sudah bisa dipakai di aplikasi iPhone ([App Store](/?pasang=iphone)) dan di versi tes Android; untuk Android, [gabung tester di sini](/#tester).

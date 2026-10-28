@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Pelan-pelan dulu (catatan turun berat terlalu cepat) dan protein per kg
 shipped: 2026-10-22
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-391
@@ -16,4 +16,4 @@ atur: JRG-391
 
 **Bukti visual:** Makan (Daftar) hari ini dengan kartu "Pelan-pelan dulu" di bawah ringkasan hari, dan baris "Protein 0,8 g/kg · panduan 1,2-1,6 g/kg" di bawah bar protein. Pakai akun demo dengan enam penimbangan yang turun sekitar 1 kg dalam seminggu.
 
-**Jangan klaim:** Bukan saran medis dan bukan diagnosis; kartu hanya mengajak melambat dan bertanya ke dokter atau ahli gizi. Batasnya (1% per minggu, tiga dari lima hari penuh di bawah 0,8 x BMR atau 1.000 kkal) adalah pilihan aplikasi, bukan ambang klinis. 1,2-1,6 g/kg adalah panduan, bukan resep. Tidak muncul untuk Hamil, Menyusui, atau Naikin BB. Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. Jangan tulis 'tersedia di Play Store/App Store'.
+**Jangan klaim:** Bukan saran medis dan bukan diagnosis; kartu hanya mengajak melambat dan bertanya ke dokter atau ahli gizi. Batasnya (1% per minggu, tiga dari lima hari penuh di bawah 0,8 x BMR atau 1.000 kkal) adalah pilihan aplikasi, bukan ambang klinis. 1,2-1,6 g/kg adalah panduan, bukan resep. Tidak muncul untuk Hamil, Menyusui, atau Naikin BB. Sudah di App Store (versi 1.1.0) dan Play tes tertutup; jangan tulis 'tersedia di Play Store'. Jangan tulis 'tersedia di Play Store/App Store'.

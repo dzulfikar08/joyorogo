@@ -16,4 +16,4 @@ atur: JRG-405
 
 **Bukti visual:** nyalakan Mode simpel (web: Profil > Privasi & data; aplikasi: Profil > Makan & puasa), scan piring nasi, rekam layar saat menahan mic dan mengucapkan koreksi.
 
-**Jangan klaim:** di aplikasi Android dan iPhone baru ada di versi 1.1.0; sekarang di web. Mati secara bawaan. Koreksi suara butuh izin mikrofon dan koneksi internet.
+**Jangan klaim:** di aplikasi Android dan iPhone baru ada di versi 1.1.1 (belum di toko saat ini; 1.1.0 yang di App Store belum memuatnya); sekarang di web. Mati secara bawaan. Koreksi suara butuh izin mikrofon dan koneksi internet.

@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Beranda lebih rapi dan Atur kartu Beranda
 shipped: 2026-10-21
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-339
@@ -16,4 +16,4 @@ atur: JRG-339
 
 **Bukti visual:** Layar Beranda sebelum dan sesudah (akun dengan makan dan aktivitas hari itu), layar Atur kartu Beranda dengan satu kartu disembunyikan.
 
-**Jangan klaim:** Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. Pengaturan kartu tersimpan per perangkat, tidak ikut akun. Jangan tulis 'tersedia di Play Store/App Store'.
+**Jangan klaim:** Sudah di App Store (versi 1.1.0) dan Play tes tertutup; jangan tulis 'tersedia di Play Store'. Pengaturan kartu tersimpan per perangkat, tidak ikut akun. Jangan tulis 'tersedia di Play Store/App Store'.

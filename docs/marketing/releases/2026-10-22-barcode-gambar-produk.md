@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Makanan hasil scan barcode tampil dengan gambar produknya
 shipped: 2026-10-22
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-387

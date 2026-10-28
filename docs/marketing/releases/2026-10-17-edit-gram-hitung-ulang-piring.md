@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Edit porsi gram dan hitung ulang kalori per piring
 shipped: 2026-10-17
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-249
@@ -16,4 +16,4 @@ atur: JRG-249
 
 **Bukti visual:** Rekam layar: buka satu piring di Makan, ubah gram nasi, lihat kalori berubah, lalu Hitung ulang dan tunjukkan dialog pratinjau Simpan/Batal.
 
-**Jangan klaim:** Tetap perkiraan, bukan timbangan. Item yang kamu edit sendiri atau dari barcode tidak ikut dihitung ulang. Jangan sebut akurat. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Tetap perkiraan, bukan timbangan. Item yang kamu edit sendiri atau dari barcode tidak ikut dihitung ulang. Jangan sebut akurat. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: sudah di App Store (versi 1.1.0 memuat fitur ini).

@@ -16,4 +16,4 @@ atur: JRG-258
 
 **Bukti visual:** Screenshot halaman /jam dengan satu latihan (peta + grafik) dan layar JoyoFit yang menunjukkan baris cloud pada detail latihan.
 
-**Jangan klaim:** Hanya Pro; akun gratis tidak mengunggah latihan. Jangan bilang "data tidak pernah keluar dari HP". Ada batas kuota 50 MB per akun untuk sinkron. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Hanya Pro; akun gratis tidak mengunggah latihan. Jangan bilang "data tidak pernah keluar dari HP". Ada batas kuota 50 MB per akun untuk sinkron. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: App Store, tetapi fitur ini belum dipastikan ada di versi toko saat ini.

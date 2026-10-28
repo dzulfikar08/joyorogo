@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Geser antar periode di grafik berat, air, dan rekap
 shipped: 2026-10-22
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-380
@@ -16,7 +16,7 @@ atur: JRG-380
 
 **Bukti visual:** Layar Air dan Berat di rentang 30 hari, satu periode ke belakang, dengan satu batang terpilih dan daftar per hari di bawahnya. Mode gelap dan terang.
 
-**Jangan klaim:** Rekap dihitung per minggu, jadi rentang terpanjangnya 13 minggu (bukan setahun). Rentang 1 tahun menampilkan batang mingguan, bukan harian. Air tidak bisa membedakan "tidak dicatat" dari 0 gelas. Riwayat berat di daftar kini mengikuti periode yang dipilih; "Semua" menampilkan semuanya. Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'.
+**Jangan klaim:** Rekap dihitung per minggu, jadi rentang terpanjangnya 13 minggu (bukan setahun). Rentang 1 tahun menampilkan batang mingguan, bukan harian. Air tidak bisa membedakan "tidak dicatat" dari 0 gelas. Riwayat berat di daftar kini mengikuti periode yang dipilih; "Semua" menampilkan semuanya. Sudah di App Store (versi 1.1.0) dan Play tes tertutup; jangan tulis 'tersedia di Play Store'.
 
 Follow [`../marketing-plan.md`](../marketing-plan.md) section 1.1 and the "Claims to avoid" list in
 [`../social-playbook.md`](../social-playbook.md). Never write "tersedia di Play Store / App Store" before `available:

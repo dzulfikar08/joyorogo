@@ -16,4 +16,4 @@ atur: JRG-342
 
 **Bukti visual:** Tab Makan sebelum dan sesudah pada akun yang punya skor JoyoFit hari itu, plus lembar detailnya.
 
-**Jangan klaim:** Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. Skor berasal dari JoyoFit, bukan hasil medis. Jangan tulis 'tersedia di Play Store/App Store'.
+**Jangan klaim:** Baru di Play tes tertutup (belum dipastikan ada di versi App Store); jangan tulis 'tersedia di Play Store'. Skor berasal dari JoyoFit, bukan hasil medis. Jangan tulis 'tersedia di Play Store/App Store'.

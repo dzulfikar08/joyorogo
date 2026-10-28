@@ -16,4 +16,4 @@ atur: JRG-261
 
 **Bukti visual:** Setelah rilis: screenshot layar Tidur bagian Wawasan tidur dan saklar persetujuan di Profil > Privasi, dengan data demo minimal 14 malam.
 
-**Jangan klaim:** Belum rilis: kode pengirim malam di JoyoFit belum ada di build mana pun, jadi jangan diposting. Opt-in, pola bukan sebab-akibat, jangan sebut meningkatkan kualitas tidur. Temuan pribadi hanya Pro. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Belum rilis: kode pengirim malam di JoyoFit belum ada di build mana pun, jadi jangan diposting. Opt-in, pola bukan sebab-akibat, jangan sebut meningkatkan kualitas tidur. Temuan pribadi hanya Pro. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: App Store, tetapi fitur ini belum dipastikan ada di versi toko saat ini.

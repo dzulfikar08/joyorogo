@@ -16,4 +16,4 @@ atur: JRG-262
 
 **Bukti visual:** Rekam layar HP Android: tambah widget Scan Makanan, ketuk, kamera terbuka.
 
-**Jangan klaim:** Hanya Android. Widget lain refresh sekitar 30 menit, jangan klaim real-time. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight. Tulisan "Scan makan" di kotak datang lewat pembaruan cepat, tetapi nama "Scan Makanan" di daftar widget baru ada di build toko berikutnya; build lama masih menyebutnya "Foto Makanan".
+**Jangan klaim:** Hanya Android. Widget lain refresh sekitar 30 menit, jangan klaim real-time. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: App Store, tetapi fitur ini belum dipastikan ada di versi toko saat ini. Tulisan "Scan makan" di kotak datang lewat pembaruan cepat, tetapi nama "Scan Makanan" di daftar widget baru ada di build toko berikutnya; build lama masih menyebutnya "Foto Makanan".

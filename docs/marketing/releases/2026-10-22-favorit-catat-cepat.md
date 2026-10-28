@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Favorit disarankan otomatis dan Catat cepat bisa diatur (urut, ubah, hapus, tambah)
 shipped: 2026-10-22
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-392
@@ -16,4 +16,4 @@ atur: JRG-392
 
 **Bukti visual:** Akun dengan satu makanan yang dicatat tiga kali dalam dua minggu: kartu "Sering kamu catat" di Makan > Daftar. Lalu layar Atur Catat cepat dengan panah urut dan tombol ubah.
 
-**Jangan klaim:** Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. Tawaran muncul sekali per kebiasaan, bukan pengingat berulang. Kalori favorit yang ditambah sendiri memakai angka yang kamu ketik; makronya diambil dari tabel TKPI atau perkiraan teks bila ada, dan kosong bila tidak ada.
+**Jangan klaim:** Sudah di App Store (versi 1.1.0) dan Play tes tertutup; jangan tulis 'tersedia di Play Store'. Tawaran muncul sekali per kebiasaan, bukan pengingat berulang. Kalori favorit yang ditambah sendiri memakai angka yang kamu ketik; makronya diambil dari tabel TKPI atau perkiraan teks bila ada, dan kosong bila tidak ada.

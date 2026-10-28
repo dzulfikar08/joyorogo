@@ -1,6 +1,6 @@
 {
   "product": "JoyoRogo",
-  "updated": "2026-10-18",
+  "updated": "2026-10-28",
   "groups": [
     {
       "id": "doing",
@@ -16,7 +16,6 @@
       "title": "Berikutnya",
       "items": [
         "Sticker Studio: bikin stiker share sendiri",
-        "JoyoRogo di App Store (sedang direview Apple)",
         "Daftar resmi di direktori konektor Claude dan ChatGPT"
       ]
     },

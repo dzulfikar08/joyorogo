@@ -20,7 +20,7 @@ Post 2 (balasan, link di sini)
 
 batasnya: kalori hasil hitung ulang itu perkiraan (4/4/9 kkal per gram), bukan angka resmi label, cek ke kemasan lo. gambar produk cuma ada kalau Open Food Facts punya foto depannya, dan cuma untuk catatan baru. foto produk dari kontributor Open Food Facts (CC BY-SA).
 
-download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-barcode-teliti
+download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-barcode-teliti
 
 ## Instagram
 
@@ -30,7 +30,7 @@ Kalau produk dengan barcode yang sama kamu catat lagi dalam 15 menit, JoyoRogo b
 
 Slide 2 dan 3 memakai produk contoh, bukan barcode asli. Hasil hitung ulang itu perkiraan, bukan angka resmi label. Foto produk: kontributor Open Food Facts (CC BY-SA).
 
-Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-barcode-teliti`). Semua angka perkiraan, bukan saran medis.
+Download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-barcode-teliti`). Semua angka perkiraan, bukan saran medis.
 
 #JoyoRogo #HitungKalori #ScanBarcode #DietIndonesia
 
@@ -40,7 +40,7 @@ Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFli
 2. Lembar yang sama lebih besar, dengan keterangan: produk contoh, bukan barcode asli.
 3. Potongan layar produk contoh "Minuman kacang hijau 250 ml, per 100 ml 50 kkal, protein 2 g, karbo 6 g, lemak 2 g", dengan catatan dilingkari: label menulis kalori yang tidak cocok dengan makronya, jadi kalorinya dihitung dari ketiganya (perkiraan).
 4. Teks "Beberapa hal yang tidak berubah" dengan tiga poin: kalori hitung ulang itu perkiraan (4, 4, 9 kkal per gram), gambar hanya kalau ada fotonya, hanya catatan baru.
-5. Maskot JoyoRogo hijau berbaju zirah dan teks "Satu kali catat, cukup.", tombol joyorogo.com, serta catatan versi tes.
+5. Maskot JoyoRogo hijau berbaju zirah dan teks "Satu kali catat, cukup.", tombol joyorogo.com, serta catatan Android tes tertutup dan iPhone di App Store.
 
 ## Notes
 

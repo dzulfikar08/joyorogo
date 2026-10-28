@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Hitung ulang scan dengan catatan ("ini bakwan, telurnya 3") dan alasan penilaian
 shipped: 2026-10-22
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-395
@@ -16,4 +16,4 @@ atur: JRG-395
 
 **Bukti visual:** Scan foto yang telurnya terbaca satu, ketik "telurnya 3" di Hitung ulang: baris telur menjadi 3 butir dengan kalori tiga kali.
 
-**Jangan klaim:** Hanya jumlah potongan yang dijamin mengikuti catatan; nama dan berat tetap dibaca AI dari catatanmu (biasanya menurut, tidak dijamin). Hitung ulang tetap maksimal 2 kali per foto. Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'.
+**Jangan klaim:** Hanya jumlah potongan yang dijamin mengikuti catatan; nama dan berat tetap dibaca AI dari catatanmu (biasanya menurut, tidak dijamin). Hitung ulang tetap maksimal 2 kali per foto. Sudah di App Store (versi 1.1.0) dan Play tes tertutup; jangan tulis 'tersedia di Play Store'.

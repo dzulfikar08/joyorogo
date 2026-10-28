@@ -16,4 +16,4 @@ atur: JRG-351
 
 **Bukti visual:** Profil, Tampilan & bahasa, pilih Bahasa Melayu; lalu tab Makan dan kartu Beranda dalam Melayu. Tangkapan layar baru perlu diambil setelah build.
 
-**Jangan klaim:** Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. Terjemahan masih draf mesin dan belum diperiksa penutur asli. Halaman web publik (harga, privasi, syarat, blog) tetap Bahasa Indonesia kecuali /my. Jangan tulis "halal" atau klaim kesehatan (lihat docs/marketing/malaysia-plan.md).
+**Jangan klaim:** Baru di Play tes tertutup (belum dipastikan ada di versi App Store); jangan tulis 'tersedia di Play Store'. Terjemahan masih draf mesin dan belum diperiksa penutur asli. Halaman web publik (harga, privasi, syarat, blog) tetap Bahasa Indonesia kecuali /my. Jangan tulis "halal" atau klaim kesehatan (lihat docs/marketing/malaysia-plan.md).

@@ -47,8 +47,8 @@ atur: JRG-123            # atur issue key; empty if atur was unreachable
 | --- | --- |
 | `code` | Merged, not in any build users have. Do not post as released. |
 | `web` | Live on joyorogo.com / fit.joyorogo.com (deployed). |
-| `test-build` | In the Play closed test or TestFlight build, or shipped by OTA to them. |
-| `store` | In a public App Store / Play production release. |
+| `test-build` | In the Play closed test (Android), or in a build not yet in the App Store, or shipped by OTA to them. |
+| `store` | In a public store release. iPhone is on the App Store (1.1.0 live 2026-10-28); Android is still a closed test, so an entry marked `store` is true for iPhone only until Play production opens. |
 
 ## After writing the file
 

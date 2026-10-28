@@ -225,8 +225,9 @@ Sunday sweep (30 minutes):
 Everything in marketing-plan section 1.1 ("Never say" column and the line under the table) applies. Added for the
 current feature set:
 
-- Availability: Android is a Google Play closed test, iPhone is TestFlight, App Store 1.0 is in review. Never "tersedia
-  di Play Store / App Store" until `available: store`. Code on master is not a release.
+- Availability (verified 2026-10-28): iPhone is on the App Store (apps.apple.com/id/app/id6823222101, version 1.1.0
+  live, 1.1.1 submitted). Android is still a Google Play closed test (the listing returns 404 publicly): never "tersedia
+  di Play Store". Say "tersedia di App Store" only for features with `available: store`. Code on master is not a release.
 - Huawei: no Huawei or Honor logos or product renders; no "official", "kerja sama", "hack", "bypass", "unlock". Say
   "tidak berafiliasi dengan Huawei". JoyoFit's watch protocol is a Gadgetbridge port; credit it rather than saying "kami
   reverse engineer Huawei" in branded pieces (the founder's own voice on Threads is his call). Only the Watch Fit 4 Pro

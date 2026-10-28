@@ -221,8 +221,8 @@ Catatan: self-host tanpa binding/`EMAIL_FROM` otomatis mematikan email.
 - **Android:** tes tertutup di Google Play (AAB), terhubung ke JoyoRogo Cloud.
   Gabung dari [joyorogo.com](https://joyorogo.com/#pasang). Pembaruan dalam
   aplikasi lewat Google Play ([docs/in-app-updates.md](docs/in-app-updates.md)).
-- **iPhone:** beta publik lewat TestFlight; versi App Store 1.0 sedang
-  menunggu review Apple.
+- **iPhone:** [JoyoRogo di App Store](https://apps.apple.com/id/app/id6823222101),
+  gratis diunduh (iOS 16.4 ke atas).
 - **Web:** bisa dipasang ke layar utama HP.
 
 Untuk server sendiri, build dari source: ganti `EXPO_PUBLIC_SERVER_URL` di
@@ -381,14 +381,13 @@ dan bagian ini dibuat ulang dengan `bun scripts/roadmap-sync.ts`. Roadmap
 **Berikutnya**
 
 - Sticker Studio: bikin stiker share sendiri
-- JoyoRogo di App Store (sedang direview Apple)
 - Daftar resmi di direktori konektor Claude dan ChatGPT
 
 **Nanti**
 
 - Tantangan "Balik rutin" setelah Lebaran
 
-Diperbarui 2026-10-18. Tanpa tanggal rilis: urutan di tiap kelompok bukan janji jadwal.
+Diperbarui 2026-10-28. Tanpa tanggal rilis: urutan di tiap kelompok bukan janji jadwal.
 <!-- roadmap:end -->
 
 ## Berkontribusi

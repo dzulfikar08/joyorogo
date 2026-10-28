@@ -16,4 +16,4 @@ atur: JRG-397
 
 **Bukti visual:** Buka latihan gowes panjang (100 km+) di feed web, lalu zoom masuk.
 
-**Jangan klaim:** Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'.
+**Jangan klaim:** Baru di Play tes tertutup (belum dipastikan ada di versi App Store); jangan tulis 'tersedia di Play Store'.

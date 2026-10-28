@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Tanggal target dan Kebutuhan harianmu
 shipped: 2026-10-17
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-250
@@ -16,4 +16,4 @@ atur: JRG-250
 
 **Bukti visual:** Rekam layar: Profil > Target, pilih tanggal terlalu dekat, tunjukkan vonis dan tanggal realistis, ketuk untuk pindah. Tambah satu screenshot kartu Kebutuhan harianmu.
 
-**Jangan klaim:** Ini perkiraan kebutuhan, bukan resep medis. Jangan janjikan "turun X kg dalam Y hari". Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Ini perkiraan kebutuhan, bukan resep medis. Jangan janjikan "turun X kg dalam Y hari". Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: sudah di App Store (versi 1.1.0 memuat fitur ini).

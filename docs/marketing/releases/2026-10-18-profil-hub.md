@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Profil jadi hub per topik
 shipped: 2026-10-18
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-268
@@ -16,4 +16,4 @@ atur: JRG-268
 
 **Bukti visual:** Screenshot hub Profil dan satu sub-layar, di web atau HP.
 
-**Jangan klaim:** Perubahan tampilan saja, tidak ada fitur baru di dalamnya selain yang sudah disebut. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Perubahan tampilan saja, tidak ada fitur baru di dalamnya selain yang sudah disebut. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: sudah di App Store (versi 1.1.0 memuat fitur ini).

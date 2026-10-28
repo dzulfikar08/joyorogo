@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Refleksi mingguan
 shipped: 2026-10-19
-available: test-build
+available: store
 tier: mixed
 post: todo
 atur: JRG-271
@@ -16,4 +16,4 @@ atur: JRG-271
 
 **Bukti visual:** Screenshot kartu refleksi mingguan dari akun dengan data seminggu.
 
-**Jangan klaim:** Teks AI hanya Pro. Bukan nasihat medis. Jangan sebut AI membaca foto makananmu. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Teks AI hanya Pro. Bukan nasihat medis. Jangan sebut AI membaca foto makananmu. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: sudah di App Store (versi 1.1.0 memuat fitur ini).

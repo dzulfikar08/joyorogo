@@ -16,4 +16,4 @@ atur: FIT-75
 
 **Bukti visual:** Screenshot app.fit.joyorogo.com (Ringkasan, detail latihan, Tidur) dari akun Pro dengan data demo. Entry ini ada di repo joyorogo karena kode apps/fit di sana.
 
-**Jangan klaim:** Halaman analisis butuh JoyoRogo Pro (Studio tetap gratis). Data harus diunggah dari JoyoFit lewat cloud Pro. Jangan sebut data tidak pernah keluar dari HP. Hanya Huawei Watch Fit 4 Pro yang teruji. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Halaman analisis butuh JoyoRogo Pro (Studio tetap gratis). Data harus diunggah dari JoyoFit lewat cloud Pro. Jangan sebut data tidak pernah keluar dari HP. Hanya Huawei Watch Fit 4 Pro yang teruji. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: App Store, tetapi fitur ini belum dipastikan ada di versi toko saat ini.

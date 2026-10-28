@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Catat minuman
 shipped: 2026-10-18
-available: test-build
+available: store
 tier: free
 post: planned 2026-10-22
 atur: JRG-252
@@ -16,4 +16,4 @@ atur: JRG-252
 
 **Bukti visual:** Dua rekam layar singkat: foto air putih (0 kkal) dan foto gelas buram yang memunculkan pilihan jenis dan ukuran.
 
-**Jangan klaim:** Jangan klaim semua minuman terbaca benar: gelas tertutup tetap butuh pilihan darimu. Perkiraan, bukan akurat. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Jangan klaim semua minuman terbaca benar: gelas tertutup tetap butuh pilihan darimu. Perkiraan, bukan akurat. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: sudah di App Store (versi 1.1.0 memuat fitur ini).

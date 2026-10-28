@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Stiker piring utuh: kartu bagikan menampilkan seluruh piring, bukan satu lauk
 shipped: 2026-10-22
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-386
@@ -16,4 +16,4 @@ atur: JRG-386
 
 **Bukti visual:** Scan foto piring dengan beberapa lauk, simpan, lalu bagikan dari layar hasil scan (gaya Poster atau Stiker) atau ketuk gambar kecil di diari lalu Bagikan. Bandingkan dengan makanan lama di hari yang sama: kartunya masih satu lauk. Pakai foto sendiri atau akun demo, bukan foto pengguna lain.
 
-**Jangan klaim:** Pemotongan latar dikerjakan model segmentasi dan tidak selalu rapi: tepi piring, makanan yang menempel di sisi foto, atau benda lain di meja bisa ikut terpotong atau terbawa. Hanya scan baru yang punya stiker piring, dan hanya dari aplikasi yang sudah memuat pembaruan ini; makanan lama dan favorit yang dicatat ulang tetap memakai stiker per makanan. Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'.
+**Jangan klaim:** Pemotongan latar dikerjakan model segmentasi dan tidak selalu rapi: tepi piring, makanan yang menempel di sisi foto, atau benda lain di meja bisa ikut terpotong atau terbawa. Hanya scan baru yang punya stiker piring, dan hanya dari aplikasi yang sudah memuat pembaruan ini; makanan lama dan favorit yang dicatat ulang tetap memakai stiker per makanan. Sudah di App Store (versi 1.1.0) dan Play tes tertutup; jangan tulis 'tersedia di Play Store'.

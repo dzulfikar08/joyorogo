@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Kartu dan stiker share baru
 shipped: 2026-10-17
-available: test-build
+available: store
 tier: free
 post: planned 2026-11-01
 atur: JRG-256
@@ -16,4 +16,4 @@ atur: JRG-256
 
 **Bukti visual:** Contact sheet beberapa template (docs/sticker-studio.md) atau rekam layar: Beranda, ikon share, pilih template, Instagram Story.
 
-**Jangan klaim:** Sticker Studio (bikin template sendiri) belum rilis, jangan sebut. Jangan pakai logo Instagram/Strava di kartu. Pilih privasi default sebelum memamerkan angka berat. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Sticker Studio (bikin template sendiri) belum rilis, jangan sebut. Jangan pakai logo Instagram/Strava di kartu. Pilih privasi default sebelum memamerkan angka berat. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: sudah di App Store (versi 1.1.0 memuat fitur ini).

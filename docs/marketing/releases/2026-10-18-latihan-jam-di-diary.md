@@ -16,4 +16,4 @@ atur: JRG-273
 
 **Bukti visual:** Screenshot Olahraga di JoyoRogo dengan baris berlabel JoyoFit setelah sinkron dari jam.
 
-**Jangan klaim:** Perlu JoyoFit dengan jam yang terhubung (hanya Watch Fit 4 Pro teruji) dan akun yang sama. Tidak berafiliasi dengan Huawei. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Perlu JoyoFit dengan jam yang terhubung (hanya Watch Fit 4 Pro teruji) dan akun yang sama. Tidak berafiliasi dengan Huawei. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: App Store, tetapi fitur ini belum dipastikan ada di versi toko saat ini.

@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Bagikan makanku sehari (story dan carousel)
 shipped: 2026-10-23
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-400
@@ -16,4 +16,4 @@ atur: JRG-400
 
 **Bukti visual:** Contoh dari catatan asli pemilik, 22 Okt 2026: `/home/dzul/Pictures/day-share-story.png` dan `day-share-carousel-1..6.png` (stiker per komponen, karena catatan itu dibuat sebelum stiker piring utuh). Varian dengan stiker piring utuh (stiker contoh, bukan hasil scan): `day-share-plate-*.png`. Golden: `packages/sticker/__goldens__/dayfood.*.png`. Untuk screenshot layar: Makan, pilih hari dengan 3 sampai 4 waktu makan yang discan, ketuk "Bagikan makanku sehari".
 
-**Jangan klaim:** Berat badan tidak pernah ada di gambar (tidak ada pilihan untuk menampilkannya). Target kkal dan protein adalah rencana pengguna sendiri, target karbo, lemak dan serat adalah patokan umum dari aplikasi; jangan sebut itu anjuran medis. Carousel tidak bisa langsung membuka composer Story Instagram (Instagram hanya menerima satu gambar di sana): yang dikirim lewat lembar bagikan sistem atau disimpan lalu diunggah. Stiker piring utuh hanya ada untuk makanan yang discan setelah fitur stiker piring utuh; makanan lama memakai stiker per komponen, dan yang diketik tanpa foto tampil tanpa stiker. Perlu deploy web dan OTA native (server tidak berubah). Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'.
+**Jangan klaim:** Berat badan tidak pernah ada di gambar (tidak ada pilihan untuk menampilkannya). Target kkal dan protein adalah rencana pengguna sendiri, target karbo, lemak dan serat adalah patokan umum dari aplikasi; jangan sebut itu anjuran medis. Carousel tidak bisa langsung membuka composer Story Instagram (Instagram hanya menerima satu gambar di sana): yang dikirim lewat lembar bagikan sistem atau disimpan lalu diunggah. Stiker piring utuh hanya ada untuk makanan yang discan setelah fitur stiker piring utuh; makanan lama memakai stiker per komponen, dan yang diketik tanpa foto tampil tanpa stiker. Perlu deploy web dan OTA native (server tidak berubah). Sudah di App Store (versi 1.1.0) dan Play tes tertutup; jangan tulis 'tersedia di Play Store'.

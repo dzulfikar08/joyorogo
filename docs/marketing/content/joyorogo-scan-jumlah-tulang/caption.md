@@ -18,7 +18,7 @@ Post 2 (balasan, link di sini)
 
 batasnya: berat bagian yang bisa dimakan itu perkiraan per bagian (sayap 50%, paha bawah 60%, paha 65%, dada 70%, iga 50%, ikan utuh 55%), bukan hasil timbang. AI masih bisa salah baca bagian ayamnya atau beratnya. jumlah awal tetap dibaca AI dari foto, plus dan minus buat ngebetulin.
 
-download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-scan-jumlah-tulang
+download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-scan-jumlah-tulang
 
 ## Instagram
 
@@ -30,7 +30,7 @@ Ayam goreng, iga, dan ikan utuh sekarang punya tombol "Dengan tulang / Tanpa tul
 
 Slide 2 dan 3 adalah layar aslinya, item awalnya contoh, bukan hasil scan. Berat bagian yang bisa dimakan adalah perkiraan per bagian, bukan hasil timbang.
 
-Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-scan-jumlah-tulang`). Semua angka perkiraan, bukan saran medis.
+Download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-scan-jumlah-tulang`). Semua angka perkiraan, bukan saran medis.
 
 #JoyoRogo #HitungKalori #DietIndonesia
 
@@ -40,7 +40,7 @@ Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFli
 2. Dua potongan layar berlabel "AI baca 1 butir" (telur rebus 78 kkal) dan "Ketuk plus dua kali" (telur rebus 3 butir, 234 kkal). Kolom kalori dilingkari di keduanya. Keterangan: item awal contoh, bukan hasil scan.
 3. Dua potongan layar berlabel "Dengan tulang" dan "Tanpa tulang" untuk ayam goreng paha 290 kkal: yang pertama menyebut ±200 g dengan tulang, ±130 g bisa dimakan, yang kedua ±130 g tanpa tulang. Teks berat dilingkari. Keterangan: kalori tetap.
 4. Teks "Bagian yang bisa dimakan itu perkiraan" dengan tiga poin: perkiraan per bagian bukan hasil timbang (sayap 50%, paha bawah 60%, paha 65%, dada 70%, iga 50%, ikan utuh 55%), AI masih bisa salah baca, jumlah awal dari foto.
-5. Maskot JoyoRogo hijau berbaju zirah dan teks "Telurnya tiga, bukan satu.", tombol joyorogo.com, serta catatan versi tes.
+5. Maskot JoyoRogo hijau berbaju zirah dan teks "Telurnya tiga, bukan satu.", tombol joyorogo.com, serta catatan Android tes tertutup dan iPhone di App Store.
 
 ## Notes
 
