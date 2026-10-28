@@ -137,9 +137,9 @@
       "description": "Isi 1 hanya untuk uji coba: pembayaran sandbox ikut mengaktifkan Founder.",
     },
     {
-      "name": "APPLE_BUNDLE_ID",
+      "name": "APPLE_BUNDLE_IDS",
       "label": "Apple Bundle ID",
-      "description": "Kosong = com.joyodigitama.joyorogo. Harus sama dengan produk di App Store Connect.",
+      "description": "Pisahkan dengan koma. Kosong = com.joyodigitama.joyorogo,com.joyodigitama.joyofit (JoyoRogo dan JoyoFit). Harus sama dengan app di App Store Connect.",
     },
     {
       "name": "APPLE_SANDBOX_EMAILS",

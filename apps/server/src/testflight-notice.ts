@@ -1,9 +1,10 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 
 import { user } from "@joyorogo/db/schema/auth";
-import { emailLog, payment } from "@joyorogo/db/schema/billing";
+import { appleSubscription, emailLog, payment } from "@joyorogo/db/schema/billing";
 import type { Database } from "@joyorogo/db";
 import type { Locale } from "@joyorogo/i18n";
+import { appleAppName, appleProduct } from "@joyorogo/api/lib/apple";
 import { userLocale } from "@joyorogo/api/lib/messages";
 
 import { deliver, renderFor } from "./broadcast";
@@ -37,7 +38,8 @@ const PRICING_URL = "https://joyorogo.com/harga";
 /** Buyers mailed per cron tick. */
 const SWEEP_LIMIT = 20;
 
-const COPY: Record<Locale, Campaign> = {
+/** The mail in every language, naming the app whose TestFlight build the buyer used. */
+const copyFor = (app: string): Record<Locale, Campaign> => ({
   id: {
     id: "testflight-purchase",
     subject: "Soal pembelian Pro kamu di TestFlight",
@@ -45,7 +47,7 @@ const COPY: Record<Locale, Campaign> = {
 
 Makasih sudah coba Pro di TestFlight! Pembelian di TestFlight itu simulasi Apple, jadi tidak ditagih dan Pro aktif 24 jam.
 
-Kalau mau langganan beneran sekarang, bisa lewat [joyorogo.com/harga](${PRICING_URL}) (QRIS/VA), Pro langsung aktif di iPhone juga. Atau tunggu JoyoRogo resmi di App Store.
+Kalau mau langganan beneran sekarang, bisa lewat [joyorogo.com/harga](${PRICING_URL}) (QRIS/VA), Pro langsung aktif di iPhone juga. Atau tunggu ${app} resmi di App Store.
 
 Salam,
 Dzulfikar, JoyoRogo`,
@@ -57,7 +59,7 @@ Dzulfikar, JoyoRogo`,
 
 Thanks for trying Pro in TestFlight! Purchases in TestFlight are an Apple simulation, so you were not charged and Pro stays active for 24 hours.
 
-If you want to subscribe for real right now, you can do it at [joyorogo.com/harga](${PRICING_URL}) (QRIS/virtual account), and Pro activates on your iPhone too. Or wait for JoyoRogo to launch on the App Store.
+If you want to subscribe for real right now, you can do it at [joyorogo.com/harga](${PRICING_URL}) (QRIS/virtual account), and Pro activates on your iPhone too. Or wait for ${app} to launch on the App Store.
 
 Best,
 Dzulfikar, JoyoRogo`,
@@ -69,12 +71,27 @@ Dzulfikar, JoyoRogo`,
 
 Terima kasih kerana mencuba Pro di TestFlight! Pembelian di TestFlight ialah simulasi Apple, jadi anda tidak dicaj dan Pro aktif selama 24 jam.
 
-Kalau anda mahu melanggan sekarang, boleh lewat [joyorogo.com/harga](${PRICING_URL}) (kad bayaran), dan Pro terus aktif di iPhone juga. Atau tunggu JoyoRogo dilancarkan di App Store.
+Kalau anda mahu melanggan sekarang, boleh lewat [joyorogo.com/harga](${PRICING_URL}) (kad bayaran), dan Pro terus aktif di iPhone juga. Atau tunggu ${app} dilancarkan di App Store.
 
 Salam,
 Dzulfikar, JoyoRogo`,
   },
-};
+});
+
+/**
+ * The app the buyer's latest Sandbox subscription belongs to (by its product id).
+ * JoyoRogo when there is no such row: the notice predates JoyoFit's products.
+ */
+async function buyerApp(db: Database, userId: string): Promise<string> {
+  const [row] = await db
+    .select({ productId: appleSubscription.productId })
+    .from(appleSubscription)
+    .where(and(eq(appleSubscription.userId, userId), eq(appleSubscription.environment, "Sandbox")))
+    .orderBy(desc(appleSubscription.createdAt))
+    .limit(1);
+  const product = row ? appleProduct(row.productId) : null;
+  return (product && appleAppName(product.bundleId)) || "JoyoRogo";
+}
 
 export type TestflightNoticeConfig = {
   enabled: boolean;
@@ -118,7 +135,8 @@ async function mailBuyer(
   if (await optedOut(buyer.id)) return "opted-out";
   if (!(await claimEmail(deps.db, buyer.id, TESTFLIGHT_NOTICE_KIND, buyer.id))) return "already";
   const locale = await userLocale(deps.db, buyer.id);
-  const { mail, unsubscribeUrl } = await renderFor(deps, COPY[locale], buyer, locale);
+  const copy = copyFor(await buyerApp(deps.db, buyer.id));
+  const { mail, unsubscribeUrl } = await renderFor(deps, copy[locale], buyer, locale);
   const result = await deliver(deps, mail, buyer.email, unsubscribeUrl);
   if (result.ok) return "sent";
   await deps.db

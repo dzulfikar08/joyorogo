@@ -1,13 +1,11 @@
 import { and, desc, eq, gt, gte, inArray, like, lte, sql } from "drizzle-orm";
 import type { SendEmail } from "@cloudflare/workers-types";
 import type { JoyoAuth } from "@joyorogo/auth";
+import { appleBundleIds } from "@joyorogo/auth/apple-audience";
 import type { Context, Hono } from "hono";
 
 import {
   APPLE_ROOT_CA_G3_SHA256,
-  DEFAULT_APPLE_BUNDLE_ID,
-  DEFAULT_APPLE_SUB_MONTHLY_PRODUCT_ID,
-  DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID,
   verifyAppleNotificationJws,
   verifyAppleTransactionJws,
 } from "@joyorogo/api/lib/apple";
@@ -96,7 +94,7 @@ export type BillingEnv = PaywallEnv & GooglePlayEnv & PolarEnv & AppVersionEnv &
   PAKASIR_WEBHOOK_SECRET?: string;
   /** "1" lets Pakasir sandbox-mode payments credit Founder (testing only). */
   PAKASIR_SANDBOX?: string;
-  APPLE_BUNDLE_ID?: string;
+  APPLE_BUNDLE_IDS?: string;
   APPLE_TEAM_ID?: string;
   APPLE_SIWA_KEY_ID?: string;
   APPLE_SIWA_PRIVATE_KEY?: string;
@@ -645,21 +643,10 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     return c.json({ received: true, outcome: result.outcome });
   });
 
-  const appleProductConfig = () => ({
-    subscriptionIds: {
-      monthly: DEFAULT_APPLE_SUB_MONTHLY_PRODUCT_ID,
-      yearly: DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID,
-    },
-  });
-  const appleProductIds = () => {
-    const { subscriptionIds } = appleProductConfig();
-    return [subscriptionIds.monthly, subscriptionIds.yearly];
-  };
   const appleBillingDeps = (db: Database): AppleBillingDeps => ({
     db,
     onLedger: ledgerHook,
     config: {
-      ...appleProductConfig(),
       sandboxAllowlist: env.APPLE_SANDBOX_EMAILS,
       fallbackPriceIdr: {
         monthly: config.founderPriceIdr,
@@ -685,8 +672,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     const billing = appleBillingDeps(deps.getDb());
     const verification = await verifyAppleTransactionJws(body.signedTransaction, {
       rootSha256: APPLE_ROOT_CA_G3_SHA256,
-      bundleId: env.APPLE_BUNDLE_ID || DEFAULT_APPLE_BUNDLE_ID,
-      productIds: appleProductIds(),
+      bundleIds: appleBundleIds(env.APPLE_BUNDLE_IDS),
     });
     if (!verification.ok) {
       console.error(`apple billing rejected: ${verification.reason}`);
@@ -769,8 +755,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     }
     const verification = await verifyAppleNotificationJws(body.signedPayload, {
       rootSha256: APPLE_ROOT_CA_G3_SHA256,
-      bundleId: env.APPLE_BUNDLE_ID || DEFAULT_APPLE_BUNDLE_ID,
-      productIds: appleProductIds(),
+      bundleIds: appleBundleIds(env.APPLE_BUNDLE_IDS),
     });
     if (!verification.ok) {
       console.error(`apple notification rejected: ${verification.reason}`);

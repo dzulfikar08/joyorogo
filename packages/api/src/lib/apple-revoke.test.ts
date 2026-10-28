@@ -49,6 +49,11 @@ describe("appleRevokeConfig client id", () => {
   test("an unknown bundle id falls back to JoyoRogo's", () => {
     expect(appleRevokeConfig(env, "com.evil.app")?.clientId).toBe("com.joyodigitama.joyorogo");
   });
+  test("APPLE_BUNDLE_IDS limits the accepted client ids; the first is the fallback", () => {
+    const only = { ...env, APPLE_BUNDLE_IDS: "com.joyodigitama.joyofit" };
+    expect(appleRevokeConfig(only, "com.joyodigitama.joyorogo")?.clientId).toBe("com.joyodigitama.joyofit");
+    expect(appleRevokeConfig(only)?.clientId).toBe("com.joyodigitama.joyofit");
+  });
 });
 
 describe("buildAppleClientSecret", () => {

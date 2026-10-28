@@ -84,7 +84,7 @@ export type ApiEnv = PaywallEnv & ShadowEnv & {
   APPLE_TEAM_ID?: string;
   APPLE_SIWA_KEY_ID?: string;
   APPLE_SIWA_PRIVATE_KEY?: string;
-  APPLE_BUNDLE_ID?: string;
+  APPLE_BUNDLE_IDS?: string;
   /** Workers Rate Limiting binding for the public invite preview; unset = no limit. */
   INVITE_PREVIEW_LIMITER?: RateLimitBinding;
   /** Public origin of the API (also the OAuth issuer origin); the MCP connector address is derived from it. */
