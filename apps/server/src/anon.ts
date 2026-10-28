@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import type { Hono } from "hono";
 
 import { serverT } from "@joyorogo/api/lib/messages";
+import { withEggCount } from "@joyorogo/api/lib/egg-count";
 import { scanFailMessage } from "@joyorogo/api/lib/scan-fail-message";
 import { analyzeFoodPhoto, VisionError } from "@joyorogo/api/lib/vision";
 import type { VisionAnalysis } from "@joyorogo/api/lib/vision";
@@ -78,6 +79,7 @@ export function registerAnonScanRoutes(app: Hono, deps: Deps) {
       const reason = error instanceof VisionError ? error.reason : "failed";
       return c.json({ error: scanFailMessage(reason, locale), reason }, 500);
     }
+    analysis = (await withEggCount(ai, { imageBase64: body.imageBase64, mimeType: mime, model: deps.model }, analysis)).analysis;
 
     // Charge only successful scans.
     await db

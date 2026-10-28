@@ -99,13 +99,19 @@ The report (`.tmp/eval/report-<date>-external.md`, git-ignored) carries a table 
 ### Annas, Threads @annasfatahillah
 
 - **Who**: Annas, public Threads account [`@annasfatahillah`](https://www.threads.com/@annasfatahillah).
-- **What**: the photos and food weights of his public thread "Masih ganyangka berat badan nyentuh 78kg. Coba track makanan sebulan kedepan. Day N" (30 days; he weighs every food in grams). Days 3, 4 and 5 imported so far (9 photos, uploaded to R2 on 2026-10-20); Days 1 and 2 were not found on his profile; later days are added as he posts them.
+- **What**: the photos and food weights of his public thread "Masih ganyangka berat badan nyentuh 78kg. Coba track makanan sebulan kedepan. Day N" (30 days; he weighs every food in grams). Days 3, 4 and 5 were imported and uploaded to R2 on 2026-10-20 (9 photos). Days 1, 2 and 6 to 14 were imported and uploaded on 2026-10-28 (35 photos). Day 1 is the first post, without a day number. The Day 14 post is labelled "Day 4" by mistake. Later days are added as he posts them.
 - **Scope**: internal use only, to test and improve JoyoRogo's food-scan AI accuracy. Not published, not shared outside the team, not used for marketing. Deletable on request.
 - **Given**: Threads DM, 2026-10-19 to 2026-10-20 (the DM stays in the owner's Threads inbox; it is not copied here).
-- **Source**: https://www.threads.com/@annasfatahillah (posts `DemGR4JCSUy` Day 3, `Deol0jcCQh9` Day 4, `Derp6N2ibHP` Day 5).
+- **Source**: https://www.threads.com/@annasfatahillah. Day posts: `DegyOEkCZdN` (1), `DejA-JxiQOP` (2), `DemGR4JCSUy` (3), `Deol0jcCQh9` (4), `Derp6N2ibHP` (5), `DetVnzNCc1_` (6), `Dewuw-RGBNO` (7), `DezY83IGO1d` (8), `De1zqW-CaQ1` (9), `De30Fd2Eo2Q` (10), `De6NidhmPW7` (11), `De85VZIiVb9` (12), `De_NoSZks2N` (13), `DfBedrUmKD3` (14).
 - **Where it lives**: R2 `joyorogo-scans` (account in `apps/server/wrangler.jsonc`) under `dataset/external/annasfatahillah/`; local copies under `.tmp/dataset/external/annasfatahillah/` and reports under `.tmp/eval/` (git-ignored); his labels file stays outside git (this repo is public).
 - **How to delete**: on his request, through any channel:
   1. `bun run scripts/external-import.ts --delete scripts/external-cases/annasfatahillah.labels.json` (removes `photo.jpg` and `meta.json` of every case in the file from R2; add `--only <caseId>` for one). Cases added later must be in that file to be deleted this way; otherwise delete the keys under `dataset/external/annasfatahillah/` with `bunx wrangler r2 object delete joyorogo-scans/<key> --remote`.
   2. Delete `.tmp/dataset/external/annasfatahillah/`, his labels file, and any `.tmp/eval/` report or cache made from it (`rm -rf .tmp/eval` is enough).
   3. Nothing of his is in git history: photos, weights and post text were never committed.
+  4. Delete `.tmp/annas-raw/`: the full-size photos and post text scraped on 2026-10-28, which the labels are built from.
 - **Use so far**: harness runs in `docs/ai-accuracy-log.md` (two 2026-10-20 entries); aggregates only, no photos or post text.
+- **Adding new days** (every few days until Day 30):
+  1. Open his profile in a browser, scrolling slowly; fast scrolling skips posts. Note the post id of each new "Day N" post.
+  2. Save the full post text and every photo, in order, to `.tmp/annas-raw/<postId>.json` and `.tmp/annas-raw/<postId>-<n>.jpg`. The 2026-10-28 import read the post's largest `srcset` image.
+  3. Label each photo into `scripts/external-cases/annasfatahillah.labels.json`, matching how the existing cases are written. Follow `scripts/external-cases/example.labels.json`: one case per photo of weighed food, with items, groups for combined weights, and trust.
+  4. Run `bun run scripts/external-import.ts .tmp/annas-raw scripts/external-cases/annasfatahillah.labels.json --out .tmp/dataset/external --only <caseId>...`, then repeat with `--upload`. Use `--only` so that cases already imported are not re-encoded.

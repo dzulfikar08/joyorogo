@@ -5,11 +5,11 @@
  */
 
 // Active model: @cf/google/gemma-4-26b-a4b-it (AI_VISION_MODEL in
-// wrangler.jsonc). Catalog price: $0.10/M input, $0.30/M output. A typical
-// scan is ~1.5k input tokens (text prompt + image) + ~2k output tokens
-// (reasoning + items): 1500 * 0.10e-6 + 2000 * 0.30e-6 = $0.00075 ≈ Rp12 at
-// Rp16,000/USD.
-export const RP_PER_SCAN_ESTIMATE = 12;
+// wrangler.jsonc). Catalog price: $0.10/M input, $0.30/M output. Thinking is
+// off; measured 2026-10-28 (scripts/eval-scans.ts, 132 scans) a scan is ~2.4k
+// input tokens (prompt + image) + ~210 output tokens:
+// 2400 * 0.10e-6 + 210 * 0.30e-6 = $0.0003 ≈ Rp5 at Rp16,000/USD.
+export const RP_PER_SCAN_ESTIMATE = 5;
 
 export type UsageRow = {
   model: string;

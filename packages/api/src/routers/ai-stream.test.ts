@@ -14,7 +14,7 @@ import type { AnalyzeFoodResult } from "./ai";
 
 const { client, db } = await d1TestDb();
 await client.executeMultiple(`
-  INSERT INTO "user" (id, name, email) VALUES ('u1', 'u1', 'u1@test.id'), ('u2', 'u2', 'u2@test.id'), ('u3', 'u3', 'u3@test.id');
+  INSERT INTO "user" (id, name, email) VALUES ('u1', 'u1', 'u1@test.id'), ('u2', 'u2', 'u2@test.id'), ('u3', 'u3', 'u3@test.id'), ('u4', 'u4', 'u4@test.id'), ('u5', 'u5', 'u5@test.id'), ('u6', 'u6', 'u6@test.id'), ('u7', 'u7', 'u7@test.id');
 `);
 
 const ANSWER = JSON.stringify({
@@ -168,5 +168,27 @@ describe("ai.analyzeFoodStream", () => {
       );
     expect(failure).toBeInstanceOf(ORPCError);
     expect(failure).toMatchObject({ code: "UNPROCESSABLE_CONTENT", data: { reason: "not_food" } });
+  });
+
+  test("a lone item of 200 g or more asks for its grams; a plate, a drink or a lighter item does not", async () => {
+    const answer = (items: object[]) => JSON.stringify({ items });
+    const bowl = { name: "bubur kacang hijau", kind: "makanan", kcal: 330, grams: 300, box: [100, 100, 600, 600] };
+    const lone = await call(aiRouter.analyzeFood, INPUT, { context: ctx("u4", answer([bowl])) });
+    expect(lone.items).toHaveLength(1);
+    expect(lone.items[0]!.askGrams).toBe(true);
+    expect(lone.items[0]!.sizeOptions).toEqual([175, 350, 525]);
+
+    const light = await call(aiRouter.analyzeFood, INPUT, { context: ctx("u5", answer([{ ...bowl, grams: 120, kcal: 130 }])) });
+    expect(light.items[0]).not.toHaveProperty("askGrams");
+
+    const drink = await call(aiRouter.analyzeFood, INPUT, {
+      context: ctx("u6", answer([{ name: "es kopi susu", kind: "minuman", kcal: 150, grams: 300, box: [100, 100, 600, 600] }])),
+    });
+    expect(drink.items[0]).not.toHaveProperty("askGrams");
+
+    const plate = await call(aiRouter.analyzeFood, INPUT, {
+      context: ctx("u7", answer([bowl, { name: "kerupuk", kind: "camilan", kcal: 40, grams: 10 }])),
+    });
+    expect(plate.items.some((item) => item.askGrams)).toBe(false);
   });
 });

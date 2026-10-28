@@ -23,6 +23,14 @@ export const SCALE_MAX_RATIO = 10;
 const MAX_SCALE_GRAMS = 5000;
 /** The call runs beside the scan, so it only matters when it outlasts it; past this the scan answers without a reading. */
 const SCALE_TIMEOUT_MS = 12_000;
+/**
+ * The call answers in about 2 s, but roughly 1 in 15 stalls for 9-15 s on the platform side (40 live calls on the
+ * kitchen-scale photos: 9.4, 10.6 and 14.8 s against a median near 1.9 s), and a stall past SCALE_TIMEOUT_MS was a
+ * scale photo scanned with no reading. Past this, the same request is sent a second time and the first answer wins:
+ * the scan takes longer than this at the median, so a hedge adds no wait, only the cost of a second call on the
+ * slow ones.
+ */
+const SCALE_HEDGE_MS = 4_000;
 
 /**
  * Asks only for the display and what stands on it: `{"scale":null}` for almost every photo, a few dozen tokens
@@ -44,12 +52,14 @@ export type ScaleCall = {
   ms: number;
   /** Why there is no answer (timeout, unparseable): the scan goes on without a reading. */
   error?: string;
+  /** A second call was sent (the first was slow or malformed); `usage` then holds only the calls that answered. */
+  retried?: true;
 };
 
 /**
- * One extra vision call on the same photo, for the scale display only. Never
- * throws: any failure is a scan with no reading. A malformed answer gets one
- * more try (it costs a few dozen tokens); a timeout does not.
+ * One extra vision call on the same photo, for the scale display only. Never throws: any failure is a scan
+ * without a reading. A malformed answer gets one more try at once, a slow one a second identical call after
+ * SCALE_HEDGE_MS (whichever answers first is used); a timeout ends it.
  */
 export async function readScaleDisplay(
   ai: AiRunner,
@@ -60,6 +70,8 @@ export async function readScaleDisplay(
     /** Injectable for tests. */
     schedule?: ScheduleTimeout;
     timeoutMs?: number;
+    /** Injectable for tests and the eval; Infinity = never send the second call for slowness. */
+    hedgeAfterMs?: number;
   },
 ): Promise<ScaleCall> {
   const startedAt = Date.now();
@@ -78,33 +90,55 @@ export async function readScaleDisplay(
     temperature: 0,
     chat_template_kwargs: { enable_thinking: false },
   };
-  const { promise: deadline, reject } = Promise.withResolvers<never>();
+  const schedule = opts.schedule ?? defaultSchedule;
+  const { promise: deadline, reject: expire } = Promise.withResolvers<never>();
   deadline.catch(() => {});
-  const cancel = (opts.schedule ?? defaultSchedule)(() => reject(new Error("scale-timeout")), opts.timeoutMs ?? SCALE_TIMEOUT_MS);
+  const cancelDeadline = schedule(() => expire(new Error("scale-timeout")), opts.timeoutMs ?? SCALE_TIMEOUT_MS);
   let usage: Record<string, unknown> | null = null;
   let error = "failed";
+  let closed = false;
+  let launched = 0;
+  let failed = 0;
+  const attempt = async (): Promise<{ reading: unknown }> => {
+    const run = ai.run(opts.model || DEFAULT_VISION_MODEL, request);
+    run.catch(() => {});
+    const result = await run;
+    const sum = extractUsage(result);
+    if (sum) usage = { ...(usage ?? {}), ...sum };
+    const text = responseText(result);
+    if (text === null) throw new Error("no text in response");
+    const answer = extractJson(text) as { scale?: unknown } | null;
+    return { reading: answer?.scale ?? undefined };
+  };
+  const { promise: answered, resolve, reject } = Promise.withResolvers<{ reading: unknown }>();
+  answered.catch(() => {});
+  const launch = () => {
+    if (closed || launched >= 2) return;
+    launched++;
+    attempt().then(resolve, (e) => {
+      error = e instanceof Error ? e.message : "failed";
+      failed++;
+      // Every call so far failed: try again once at once; two failures are the end.
+      if (failed < launched) return;
+      if (launched < 2) launch();
+      else reject(e);
+    });
+  };
+  const hedgeMs = opts.hedgeAfterMs ?? SCALE_HEDGE_MS;
+  const cancelHedge = Number.isFinite(hedgeMs) ? schedule(launch, hedgeMs) : () => {};
+  launch();
   try {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const run = ai.run(opts.model || DEFAULT_VISION_MODEL, request);
-      run.catch(() => {});
-      try {
-        const result = await Promise.race([run, deadline]);
-        const text = responseText(result);
-        const sum = extractUsage(result);
-        if (sum) usage = { ...(usage ?? {}), ...sum };
-        if (text === null) throw new Error("no text in response");
-        const answer = extractJson(text) as { scale?: unknown } | null;
-        return { reading: answer?.scale ?? undefined, usage, ms: Date.now() - startedAt };
-      } catch (e) {
-        error = e instanceof Error ? e.message : "failed";
-        if (error === "scale-timeout") break;
-      }
-    }
+    const { reading } = await Promise.race([answered, deadline]);
+    return { reading, usage, ms: Date.now() - startedAt, ...(launched > 1 ? { retried: true as const } : {}) };
+  } catch (e) {
+    error = e instanceof Error ? e.message : "failed";
   } finally {
-    cancel();
+    closed = true;
+    cancelDeadline();
+    cancelHedge();
   }
   console.error(`[scale] no reading: ${error}`);
-  return { reading: undefined, usage, ms: Date.now() - startedAt, error };
+  return { reading: undefined, usage, ms: Date.now() - startedAt, error, ...(launched > 1 ? { retried: true as const } : {}) };
 }
 
 /** The reading as the model wrote it, validated; grams are not computed yet. */
@@ -460,5 +494,6 @@ export function scaleLedger(call: ScaleCall, outcome: ScaleOutcome | null) {
     ms: call.ms,
     ...(call.usage ? { usage: call.usage } : {}),
     ...(call.error ? { error: call.error } : {}),
+    ...(call.retried ? { retried: true } : {}),
   };
 }

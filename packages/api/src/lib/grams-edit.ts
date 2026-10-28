@@ -10,10 +10,11 @@
  *   scale  the scale-readout chip swapped to the other side
  *   half   "Setengah porsi"
  *   cup    the drink / size pick of a cup the photo hides
+ *   size   "Kecil / Sedang / Besar" chip of "Berapa gram?" (lib/ask-grams.ts)
  *   alt    "Mungkin juga": an alternate dish name tapped (server side, from the session's altTaps)
  *   typed  anything else: the correction box, spoken, or a kcal typed on the row
  */
-export const GRAMS_EDIT_SOURCES = ["prior", "count", "bone", "tare", "scale", "half", "cup", "alt", "typed"] as const;
+export const GRAMS_EDIT_SOURCES = ["prior", "count", "bone", "tare", "scale", "half", "cup", "size", "alt", "typed"] as const;
 export type GramsEditSource = (typeof GRAMS_EDIT_SOURCES)[number];
 
 /** Chips a row can carry a stamp of. `alt` and `typed` are decided at save, never stamped by a chip. */

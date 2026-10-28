@@ -639,6 +639,18 @@ export function libraryKcal(name: string, grams: number, region?: Region): numbe
 }
 
 /**
+ * The curated library's typical serving (grams, edible part for a bone-in dish) of the dish `name` calibrates to,
+ * with the same matching the scan's calibration uses: undefined for a combination, a condimented dish, a compound
+ * of an ingredient, or a food only the TKPI 2019 table knows (that table has per-100 g rows and no portion size).
+ */
+export function typicalPortionG(name: string, region?: Region): number | undefined {
+  const item = indonesianName(name);
+  const index = indexFor(region);
+  if (isCombination(item, index) || isCondimentedDish(item) || isCompoundOfIngredient(item, index)) return undefined;
+  return matchDish(item, index)?.typicalPortionG;
+}
+
+/**
  * P/K/L (grams) of a food typed by name with the kcal the person entered, from the official TKPI 2019 per-100 g
  * row it names: the curated dish's own name or alias is tried too ("nasgor" -> "nasi goreng"). The row's macros
  * per kcal are applied to `kcal`, so the numbers always agree with the energy that is logged, whatever the portion.
