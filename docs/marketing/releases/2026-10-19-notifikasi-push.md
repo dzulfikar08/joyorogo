@@ -16,4 +16,4 @@ atur: JRG-266
 
 **Bukti visual:** Screenshot pengaturan pengingat dan satu notifikasi di layar kunci.
 
-**Jangan klaim:** Push iPhone (APNs) belum diverifikasi, jangan janjikan untuk iPhone. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Push iPhone (APNs) belum diverifikasi, jangan janjikan untuk iPhone. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: App Store, tetapi fitur ini belum dipastikan ada di versi toko saat ini.

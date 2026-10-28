@@ -16,4 +16,4 @@ atur: JRG-260
 
 **Bukti visual:** Screenshot tile Tidur di Beranda dan layar Tidur dengan malam dari JoyoFit, serta pemilih target tidur.
 
-**Jangan klaim:** Perlu JoyoFit dengan jam yang terhubung (hanya Watch Fit 4 Pro yang teruji). Jangan sebut meningkatkan kualitas tidur. Bukan alat medis. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Perlu JoyoFit dengan jam yang terhubung (hanya Watch Fit 4 Pro yang teruji). Jangan sebut meningkatkan kualitas tidur. Bukan alat medis. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: App Store, tetapi fitur ini belum dipastikan ada di versi toko saat ini.

@@ -16,4 +16,4 @@ atur: JRG-269
 
 **Bukti visual:** Screenshot halaman /harga dengan opsi USD aktif (butuh akses dari luar Indonesia atau paksa preferensi).
 
-**Jangan klaim:** Jangan tulis harga rupiah dari ingatan: baca /api/config di hari yang sama. Harga App Store/Play di luar Indonesia sudah dinaikkan manual, terpisah dari harga web. Opsi USD tampil sesuai negara. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Jangan tulis harga rupiah dari ingatan: baca /api/config di hari yang sama. Harga App Store/Play di luar Indonesia sudah dinaikkan manual, terpisah dari harga web. Opsi USD tampil sesuai negara. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: App Store, tetapi fitur ini belum dipastikan ada di versi toko saat ini.

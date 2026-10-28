@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Grafik berat dengan kalori harian
 shipped: 2026-10-17
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-272
@@ -16,4 +16,4 @@ atur: JRG-272
 
 **Bukti visual:** Screenshot layar Berat dengan grafik tren dan batang kalori.
 
-**Jangan klaim:** Tren bukan berat harian. Jangan janjikan penurunan. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Tren bukan berat harian. Jangan janjikan penurunan. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: sudah di App Store (versi 1.1.0 memuat fitur ini).

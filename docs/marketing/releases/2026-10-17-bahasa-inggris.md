@@ -2,7 +2,7 @@
 app: both
 feature: Bahasa Inggris
 shipped: 2026-10-17
-available: test-build
+available: store
 tier: free
 post: planned 2026-10-29
 atur: JRG-267
@@ -16,4 +16,4 @@ atur: JRG-267
 
 **Bukti visual:** Dua screenshot berdampingan layar Beranda dalam bahasa Indonesia dan Inggris, plus pemilih Bahasa di Profil.
 
-**Jangan klaim:** Landing publik masih berbahasa Indonesia, jangan sebut seluruh situs dua bahasa. Hasil AI mengikuti bahasa pilihan tetapi tetap perkiraan. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Landing publik masih berbahasa Indonesia, jangan sebut seluruh situs dua bahasa. Hasil AI mengikuti bahasa pilihan tetapi tetap perkiraan. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: sudah di App Store (versi 1.1.0 memuat fitur ini).

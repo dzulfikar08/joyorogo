@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Target makan dari level aktivitas
 shipped: 2026-10-18
-available: test-build
+available: store
 tier: free
 post: planned 2026-10-22
 atur: JRG-251
@@ -16,4 +16,4 @@ atur: JRG-251
 
 **Bukti visual:** Screenshot Profil > Target (pilihan level aktivitas dengan target per opsi) dan layar Beranda dengan tanda tanya penjelasan. Alternatif: carousel dari diagram di /panduan/kalori.
 
-**Jangan klaim:** Semua angka perkiraan, bukan saran medis. Kalibrasi otomatis hanya jalan kalau ada data tren berat. Jangan memakai model lama "tambah olahraga ke target" (Sisa lama, post 19 Okt). Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Semua angka perkiraan, bukan saran medis. Kalibrasi otomatis hanya jalan kalau ada data tren berat. Jangan memakai model lama "tambah olahraga ke target" (Sisa lama, post 19 Okt). Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: sudah di App Store (versi 1.1.0 memuat fitur ini).

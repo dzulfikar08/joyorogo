@@ -16,4 +16,4 @@ atur: JRG-403
 
 **Bukti visual:** scan makanan berkuah di mangkuk di atas timbangan digital, ketuk "Termasuk wadah?", pilih "Mangkuk ±350 g": berat dan kalori di baris turun.
 
-**Jangan klaim:** di aplikasi Android dan iPhone tombolnya baru ada di versi 1.1.0 (koreksi tulis sudah jalan di semua versi). Mangkuk dan piring ±350/400 g hanya perkiraan; paling tepat kalau wadahnya ditimbang kosong.
+**Jangan klaim:** di aplikasi Android dan iPhone tombolnya baru ada di versi 1.1.1 (belum di toko saat ini; 1.1.0 belum memuatnya; koreksi tulis sudah jalan di semua versi). Mangkuk dan piring ±350/400 g hanya perkiraan; paling tepat kalau wadahnya ditimbang kosong.

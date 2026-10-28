@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Scan lebih cepat (hasil muncul bertahap)
 shipped: 2026-10-17
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-247
@@ -16,4 +16,4 @@ atur: JRG-247
 
 **Bukti visual:** Rekam layar scan satu piring dari tap foto sampai item terakhir muncul, di build Android atau iPhone.
 
-**Jangan klaim:** Jangan sebut angka detik: kecepatan bergantung koneksi dan foto (landing memakai "8-15 detik", ikuti itu). Jangan sebut akurat. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Jangan sebut angka detik: kecepatan bergantung koneksi dan foto (landing memakai "8-15 detik", ikuti itu). Jangan sebut akurat. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: sudah di App Store (versi 1.1.0 memuat fitur ini).

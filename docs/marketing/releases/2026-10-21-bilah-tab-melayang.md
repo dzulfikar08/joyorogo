@@ -16,4 +16,4 @@ atur: JRG-347
 
 **Bukti visual:** Rekam layar Beranda dan Makan sambil menggulir ke bawah (mode terang dan gelap), lalu ketuk tombol kamera. Akun mana pun, data demo cukup.
 
-**Jangan klaim:** Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. Jangan sebut tersedia di Play Store atau App Store.
+**Jangan klaim:** Baru di Play tes tertutup (belum dipastikan ada di versi App Store); jangan tulis 'tersedia di Play Store'. Jangan sebut tersedia di Play Store atau App Store.

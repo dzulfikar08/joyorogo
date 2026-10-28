@@ -20,7 +20,7 @@ Post 2 (balasan, link di sini)
 
 batasnya: ini bukan saran medis dan bukan diagnosis. 1% per minggu itu pilihan aplikasi, bukan ambang klinis. 1,2 sampai 1,6 g/kg itu panduan, bukan resep. kartunya cuma ngajak melambat, dan kalau ragu, tanya dokter atau ahli gizi. nggak muncul buat mode Hamil, Menyusui, atau Naikin BB.
 
-download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-pelan-pelan-protein
+download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-pelan-pelan-protein
 
 ## Instagram
 
@@ -30,7 +30,7 @@ Kalau tren beratmu turun lebih dari sekitar 1% per minggu, atau makanmu beberapa
 
 Ini ajakan melambat, bukan saran medis dan bukan diagnosis. Batas 1% per minggu adalah pilihan aplikasi, bukan ambang klinis, dan 1,2 sampai 1,6 g/kg adalah panduan, bukan resep. Kalau ragu, tanyakan ke dokter atau ahli gizi. Slide 2 dan 3 memakai akun demo, angkanya contoh.
 
-Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-pelan-pelan-protein`). Semua angka perkiraan, bukan saran medis.
+Download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-pelan-pelan-protein`). Semua angka perkiraan, bukan saran medis.
 
 #JoyoRogo #HitungKalori #DietIndonesia
 
@@ -40,7 +40,7 @@ Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFli
 2. Potongan layar yang sama dengan judul kartu "Pelan-pelan dulu" dilingkari dan keterangan kapan kartu muncul. Keterangan: data demo.
 3. Potongan ringkasan hari Makan: 977 kkal dari 2.175, bar protein 50/107 g dengan baris "Protein 0,7 g/kg · panduan 1,2-1,6 g/kg" dilingkari. Keterangan: akun demo, angkanya contoh.
 4. Teks "Ini ajakan melambat, bukan saran medis" dengan tiga poin: ambang pilihan aplikasi, 1,2 sampai 1,6 g/kg itu panduan, tidak muncul untuk Hamil, Menyusui, atau Naikin BB.
-5. Maskot JoyoRogo hijau berbaju zirah dan teks "Pelan-pelan juga sampai.", tombol joyorogo.com, serta catatan versi tes.
+5. Maskot JoyoRogo hijau berbaju zirah dan teks "Pelan-pelan juga sampai.", tombol joyorogo.com, serta catatan Android tes tertutup dan iPhone di App Store.
 
 ## Notes
 

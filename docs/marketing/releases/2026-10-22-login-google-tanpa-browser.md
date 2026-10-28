@@ -15,7 +15,7 @@ post: todo
 
 **Bukti visual:** Rekaman layar HP Android: ketuk "Masuk dengan Google", pemilih akun Google muncul di atas aplikasi, lalu Beranda terbuka. Jangan tampilkan akun asli.
 
-**Jangan klaim:** Hanya Android, dan hanya setelah pembaruan lewat toko aplikasi (bukan pembaruan OTA); iPhone tetap lewat Apple/browser. Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'.
+**Jangan klaim:** Hanya Android, dan hanya setelah pembaruan lewat toko aplikasi (bukan pembaruan OTA); iPhone tetap lewat Apple/browser. Baru di Play tes tertutup (belum dipastikan ada di versi App Store); jangan tulis 'tersedia di Play Store'.
 
 Follow [`../marketing-plan.md`](../marketing-plan.md) section 1.1 and the "Claims to avoid" list in
 [`../social-playbook.md`](../social-playbook.md). Never write "tersedia di Play Store / App Store" before `available:

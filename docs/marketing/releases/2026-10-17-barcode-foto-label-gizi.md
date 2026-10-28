@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Barcode + foto label gizi
 shipped: 2026-10-17
-available: test-build
+available: store
 tier: free
 post: planned 2026-10-22
 atur: JRG-248
@@ -16,4 +16,4 @@ atur: JRG-248
 
 **Bukti visual:** Rekam layar: scan barcode produk yang tidak dikenal, ketuk Foto label gizinya, foto tabel gizi, konfirmasi, lalu scan ulang barcode yang sama dan tunjukkan hasilnya muncul.
 
-**Jangan klaim:** Jangan klaim database lengkap atau semua produk Indonesia ada. Data dari foto label dan komunitas, cek lagi sebelum disimpan. Sumber USDA hanya aktif kalau kuncinya terpasang. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Jangan klaim database lengkap atau semua produk Indonesia ada. Data dari foto label dan komunitas, cek lagi sebelum disimpan. Sumber USDA hanya aktif kalau kuncinya terpasang. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: sudah di App Store (versi 1.1.0 memuat fitur ini).

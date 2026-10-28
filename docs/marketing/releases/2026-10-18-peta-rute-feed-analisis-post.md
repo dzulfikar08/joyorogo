@@ -16,4 +16,4 @@ atur: JRG-257
 
 **Bukti visual:** docs/img/feed-maps-web-*.png (5 gambar peta web) atau rekam layar: kartu feed dengan peta, buka post, saklar Tampilkan peta di menu. Di JoyoFit: docs/screenshots social route map (repo watch-fit).
 
-**Jangan klaim:** Peta hanya tampil kalau latihan punya GPS. Ujung rute dipangkas ±200 m demi privasi. Detail rute dan detak jantung milik orang lain hanya untuk Pro. Jangan janjikan peta di jam. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Peta hanya tampil kalau latihan punya GPS. Ujung rute dipangkas ±200 m demi privasi. Detail rute dan detak jantung milik orang lain hanya untuk Pro. Jangan janjikan peta di jam. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: App Store, tetapi fitur ini belum dipastikan ada di versi toko saat ini.

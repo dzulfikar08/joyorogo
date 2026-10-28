@@ -908,7 +908,7 @@ function Landing() {
           </div>
         </section>
 
-        {/* What testers can use today. */}
+        {/* What people can use today. */}
         <section
           id="baru"
           data-section="baru"
@@ -916,10 +916,10 @@ function Landing() {
         >
           <div className="max-w-2xl">
             <h2 className="text-3xl font-extrabold tracking-tight text-balance md:text-[2.75rem] md:leading-[1.1]">
-              Baru di versi tes
+              Baru di JoyoRogo
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-              Fitur yang sudah bisa dipakai tester Android dan iPhone hari ini.
+              Fitur terbaru yang sudah bisa dipakai hari ini di iPhone (App Store), di web, dan di Android (tes tertutup).
             </p>
           </div>
           <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

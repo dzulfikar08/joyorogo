@@ -18,7 +18,7 @@ Post 2 (balasan, link di sini)
 
 batasnya: ini bukan angka yang lebih akurat, cuma seakurat catatan terakhir lo. nama makanannya harus sama persis (nasi putih nggak minjem dari nasi goreng). kalau angka lo beda lebih dari dua kali lipat dari perkiraan AI, yang tampil angka AI. hasil scan tetap perkiraan.
 
-download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-seperti-biasanya
+download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-seperti-biasanya
 
 ## Instagram
 
@@ -30,7 +30,7 @@ Slide 2 adalah layar aslinya dengan akun demo. Angkanya contoh, bukan hasil scan
 
 Batasnya: ini angkamu sendiri, jadi seakurat catatan terakhirmu. Nama makanan harus sama persis. Kalau beda lebih dari dua kali lipat dari perkiraan AI, angka AI yang tampil.
 
-Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-seperti-biasanya`). Semua angka perkiraan, bukan saran medis.
+Download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-seperti-biasanya`). Semua angka perkiraan, bukan saran medis.
 
 #JoyoRogo #HitungKalori #DietIndonesia
 
@@ -40,7 +40,7 @@ Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFli
 2. Potongan layar yang sama dengan judul "Yang AI lihat" dan baris "Seperti biasanya" dilingkari. Keterangan: contoh tampilan, angkanya contoh.
 3. Teks "Makanan yang pernah kamu catat memakai angka terakhirmu" dengan tiga poin: kalori per gram dari catatanmu, angka AI tetap kelihatan, tetap bisa kamu ubah.
 4. Teks "Ini angkamu sendiri, bukan angka yang lebih akurat" dengan tiga poin: seakurat catatan terakhirmu, nama harus sama persis, tidak dipakai kalau beda jauh dari perkiraan AI.
-5. Maskot JoyoRogo hijau berbaju zirah dan teks "Angkamu, bukan tebakan baru.", tombol joyorogo.com, serta catatan versi tes.
+5. Maskot JoyoRogo hijau berbaju zirah dan teks "Angkamu, bukan tebakan baru.", tombol joyorogo.com, serta catatan Android tes tertutup dan iPhone di App Store.
 
 ## Notes
 

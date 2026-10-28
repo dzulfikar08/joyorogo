@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Daftar mulai di Beranda
 shipped: 2026-10-22
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-381
@@ -16,7 +16,7 @@ atur: JRG-381
 
 **Bukti visual:** Beranda akun baru dengan kartu "Mulai di sini 1/3" (satu baris selesai di bawah, dua langkah di atas). Mode gelap dan terang.
 
-**Jangan klaim:** Hanya akun yang baru (30 hari pertama) atau yang belum mencatat makan dan menimbang; akun lama yang sudah rutin tidak melihatnya. Tombol tutup bersifat per HP, bukan per akun di semua perangkat. Langkah "sumber aktivitas" tidak wajib untuk memakai JoyoRogo. Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'.
+**Jangan klaim:** Hanya akun yang baru (30 hari pertama) atau yang belum mencatat makan dan menimbang; akun lama yang sudah rutin tidak melihatnya. Tombol tutup bersifat per HP, bukan per akun di semua perangkat. Langkah "sumber aktivitas" tidak wajib untuk memakai JoyoRogo. Sudah di App Store (versi 1.1.0) dan Play tes tertutup; jangan tulis 'tersedia di Play Store'.
 
 Follow [`../marketing-plan.md`](../marketing-plan.md) section 1.1 and the "Claims to avoid" list in
 [`../social-playbook.md`](../social-playbook.md). Never write "tersedia di Play Store / App Store" before `available:

@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Scan lebih konsisten
 shipped: 2026-10-22
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-389
@@ -16,4 +16,4 @@ atur: JRG-389
 
 **Bukti visual:** Dua scan americano berurutan, keduanya 5 kkal; "jus mangga" vs "jus mangga tanpa gula" untuk gelas 250 ml.
 
-**Jangan klaim:** Angka tetap itu perkiraan pustaka (per 100 g/ml dikali berat yang dibaca), bukan hasil menimbang. Gula di jus tidak terlihat dari foto, jadi dugaan bawaannya "dengan gula" sampai kamu menyebut tanpa gula. Pengenalan bakwan, pizza, dan siomay tetap perkiraan AI. Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'.
+**Jangan klaim:** Angka tetap itu perkiraan pustaka (per 100 g/ml dikali berat yang dibaca), bukan hasil menimbang. Gula di jus tidak terlihat dari foto, jadi dugaan bawaannya "dengan gula" sampai kamu menyebut tanpa gula. Pengenalan bakwan, pizza, dan siomay tetap perkiraan AI. Sudah di App Store (versi 1.1.0) dan Play tes tertutup; jangan tulis 'tersedia di Play Store'.

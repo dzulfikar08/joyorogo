@@ -16,7 +16,7 @@ Post 2 (balasan, link di sini)
 
 batasnya: cuma scan baru yang dapet stiker piring, makanan lama tetap per lauk. potongan latar dikerjakan model segmentasi, jadi tepi piring atau benda di meja kadang ikut kebawa. di diari, gambar kecil tiap baris tetap per makanan, ketuk buat buka stiker piringnya.
 
-download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-stiker-piring
+download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-stiker-piring
 
 ## Instagram
 
@@ -24,7 +24,7 @@ Kartu bagikan JoyoRogo dulu dibuat dari potongan tiap lauk. Sekarang gambarnya s
 
 Slide 2 kartu asli dari catatan sebelum pembaruan. Slide 3 render contoh dengan piring ilustrasi, bukan hasil scan. Hanya scan baru yang punya stiker piring, dan potongan latar tidak selalu rapi.
 
-Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-stiker-piring`). Semua angka perkiraan, bukan saran medis.
+Download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-stiker-piring`). Semua angka perkiraan, bukan saran medis.
 
 #JoyoRogo #HitungKalori #DietIndonesia
 
@@ -34,10 +34,10 @@ Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFli
 2. Label "Kartu asli dari diariku" di atas kartu "Makan Siang 690 kkal" dengan empat stiker lauk hasil potong foto yang tepinya tidak rata dan tabel enam makanan: nasi liwet, ayam bakar, tahu goreng, sambal, sayur urap, putih telur.
 3. Label "Contoh render, bukan hasil scan" di atas kartu "Makan Siang 690 kkal" yang sama dengan satu piring ilustrasi berisi lauk dan telur, ditambah satu stiker putih telur, dan tabel yang sama.
 4. Teks "Hanya scan baru yang dapat stiker piring" dengan tiga poin: makanan lama tetap per lauk, potongan tidak selalu rapi, gambar kecil di diari tetap per makanan.
-5. Maskot JoyoRogo hijau berbaju zirah dan teks "Bagikan sepiring penuh", tombol joyorogo.com, serta catatan versi tes.
+5. Maskot JoyoRogo hijau berbaju zirah dan teks "Bagikan sepiring penuh", tombol joyorogo.com, serta catatan Android tes tertutup dan iPhone di App Store.
 
 ## Notes
 
 - Slide 3 memakai fixture mesin render yang sama (`day-share-plate-fixture-carousel-3.png`, piring ilustrasi), diberi label di slide. Belum ada ekspor dari scan nyata setelah fitur ini. Kalau pemilik mau versi yang lebih kuat: scan satu piring di build terbaru, buka Makan, Bagikan makanku sehari, ambil halaman waktu makan itu, dan ganti `plate-fixture-carousel-3.webp` (slide 3 dan label "Contoh render" ikut diubah).
 - Slide 2 memakai halaman yang sama dengan `joyorogo-bagikan-makan-sehari/day-carousel-3.webp` (data pribadi pemilik).
-- Butuh migrasi D1 (`food_log.plate_scan_id`), deploy server dan web, serta OTA native sebelum posting. Boleh tulis "download di Play Store (versi tes, gabung dulu lewat link)"; jangan tulis "tersedia di Play Store" tanpa keterangan versi tes, dan iPhone tetap TestFlight.
+- Butuh migrasi D1 (`food_log.plate_scan_id`), deploy server dan web, serta OTA native sebelum posting. Boleh tulis "download di Play Store (versi tes, gabung dulu lewat link)"; jangan tulis "tersedia di Play Store" (Android masih tes tertutup), dan iPhone di App Store.

@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Scan: telur, sate, nugget dan potongan lain dihitung satu per satu; angka "yakin N%" dihapus dari hasil
 shipped: 2026-10-22
-available: test-build
+available: store
 tier: free
 post: todo
 atur:
@@ -16,4 +16,4 @@ atur:
 
 **Bukti visual:** Foto piring berisi telur rebus yang dibelah: hasil scan menampilkan porsi "N belahan (N/2 butir)" dengan berat dan kalori yang naik sesuai jumlahnya.
 
-**Jangan klaim:** Jumlah potongan masih dibaca AI dari foto dan bisa meleset kalau potongan saling menempel atau menumpuk (uji: 7 belahan terbaca 4 sampai 5). Baru di versi tes (Play tes tertutup dan TestFlight); jangan tulis 'tersedia di Play Store/App Store'. Bukan klaim akurasi.
+**Jangan klaim:** Jumlah potongan masih dibaca AI dari foto dan bisa meleset kalau potongan saling menempel atau menumpuk (uji: 7 belahan terbaca 4 sampai 5). Sudah di App Store (versi 1.1.0) dan Play tes tertutup; jangan tulis 'tersedia di Play Store'. Bukan klaim akurasi.

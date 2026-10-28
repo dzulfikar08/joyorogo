@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Koneksi AI (Claude dan ChatGPT)
 shipped: 2026-10-18
-available: test-build
+available: store
 tier: pro
 post: planned 2026-11-01
 atur: JRG-255
@@ -16,4 +16,4 @@ atur: JRG-255
 
 **Bukti visual:** Rekam layar: Profil > Koneksi AI, hubungkan dari Claude, tanyakan "minggu ini rata-rata protein berapa?", lalu cabut koneksi. Panduan lengkap di /panduan/ai.
 
-**Jangan klaim:** Hanya Pro. Konektor baca-saja, tidak menulis data. Jangan pakai logo Claude/ChatGPT dan jangan sebut sudah masuk direktori mereka (belum). Jawaban AI bukan saran medis. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Hanya Pro. Konektor baca-saja, tidak menulis data. Jangan pakai logo Claude/ChatGPT dan jangan sebut sudah masuk direktori mereka (belum). Jawaban AI bukan saran medis. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: sudah di App Store (versi 1.1.0 memuat fitur ini).

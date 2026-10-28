@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Seperti biasanya: makanan yang pernah kamu catat memakai kalori per gram terakhirmu saat discan
 shipped: 2026-10-22
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-393

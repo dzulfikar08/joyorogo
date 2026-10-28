@@ -18,7 +18,7 @@ Post 2 (balasan, link di sini)
 
 batasnya: tawarannya muncul sekali per kebiasaan, bukan pengingat berulang. kalori favorit yang lo tambah sendiri pakai angka yang lo ketik. makronya diambil dari tabel TKPI atau perkiraan teks kalau ada, kosong kalau nggak ada.
 
-download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-favorit-catat-cepat
+download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-favorit-catat-cepat
 
 ## Instagram
 
@@ -28,7 +28,7 @@ Makanan atau kombinasi yang kamu catat tiga kali dalam 14 hari ditanya satu kali
 
 Tawarannya muncul sekali per kebiasaan, bukan pengingat berulang. Kalori favorit yang kamu tambah sendiri memakai angka yang kamu ketik.
 
-Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-favorit-catat-cepat`). Semua angka perkiraan, bukan saran medis.
+Download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau web joyorogo.com (link di bio: `https://joyorogo.com/?utm_source=instagram&utm_medium=bio&utm_campaign=2026-10-favorit-catat-cepat`). Semua angka perkiraan, bukan saran medis.
 
 #JoyoRogo #HitungKalori #DietIndonesia
 
@@ -38,7 +38,7 @@ Download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFli
 2. Potongan layar yang sama, lebih besar, dengan keterangan bahwa memilih Nanti membuat tawaran tidak muncul lagi untuk makanan itu.
 3. Lembar "Atur Catat cepat" dengan tiga favorit (Americano 5 kkal, Pisang 105 kkal, Putih telur rebus 52 kkal), tombol naik, turun, ubah, dan hapus di tiap baris; tombol di baris Pisang dilingkari.
 4. Teks "Cuma satu tawaran per kebiasaan" dengan tiga poin: bukan pengingat berulang, kalori tambahan adalah angka yang kamu ketik, Terakhir dicatat bisa disembunyikan.
-5. Maskot JoyoRogo hijau berbaju zirah dan teks "Sekali tap, bukan sekali ketik.", tombol joyorogo.com, serta catatan versi tes.
+5. Maskot JoyoRogo hijau berbaju zirah dan teks "Sekali tap, bukan sekali ketik.", tombol joyorogo.com, serta catatan Android tes tertutup dan iPhone di App Store.
 
 ## Notes
 

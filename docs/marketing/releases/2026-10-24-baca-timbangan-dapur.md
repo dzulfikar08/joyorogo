@@ -16,4 +16,4 @@ atur: JRG-404
 
 **Bukti visual:** scan rujak/nasi bungkus di atas timbangan digital: baris menampilkan "Terbaca dari timbangan: 258 g", kalori mengikuti berat itu.
 
-**Jangan klaim:** hanya timbangan digital dengan layar angka yang terlihat jelas di foto; angka buram atau tertutup tidak dibaca. Kalau makanan di mangkuk/piring, beratnya termasuk wadah: pakai "Termasuk wadah?" (aplikasi 1.1.0 dan web) atau ketik koreksinya. Jangan sebut akurat 100%. Android masih tes tertutup di Play, iPhone lewat TestFlight/review.
+**Jangan klaim:** hanya timbangan digital dengan layar angka yang terlihat jelas di foto; angka buram atau tertutup tidak dibaca. Kalau makanan di mangkuk/piring, beratnya termasuk wadah: pakai "Termasuk wadah?" (aplikasi 1.1.1, belum di toko saat ini, dan web) atau ketik koreksinya. Jangan sebut akurat 100%. Android masih tes tertutup di Play, iPhone lewat TestFlight/review.

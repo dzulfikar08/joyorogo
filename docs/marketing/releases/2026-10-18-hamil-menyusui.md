@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Hamil dan Menyusui
 shipped: 2026-10-18
-available: test-build
+available: store
 tier: free
 post: planned 2026-10-22
 atur: JRG-254
@@ -16,4 +16,4 @@ atur: JRG-254
 
 **Bukti visual:** Screenshot kartu Beranda mode hamil, grafik kenaikan berat dengan pita, dan layar catatan keamanan makanan. Pakai data demo, bukan akun nyata.
 
-**Jangan klaim:** Semua angka perkiraan. Jangan tulis "aman untuk bayi" atau kerangka turun berat. Selalu sebut tanya dokter atau bidan. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Semua angka perkiraan. Jangan tulis "aman untuk bayi" atau kerangka turun berat. Selalu sebut tanya dokter atau bidan. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: sudah di App Store (versi 1.1.0 memuat fitur ini).

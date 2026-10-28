@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Ulangi makan: "sama kayak tadi siang"
 shipped: 2026-10-19
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-264
@@ -16,4 +16,4 @@ atur: JRG-264
 
 **Bukti visual:** Rekam layar Ceritakan: ketik "sama kayak tadi siang, nasinya setengah" lalu tunjukkan item yang masuk.
 
-**Jangan klaim:** Hanya mengulang yang sudah tercatat di log. Perubahan bebas masih lewat AI dan bisa meleset, jangan sebut akurat. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Hanya mengulang yang sudah tercatat di log. Perubahan bebas masih lewat AI dan bisa meleset, jangan sebut akurat. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: sudah di App Store (versi 1.1.0 memuat fitur ini).

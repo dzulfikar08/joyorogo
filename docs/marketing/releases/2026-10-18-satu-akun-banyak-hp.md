@@ -16,4 +16,4 @@ atur: JRG-259
 
 **Bukti visual:** Rekam layar: ubah tema di satu perangkat, login di perangkat kedua, tunjukkan pengaturan yang sama.
 
-**Jangan klaim:** Pengaturan JoyoRogo gratis, tetapi sinkron data JoyoFit hanya Pro. Kuota 50 MB per akun. Dua HP butuh akun yang sama. Jangan tulis 'tersedia di Play Store/App Store': Android masih tes tertutup di Google Play, iPhone lewat TestFlight.
+**Jangan klaim:** Pengaturan JoyoRogo gratis, tetapi sinkron data JoyoFit hanya Pro. Kuota 50 MB per akun. Dua HP butuh akun yang sama. Jangan tulis 'tersedia di Play Store': Android masih tes tertutup di Google Play. iPhone: App Store, tetapi fitur ini belum dipastikan ada di versi toko saat ini.
