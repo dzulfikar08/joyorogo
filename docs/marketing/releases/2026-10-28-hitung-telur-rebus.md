@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Hitung telur rebus lebih tepat
 shipped: 2026-10-28
-available: code
+available: web
 tier: free
 post: todo
 atur: JRG-465
@@ -16,4 +16,4 @@ atur: JRG-465
 
 **Bukti visual:** Foto sepiring 6 belahan telur rebus (atau semangkuk telur yang dipotong); layar hasil menampilkan "6 belahan", 150 g; bandingkan dengan build sebelumnya yang menjawab 3 sampai 4 belahan.
 
-**Jangan klaim:** Tidak selalu tepat: telur yang hancur atau menumpuk masih bisa terbaca kurang satu, dan ini hanya telur rebus utuh atau belahan (bukan telur dadar, ceplok, atau telur di dalam masakan). Angka hasil uji dari 6 foto, hitungan telurnya dari pembacaan kami, bukan timbangan. Belum ada di build mana pun (status code).
+**Jangan klaim:** Tidak selalu tepat: telur yang hancur atau menumpuk masih bisa terbaca kurang satu, dan ini hanya telur rebus utuh atau belahan (bukan telur dadar, ceplok, atau telur di dalam masakan). Angka hasil uji dari 6 foto, hitungan telurnya dari pembacaan kami, bukan timbangan. Hitungan telur jalan di server sejak 2026-10-28, jadi berlaku di web, iPhone dan Android tanpa update aplikasi; tetap jangan sebut Play Store.

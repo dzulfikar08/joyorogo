@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Berapa gram? Timbang biar akurat
 shipped: 2026-10-28
-available: code
+available: web
 tier: free
 post: todo
 atur: JRG-464
@@ -16,4 +16,4 @@ atur: JRG-464
 
 **Bukti visual:** Scan satu mangkuk bubur atau spageti (satu item, 200 g ke atas, bukan minuman); layar hasil menampilkan "Berapa gram? Timbang biar akurat" di bawah barisnya; rekam ketuk, ketik 120, kalori turun.
 
-**Jangan klaim:** Jangan bilang scan jadi akurat atau selalu tepat: hanya satu item berat yang ditanya, piring berisi beberapa lauk dan minuman tidak. Angka tetap perkiraan sampai kamu menimbangnya. Pilihan Kecil / Sedang / Besar hanya muncul untuk masakan yang punya porsi umum di data kami, dan porsi umum itu ukuran porsi restoran, jadi "Sedang" sering mirip tebakan AI; jangan janjikan lebih dekat. Belum ada di build mana pun (status code).
+**Jangan klaim:** Jangan bilang scan jadi akurat atau selalu tepat: hanya satu item berat yang ditanya, piring berisi beberapa lauk dan minuman tidak. Angka tetap perkiraan sampai kamu menimbangnya. Pilihan Kecil / Sedang / Besar hanya muncul untuk masakan yang punya porsi umum di data kami, dan porsi umum itu ukuran porsi restoran, jadi "Sedang" sering mirip tebakan AI; jangan janjikan lebih dekat. Live di app.joyorogo.com sejak 2026-10-28; iPhone lewat pembaruan OTA ke build App Store yang runtime-nya cocok; Android belum (tunggu build Play berikutnya), jadi jangan klaim ada di Android.
