@@ -371,7 +371,8 @@
   "dishware": {
     "matched": "Piring: {{name}} ({{cm}} cm) terlihat, dipakai sebagai petunjuk ukuran saja. Gramnya tetap perkiraan.",
     "none": "Piring tidak dikenali, porsi diperkirakan biasa.",
-    "card": "Kartu terlihat di foto, dipakai sebagai petunjuk ukuran saja. Gramnya tetap perkiraan."
+    "card": "Kartu terlihat di foto, dipakai sebagai petunjuk ukuran saja. Gramnya tetap perkiraan.",
+    "measured": "Piring ±{{cm}} cm, diukur dari kartu di foto, dipakai sebagai petunjuk ukuran saja. Gramnya tetap perkiraan."
   },
   "simple": {
     "title": "Cek hasilnya",

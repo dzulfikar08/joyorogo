@@ -152,6 +152,11 @@ export const caseSchema = z.object({
    * Leave it out when nobody checked (an unlabelled photo is never assumed to have no card).
    */
   card: z.boolean().optional(),
+  /**
+   * The true diameter in cm of the plate or bowl the meal sits on, measured by hand, for the `card-plate` variant: the
+   * diameter the card measured is scored against it. Leave it out when nobody measured it.
+   */
+  plateCm: z.number().min(5).max(60).optional(),
 });
 export type LabelCase = z.infer<typeof caseSchema>;
 
@@ -280,6 +285,8 @@ export type ExternalMeta = {
   plate?: PlateRef;
   /** A card lies beside the food (true), or the photo was checked and has none (false); see caseSchema. */
   card?: boolean;
+  /** The plate's measured diameter in cm; see caseSchema. */
+  plateCm?: number;
   /** What the harness scores against, over the items marked inPhoto "yes". */
   truth: {
     /** Every scored item has a reference kcal. */
@@ -433,6 +440,7 @@ export function buildExternalMeta(
     comparators: c.comparators,
     ...(c.plate ? { plate: c.plate } : {}),
     ...(c.card !== undefined ? { card: c.card } : {}),
+    ...(c.plateCm !== undefined ? { plateCm: c.plateCm } : {}),
     truth: truthOf(items, c.groups),
     importedAt,
   };

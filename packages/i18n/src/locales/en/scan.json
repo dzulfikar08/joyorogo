@@ -397,7 +397,8 @@
   "dishware": {
     "matched": "Plate: {{name}} ({{cm}} cm) spotted, used as a size hint only. Grams are still an estimate.",
     "none": "Plate not recognised, portions estimated as usual.",
-    "card": "Card seen in the photo, used as a size hint only. Grams are still an estimate."
+    "card": "Card seen in the photo, used as a size hint only. Grams are still an estimate.",
+    "measured": "Plate about {{cm}} cm, measured from the card in the photo, used as a size hint only. Grams are still an estimate."
   },
   "simple": {
     "title": "Check the result",

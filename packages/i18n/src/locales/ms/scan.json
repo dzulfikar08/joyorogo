@@ -371,7 +371,8 @@
   "dishware": {
     "matched": "Pinggan: {{name}} ({{cm}} cm) kelihatan, digunakan sebagai petunjuk saiz sahaja. Gram tetap anggaran.",
     "none": "Pinggan tidak dikenali, hidangan dianggarkan seperti biasa.",
-    "card": "Kad kelihatan dalam foto, digunakan sebagai petunjuk saiz sahaja. Gram tetap anggaran."
+    "card": "Kad kelihatan dalam foto, digunakan sebagai petunjuk saiz sahaja. Gram tetap anggaran.",
+    "measured": "Pinggan kira-kira {{cm}} cm, diukur daripada kad dalam foto, digunakan sebagai petunjuk saiz sahaja. Gram tetap anggaran."
   },
   "simple": {
     "title": "Semak hasilnya",

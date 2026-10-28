@@ -51,6 +51,9 @@ import { DEFAULT_VISION_MODEL, VisionError, analyzeFoodPhoto, normalizeBox } fro
 import type { ItemBox, VisionAnalysis, VisionEvent } from "../lib/vision";
 import { loadScanReference } from "../lib/dishware-store";
 import type { CardScanNote, DishwareScanNote, ScanReference } from "../lib/dishware-store";
+import { cardPlateLedger, measureCardPlate, scanWithMeasuredPlate } from "../lib/card-plate";
+import type { CardPlateResult, MeasuredPlate } from "../lib/card-plate";
+import { applyPieceGeometry } from "../lib/piece-geometry";
 import { EventChannel } from "../lib/event-channel";
 import { applyHintCounts } from "../lib/piece-count";
 import { withPortionPrior } from "../lib/portion-prior";
@@ -227,14 +230,26 @@ async function loadUserNote(db: Database, userId: string, zone: DayZone): Promis
 }
 
 /**
- * What a scan says about its size references (the card in the photo, the user's plates) and what the ledger
- * keeps of them: `usage_json.card` {seen, used, confidence} for every scan that asked, `usage_json.plate`
- * {registered, matched, answer} when the user has plates. Both empty for a user outside the allowlist.
+ * What a scan says about its size references (the card in the photo, the user's plates, the plate the card measured)
+ * and what the ledger keeps of them: `usage_json.card` {seen, used, confidence} for every scan that asked,
+ * `usage_json.plate` {registered, matched, answer} when the user has plates or a measured plate was offered,
+ * `usage_json.cardPlate` (lib/card-plate.ts) for every scan whose measure call ran. All empty for a user outside the
+ * allowlist. `run` is what scanWithMeasuredPlate returned: the answer is read against the reference the scan used.
  */
-function referenceOutcome(reference: ScanReference | null, answered: Pick<VisionAnalysis, "plate" | "card">) {
-  if (!reference) return { result: {}, ledger: {} };
+function referenceOutcome(
+  base: ScanReference | null,
+  answered: Pick<VisionAnalysis, "plate" | "card" | "items">,
+  run: { result: CardPlateResult | null; plate?: MeasuredPlate; rescanFailed?: true },
+) {
+  if (!base) return { result: {}, ledger: {} };
+  const reference = run.plate ? base.withMeasured(run.plate) : base;
   const plate = reference.plateNote(answered.plate);
   const card = reference.cardNote(answered.card);
+  const measured = run.result?.outcome;
+  // Piece sizes from the card's scale are logged only (grams stay the model's), to compare against weighed pieces later.
+  const pieces = measured?.card
+    ? applyPieceGeometry(answered.items, measured.card).readings.filter((reading) => reading.skip !== "not_piece")
+    : [];
   return {
     result: { ...(plate ? { plate } : {}), ...(card.note ? { card: card.note } : {}) } satisfies {
       plate?: DishwareScanNote;
@@ -248,6 +263,14 @@ function referenceOutcome(reference: ScanReference | null, answered: Pick<Vision
               registered: reference.plates.length,
               matched: plate.status === "matched" ? plate.id : null,
               answer: answered.plate ?? null,
+            },
+          }
+        : {}),
+      ...(run.result
+        ? {
+            cardPlate: {
+              ...cardPlateLedger(run.result, { rescanned: run.plate !== undefined || run.rescanFailed === true, rescanFailed: run.rescanFailed === true }),
+              ...(pieces.length > 0 ? { pieces } : {}),
             },
           }
         : {}),
@@ -477,19 +500,37 @@ async function runAnalyzeFood(
         model: context.env.AI_VISION_MODEL || undefined,
       })
     : null;
+  // "Card measures the plate" (lib/card-plate.ts): allowlist only. The measure runs beside the scan; a photo whose card
+  // gave a plate diameter is scanned again with it as a plate of known size, any other photo keeps the first scan.
+  const baseReference = await reference;
+  const measure = baseReference
+    ? measureCardPlate(ai, {
+        imageBase64: input.imageBase64,
+        mimeType: input.mimeType,
+        bytes: photoBytes,
+        model: context.env.AI_VISION_MODEL || undefined,
+      })
+    : null;
   let analysis;
+  let cardPlateRun;
   try {
-    analysis = await analyzeFoodPhoto(ai, {
-      imageBase64: input.imageBase64,
-      mimeType: input.mimeType,
-      model: context.env.AI_VISION_MODEL || undefined,
-      locale: context.locale,
-      region: context.region,
-      userContext: (await userNote) ?? undefined,
-      dishware: (await reference)?.instruction,
-      memory: (await memory)?.block,
+    cardPlateRun = await scanWithMeasuredPlate({
+      measure,
       onEvent: report,
+      run: async (plate, emit) =>
+        analyzeFoodPhoto(ai, {
+          imageBase64: input.imageBase64,
+          mimeType: input.mimeType,
+          model: context.env.AI_VISION_MODEL || undefined,
+          locale: context.locale,
+          region: context.region,
+          userContext: (await userNote) ?? undefined,
+          dishware: (plate ? baseReference?.withMeasured(plate) : baseReference)?.instruction,
+          memory: (await memory)?.block,
+          onEvent: emit,
+        }),
     });
+    analysis = cardPlateRun.value;
   } catch (error) {
     // A failure a hint can fix keeps the photo for one hinted "Hitung ulang" (scan-src/ objects expire through the
     // bucket lifecycle). Any other failure has no retry target: drop the photo stored alongside inference.
@@ -550,7 +591,7 @@ async function runAnalyzeFood(
     ...(onEvent ? { streamed: true, ...firstSeen } : {}),
     totalMs: Date.now() - requestStartedAt,
   };
-  const references = referenceOutcome(await reference, analysis);
+  const references = referenceOutcome(baseReference, analysis, cardPlateRun);
   const ledgerUsage = {
     ...analysis.usage,
     itemCount: analysis.items.length,
@@ -797,19 +838,29 @@ export const aiRouter = {
             model: context.env.AI_VISION_MODEL || undefined,
           })
         : null;
+      const baseReference = await reference;
+      const measure = baseReference
+        ? measureCardPlate(ai, { imageBase64: photoBase64, mimeType: photoMime, bytes, model: context.env.AI_VISION_MODEL || undefined })
+        : null;
       let analysis;
+      let cardPlateRun;
       try {
-        analysis = await analyzeFoodPhoto(ai, {
-          imageBase64: photoBase64,
-          mimeType: photoMime,
-          model: context.env.AI_VISION_MODEL || undefined,
-          retry: { hint: input.hint },
-          locale: context.locale,
-          region: context.region,
-          userContext: (await userNote) ?? undefined,
-          dishware: (await reference)?.instruction,
-          memory: (await memory)?.block,
+        cardPlateRun = await scanWithMeasuredPlate({
+          measure,
+          run: async (plate) =>
+            analyzeFoodPhoto(ai, {
+              imageBase64: photoBase64,
+              mimeType: photoMime,
+              model: context.env.AI_VISION_MODEL || undefined,
+              retry: { hint: input.hint },
+              locale: context.locale,
+              region: context.region,
+              userContext: (await userNote) ?? undefined,
+              dishware: (plate ? baseReference?.withMeasured(plate) : baseReference)?.instruction,
+              memory: (await memory)?.block,
+            }),
         });
+        analysis = cardPlateRun.value;
       } catch (error) {
         context.waitUntil(logScanFailure(context.db, userId, error, startedAt, "retry"));
         throw scanFailure(error, context.locale);
@@ -818,7 +869,7 @@ export const aiRouter = {
       // Boiled-egg recount (lib/egg-count.ts), as on the first pass; a count in the hint still wins below.
       const eggCount = await withEggCount(ai, { imageBase64: photoBase64, mimeType: photoMime, model: context.env.AI_VISION_MODEL || undefined }, analysis);
       analysis = eggCount.analysis;
-      const references = referenceOutcome(await reference, analysis);
+      const references = referenceOutcome(baseReference, analysis, cardPlateRun);
       // Kitchen-scale readout (lib/scale-reading.ts): allowlist only.
       const scaleCall = await scalePending;
       const scale = scaleCall ? applyScaleReading(analysis.items, scaleCall.reading) : null;
