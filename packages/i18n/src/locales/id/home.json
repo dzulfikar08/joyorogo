@@ -331,7 +331,10 @@
     "days_other": "Kalibrasi, paling cepat {{count}} hari lagi",
     "weigh": "Kalibrasi mulai dari timbangan pertamamu",
     "waiting": "Kalibrasi mulai {{date}}",
-    "hint": "Buka kemajuan kalibrasi target makan"
+    "hint": "Buka kemajuan kalibrasi target makan",
+    "shortDays_other": "Kalibrasi {{count}} hari",
+    "shortWeigh": "Kalibrasi: timbang dulu",
+    "shortWaiting": "Kalibrasi {{date}}"
   },
   "setup": {
     "title": "Mulai di sini",

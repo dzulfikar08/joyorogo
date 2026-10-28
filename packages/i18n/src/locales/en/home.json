@@ -345,7 +345,11 @@
     "days_other": "Calibrating, {{count}} days left at the earliest",
     "weigh": "Calibration starts with your first weigh-in",
     "waiting": "Calibration starts {{date}}",
-    "hint": "Open the progress of the eat-target calibration"
+    "hint": "Open the progress of the eat-target calibration",
+    "shortDays_one": "Calibration {{count}} day",
+    "shortDays_other": "Calibration {{count}} days",
+    "shortWeigh": "Calibration: weigh in",
+    "shortWaiting": "Calibration {{date}}"
   },
   "setup": {
     "title": "Get started",
