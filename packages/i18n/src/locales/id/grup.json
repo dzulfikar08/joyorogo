@@ -74,7 +74,8 @@
     "tab": {
       "members": "Anggota",
       "activity": "Aktivitas",
-      "challenges": "Tantangan"
+      "challenges": "Tantangan",
+      "board": "Papan"
     },
     "invite": "Undang",
     "settings": "Setelan"

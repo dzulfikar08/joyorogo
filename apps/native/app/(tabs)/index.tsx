@@ -561,7 +561,7 @@ export default function Dashboard() {
                 <>
                   <View style={styles.heroStat}>
                     <Text style={styles.heroStatLabel}>{maternal ? t("maternal:target.total") : t("eat.target")}</Text>
-                    <CountNum value={data.targets.eatKcal} style={styles.heroStatValue} />
+                    <CountNum value={data.targets.eatKcal} style={styles.heroStatValue} adjustsFontSizeToFit numberOfLines={1} />
                   </View>
                   {maternal ? (
                     <Text style={styles.helpText}>
@@ -572,7 +572,7 @@ export default function Dashboard() {
                   ) : (
                     <View style={[styles.heroStat, styles.heroStatMid]}>
                       <Text style={styles.heroStatLabel}>{t("eat.eaten")}</Text>
-                      <CountNum value={data.eatenKcal} style={styles.heroStatValue} />
+                      <CountNum value={data.eatenKcal} style={styles.heroStatValue} adjustsFontSizeToFit numberOfLines={1} />
                     </View>
                   )}
                 </>
@@ -1432,6 +1432,7 @@ const styles = StyleSheet.create((theme) => ({
   },
   heroStats: {
     flex: 1,
+    minWidth: 0,
     gap: theme.spacing.sm,
   },
   heroStat: {
@@ -1447,11 +1448,13 @@ const styles = StyleSheet.create((theme) => ({
     paddingVertical: theme.spacing.sm,
   },
   heroStatLabel: {
+    flexShrink: 1,
     fontSize: theme.fontSize.xs,
     fontWeight: "600",
     color: theme.colors.mutedForeground,
   },
   heroStatValue: {
+    flexShrink: 1,
     fontSize: theme.fontSize.title,
     fontWeight: "800",
     color: theme.colors.foreground,

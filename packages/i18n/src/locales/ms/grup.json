@@ -74,7 +74,8 @@
     "tab": {
       "members": "Ahli",
       "activity": "Aktiviti",
-      "challenges": "Cabaran"
+      "challenges": "Cabaran",
+      "board": "Papan"
     },
     "invite": "Jemput",
     "settings": "Tetapan"

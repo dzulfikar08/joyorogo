@@ -472,7 +472,7 @@ export default function GroupDetail() {
             { value: "anggota", label: t("detail.tab.members") },
             { value: "aktivitas", label: t("detail.tab.activity") },
             { value: "tantangan", label: t("detail.tab.challenges") },
-            ...(boardAvailable ? [{ value: "papan" as const, label: t("badges:board.title") }] : []),
+            ...(boardAvailable ? [{ value: "papan" as const, label: t("detail.tab.board") }] : []),
           ]}
           value={boardAvailable ? tab : tab === "papan" ? "anggota" : tab}
           onChange={setTab}

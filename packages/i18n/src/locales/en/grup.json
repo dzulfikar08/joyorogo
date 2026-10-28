@@ -78,7 +78,8 @@
     "tab": {
       "members": "Members",
       "activity": "Activity",
-      "challenges": "Challenges"
+      "challenges": "Challenges",
+      "board": "Board"
     },
     "invite": "Invite",
     "settings": "Settings"
