@@ -6,6 +6,8 @@ import type { Database } from "@joyorogo/db";
 
 import { appleAccountToken } from "./apple";
 import type { AppleNotification, AppleTransaction } from "./apple";
+import { notifyLedger } from "./revklik";
+import type { LedgerHook } from "./revklik";
 import { appleSubscriptionGrant, planMonths } from "./tiers";
 import type { FounderPlan } from "./tiers";
 
@@ -21,6 +23,8 @@ export type AppleBillingDeps = {
     fallbackPriceIdr: Record<FounderPlan, number>;
   };
   now?: () => Date;
+  /** Queues the ledger event for RevKlik after a paid flip or a refund. */
+  onLedger?: LedgerHook;
 };
 
 /** Which plan a product id sells. null = not a Founder product. */
@@ -124,7 +128,10 @@ async function creditTransaction(
           ),
         ),
     ]);
-    if (flipped.length === 1) return { outcome: "granted", until, amountIdr };
+    if (flipped.length === 1) {
+      await notifyLedger(deps.onLedger, ledgerId, "paid");
+      return { outcome: "granted", until, amountIdr };
+    }
     // Lost a race with another credit: re-read and try again from the new period.
   }
   return { outcome: "busy" };
@@ -243,7 +250,7 @@ export async function redeemAppleTransaction(
  * purchase). Zero-revenue sandbox trials are left to lapse on their own.
  */
 export async function revokeAppleTransaction(
-  deps: Pick<AppleBillingDeps, "db" | "now">,
+  deps: Pick<AppleBillingDeps, "db" | "now" | "onLedger">,
   transaction: AppleTransaction,
 ): Promise<"revoked" | "none"> {
   const { db } = deps;
@@ -292,7 +299,10 @@ export async function revokeAppleTransaction(
           ),
         ),
     ]);
-    if (flipped.length === 1) return "revoked";
+    if (flipped.length === 1) {
+      await notifyLedger(deps.onLedger, ledgerId, "refund");
+      return "revoked";
+    }
     // The period moved under us (a concurrent credit): redo from the new one.
   }
   return "none";

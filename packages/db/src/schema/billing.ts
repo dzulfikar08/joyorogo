@@ -196,3 +196,25 @@ export const polarEvent = sqliteTable("polar_event", {
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),
 });
+
+/**
+ * Revenue events waiting to be forwarded to RevKlik (docs/revklik-forwarding.md). One row per ledger event, keyed by the
+ * RevKlik external_id (sale = payment.order_id, refund = order_id + ':refund'), so enqueueing twice is a no-op.
+ * forwarded_at set = delivered (or already known to RevKlik); attempts >= the cap or a 4xx parks the row with last_error.
+ */
+export const revklikOutbox = sqliteTable(
+  "revklik_outbox",
+  {
+    externalId: text("external_id").primaryKey(),
+    // The /api/v1/events/server body without site_id and token (those come from the Worker env at send time).
+    body: text("body").notNull(),
+    attempts: integer("attempts").default(0).notNull(),
+    forwardedAt: integer("forwarded_at", { mode: "timestamp_ms" }),
+    lastAttemptAt: integer("last_attempt_at", { mode: "timestamp_ms" }),
+    lastError: text("last_error"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+  },
+  (table) => [index("revklik_outbox_pending_idx").on(table.forwardedAt, table.createdAt)],
+);

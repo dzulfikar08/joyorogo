@@ -105,6 +105,9 @@
     "SHADOW_DAILY_CAP": "60",
     // The signed-in app (docs/app-subdomain.md); SITE_URL is the landing/marketing site.
     "APP_URL": "https://app.joyorogo.com",
+    // Revenue forwarding to RevKlik (docs/revklik-forwarding.md). REVKLIK_TOKEN is a secret (wrangler secret put); unset = off.
+    "REVKLIK_API_URL": "https://app.revklik.com",
+    "REVKLIK_SITE_ID": "88069ee9-6eac-4dc9-a23b-f5757a4b948e",
     "SITE_URL": "https://joyorogo.com",
     // The JoyoFit cloud API that /api/fit/* (the JoyoFit web app) forwards to.
     "JOYOFIT_API_URL": "https://api.fit.joyorogo.com",

@@ -294,6 +294,28 @@ describe("order.refunded", () => {
   });
 });
 
+describe("RevKlik hook", () => {
+  test("fires once per paid flip and once per refund, not for duplicates", async () => {
+    const seen: string[] = [];
+    deps.onLedger = async (orderId, kind) => {
+      seen.push(`${kind}:${orderId}`);
+    };
+    await send("e1", "order.paid", order());
+    await send("e1b", "order.paid", order());
+    await send("e2", "order.refunded", order({ status: "refunded" }));
+    await send("e3", "order.refunded", order({ status: "refunded" }));
+    expect(seen).toEqual(["paid:polar:ord1", "refund:polar:ord1"]);
+  });
+
+  test("a hook that throws never fails the credit", async () => {
+    deps.onLedger = async () => {
+      throw new Error("outbox down");
+    };
+    expect((await send("e1", "order.paid", order())).outcome).toBe("granted");
+    expect((await ledger("ord1"))?.status).toBe("paid");
+  });
+});
+
 describe("subscription events", () => {
   test("canceled (auto-renew off) keeps Pro until the period end and shows the state", async () => {
     await send("e1", "order.paid", order());

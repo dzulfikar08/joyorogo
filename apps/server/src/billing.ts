@@ -54,6 +54,8 @@ import type { PolarEnv } from "@joyorogo/api/lib/polar";
 import { frankfurterRate } from "@joyorogo/api/lib/fx";
 import type { FxRateSource } from "@joyorogo/api/lib/fx";
 import { processPolarEvent } from "@joyorogo/api/lib/polar-billing";
+import type { LedgerHook } from "@joyorogo/api/lib/revklik";
+import type { Revklik } from "./revklik";
 import {
   checkoutAmountIdr,
   grandfatheredMonthlyIdr,
@@ -116,6 +118,8 @@ type Deps = {
   onSandboxGrant?: (userId: string) => Promise<void>;
   /** IDR rate for MYR/SGD Polar orders; default is the ECB reference rate (Frankfurter), then the in-code table. */
   fxRate?: FxRateSource;
+  /** RevKlik revenue forwarding; queues an event after every paid flip and refund. */
+  revklik?: Revklik;
 };
 
 type Provider = "doku" | "pakasir";
@@ -184,6 +188,10 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   const apiUrl = env.BETTER_AUTH_URL.replace(/\/$/, "");
   const dokuNotifyUrl = `${(env.DOKU_NOTIFY_BASE_URL || apiUrl).replace(/\/$/, "")}${DOKU_WEBHOOK_PATH}`;
 
+  const ledgerHook: LedgerHook | undefined = deps.revklik
+    ? (orderId, kind) => (deps.revklik as Revklik).onLedger(orderId, kind)
+    : undefined;
+
   const sessionUser = async (headers: Headers) =>
     (await (await deps.createAuth()).api.getSession({ headers }))?.user ?? null;
 
@@ -237,6 +245,9 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
         ),
     ]);
     if (flipped.length === 1) {
+      await deps.revklik?.onLedger(order.orderId, "paid", order.gateway).catch((error: unknown) =>
+        console.error(`[revklik] enqueue ${order.orderId} failed:`, error),
+      );
       notify(
         sendOrderEmails(env, db, order, { founderDailyCap: config.founderDailyCap }),
       );
@@ -598,6 +609,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
         config: polar,
         fallbackPriceIdr: { monthly: config.founderPriceIdr, yearly: config.founderYearlyPriceIdr },
         fxRate: deps.fxRate ?? frankfurterRate(),
+        onLedger: ledgerHook,
       },
       eventId,
       parsed,
@@ -629,6 +641,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   };
   const appleBillingDeps = (db: Database): AppleBillingDeps => ({
     db,
+    onLedger: ledgerHook,
     config: {
       ...appleProductConfig(),
       sandboxAllowlist: env.APPLE_SANDBOX_EMAILS,

@@ -49,6 +49,10 @@ declare module "cloudflare:workers" {
       FOUNDER_YEARLY_PRICE_IDR?: string;
       FOUNDER_PRICE_LADDER?: string;
       ADMIN_EMAILS?: string;
+      // RevKlik revenue forwarding (docs/revklik-forwarding.md); REVKLIK_TOKEN is a secret, unset = off.
+      REVKLIK_API_URL?: string;
+      REVKLIK_TOKEN?: string;
+      REVKLIK_SITE_ID?: string;
       DATASET_USER_IDS?: string;
       DISHWARE_USER_IDS?: string;
       CORRECTION_MEMORY_USER_IDS?: string;

@@ -105,6 +105,8 @@ type Deps = {
   /** Stickers R2 bucket, for feedback photo thumbnails. Missing = no thumbs. */
   getBucket: () => StickersBucket | undefined;
   reconcileById: (orderId: string) => Promise<string>;
+  /** Queues every historical paid order and refund for RevKlik and delivers the first batches (docs/revklik-forwarding.md). */
+  revklikBackfill: () => Promise<unknown>;
   /** Sends a test email to `to`; returns the send outcome text. */
   sendTestEmail: (to: string) => Promise<string>;
   /** BADGES_USER_IDS, for the badge backfill (only allowlisted users are evaluated). */
@@ -162,6 +164,9 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
       await backfillBadges(deps.getDb(), { BADGES_USER_IDS: deps.badgesUserIds }, { after: query.data.after, limit: query.data.limit, now: new Date((deps.now ?? Date.now)()) }),
     );
   });
+
+  // RevKlik revenue backfill: idempotent per external_id, so safe to repeat (also to deliver more of a large queue).
+  app.post("/api/admin/revklik/backfill", async (c) => c.json(await deps.revklikBackfill()));
 
   // One row of the users list / detail: profile, plan, and per-user scan
   // activity (see admin-scans.ts for what a "scan" is). Correlated subqueries

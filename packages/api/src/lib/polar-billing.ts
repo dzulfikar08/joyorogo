@@ -7,6 +7,8 @@ import type { Database } from "@joyorogo/db";
 
 import { idrQuote, minorToIdr } from "./fx";
 import type { FxQuote, FxRateSource } from "./fx";
+import { notifyLedger } from "./revklik";
+import type { LedgerHook } from "./revklik";
 import { POLAR_SANDBOX_URL, polarLedgerId, polarProductPlan } from "./polar";
 import type { PolarConfig } from "./polar";
 import { addMonths, nextFounderUntil, planMonths } from "./tiers";
@@ -22,6 +24,8 @@ export type PolarBillingDeps = {
   /** IDR rate for a MYR/SGD order (see fx.ts); without it only the in-code fallback table prices those. */
   fxRate?: FxRateSource;
   now?: () => Date;
+  /** Queues the ledger event for RevKlik after a paid flip or a refund. */
+  onLedger?: LedgerHook;
 };
 
 const customerSchema = z.object({ id: z.string(), external_id: z.string().nullish() });
@@ -257,6 +261,7 @@ async function creditOrder(
         .insert(payment)
         .values({ orderId: ledgerId, userId, amountIdr, months, ...charged, status: "paid", paidAt: now })
         .onConflictDoNothing();
+      await notifyLedger(deps.onLedger, ledgerId, "paid");
       return { outcome: "recorded" };
     }
 
@@ -289,6 +294,7 @@ async function creditOrder(
         ),
     ]);
     if (flipped.length === 1) {
+      await notifyLedger(deps.onLedger, ledgerId, "paid");
       return { outcome: "granted", granted: { orderId: ledgerId, userId, amountIdr } };
     }
     // Lost a race with another credit: re-read and try again from the new period.
@@ -363,7 +369,10 @@ async function handleOrderRefunded(deps: PolarBillingDeps, order: PolarOrder): P
           ),
         ),
     ]);
-    if (flipped.length === 1) return { outcome: "refunded" };
+    if (flipped.length === 1) {
+      await notifyLedger(deps.onLedger, ledgerId, "refund");
+      return { outcome: "refunded" };
+    }
   }
   return { outcome: "busy" };
 }

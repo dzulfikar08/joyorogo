@@ -4,6 +4,9 @@ import { user } from "@joyorogo/db/schema/auth";
 import { googlePurchase, payment } from "@joyorogo/db/schema/billing";
 import type { Database } from "@joyorogo/db";
 
+import { notifyLedger } from "./revklik";
+import type { LedgerHook } from "./revklik";
+
 import {
   GOOGLE_BASE_PLANS,
   GOOGLE_PRO_PRODUCT_ID,
@@ -35,6 +38,8 @@ export type GoogleBillingDeps = {
   /** Plan prices in IDR for orders Play does not bill in IDR. */
   fallbackPriceIdr: Record<FounderPlan, number>;
   now?: () => Date;
+  /** Queues the ledger event for RevKlik after a paid flip or a refund. */
+  onLedger?: LedgerHook;
 };
 
 export type GoogleVerifyResult =
@@ -128,7 +133,10 @@ async function creditOrder(
           ),
         ),
     ]);
-    if (flipped.length === 1) return { outcome: "granted", until, amountIdr };
+    if (flipped.length === 1) {
+      await notifyLedger(deps.onLedger, ledgerId, "paid");
+      return { outcome: "granted", until, amountIdr };
+    }
     // Lost a race with another credit: re-read and try again from the new period.
   }
   return { outcome: "busy" };
@@ -289,7 +297,7 @@ export type GoogleNotificationResult = {
  * Zero-revenue tester trials are left to expire on their own.
  */
 export async function revokeGoogleOrder(
-  deps: Pick<GoogleBillingDeps, "db" | "now">,
+  deps: Pick<GoogleBillingDeps, "db" | "now" | "onLedger">,
   playOrderId: string,
 ): Promise<"revoked" | "none"> {
   const { db } = deps;
@@ -338,7 +346,10 @@ export async function revokeGoogleOrder(
           ),
         ),
     ]);
-    if (flipped.length === 1) return "revoked";
+    if (flipped.length === 1) {
+      await notifyLedger(deps.onLedger, ledgerId, "refund");
+      return "revoked";
+    }
     // The period moved under us (a concurrent credit): redo from the new one.
   }
   return "none";
