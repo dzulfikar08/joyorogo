@@ -178,7 +178,7 @@ Pemilik server yang menentukan. Tanpa konfigurasi, semua fitur gratis tanpa bata
 | `PAKASIR_SANDBOX`                                        | `1` = pembayaran sandbox Pakasir ikut mengaktifkan Pro (uji coba saja).                                                                                                     | kosong |
 | `POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET`, `POLAR_PRODUCT_MONTHLY_ID`, `POLAR_PRODUCT_YEARLY_ID` | Polar (USD, merchant of record), opsi bayar kartu dolar di web untuk pembeli luar Indonesia. Mati sampai keempatnya diisi. Webhook: `/api/billing/polar/webhook`. Detail di `docs/pricing.md`. | kosong |
 | `POLAR_PRICE_MONTHLY_USD_CENTS`, `POLAR_PRICE_YEARLY_USD_CENTS`, `POLAR_SERVER` | Harga yang ditampilkan dalam sen dolar (bawaan 999 / 5999; tagihan sebenarnya mengikuti harga produk di Polar) dan `sandbox` untuk sandbox-api.polar.sh. | kosong |
-| `APPLE_BUNDLE_ID`                                        | Apple in-app purchase untuk Pro di iOS. Kosong = `com.joyodigitama.joyorogo`; harus sama dengan app di App Store Connect. Produknya tetap: langganan `com.joyodigitama.joyorogo.founder.monthly` dan `.yearly`. | kosong |
+| `APPLE_BUNDLE_IDS`                                       | Bundle id iOS (pisah koma) yang boleh membeli Pro lewat Apple in-app purchase, juga audiens Sign in with Apple. Kosong = `com.joyodigitama.joyorogo,com.joyodigitama.joyofit` (JoyoRogo dan JoyoFit); harus sama dengan app di App Store Connect. Produknya tetap: langganan `com.joyodigitama.joyorogo.founder.monthly` / `.yearly` (JoyoRogo) dan `com.joyodigitama.joyofit.pro.monthly` / `.yearly` (JoyoFit), tabelnya di `packages/api/src/lib/apple.ts`; produk hanya sah di bundle-nya sendiri. | kosong |
 | `APPLE_SANDBOX_EMAILS`                                   | Email (pisah koma) yang boleh memakai pembelian sandbox/TestFlight: akunmu dan akun demo App Review. Production selalu diterima.                                            | kosong |
 | `REVIEW_LOGIN_EMAILS`                                    | Email (pisah koma) yang boleh masuk dengan email + kata sandi: akun reviewer Google Play/App Store. Daftar tidak pernah membuka pendaftaran lewat email. Akun dibuat dengan `bun packages/auth/scripts/review-login.ts` (Pro gratis, sandi acak disimpan di `~/.config/joyorogo/review-login.txt`). `demo@joyorogo.com` (akun demo screenshot landing, `bun scripts/demo-account.ts --apply`, sandi di `~/.config/joyorogo/demo-login.txt`) juga masuk daftar ini. Kosong = masuk dengan email mati. | kosong |
 | `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`               | Impor olahraga dari Strava. Di JoyoRogo Cloud aplikasi Strava-nya dipakai bersama JoyoFit ([docs/strava.md](docs/strava.md)). | kosong |
@@ -195,8 +195,11 @@ otomatis). Pembeli di luar Indonesia melihat harga USD dan membayar kartu lewat
 Polar, berlangganan dengan perpanjangan otomatis. Notifikasi DOKU masuk ke
 `/api/billing/webhook`, Pakasir ke `/api/billing/pakasir/webhook`, Polar ke
 `/api/billing/polar/webhook`; semuanya tetap aktif selama kredensialnya diisi.
-Di iOS, Pro dibayar lewat Apple in-app purchase (`/api/billing/apple`) dan di
+Di iOS, Pro dibayar lewat Apple in-app purchase (`/api/billing/apple`), baik dari
+JoyoRogo maupun JoyoFit (akun JoyoRogo yang sama, Pro yang sama), dan di
 Android lewat Google Play Billing, tanpa kredensial tambahan di server.
+App Store Server Notifications V2 kedua app memakai satu alamat,
+`/api/billing/apple/notifications`.
 
 ## Email
 

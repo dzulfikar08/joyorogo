@@ -58,7 +58,7 @@ const config = testflightNoticeConfig({
 });
 
 async function seed() {
-  for (const table of ["email_log", "payment", "profile", "user"]) await client.execute(`DELETE FROM "${table}"`);
+  for (const table of ["email_log", "apple_subscription", "payment", "profile", "user"]) await client.execute(`DELETE FROM "${table}"`);
   const users: [string, string, string, number][] = [
     ["fajri", "Fajri Furqan", "fajri@test.id", 1],
     ["siti", "siti", "siti@test.id", 1],
@@ -162,6 +162,22 @@ describe("sendTestflightNotice", () => {
     expect(mail?.text).toContain("you were not charged and Pro stays active for 24 hours");
     expect(mail?.text).toContain("Unsubscribe:");
     expect(mail?.html).toContain('<html lang="en">');
+  });
+
+  test("names the app the Sandbox subscription came from: JoyoRogo by default, JoyoFit for a JoyoFit product", async () => {
+    await sendTestflightNotice(makeDeps(), config, "fajri");
+    expect(outbox[0]?.text).toContain("tunggu JoyoRogo resmi di App Store");
+    for (const [id, product] of [
+      ["900", "com.joyodigitama.joyorogo.founder.monthly"],
+      ["901", "com.joyodigitama.joyofit.pro.yearly"],
+    ] as const) {
+      await client.execute({
+        sql: `INSERT INTO apple_subscription (original_transaction_id, user_id, product_id, environment, state, created_at) VALUES (?, 'siti', ?, 'Sandbox', 'active', ?)`,
+        args: [id, product, Number(id)],
+      });
+    }
+    await sendTestflightNotice(makeDeps(), config, "siti");
+    expect(outbox[1]?.text).toContain("wait for JoyoFit to launch on the App Store");
   });
 
   test("off, skip-listed, unverified and opted-out users get nothing", async () => {

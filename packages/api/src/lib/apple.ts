@@ -1,4 +1,7 @@
+import { JOYOFIT_APPLE_BUNDLE_ID, JOYOROGO_APPLE_BUNDLE_ID } from "@joyorogo/auth/apple-audience";
 import { z } from "zod";
+
+import type { FounderPlan } from "./tiers";
 
 // App Store Server JWS (StoreKit 2 `Transaction.jwsRepresentation`) trust
 // checks, WebCrypto-only so it runs on Cloudflare Workers. Mirrors Apple's
@@ -9,10 +12,35 @@ import { z } from "zod";
 
 export const APPLE_ROOT_CA_G3_SHA256 =
   "63343abfb89a6a03ebb57e9b3f5fa7be7c4f5c756f3017b3a8c488c3653e9179";
-export const DEFAULT_APPLE_BUNDLE_ID = "com.joyodigitama.joyorogo";
-/** Auto-renewable subscriptions in the "JoyoRogo Founder" group. */
-export const DEFAULT_APPLE_SUB_MONTHLY_PRODUCT_ID = "com.joyodigitama.joyorogo.founder.monthly";
-export const DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID = "com.joyodigitama.joyorogo.founder.yearly";
+
+/**
+ * Every auto-renewable subscription that grants Pro, with the app (bundle id)
+ * that sells it and the plan it credits. A transaction is valid only when its
+ * product belongs to the bundle the transaction was signed for: a JoyoFit
+ * product under JoyoRogo's bundle (or the reverse) is rejected.
+ * JoyoRogo's and JoyoFit's products live in separate App Store Connect apps and subscription groups.
+ */
+export const APPLE_PRODUCTS: Record<string, { bundleId: string; plan: FounderPlan }> = {
+  "com.joyodigitama.joyorogo.founder.monthly": { bundleId: JOYOROGO_APPLE_BUNDLE_ID, plan: "monthly" },
+  "com.joyodigitama.joyorogo.founder.yearly": { bundleId: JOYOROGO_APPLE_BUNDLE_ID, plan: "yearly" },
+  "com.joyodigitama.joyofit.pro.monthly": { bundleId: JOYOFIT_APPLE_BUNDLE_ID, plan: "monthly" },
+  "com.joyodigitama.joyofit.pro.yearly": { bundleId: JOYOFIT_APPLE_BUNDLE_ID, plan: "yearly" },
+};
+
+const APPLE_APP_NAMES: Record<string, string> = {
+  [JOYOROGO_APPLE_BUNDLE_ID]: "JoyoRogo",
+  [JOYOFIT_APPLE_BUNDLE_ID]: "JoyoFit",
+};
+
+/** The product's app (bundle id) and plan; null for anything not in the table. */
+export function appleProduct(productId: string): { bundleId: string; plan: FounderPlan } | null {
+  return Object.hasOwn(APPLE_PRODUCTS, productId) ? APPLE_PRODUCTS[productId]! : null;
+}
+
+/** The app's display name ("JoyoRogo", "JoyoFit") for mail copy; null = unknown bundle. */
+export function appleAppName(bundleId: string): string | null {
+  return Object.hasOwn(APPLE_APP_NAMES, bundleId) ? APPLE_APP_NAMES[bundleId]! : null;
+}
 
 // 1.2.840.113635.100.6.2.1 marks Apple WWDR intermediates, 1.2.840.113635.100.6.11.1
 // marks the App Store signing certificate (same OIDs Apple's own verifier checks).
@@ -41,9 +69,8 @@ const CURVES: Record<string, CurveName> = {
 export type AppleVerifyOptions = {
   /** SHA-256 (hex, colons tolerated) of the trusted root cert's DER. Tests pin their own root. */
   rootSha256: string;
-  bundleId: string;
-  /** Any of these product ids is accepted; the caller maps the id to a plan. */
-  productIds: string[];
+  /** Accepted bundle ids (the enabled apps); a transaction signed for any other bundle is rejected. */
+  bundleIds: readonly string[];
   /**
    * Accept a transaction Apple revoked (refund, family-sharing removal).
    * Purchases from the app never do; REFUND/REVOKE notifications must.
@@ -128,8 +155,9 @@ async function verify(jws: string, opts: AppleVerifyOptions): Promise<AppleVerif
   if (!parsed.success) return { ok: false, reason: "payload" };
   const payload = parsed.data;
 
-  if (payload.bundleId !== opts.bundleId) return { ok: false, reason: "bundle" };
-  if (!opts.productIds.includes(payload.productId)) return { ok: false, reason: "product" };
+  const product = appleProduct(payload.productId);
+  if (!opts.bundleIds.includes(payload.bundleId)) return { ok: false, reason: "bundle" };
+  if (!product || product.bundleId !== payload.bundleId) return { ok: false, reason: "product" };
   if (payload.revocationDate != null && !opts.allowRevoked) {
     return { ok: false, reason: "revoked" };
   }
@@ -281,7 +309,7 @@ const renewalInfoSchema = z.object({
 /**
  * Verifies a V2 `signedPayload` and its embedded signedTransactionInfo /
  * signedRenewalInfo against the pinned root. The inner transaction may be
- * revoked (REFUND / REVOKE) and may be any of `productIds`.
+ * revoked (REFUND / REVOKE); like a purchase it must be one of the known products of its own bundle.
  */
 export async function verifyAppleNotificationJws(
   signedPayload: string,
@@ -293,7 +321,7 @@ export async function verifyAppleNotificationJws(
     const parsed = notificationSchema.safeParse(chain.payload);
     if (!parsed.success) return { ok: false, reason: "payload" };
     const { data } = parsed.data;
-    if (data?.bundleId !== undefined && data.bundleId !== opts.bundleId) {
+    if (data?.bundleId !== undefined && !opts.bundleIds.includes(data.bundleId)) {
       return { ok: false, reason: "bundle" };
     }
     const environment =

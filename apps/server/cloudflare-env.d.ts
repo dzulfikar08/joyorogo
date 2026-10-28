@@ -82,7 +82,7 @@ declare module "cloudflare:workers" {
       POLAR_PRICE_YEARLY_MYR_SEN?: string;
       POLAR_PRICE_MONTHLY_SGD_CENTS?: string;
       POLAR_PRICE_YEARLY_SGD_CENTS?: string;
-      APPLE_BUNDLE_ID?: string;
+      APPLE_BUNDLE_IDS?: string;
       APPLE_TEAM_ID?: string;
       APPLE_SIWA_KEY_ID?: string;
       APPLE_SIWA_PRIVATE_KEY?: string;

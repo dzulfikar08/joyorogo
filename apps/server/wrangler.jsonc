@@ -151,7 +151,7 @@
     "POLAR_PRICE_YEARLY_MYR_SEN": "26499",
     "POLAR_PRICE_MONTHLY_SGD_CENTS": "1398",
     "POLAR_PRICE_YEARLY_SGD_CENTS": "8398",
-    "APPLE_BUNDLE_ID": "com.joyodigitama.joyorogo",
+    "APPLE_BUNDLE_IDS": "com.joyodigitama.joyorogo,com.joyodigitama.joyofit",
     "APPLE_SANDBOX_EMAILS": "",
     "TESTFLIGHT_PURCHASE_EMAIL": "off",
     // Native update gate (docs/force-update.md). 0 = off. Set after the fixed build is live in Play / the App Store.
