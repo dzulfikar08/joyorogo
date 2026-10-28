@@ -6,15 +6,18 @@
       "id": "doing",
       "title": "Sedang dikerjakan",
       "items": [
-        "Kartu dan stiker share baru untuk rekap harian, makanan, streak, dan progres berat",
-        "Bayar dengan USD (kartu internasional) untuk pengguna di luar Indonesia. Sudah bisa di web.",
-        "Tersedia di lebih banyak negara"
+        "Android di Google Play untuk semua orang. Sekarang masih tes tertutup, siapa saja bisa gabung.",
+        "Lencana dan papan konsistensi mingguan: peringkat dari seberapa rutin kamu mencatat, bukan dari berat badan. Ikut atau tidak, kamu yang pilih.",
+        "Bot kalori di Threads: tag akun JoyoRogo di foto makanan, dapat perkiraan kalorinya",
+        "Scan makin teliti: pilihan nama lain untuk makanan yang mirip, angka timbangan dapur ikut terbaca, dan berat wadah dikurangi"
       ]
     },
     {
       "id": "next",
       "title": "Berikutnya",
       "items": [
+        "Ruang komunitas per tujuan (turun pelan, naikin BB, puasa, baru mulai) untuk saling berbagi tips",
+        "Tantangan bulanan untuk semua pengguna, dengan lencana kalau tuntas",
         "Sticker Studio: bikin stiker share sendiri",
         "Daftar resmi di direktori konektor Claude dan ChatGPT"
       ]
@@ -22,7 +25,10 @@
     {
       "id": "later",
       "title": "Nanti",
-      "items": ["Tantangan \"Balik rutin\" setelah Lebaran"]
+      "items": [
+        "Lencana Ramadan konsisten dan persiapan Mode Ramadan 2027",
+        "Tantangan \"Balik rutin\" setelah Lebaran"
+      ]
     }
   ]
 }
