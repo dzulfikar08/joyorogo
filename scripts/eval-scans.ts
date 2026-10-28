@@ -57,6 +57,7 @@
 //   --list-variants    print the registered variants and exit
 // Auth: CLOUDFLARE_API_TOKEN, else the wrangler OAuth login; CLOUDFLARE_ACCOUNT_ID
 // (default: the Workers AI account of the prod worker). Workers AI calls cost money.
+// Variants on `openai/...` or `anthropic/...` models need OPENAI_API_KEY / ANTHROPIC_API_KEY.
 //
 // Output: .tmp/eval/report-<YYYY-MM-DD>.md and .json. Model outputs are cached in
 // .tmp/eval/cache by (photo hash, variant, prompt+model fingerprint, rep), so re-runs
@@ -76,13 +77,16 @@ import { parseFoodStory } from "../packages/api/src/lib/story";
 import { cardOutcome, dishwareInstruction, dishwareLabel, plateRefSchema, referenceInstruction } from "../packages/api/src/lib/dishware";
 import type { PlateRef } from "../packages/api/src/lib/dishware";
 
-import { ALT_RULE, ALT_SHAPE, analyzeFoodPhoto, COUNT_RULE, DEFAULT_VISION_MODEL, DRINK_RULE, JUICE_RULE, LOOKALIKE_RULE, PACKAGE_RULE, PRINTED_TEXT_RULE, SAUCE_RULE, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
+import { ALT_RULE, ALT_SHAPE, analyzeFoodPhoto, COUNT_RULE, DEFAULT_VISION_MODEL, DRINK_RULE, extractJson, JUICE_RULE, LOOKALIKE_RULE, PACKAGE_RULE, PRINTED_TEXT_RULE, responseText, SAUCE_RULE, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
 import type { AiRunner, CardAnswer } from "../packages/api/src/lib/vision";
 import type { CalibrateOptions } from "../packages/api/src/lib/tkpi";
 import { PRIOR_BIG_PLATE, PRIOR_MIN_ENTRIES, TYPICAL_MIN_RATIO, TYPICAL_PORTIONS, buildPriors, userSetSamples, withPortionPrior } from "../packages/api/src/lib/portion-prior";
 import type { HistoryRow } from "../packages/api/src/lib/portion-prior";
 import { swapPortionPrior } from "../packages/api/src/lib/portion-chip";
 import { applyScaleReading, parseScaleDigits, readScaleDisplay, scaleReadingGrams, SCALE_PROMPT } from "../packages/api/src/lib/scale-reading";
+import { applyEggCount, EGG_COUNT_PROMPT, readEggCount } from "../packages/api/src/lib/egg-count";
+import { isBoiledEgg } from "../packages/api/src/lib/piece-count";
+import type { EggCount } from "../packages/api/src/lib/egg-count";
 import type { ContainerKind } from "../packages/api/src/lib/scale-chip";
 import type { ScaleOutcome } from "../packages/api/src/lib/scale-reading";
 import type { ScaleUnit } from "../packages/api/src/lib/scale-chip";
@@ -127,6 +131,11 @@ type Variant = {
   appliesTo?: (c: Case) => boolean;
   /** Production's kitchen-scale readout (lib/scale-reading.ts) on top of the baseline: prompt rule, then applyScaleReading. */
   scaleReadout?: true;
+  /**
+   * A boiled-egg recount after the scan (lib/egg-count.ts): `list` = production's call (every piece listed with a box),
+   * `yolks` = the rejected one that asks for the two numbers directly. Only plates with a boiled-egg row make the call.
+   */
+  eggCount?: "list" | "yolks";
   notes: string;
 };
 
@@ -148,6 +157,34 @@ function withoutAlt(base: string): string {
   const out = base.replace(ALT_SHAPE, "").replace(`\n${ALT_RULE}`, "");
   if (out === base) throw new Error("no-alt: the production prompt no longer carries ALT_SHAPE / ALT_RULE");
   return out;
+}
+
+/** The yolks variant's call: two numbers, no list. */
+const EGG_YOLKS_PROMPT = `Lihat foto ini. Hitung kuning telur rebus yang terlihat di piring atau mangkuk (satu belahan telur menampakkan satu kuning telur; telur yang pecah atau hancur tetap satu kuning). Telur utuh yang kuningnya tidak terlihat hitung sebagai satu "utuh".
+Jawab HANYA JSON valid satu baris (tanpa \`\`\`): {"belahan":number,"utuh":number}
+Kuning telur lepas di samping putihnya tidak dihitung dua kali. Telur dadar, ceplok, mata sapi, dan putih telur saja tidak dihitung. Tidak ada telur rebus: {"belahan":0,"utuh":0}`;
+
+/** The scan's items with the boiled-egg row recounted the way the variant says; the scan's items when the plate has none or one row too many. */
+async function recountEggs<T extends Parameters<typeof applyEggCount>[0][number]>(
+  runner: AiRunner,
+  variant: Variant,
+  image: string,
+  items: T[],
+): Promise<T[]> {
+  if (!items.some((item) => isBoiledEgg(item.name))) return items;
+  if (variant.eggCount === "list") return applyEggCount(items, (await readEggCount(runner, { imageBase64: image, mimeType: "image/jpeg", model: variant.model })).count);
+  const result = await runner.run(variant.model ?? DEFAULT_VISION_MODEL, {
+    messages: [{ role: "user", content: [{ type: "text", text: EGG_YOLKS_PROMPT }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image}` } }] }],
+    max_tokens: 100,
+    temperature: 0,
+    chat_template_kwargs: { enable_thinking: false },
+  });
+  const text = responseText(result);
+  const answer = text === null ? null : (extractJson(text) as { belahan?: unknown; utuh?: unknown });
+  const halves = Number(answer?.belahan);
+  const whole = Number(answer?.utuh);
+  const count: EggCount | undefined = Number.isFinite(halves) && Number.isFinite(whole) && halves + whole > 0 ? { whole, halves } : undefined;
+  return applyEggCount(items, count);
 }
 
 /** The alternates asked for right after the item's name (same rule text). */
@@ -287,6 +324,61 @@ const VARIANTS: Record<string, Variant> = {
     scaleReadout: true,
     notes: "Production's kitchen-scale readout (lib/scale-reading.ts): a second, tiny vision call asks only for the scale display; a read with confidence >= 0.75 puts its grams on the item it names (a plate total is shared in the model's proportions; kcal follow through calibration). The scan itself is baseline's request, so its answer is baseline's answer and the comparison is paired. A reading on a photo without a display counts as a false read.",
   },
+  "egg-count": {
+    eggCount: "list",
+    notes: "Production's boiled-egg recount (lib/egg-count.ts): when the scan names a boiled-egg row, a second tiny call lists every egg piece with its box (temperature 0); the row's count, grams, kcal and macros follow the list (a second boiled-egg row is merged into the first). The scan is baseline's request, so its answer is baseline's answer and the comparison is paired.",
+  },
+  "egg-yolks": {
+    eggCount: "yolks",
+    notes: "Rejected alternative of egg-count: the second call asks for two numbers (halves, whole eggs) instead of a list of boxes. Same scan, same grams rule.",
+  },
+  lean: {
+    promptTransform: lean,
+    notes: "The shipped prompt without the seven special-case rules (package, drink, sauce, count, printed text, lookalike, juice): the generic task, JSON shape, one-dish rule and alternates only. Tests whether the rules overfit.",
+  },
+  "lean-printed": {
+    promptTransform: (base) => lean(base, [PRINTED_TEXT_RULE]),
+    notes: "The lean prompt plus the printed-text rule only (the one rule whose removal cost the most wrong-food checks in the 2026-10-28 ablation).",
+  },
+  "no-copy": {
+    promptTransform: (base) => `${base}\n${NO_COPY_RULE}`,
+    notes: "Candidate (after fud-ai's 'schema examples only; never copy them'): the shipped prompt plus a line that the names and numbers in the rules are illustrations, never answers.",
+  },
+  "m-glm": { model: "@cf/zai-org/glm-5.3-flash", notes: "Model swap, same prompt and calibration: GLM-5.3 Flash (Workers AI)." },
+  "m-dsv4": { model: "@cf/deepseek-ai/deepseek-v4.1-flash-1017", notes: "Model swap, same prompt and calibration: DeepSeek V4.1 Flash (Workers AI)." },
+  "m-luna": { model: "openai/gpt-6-luna:none", notes: "Model swap, same prompt and calibration: GPT-6 Luna (OpenAI API, reasoning effort none, as production's Gemma runs without thinking)." },
+  "m-haiku": { model: "anthropic/claude-haiku-5-5:none", notes: "Model swap, same prompt and calibration: Claude Haiku 5.5 (Anthropic API, thinking disabled, as production's Gemma)." },
+  "m-haiku-low": { model: "anthropic/claude-haiku-5-5:low", notes: "Claude Haiku 5.5 with adaptive thinking at effort low." },
+  "m-haiku-lean": { model: "anthropic/claude-haiku-5-5:none", promptTransform: lean, notes: "Claude Haiku 5.5 (thinking disabled) with the lean prompt." },
+};
+
+/** The production prompt without its special-case rules, except `keep` (see the `lean` variants). */
+function lean(base: string, keep: readonly string[] = []): string {
+  let out = base;
+  for (const rule of [PACKAGE_RULE, DRINK_RULE, SAUCE_RULE, COUNT_RULE, PRINTED_TEXT_RULE, LOOKALIKE_RULE, JUICE_RULE]) {
+    if (keep.includes(rule)) continue;
+    const next = out.replace(`\n${rule}`, "");
+    if (next === out) throw new Error("lean: a rule is no longer in the production prompt");
+    out = next;
+  }
+  return out;
+}
+
+const NO_COPY_RULE =
+  "Nama dan angka di aturan-aturan di atas hanya contoh cara berpikir, bukan jawaban: jangan pernah menulis nama atau angka contoh itu kecuali hidangan itu benar-benar terlihat atau tertulis di foto ini.";
+
+/**
+ * USD per million tokens (input, output) for the cost table. Workers AI: the model catalog
+ * (`/ai/models/search`, 2026-10-28); OpenAI: developers.openai.com/api/docs/models/gpt-6-luna; Anthropic:
+ * platform.claude.com/docs/en/models/haiku-5-5/overview (prompts up to 100k tokens).
+ */
+const PRICES: Record<string, [number, number]> = {
+  "@cf/google/gemma-4-26b-a4b-it": [0.1, 0.3],
+  "@cf/meta/llama-4-scout-17b-16e-instruct": [0.27, 0.85],
+  "@cf/zai-org/glm-5.3-flash": [0.15, 0.5],
+  "@cf/deepseek-ai/deepseek-v4.1-flash-1017": [0.3, 1.2],
+  "gpt-6-luna": [0.1, 0.5],
+  "claude-haiku-5-5": [0.1, 0.5],
 };
 // ---------------------------------------------------------------------------
 
@@ -710,12 +802,20 @@ function apiToken(): string {
   return found[1]!;
 }
 
-function restRunner(token: string): AiRunner {
+/**
+ * Workers AI by default; `openai/<model>:<effort>` and `anthropic/<model>:<effort>` go to those APIs
+ * (OPENAI_API_KEY, ANTHROPIC_API_KEY). The request is production's chat-completions shape; the
+ * answer comes back in that shape too ({choices, usage}), so analyzeFoodPhoto parses it unchanged.
+ */
+function modelRunner(token: () => string): AiRunner {
   return {
     async run(model, input) {
+      const [provider, rest] = model.includes("/") && !model.startsWith("@cf/") ? model.split(/\/(.*)/s) : ["workers-ai", model];
+      if (provider === "openai") return openAiRun(rest!, input as ChatRequest);
+      if (provider === "anthropic") return anthropicRun(rest!, input as ChatRequest);
       const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACCOUNT}/ai/run/${model}`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+        headers: { Authorization: `Bearer ${token()}`, "content-type": "application/json" },
         body: JSON.stringify(input),
       });
       // Boundary: the REST envelope; only `result` is read.
@@ -726,15 +826,83 @@ function restRunner(token: string): AiRunner {
   };
 }
 
+type ChatPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
+type ChatRequest = { messages: Array<{ role: string; content: ChatPart[] }>; max_tokens: number; temperature?: number };
+
+function keyOf(name: string): string {
+  const key = process.env[name];
+  if (!key) throw new Error(`${name} is not set`);
+  return key;
+}
+
+/** `gpt-6-luna:none` -> model and reasoning effort; thinking tokens get room on top of production's answer budget. */
+async function openAiRun(spec: string, input: ChatRequest): Promise<unknown> {
+  const [model, effort = "none"] = spec.split(":");
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${keyOf("OPENAI_API_KEY")}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      model,
+      messages: input.messages,
+      max_completion_tokens: input.max_tokens + (effort === "none" ? 0 : 4000),
+      reasoning_effort: effort,
+    }),
+  });
+  const json = (await res.json()) as unknown;
+  if (!res.ok) throw new Error(`openai ${res.status} ${JSON.stringify(json).slice(0, 300)}`);
+  return json;
+}
+
+/** `claude-haiku-5-5:low` -> Messages API with that effort (`none` = thinking disabled), answered in chat-completions shape. */
+async function anthropicRun(spec: string, input: ChatRequest): Promise<unknown> {
+  const [model, effort = "low"] = spec.split(":");
+  const content = input.messages[0]!.content.map((part) => {
+    if (part.type === "text") return part;
+    const [, mediaType, data] = /^data:([^;]+);base64,(.*)$/s.exec(part.image_url.url)!;
+    return { type: "image", source: { type: "base64", media_type: mediaType, data } };
+  });
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": keyOf("ANTHROPIC_API_KEY"), "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({
+      model,
+      max_tokens: input.max_tokens + (effort === "none" ? 0 : 4000),
+      messages: [{ role: "user", content }],
+      ...(effort === "none" ? { thinking: { type: "disabled" } } : { output_config: { effort } }),
+    }),
+  });
+  // Boundary: the Messages API body; text blocks, stop reason and usage are read.
+  const json = (await res.json()) as { content?: Array<{ type: string; text?: string }>; stop_reason?: string; usage?: { input_tokens: number; output_tokens: number } };
+  if (!res.ok) throw new Error(`anthropic ${res.status} ${JSON.stringify(json).slice(0, 300)}`);
+  const text = (json.content ?? []).flatMap((block) => (block.type === "text" && block.text ? [block.text] : [])).join("");
+  return {
+    choices: [{ message: { content: text }, finish_reason: json.stop_reason === "max_tokens" ? "length" : "stop" }],
+    usage: { prompt_tokens: json.usage?.input_tokens ?? 0, completion_tokens: json.usage?.output_tokens ?? 0 },
+  };
+}
+
+/** USD of one scan's usage, or null when the model has no price row or the answer carried no usage. */
+function costOf(model: string, usage: { in: number; out: number }): number | null {
+  const price = PRICES[model.replace(/^(openai|anthropic)\//, "").replace(/:.*$/, "")];
+  return price ? (usage.in * price[0] + usage.out * price[1]) / 1e6 : null;
+}
+
+/** Prompt and completion tokens of a chat-completions `usage` (thinking included in completion), or null. */
+function usageOf(usage: Record<string, unknown> | null): { in: number; out: number } | null {
+  const input = usage?.prompt_tokens;
+  const output = usage?.completion_tokens;
+  return typeof input === "number" && typeof output === "number" ? { in: input, out: output } : null;
+}
+
 type RunResult =
-  | { ok: true; items: RunItem[]; attempts?: number; repaired?: boolean; ms: number; modelMs: number; tooMany: boolean; cached: boolean; plate?: string | null; card?: CardAnswer; scale?: ScaleOutcome | null; scaleError?: string; chips?: { you: number; typical: number; tapped: number; items: number } }
+  | { ok: true; items: RunItem[]; attempts?: number; repaired?: boolean; ms: number; modelMs: number; tooMany: boolean; cached: boolean; usage?: { in: number; out: number }; plate?: string | null; card?: CardAnswer; scale?: ScaleOutcome | null; scaleError?: string; chips?: { you: number; typical: number; tapped: number; items: number } }
   | { ok: false; reason: string; ms: number; cached: false };
 
 /** Cache key of a variant for one case: model, final prompt (variant diff + the case's own line) and calibration. */
 const fingerprint = (variant: Variant, c?: Case) =>
   createHash("sha256")
     .update(
-      `${variant.model ?? DEFAULT_VISION_MODEL}\n${promptFor(variant)(visionPrompt())}\n${variant.scaleReadout ? SCALE_PROMPT : ""}\n${JSON.stringify(variant.calibration ?? {}, (_k, v) => (v === Infinity ? "inf" : v))}\n${priorSignature(variant, c)}\n${(c && variant.dishware?.(c)) ?? ""}${variant.temperature === undefined ? "" : `\nT${variant.temperature}`}`,
+      `${variant.model ?? DEFAULT_VISION_MODEL}\n${promptFor(variant)(visionPrompt())}\n${variant.scaleReadout ? SCALE_PROMPT : ""}\n${variant.eggCount === "list" ? EGG_COUNT_PROMPT : variant.eggCount === "yolks" ? EGG_YOLKS_PROMPT : ""}\n${JSON.stringify(variant.calibration ?? {}, (_k, v) => (v === Infinity ? "inf" : v))}\n${priorSignature(variant, c)}\n${(c && variant.dishware?.(c)) ?? ""}${variant.temperature === undefined ? "" : `\nT${variant.temperature}`}`,
     )
     .digest("hex")
     .slice(0, 8);
@@ -820,8 +988,9 @@ async function runOne(
       }),
       variant.scaleReadout ? readScaleDisplay(runner, { imageBase64: image, mimeType: "image/jpeg", model: variant.model }) : null,
     ]);
-    const read = call ? applyScaleReading(analysis.items, call.reading) : null;
-    const shown: typeof analysis.items = read?.items ?? analysis.items;
+    const counted = variant.eggCount ? await recountEggs(runner, variant, image, analysis.items) : analysis.items;
+    const read = call ? applyScaleReading(counted, call.reading) : null;
+    const shown: typeof analysis.items = read?.items ?? counted;
     const plan = variant.portionPrior ? priorPlan(variant, c) : null;
     const chips = { you: 0, typical: 0, tapped: 0 };
     const answered = plan
@@ -846,6 +1015,7 @@ async function runOne(
       modelMs: analysis.timing.modelMs,
       tooMany: analysis.tooMany,
       cached: false,
+      ...(usageOf(analysis.usage) ? { usage: usageOf(analysis.usage)! } : {}),
       ...(analysis.plate !== undefined ? { plate: analysis.plate } : {}),
       ...(analysis.card !== undefined ? { card: analysis.card } : {}),
       ...(plan ? { chips: { ...chips, items: answered.length } } : {}),
@@ -1117,6 +1287,29 @@ async function downloadWiki(url: string, to: string): Promise<void> {
 }
 
 // ------------------------------------------------------------- aggregation
+/**
+ * Tokens and USD per scan by variant, from the usage the answers carried (the last attempt of a run;
+ * result-cache hits written before usage was recorded have none). Prices: PRICES.
+ */
+function costSection(variants: string[], runs: Array<Run & { variant: string }>): string[] {
+  const md = ["## Tokens and cost per scan", "", "| Variant | Model | Runs with usage | Input tokens mean | Output tokens mean (p90) | USD per scan | USD per 1,000 scans | Latency p50 / p95 |", "|---|---|---|---|---|---|---|---|"];
+  for (const v of variants) {
+    const model = VARIANTS[v]!.model ?? DEFAULT_VISION_MODEL;
+    const answered = runs.flatMap((r) => (r.variant === v && r.result.ok ? [r.result] : []));
+    const used = answered.flatMap((r) => (r.usage ? [r.usage] : []));
+    if (!used.length) {
+      md.push(`| ${v} | ${model} | 0 | - | - | - | - | - |`);
+      continue;
+    }
+    const usd = mean(used.map((u) => costOf(model, u) ?? NaN));
+    const ms = answered.map((r) => r.ms);
+    md.push(
+      `| ${v} | ${model} | ${used.length} | ${f(mean(used.map((u) => u.in)), 0)} | ${f(mean(used.map((u) => u.out)), 0)} (${f(quantile(used.map((u) => u.out), 0.9), 0)}) | ${Number.isNaN(usd) ? "no price" : `$${usd.toFixed(5)}`} | ${Number.isNaN(usd) ? "-" : `$${(usd * 1000).toFixed(2)}`} | ${sec(quantile(ms, 0.5))} / ${sec(quantile(ms, 0.95))} |`,
+    );
+  }
+  return [...md, ""];
+}
+
 /**
  * "Porsi kebiasaanmu": how often a chip is shown, per group and prior variant: the user's own
  * (a history the case's person has) or the typical rice portion, how many of those the user
@@ -1745,7 +1938,7 @@ async function main() {
   }
 
   const needsLive = jobs.length > cachedAlready || !args.cache || (args.comparators && cases.some((c) => c.external?.comparators.length));
-  const ai = needsLive ? restRunner(apiToken()) : { run: () => Promise.reject(new Error("unreachable: all cached")) };
+  const ai = needsLive ? modelRunner(apiToken) : { run: () => Promise.reject(new Error("unreachable: all cached")) };
   const results = new Array<Run>(jobs.length);
   let next = 0;
   let done = 0;
@@ -1761,7 +1954,7 @@ async function main() {
     }),
   );
   if (jobs.length) process.stdout.write("\n");
-  console.log(`Workers AI calls made ${RAW_STATS.calls}, replayed from the raw cache ${RAW_STATS.replays}`);
+  console.log(`Model calls made ${RAW_STATS.calls}, replayed from the raw cache ${RAW_STATS.replays}`);
 
   // Our text path on the comparator cases (his words, his grams), same reps as the photo runs.
   const textRuns = new Map<string, TextRun[]>();
@@ -1771,7 +1964,7 @@ async function main() {
       textRuns.set(c.id, await Promise.all(Array.from({ length: args.reps }, (_, rep) => runText(ai, c, rep, args.cache))));
     }),
   );
-  if (comparatorCases.length) console.log(`Text path: ${comparatorCases.length} cases x ${args.reps} rep(s); Workers AI calls made so far ${RAW_STATS.calls}, replayed ${RAW_STATS.replays}`);
+  if (comparatorCases.length) console.log(`Text path: ${comparatorCases.length} cases x ${args.reps} rep(s); model calls made so far ${RAW_STATS.calls}, replayed ${RAW_STATS.replays}`);
   const photoTotals = new Map<string, number[]>();
   results.forEach((r, i) => {
     if (jobs[i]!.variant === args.variants[0] && r.result.ok && r.c.external) {
@@ -1849,6 +2042,7 @@ async function main() {
     ),
     "",
   );
+  md.push(...costSection(args.variants, results.map((r, i) => ({ ...r, variant: jobs[i]!.variant }))));
   if (cases.some((c) => c.scale || c.group === "scale") || args.variants.some((v) => VARIANTS[v]!.scaleReadout)) {
     md.push(...scaleSection(args.variants, cases, results.map((r, i) => ({ ...r, variant: jobs[i]!.variant }))));
   }

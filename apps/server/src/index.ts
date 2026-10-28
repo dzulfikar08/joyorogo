@@ -67,6 +67,7 @@ import { registerFitProxy } from "./fit-proxy";
 import { registerWatchWorkoutRoutes } from "./watch-workout";
 import { sweepMcp } from "@joyorogo/api/lib/mcp-connections";
 import { botConfig } from "@joyorogo/api/lib/threads-bot/config";
+import { withEggCount } from "@joyorogo/api/lib/egg-count";
 import { analyzeFoodPhoto } from "@joyorogo/api/lib/vision";
 import { scrubExpiredStravaRows } from "@joyorogo/api/lib/strava-retention";
 import { env } from "./env.server";
@@ -159,8 +160,11 @@ registerAdminRoutes(app, {
 const threadsBot = {
   getDb,
   config: () => botConfig(env),
-  scan: (image: { imageBase64: string; mimeType: string }) =>
-    analyzeFoodPhoto(env.AI, { ...image, model: env.AI_VISION_MODEL || undefined }),
+  scan: async (image: { imageBase64: string; mimeType: string }) => {
+    const model = env.AI_VISION_MODEL || undefined;
+    const analysis = await analyzeFoodPhoto(env.AI, { ...image, model });
+    return (await withEggCount(env.AI, { ...image, model }, analysis)).analysis;
+  },
   createAuth,
   stateSecret: env.BETTER_AUTH_SECRET,
 };

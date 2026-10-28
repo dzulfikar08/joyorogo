@@ -43,6 +43,7 @@ import { parseIdrInput } from "@joyorogo/api/lib/format";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { hasBone, setWithBone, stripBoneLabel } from "@joyorogo/api/lib/bone-chip";
+import { asksGrams, itemAtTypedGrams } from "@joyorogo/api/lib/ask-grams";
 import { carryAlternates } from "@joyorogo/api/lib/name-alternates";
 import { gramsFromOf, stampGramsEdit, withoutGramsEdits } from "@joyorogo/api/lib/grams-edit";
 import { itemAtCount } from "@joyorogo/api/lib/piece-chip";
@@ -62,6 +63,7 @@ import { dominantKind } from "@joyorogo/api/lib/snack-advice";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { cupPick } from "@joyorogo/api/lib/drink-options";
 import type { CupChoice } from "@joyorogo/api/lib/drink-options";
+import { AskGrams } from "@/components/scan/ask-grams";
 import { AlternateChips } from "@/components/scan/alternate-chips";
 import { CupChoices } from "@/components/scan/cup-choices";
 import { BoneChips, PieceCountChip } from "@/components/scan/piece-chips";
@@ -617,6 +619,17 @@ function AiFoodPage() {
     if (!item?.pieces) return;
     const typed = parseNum(kcals[index] ?? String(item.kcal));
     const next = itemAtCount({ ...item, kcal: typed ?? item.kcal }, count);
+    touchList();
+    setItems((current) => current.map((it, i) => (i === index ? next : it)));
+    setKcals((current) => ({ ...current, [index]: String(next.kcal) }));
+  };
+
+  /** "Berapa gram?": the weight the user typed or tapped (Kecil / Sedang / Besar) replaces the model's bowl / plate default; kcal and macros follow. */
+  const setTypedGrams = (index: number, grams: number, source: "typed" | "size") => {
+    const item = items[index];
+    if (!item) return;
+    const typed = parseNum(kcals[index] ?? String(item.kcal));
+    const next = itemAtTypedGrams({ ...item, kcal: typed ?? item.kcal }, grams, source);
     touchList();
     setItems((current) => current.map((it, i) => (i === index ? next : it)));
     setKcals((current) => ({ ...current, [index]: String(next.kcal) }));
@@ -1809,6 +1822,13 @@ function AiFoodPage() {
                         />
                       )}
                     </span>
+                  )}
+                  {asksGrams(item) && (
+                    <AskGrams
+                      name={item.name}
+                      sizes={item.sizeOptions}
+                      onApply={(grams, source) => setTypedGrams(index, grams, source)}
+                    />
                   )}
                   {item.portionPrior && (
                     <PortionPriorChips

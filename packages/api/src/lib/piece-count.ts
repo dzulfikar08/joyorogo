@@ -14,10 +14,21 @@ type PieceRow = { name: RegExp; unit: RegExp; label: string; grams: number; halv
  */
 const PLAIN_EGG = /^(?!.*\b(martabak|nasi|mie|mi|kwetiau|bihun|soto|sup|sayur|gulai|opor|kari|dadar|balado|sambal|bakso|sate|roti|kue|kentang|salad|putih|kuning|bebek|asin)\b).*\btelur\b/;
 
+/** One chicken egg as eaten, in grams (the weight of a "butir" row; a half is HALF_FACTOR of it). */
+export const EGG_GRAMS = 50;
+/** A fried or scrambled egg is a piece of its own kind and a quail egg weighs a fifth: only whole or halved chicken eggs are recounted from the photo. */
+const NOT_BOILED_EGG = /\b(puyuh|ceplok|mata sapi|goreng|orak|omelet|omelette|scrambled|fried|sunny)\b/;
+
+/** The row is a chicken egg eaten as an egg (boiled, or no cooking stated): what the egg count call recounts. */
+export const isBoiledEgg = (name: string) => {
+  const key = normalize(name);
+  return PLAIN_EGG.test(key) && !NOT_BOILED_EGG.test(key);
+};
+
 /** Whole-piece weights as eaten (edible part). Order matters: the first row that matches wins. */
 export const PIECE_WEIGHTS: readonly PieceRow[] = [
   { name: /\btelur puyuh\b/, unit: /^(butir|buah|biji|pcs?)$/, label: "butir", grams: 10, halves: true },
-  { name: PLAIN_EGG, unit: /^(butir|buah|biji|pcs?)$/, label: "butir", grams: 50, halves: true },
+  { name: PLAIN_EGG, unit: /^(butir|buah|biji|pcs?)$/, label: "butir", grams: EGG_GRAMS, halves: true },
   { name: /\bsate\b/, unit: /^(tusuk|batang|buah|pcs?)$/, label: "tusuk", grams: 30 },
   { name: /\bnugget\b/, unit: /^(potong|buah|biji|pcs?)$/, label: "potong", grams: 20 },
   { name: /\b(siomay|dimsum|dim sum|dumpling|gyoza)\b/, unit: /^(buah|biji|potong|pcs?)$/, label: "buah", grams: 25 },

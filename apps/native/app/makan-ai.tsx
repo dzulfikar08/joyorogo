@@ -49,6 +49,8 @@ import { foodKind, isHeavyDish } from "@joyorogo/api/lib/food-kind";
 import { carryAlternates } from "@joyorogo/api/lib/name-alternates";
 import type { FoodKind } from "@joyorogo/api/lib/food-kind";
 import { hasBone, setWithBone, stripBoneLabel } from "@joyorogo/api/lib/bone-chip";
+import { asksGrams, itemAtTypedGrams } from "@joyorogo/api/lib/ask-grams";
+import type { SizeOptions } from "@joyorogo/api/lib/ask-grams";
 import { gramsFromOf, stampGramsEdit, withoutGramsEdits } from "@joyorogo/api/lib/grams-edit";
 import { itemAtCount } from "@joyorogo/api/lib/piece-chip";
 import type { Pieces } from "@joyorogo/api/lib/piece-chip";
@@ -101,6 +103,7 @@ import { FoodSafetyNotes } from "@/components/maternal/flag-notes";
 import { CorrectBox } from "@/components/scan/correct-box";
 import { CupChoices } from "@/components/scan/cup-choices";
 import { BoneChips, PieceCountChip } from "@/components/scan/piece-chips";
+import { AskGrams } from "@/components/scan/ask-grams";
 import { PortionPriorChips } from "@/components/scan/portion-prior-chips";
 import { AlternateChips } from "@/components/scan/alternate-chips";
 import { MemoryChips } from "@/components/scan/memory-chips";
@@ -149,6 +152,10 @@ type AnalyzedItem = {
   grossGrams?: number;
   edibleGrams?: number;
   withBone?: boolean;
+  /** Set on the answer's only row when its weight is probably a generic bowl / plate default: asks for the grams (lib/ask-grams.ts). */
+  askGrams?: boolean;
+  /** With `askGrams`, when the library knows the dish's typical serving: the grams of Kecil / Sedang / Besar. */
+  sizeOptions?: SizeOptions;
 };
 
 /** Everything per-row that a correction rewrites; "Urungkan" restores one of these. */
@@ -1396,6 +1403,18 @@ export default function MakanAi() {
     );
   };
 
+  /** "Berapa gram?": the weight the user typed or tapped (Kecil / Sedang / Besar) replaces the model's bowl / plate default; kcal and macros follow. */
+  const setTypedGrams = (index: number, grams: number, source: "typed" | "size") => {
+    const item = items[index];
+    if (!item) return;
+    const typed = parseNum(drafts[index]?.kcal ?? "");
+    const next = itemAtTypedGrams({ ...item, kcal: typed ?? item.kcal }, grams, source);
+    setItems((prev) => prev.map((it, i) => (i === index ? next : it)));
+    setDrafts((prev) =>
+      prev.map((draft, i) => (i === index ? { ...draft, kcal: String(next.kcal) } : draft)),
+    );
+  };
+
   /** "Dengan tulang" / "Tanpa tulang": the row's weight moves between gross and edible; kcal stay. */
   const setBone = (index: number, withBone: boolean) => {
     setItems((prev) =>
@@ -2110,6 +2129,13 @@ export default function MakanAi() {
                               name={item.name}
                               item={item}
                               onChange={(on) => setBone(index, on)}
+                            />
+                          ) : null}
+                          {asksGrams(item) ? (
+                            <AskGrams
+                              name={item.name}
+                              sizes={item.sizeOptions}
+                              onApply={(grams, source) => setTypedGrams(index, grams, source)}
                             />
                           ) : null}
                           {item.portionPrior ? (

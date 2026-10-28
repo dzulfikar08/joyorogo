@@ -55,6 +55,8 @@ import { EventChannel } from "../lib/event-channel";
 import { applyHintCounts } from "../lib/piece-count";
 import { withPortionPrior } from "../lib/portion-prior";
 import type { PortionPrior } from "../lib/portion-prior";
+import { withAskGrams } from "../lib/ask-grams-server";
+import type { SizeOptions } from "../lib/ask-grams";
 import { chipsFor, correctionMemoryEnabled, loadCorrectionMemory } from "../lib/correction-memory";
 import type { CorrectionMemory } from "../lib/correction-memory";
 import { loadPortionPriors } from "../lib/portion-prior-store";
@@ -62,6 +64,7 @@ import type { PortionPriorChip } from "../lib/portion-chip";
 import { loadUsualDensities } from "../lib/usual-density-store";
 import { withUsualDensity } from "../lib/usual-density";
 import type { UsualDensityNote, UsualMap } from "../lib/usual-density";
+import { eggLedger, withEggCount } from "../lib/egg-count";
 import { applyScaleReading, readScaleDisplay, scaleLedger, scaleReadoutEnabled } from "../lib/scale-reading";
 import type { ScaleReadChip } from "../lib/scale-chip";
 import type { ScanStreamEvent } from "../lib/scan-live";
@@ -304,6 +307,10 @@ export type AnalyzeFoodResult = {
       portionPrior?: PortionPriorChip;
       scaleRead?: ScaleReadChip;
       usualDensity?: UsualDensityNote;
+      /** Set on the answer's only row when its weight is probably a generic bowl / plate default: the screens ask for the grams (lib/ask-grams.ts). */
+      askGrams?: true;
+      /** With `askGrams`, when the library knows the dish's typical serving: the grams of Kecil / Sedang / Besar (x0.5 / x1 / x1.5, 5 g steps). */
+      sizeOptions?: SizeOptions;
     }
   >;
   /**
@@ -499,6 +506,10 @@ async function runAnalyzeFood(
     throw scanFailure(error, context.locale, keptId);
   }
   const latencyMs = Date.now() - startedAt;
+  // Boiled-egg recount (lib/egg-count.ts): the scan reads halves and broken eggs low, so a plate with an egg row gets
+  // one more tiny call that lists the pieces. Everyone, no flag; plates without a boiled egg make no call.
+  const eggCount = await withEggCount(ai, { imageBase64: input.imageBase64, mimeType: input.mimeType, model: context.env.AI_VISION_MODEL || undefined }, analysis);
+  analysis = eggCount.analysis;
   // Kitchen-scale readout (lib/scale-reading.ts): allowlist only. The ledger and the
   // scan session keep the numbers the user sees; `scale` on the ledger row keeps the
   // reading, what became of it and the model's own grams for the rows it changed.
@@ -553,6 +564,7 @@ async function runAnalyzeFood(
     // Implicit outcome labels (lib/scan-outcome.ts) build on these two.
     ...(storedPhotoId ? { photoId: storedPhotoId, aiItems: compactItems(shown) } : {}),
     ...(scaleCall ? { scale: scaleLedger(scaleCall, scale?.outcome ?? null) } : {}),
+    ...(eggCount.call ? { eggCount: eggLedger(eggCount.call) } : {}),
   };
   const ledger = context.db
     .insert(aiUsage)
@@ -675,7 +687,7 @@ async function runAnalyzeFood(
   // typical portion alone.
   const usual = await priors;
   return {
-    items: shown.map((item) => (item.scaleRead ? item : withUsualPortion(item, usual))),
+    items: withAskGrams(shown.map((item) => (item.scaleRead ? item : withUsualPortion(item, usual))), context.region),
     tooMany: analysis.tooMany,
     scanId,
     plateScanId,
@@ -803,6 +815,9 @@ export const aiRouter = {
         throw scanFailure(error, context.locale);
       }
       const aiMs = Date.now() - startedAt;
+      // Boiled-egg recount (lib/egg-count.ts), as on the first pass; a count in the hint still wins below.
+      const eggCount = await withEggCount(ai, { imageBase64: photoBase64, mimeType: photoMime, model: context.env.AI_VISION_MODEL || undefined }, analysis);
+      analysis = eggCount.analysis;
       const references = referenceOutcome(await reference, analysis);
       // Kitchen-scale readout (lib/scale-reading.ts): allowlist only.
       const scaleCall = await scalePending;
@@ -847,6 +862,7 @@ export const aiRouter = {
             ...(input.hint ? { hint: input.hint } : {}),
             itemCount: shownItems.length,
             ...(scaleCall ? { scale: scaleLedger(scaleCall, scale?.outcome ?? null) } : {}),
+            ...(eggCount.call ? { eggCount: eggLedger(eggCount.call) } : {}),
             ...(analysis.tooMany ? { tooMany: true } : {}),
             ...(analysis.modelTooMany ? { modelTooMany: true } : {}),
             ...(analysis.repaired ? { repaired: true } : {}),
@@ -891,8 +907,10 @@ export const aiRouter = {
         );
       }
       const usualPortions = await usualPortionsPending;
+      const rows = shownItems.map((item) => (item.scaleRead ? item : withUsualPortion(item, usualPortions)));
       return {
-        items: shownItems.map((item) => (item.scaleRead ? item : withUsualPortion(item, usualPortions))),
+        // A retry with a hint already carries the user's words about the plate: only a bare retry asks again.
+        items: input.hint ? rows : withAskGrams(rows, context.region),
         tooMany: analysis.tooMany,
         retriesLeft: MAX_SCAN_RETRIES - (used + 1),
         model: analysis.model,

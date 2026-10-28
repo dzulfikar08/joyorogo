@@ -12,7 +12,7 @@ import {
   scaleLedger,
   scaleReadoutEnabled,
 } from "./scale-reading";
-import type { AiRunner } from "./vision";
+import type { AiRunner, ScheduleTimeout } from "./vision";
 
 const item = (name: string, grams: number, kcal: number, extra: Record<string, unknown> = {}) => ({
   name,
@@ -368,6 +368,82 @@ describe("readScaleDisplay", () => {
       { ...OPTS, schedule: (fn) => { queueMicrotask(() => queueMicrotask(fn)); return () => {}; } },
     );
     expect(hung).toMatchObject({ reading: undefined, error: "scale-timeout" });
+  });
+
+  describe("a stalled call", () => {
+    // A schedule the test fires by hand, by the delay it was asked for.
+    const manual = () => {
+      const timers: Array<{ ms: number; fn: () => void; live: boolean }> = [];
+      const schedule: ScheduleTimeout = (fn, ms) => {
+        const timer = { ms, fn, live: true };
+        timers.push(timer);
+        return () => {
+          timer.live = false;
+        };
+      };
+      const fire = (ms: number) => timers.find((t) => t.ms === ms && t.live)?.fn();
+      return { schedule, fire, live: () => timers.filter((t) => t.live).map((t) => t.ms) };
+    };
+    const ok = reply(JSON.stringify({ scale: reading({ reading: "12" }) }), { completion_tokens: 40 });
+    // First call never answers, later ones answer.
+    const stalling = (): { ai: AiRunner; calls: () => number } => {
+      let n = 0;
+      return { calls: () => n, ai: { run: () => (n++ === 0 ? new Promise<never>(() => {}) : Promise.resolve(ok)) } };
+    };
+
+    test("a second identical call goes out after the hedge delay and its answer is used", async () => {
+      const { schedule, fire } = manual();
+      const { ai, calls } = stalling();
+      const pending = readScaleDisplay(ai, { ...OPTS, schedule, timeoutMs: 12_000, hedgeAfterMs: 4_000 });
+      await Promise.resolve();
+      expect(calls()).toBe(1);
+      fire(4_000);
+      const call = await pending;
+      expect(calls()).toBe(2);
+      expect(call.reading).toMatchObject({ reading: "12", unit: "g" });
+      expect(call.error).toBeUndefined();
+      expect(call.retried).toBe(true);
+      expect(scaleLedger(call, null)).toMatchObject({ retried: true });
+    });
+
+    test("a call that answers in time sends no second one, and leaves no timer behind", async () => {
+      const { schedule, fire, live } = manual();
+      const { ai, seen } = answering(ok);
+      const call = await readScaleDisplay(ai, { ...OPTS, schedule, timeoutMs: 12_000, hedgeAfterMs: 4_000 });
+      fire(4_000);
+      expect(seen.length).toBe(1);
+      expect(call.retried).toBeUndefined();
+      expect(live()).toEqual([]);
+    });
+
+    test("when both calls stall the timeout still ends it, with no reading", async () => {
+      const { schedule, fire } = manual();
+      const never = { run: () => new Promise<never>(() => {}) };
+      const pending = readScaleDisplay(never, { ...OPTS, schedule, timeoutMs: 12_000, hedgeAfterMs: 4_000 });
+      fire(4_000);
+      fire(12_000);
+      expect(await pending).toMatchObject({ reading: undefined, error: "scale-timeout", retried: true });
+    });
+
+    test("an infinite hedge delay never sends a second call for slowness", async () => {
+      const { schedule, fire } = manual();
+      const { ai, calls } = stalling();
+      const pending = readScaleDisplay(ai, { ...OPTS, schedule, timeoutMs: 12_000, hedgeAfterMs: Infinity });
+      fire(12_000);
+      expect(await pending).toMatchObject({ reading: undefined, error: "scale-timeout" });
+      expect(calls()).toBe(1);
+    });
+
+    test("a malformed first answer is retried at once, not after the delay; a hedge only ever adds one call", async () => {
+      const { schedule, fire } = manual();
+      const { ai, seen } = answering(reply('{"scale":{"reading":"61"'), reply("Maaf"), ok);
+      const call = await readScaleDisplay(ai, { ...OPTS, schedule, hedgeAfterMs: 4_000 });
+      fire(4_000);
+      // Two malformed answers end it: two calls, never three.
+      expect(seen.length).toBe(2);
+      expect(call.reading).toBeUndefined();
+      expect(call.error).toBeDefined();
+    });
   });
 });
 
