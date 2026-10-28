@@ -45,7 +45,6 @@ function PembayaranPage() {
   });
 
   const paid = status.data?.status === "paid";
-  const amountIdr = status.data?.amountIdr;
   // Ask the gateway directly (and settle) instead of waiting for its webhook.
   const check = useMutation({
     mutationFn: async () => {
@@ -63,12 +62,12 @@ function PembayaranPage() {
   useEffect(() => {
     if (!paid || !order) return;
     queryClient.invalidateQueries({ queryKey: orpc.profile.key() });
-    // Revenue counts once per order, not on every reload of this page.
+    // Counts once per order, not on every reload of this page. No revenue here: the server forwards the sale.
     const key = `jrg-kp-paid-${order}`;
     if (localStorage.getItem(key)) return;
     localStorage.setItem(key, "1");
-    trackConversion("founder_purchase", amountIdr, { order, ...fromProps() });
-  }, [paid, order, amountIdr, queryClient]);
+    trackConversion("founder_purchase", { order, ...fromProps() });
+  }, [paid, order, queryClient]);
 
   let body: React.ReactNode;
   if (!order) {

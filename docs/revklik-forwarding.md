@@ -51,3 +51,16 @@ every refunded one (refund dated at the sale's `paid_at`, the ledger keeps no re
 The answer is `{ scanned, queued, skipped, enabled, flush: { sent, failed, parked } }`. Re-running is safe: rows already queued or
 delivered are skipped by `external_id`, and RevKlik dedupes on it too. Run it again to deliver a larger queue, or let the cron do it.
 With the token unset it still queues, so setting the token later and waiting for the cron delivers the history.
+
+## Attribution and the client conversion
+
+The server is the only source of revenue. The web's `founder_purchase` conversion (`/pembayaran`) keeps its name and `order` prop for
+funnels but carries no revenue, otherwise the sale would be counted twice.
+
+To keep attribution, the web sends the tag's visitor and session ids (`_kp_vid` in localStorage, `_kp_sid` in sessionStorage) as
+`revklikVisitorId` / `revklikSessionId` in the body of `POST /api/billing/checkout` (DOKU, Pakasir) and `POST /api/billing/polar/checkout`.
+The server keeps them only when they match `[A-Za-z0-9_-]{8,64}` and stores them on the payment row (`revklik_visitor_id`,
+`revklik_session_id`, migration `0071`). For Polar, which creates the ledger row on `order.paid`, they travel as checkout metadata
+(`revklik_vid`, `revklik_sid`) and are read back from the first order (`subscription_create`) only. The sale event then carries
+`visitor_id` / `session_id`, so RevKlik inherits that visitor's utm, referrer and geo. Refunds, renewals and native Apple/Google
+purchases carry none.

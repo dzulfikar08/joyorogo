@@ -293,7 +293,7 @@ export function IosInstallBanner() {
           type="button"
           // In-app paths are filtered out of Revklik events (blog/revklik.ts); conversions pass.
           onClick={() => {
-            trackConversion("ios_cta_click", undefined, { location: "banner" });
+            trackConversion("ios_cta_click", { location: "banner" });
             dismissIosInstallBanner();
             openIosInstall("banner");
           }}

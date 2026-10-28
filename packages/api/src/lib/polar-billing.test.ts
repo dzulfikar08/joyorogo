@@ -294,6 +294,27 @@ describe("order.refunded", () => {
   });
 });
 
+describe("RevKlik attribution ids", () => {
+  const vid = "3f2a9c1e-7b64-4d0a-9e55-0c1d2e3f4a5b";
+  const sid = "9d8c7b6a-5e4f-4a3b-8c2d-1e0f9a8b7c6d";
+  const ids = async (orderId: string) => {
+    const row = await ledger(orderId);
+    return { visitor: row?.revklikVisitorId, session: row?.revklikSessionId };
+  };
+
+  test("the first order stores the checkout's ids from its metadata", async () => {
+    await send("e1", "order.paid", order({ metadata: { revklik_vid: vid, revklik_sid: sid } }));
+    expect(await ids("ord1")).toEqual({ visitor: vid, session: sid });
+  });
+
+  test("renewals and malformed ids store none", async () => {
+    await send("e1", "order.paid", order({ id: "renew", billing_reason: "subscription_cycle", metadata: { revklik_vid: vid } }));
+    await send("e2", "order.paid", order({ id: "bad", metadata: { revklik_vid: "no spaces allowed", revklik_sid: 7 } }));
+    expect(await ids("renew")).toEqual({ visitor: null, session: null });
+    expect(await ids("bad")).toEqual({ visitor: null, session: null });
+  });
+});
+
 describe("RevKlik hook", () => {
   test("fires once per paid flip and once per refund, not for duplicates", async () => {
     const seen: string[] = [];

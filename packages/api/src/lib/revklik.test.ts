@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 
 import { revklikOutbox } from "@joyorogo/db/schema/billing";
 
-import { backfillLedger, enqueueLedger, flushOutbox, revklikConfig, sweepRecentLedger } from "./revklik";
+import { backfillLedger, enqueueLedger, flushOutbox, parseRevklikIds, revklikConfig, sweepRecentLedger } from "./revklik";
 import type { RevklikEventBody } from "./revklik";
 
 const { client, db } = await d1TestDb();
@@ -23,10 +23,12 @@ const insertPayment = (row: {
   minor?: number;
   tax?: number;
   url?: string;
+  vid?: string;
+  sid?: string;
 }) =>
   client.execute({
-    sql: `INSERT INTO payment (order_id, user_id, amount_idr, status, months, is_test, paid_at, charged_currency, charged_amount_minor, charged_tax_minor, payment_url)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    sql: `INSERT INTO payment (order_id, user_id, amount_idr, status, months, is_test, paid_at, charged_currency, charged_amount_minor, charged_tax_minor, payment_url, revklik_visitor_id, revklik_session_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       row.id,
       row.user ?? "u1",
@@ -39,6 +41,8 @@ const insertPayment = (row: {
       row.minor ?? null,
       row.tax ?? null,
       row.url ?? null,
+      row.vid ?? null,
+      row.sid ?? null,
     ],
   });
 
@@ -135,6 +139,35 @@ describe("enqueueLedger", () => {
     const byId = Object.fromEntries((await outbox()).map((row) => [row.externalId, row.event]));
     expect(byId["JRG-260101000000-aaaaaaaa"]).toMatchObject({ rail: "pakasir", name: "purchase" });
     expect(byId["JRG-260201000000-bbbbbbbb"]).toMatchObject({ rail: "doku", name: "renewal" });
+  });
+});
+
+describe("attribution ids", () => {
+  const vid = "3f2a9c1e-7b64-4d0a-9e55-0c1d2e3f4a5b";
+  const sid = "9d8c7b6a-5e4f-4a3b-8c2d-1e0f9a8b7c6d";
+
+  test("a web sale carries visitor_id and session_id; its refund does not", async () => {
+    await insertPayment({ id: "JRG-260101000000-cccccccc", vid, sid, status: "failed" });
+    await enqueueLedger(db, "JRG-260101000000-cccccccc", "paid", { rail: "doku" });
+    await enqueueLedger(db, "JRG-260101000000-cccccccc", "refund", { rail: "doku" });
+    const byId = Object.fromEntries((await outbox()).map((row) => [row.externalId, row.event]));
+    expect(byId["JRG-260101000000-cccccccc"]).toMatchObject({ visitor_id: vid, session_id: sid });
+    expect(byId["JRG-260101000000-cccccccc:refund"]?.visitor_id).toBeUndefined();
+    expect(byId["JRG-260101000000-cccccccc:refund"]?.session_id).toBeUndefined();
+  });
+
+  test("native orders carry no ids", async () => {
+    await insertPayment({ id: "apple:9" });
+    await enqueueLedger(db, "apple:9", "paid");
+    const [row] = await outbox();
+    expect("visitor_id" in (row?.event ?? {})).toBe(false);
+  });
+
+  test("parseRevklikIds keeps UUID-like ids and drops everything else", () => {
+    expect(parseRevklikIds({ visitorId: vid, sessionId: sid })).toEqual({ revklikVisitorId: vid, revklikSessionId: sid });
+    expect(parseRevklikIds({ visitorId: "short", sessionId: "x".repeat(65) })).toEqual({ revklikVisitorId: null, revklikSessionId: null });
+    expect(parseRevklikIds({ visitorId: "has space in it!!", sessionId: 42 })).toEqual({ revklikVisitorId: null, revklikSessionId: null });
+    expect(parseRevklikIds(null)).toEqual({ revklikVisitorId: null, revklikSessionId: null });
   });
 });
 

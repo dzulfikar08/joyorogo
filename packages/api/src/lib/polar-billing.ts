@@ -7,7 +7,7 @@ import type { Database } from "@joyorogo/db";
 
 import { idrQuote, minorToIdr } from "./fx";
 import type { FxQuote, FxRateSource } from "./fx";
-import { notifyLedger } from "./revklik";
+import { notifyLedger, parseRevklikIds } from "./revklik";
 import type { LedgerHook } from "./revklik";
 import { POLAR_SANDBOX_URL, polarLedgerId, polarProductPlan } from "./polar";
 import type { PolarConfig } from "./polar";
@@ -241,6 +241,10 @@ async function creditOrder(
     fxRateIdr: fx?.rate ?? null,
     fxSource: fx?.source ?? null,
     isTest: deps.config.baseUrl === POLAR_SANDBOX_URL ? 1 : 0,
+    // Only the first order carries the checkout's browser; later renewals belong to no live session.
+    ...(order.billing_reason === "subscription_create"
+      ? parseRevklikIds({ visitorId: order.metadata?.revklik_vid, sessionId: order.metadata?.revklik_sid })
+      : {}),
   };
 
   for (let attempt = 0; attempt < CREDIT_ATTEMPTS; attempt++) {

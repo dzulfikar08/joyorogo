@@ -498,6 +498,13 @@
       "when": 1793180479662,
       "tag": "0070_revklik_outbox",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "6",
+      "when": 1793181859746,
+      "tag": "0071_payment_revklik_ids",
+      "breakpoints": true
     }
   ]
 }

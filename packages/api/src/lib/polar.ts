@@ -214,6 +214,8 @@ export async function createCheckout(
      * jurisdiction from it; without it Polar sees our Worker and would show the default currency.
      */
     customerIp?: string | null;
+    /** RevKlik ids of the buyer's browser; they come back on the order's metadata for sale attribution. */
+    revklik?: { visitorId: string | null; sessionId: string | null };
   },
 ): Promise<{ url: string }> {
   const checkout = await call<{ url?: unknown }>(config, "/v1/checkouts/", {
@@ -225,7 +227,13 @@ export async function createCheckout(
     return_url: params.returnUrl,
     locale: "en",
     ...(params.customerIp ? { customer_ip_address: params.customerIp } : {}),
-    metadata: { app: "joyorogo", user_id: params.userId, plan: params.plan },
+    metadata: {
+      app: "joyorogo",
+      user_id: params.userId,
+      plan: params.plan,
+      ...(params.revklik?.visitorId ? { revklik_vid: params.revklik.visitorId } : {}),
+      ...(params.revklik?.sessionId ? { revklik_sid: params.revklik.sessionId } : {}),
+    },
   });
   if (typeof checkout.url !== "string") throw new Error("polar checkout answered without a url");
   return { url: checkout.url };

@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 
 import { LOCALE_HEADER, dayOfMs, i18n } from "@joyorogo/i18n";
 
-import { trackEvent } from "./analytics";
+import { revklikIds, trackEvent } from "./analytics";
 import { apiUrl } from "./app-config";
 import type { PaymentMethod } from "./app-config";
 import { fmtDateLong } from "./format";
@@ -58,7 +58,7 @@ export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...localeHeader() },
-        body: JSON.stringify({ plan, method }),
+        body: JSON.stringify({ plan, method, ...revklikIds() }),
       });
       if (res.status === 401) {
         // Signed out (e.g. the /harga visitor): let them sign in first, then
@@ -93,7 +93,7 @@ export function useUsdCheckout(plan: CheckoutPlan = "monthly") {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...localeHeader() },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, ...revklikIds() }),
       });
       if (res.status === 401) {
         navigate({ to: "/login", search: { redirect: location.pathname } });

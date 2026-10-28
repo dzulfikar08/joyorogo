@@ -31,6 +31,17 @@ export function revklikConfig(env: RevklikEnv): RevklikConfig | null {
   return { apiUrl: (env.REVKLIK_API_URL?.trim() || REVKLIK_DEFAULT_API_URL).replace(/\/$/, ""), token, siteId };
 }
 
+const RK_ID = /^[A-Za-z0-9_-]{8,64}$/;
+
+/** Visitor/session ids sent by a browser: kept only when they look like the tag's UUIDs, never trusted beyond that. */
+export function parseRevklikIds(input: { visitorId?: unknown; sessionId?: unknown } | null | undefined): {
+  revklikVisitorId: string | null;
+  revklikSessionId: string | null;
+} {
+  const pick = (value: unknown) => (typeof value === "string" && RK_ID.test(value) ? value : null);
+  return { revklikVisitorId: pick(input?.visitorId), revklikSessionId: pick(input?.sessionId) };
+}
+
 export type LedgerKind = "paid" | "refund";
 /** Billing libs call this after a ledger row flips to paid or is refunded. Never throws into the credit path. */
 export type LedgerHook = (orderId: string, kind: LedgerKind) => Promise<void>;
@@ -54,6 +65,8 @@ type LedgerRow = {
   isTest: number | null;
   paymentUrl: string | null;
   paidAt: Date | null;
+  revklikVisitorId: string | null;
+  revklikSessionId: string | null;
 };
 
 export type RevklikEventBody = {
@@ -66,6 +79,9 @@ export type RevklikEventBody = {
   product: string;
   props: Record<string, string | number>;
   occurred_at: string;
+  /** Sales only: the web visitor/session that opened the checkout; RevKlik inherits its utm/referrer/geo. */
+  visitor_id?: string;
+  session_id?: string;
 };
 
 /** Canonical RevKlik rail of a ledger row. DOKU and Pakasir share JRG- ids; Pakasir rows carry a pakasir.com payment link. */
@@ -126,6 +142,8 @@ export function buildLedgerEvent(
     product: REVKLIK_PRODUCT,
     props,
     occurred_at: (refund ? (options.refundedAt ?? row.paidAt) : row.paidAt).toISOString(),
+    ...(!refund && row.revklikVisitorId ? { visitor_id: row.revklikVisitorId } : {}),
+    ...(!refund && row.revklikSessionId ? { session_id: row.revklikSessionId } : {}),
   };
 }
 
@@ -141,6 +159,8 @@ const ledgerColumns = {
   isTest: payment.isTest,
   paymentUrl: payment.paymentUrl,
   paidAt: payment.paidAt,
+  revklikVisitorId: payment.revklikVisitorId,
+  revklikSessionId: payment.revklikSessionId,
 };
 
 const realMoneyRow = or(isNull(payment.isTest), ne(payment.isTest, 1));

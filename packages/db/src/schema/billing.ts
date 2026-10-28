@@ -37,6 +37,10 @@ export const payment = sqliteTable(
     // 1 = a test purchase that was not really charged (Play license tester, Apple Sandbox, Polar sandbox), 0 = real, null = unknown (old rows).
     // Excluded from revenue totals.
     isTest: integer("is_test"),
+    // RevKlik visitor and session ids of the browser that opened a web checkout (the tag's _kp_vid / _kp_sid), so the
+    // forwarded sale inherits that visitor's utm/referrer/geo. Null for native purchases and renewals.
+    revklikVisitorId: text("revklik_visitor_id"),
+    revklikSessionId: text("revklik_session_id"),
     // Founder period end this payment produced (set on the paid flip).
     founderUntil: integer("founder_until", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" })

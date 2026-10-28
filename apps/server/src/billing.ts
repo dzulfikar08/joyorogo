@@ -54,6 +54,7 @@ import type { PolarEnv } from "@joyorogo/api/lib/polar";
 import { frankfurterRate } from "@joyorogo/api/lib/fx";
 import type { FxRateSource } from "@joyorogo/api/lib/fx";
 import { processPolarEvent } from "@joyorogo/api/lib/polar-billing";
+import { parseRevklikIds } from "@joyorogo/api/lib/revklik";
 import type { LedgerHook } from "@joyorogo/api/lib/revklik";
 import type { Revklik } from "./revklik";
 import {
@@ -355,6 +356,8 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     const body = (await c.req.json().catch(() => null)) as {
       plan?: unknown;
       method?: unknown;
+      revklikVisitorId?: unknown;
+      revklikSessionId?: unknown;
     } | null;
     const plan: FounderPlan = body?.plan === "yearly" ? "yearly" : "monthly";
     const method = PAYMENT_METHODS.find((m) => m === body?.method) ?? null;
@@ -388,7 +391,13 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
 
     const orderId = buildOrderId();
     const returnUrl = `${appUrl}/pembayaran?order=${encodeURIComponent(orderId)}`;
-    await db.insert(payment).values({ orderId, userId: me.id, amountIdr, months });
+    await db.insert(payment).values({
+      orderId,
+      userId: me.id,
+      amountIdr,
+      months,
+      ...parseRevklikIds({ visitorId: body?.revklikVisitorId, sessionId: body?.revklikSessionId }),
+    });
     try {
       const { paymentUrl } =
         gateway === "pakasir"
@@ -506,7 +515,11 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     if (!polar) return c.json({ error: "USD checkout is not available." }, 404);
     const me = await sessionUser(c.req.raw.headers);
     if (!me) return c.json({ error: t(c)("billing.signInToSubscribe") }, 401);
-    const body = (await c.req.json().catch(() => null)) as { plan?: unknown } | null;
+    const body = (await c.req.json().catch(() => null)) as {
+      plan?: unknown;
+      revklikVisitorId?: unknown;
+      revklikSessionId?: unknown;
+    } | null;
     const plan: FounderPlan = body?.plan === "yearly" ? "yearly" : "monthly";
     const db = deps.getDb();
     const [live] = await db
@@ -526,6 +539,9 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
         successUrl: `${appUrl}/pro?polar=success`,
         returnUrl: `${appUrl}/pro`,
         customerIp: c.req.header("CF-Connecting-IP"),
+        revklik: (({ revklikVisitorId, revklikSessionId }) => ({ visitorId: revklikVisitorId, sessionId: revklikSessionId }))(
+          parseRevklikIds({ visitorId: body?.revklikVisitorId, sessionId: body?.revklikSessionId }),
+        ),
       });
       return c.json({ url });
     } catch (error) {
