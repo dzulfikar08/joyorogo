@@ -374,17 +374,21 @@ dan bagian ini dibuat ulang dengan `bun scripts/roadmap-sync.ts`. Roadmap
 
 **Sedang dikerjakan**
 
-- Kartu dan stiker share baru untuk rekap harian, makanan, streak, dan progres berat
-- Bayar dengan USD (kartu internasional) untuk pengguna di luar Indonesia. Sudah bisa di web.
-- Tersedia di lebih banyak negara
+- Android di Google Play untuk semua orang. Sekarang masih tes tertutup, siapa saja bisa gabung.
+- Lencana dan papan konsistensi mingguan: peringkat dari seberapa rutin kamu mencatat, bukan dari berat badan. Ikut atau tidak, kamu yang pilih.
+- Bot kalori di Threads: tag akun JoyoRogo di foto makanan, dapat perkiraan kalorinya
+- Scan makin teliti: pilihan nama lain untuk makanan yang mirip, angka timbangan dapur ikut terbaca, dan berat wadah dikurangi
 
 **Berikutnya**
 
+- Ruang komunitas per tujuan (turun pelan, naikin BB, puasa, baru mulai) untuk saling berbagi tips
+- Tantangan bulanan untuk semua pengguna, dengan lencana kalau tuntas
 - Sticker Studio: bikin stiker share sendiri
 - Daftar resmi di direktori konektor Claude dan ChatGPT
 
 **Nanti**
 
+- Lencana Ramadan konsisten dan persiapan Mode Ramadan 2027
 - Tantangan "Balik rutin" setelah Lebaran
 
 Diperbarui 2026-10-28. Tanpa tanggal rilis: urutan di tiap kelompok bukan janji jadwal.
