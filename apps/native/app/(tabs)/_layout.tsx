@@ -1,7 +1,6 @@
 import "@/unistyles";
 import { useBadgeUnlock } from "@/components/badges/use-badge-unlock";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
 import { Tabs, router } from "expo-router";
 import { Fragment } from "react";
 import type { ComponentProps } from "react";
@@ -12,8 +11,7 @@ import Animated from "react-native-reanimated";
 import { FloatingTabBar } from "@/components/floating-tab-bar";
 import { useActivePop } from "@/components/motion";
 
-import { useUnreadCount } from "@/src/lib/group";
-import { orpc } from "@/utils/orpc";
+import { useTabBadges } from "@/components/tab-badges";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -47,12 +45,9 @@ function LocaleKeyed({ children }: { children: React.ReactElement }) {
 export default function TabLayout() {
   const { t } = useTranslation();
   useBadgeUnlock();
-  const unread = useUnreadCount();
-  const unreadBadge = (unread.data?.count ?? 0) > 0 ? unread.data!.count : undefined;
-  // Feed tab badge: social notifications (kudos/comment/follow), separate
-  // from the group inbox badge on Lainnya.
-  const social = useQuery(orpc.social.notificationsUnreadCount.queryOptions());
-  const socialBadge = (social.data?.count ?? 0) > 0 ? social.data!.count : undefined;
+  const badges = useTabBadges();
+  const socialBadge = badges.feed;
+  const unreadBadge = badges.more;
   return (
     <Tabs
       tabBar={(props) => (
