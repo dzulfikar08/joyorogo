@@ -10,8 +10,6 @@ export type LandingShot = "beranda" | "scan" | "makan" | "rekap" | "tidur" | "be
 
 const SHOT_W = 600;
 const SHOT_H = 1298;
-// grup.webp is cropped from a taller capture.
-const GRUP_H = 1304;
 
 export function PhoneShot({
   shot,
@@ -25,7 +23,7 @@ export function PhoneShot({
   priority?: boolean;
   className?: string;
 }) {
-  const height = shot === "grup" ? GRUP_H : SHOT_H;
+  const height = SHOT_H;
   return (
     <div
       className={cn(
@@ -106,7 +104,7 @@ export function HeroShot() {
       <PhoneShot
         shot="beranda"
         priority
-        alt="Beranda JoyoRogo: sisa 585 kkal hari ini, target makan 1.475, menu yang masih muat, aktivitas, tidur, protein, air, dan berat"
+        alt="Beranda JoyoRogo: sisa 735 kkal hari ini dari target 1.635, protein, aktivitas, tidur, air, dan berat"
         className="relative my-8 w-[min(100%,17.5rem)]"
       />
       <figcaption className="relative pb-2 text-center text-xs text-muted-foreground">

@@ -653,7 +653,7 @@ function Landing() {
               <figure className="mt-6 flex flex-col items-center gap-5 rounded-[1.75rem] bg-background p-5 sm:flex-row">
                 <PhoneShot
                   shot="scan"
-                  alt="Layar Cek hasil AI: total 380 kkal, nasi putih dan ayam bumbu dengan kolom kalori yang bisa diubah"
+                  alt="Layar hasil scan AI: total 400 kkal, soto daging dan bawang goreng dengan kolom kalori yang bisa diubah dan pilihan nama lain"
                   className="w-[min(100%,13rem)] shrink-0"
                 />
                 <figcaption className="text-[0.9375rem] leading-relaxed text-muted-foreground">
@@ -714,7 +714,7 @@ function Landing() {
             <figure>
               <PhoneShot
                 shot="berat"
-                alt="Layar Berat badan: berat tren 65,8 kg, laju turun 0,5 kg per minggu, grafik tren timbangan dan kalori 30 hari"
+                alt="Layar Berat: berat tren 67,7 kg, target 62 kg, perubahan 30 hari dan laju turun 0,2 kg per minggu"
               />
               <figcaption className="mt-4 text-center text-xs text-muted-foreground">
                 Tampilan asli aplikasi, dengan data contoh.
@@ -875,19 +875,19 @@ function Landing() {
                   "makan",
                   "Diary makan",
                   "Tiap waktu makan rapi, lengkap dengan porsi dan makronya.",
-                  "Diary makan hari ini: piring nasi dan ayam bumbu dengan kalori, gram, protein, karbo, dan lemak",
+                  "Diary makan hari ini: 900 dari 1.635 kkal dengan bilah protein, karbo, lemak, serat, dan tombol catat cepat",
                 ],
                 [
                   "rekap",
                   "Rekap mingguan",
                   "Rata-rata per hari dan hari mana yang sesuai target.",
-                  "Rekap mingguan: rata-rata 1.340 kkal per hari dan grafik batang tujuh hari",
+                  "Rekap mingguan: rata-rata 1.605 kkal per hari dari target 1.635 dan grafik batang tujuh hari",
                 ],
                 [
                   "tidur",
                   "Tidur",
                   "Catat jam tidur, bandingkan dengan kebutuhanmu.",
-                  "Layar Tidur: cincin 7,0 jam semalam dari kebutuhan 8 jam dan pilihan durasi",
+                  "Layar Tidur: cincin 7,5 jam semalam dari kebutuhan 8 jam, catat cepat, dan grafik tujuh malam",
                 ],
               ] as const
             ).map(([shot, title, body, alt]) => (
@@ -1090,7 +1090,7 @@ function Landing() {
             <figure>
               <PhoneShot
                 shot="grup"
-                alt="Layar Grup di JoyoRogo: tiga anggota dengan progres kalori, streak, tombol Colek, Catatan, dan VAR"
+                alt="Layar Grup Kantor Sehat: tiga anggota dengan asupan hari ini, streak, tombol Colek, Catatan, dan VAR"
               />
               <figcaption className="mt-4 text-center text-xs text-tidur-ink/70">
                 Tampilan asli aplikasi, dengan anggota contoh.
