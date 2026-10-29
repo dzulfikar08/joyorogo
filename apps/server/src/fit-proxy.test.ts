@@ -446,6 +446,172 @@ describe("fit proxy", () => {
     });
   });
 
+  describe("huawei imports", () => {
+    const IMPORT_TYPE = "application/x-joyofit-import+gzip";
+    const IMPORT_FROM_APP = { origin: APP_ORIGIN, "content-type": IMPORT_TYPE };
+    const MAX = 100 * 1024 * 1024;
+
+    test("POST /imports forwards the body, its type and length, and the filename query; the answer passes through", async () => {
+      const { app, calls } = setup(() =>
+        Response.json({ id: "a1b2c3d4-0000" }, { status: 201, headers: { "cache-control": "private, no-store" } }),
+      );
+      const res = await app.request("/api/fit/imports?filename=joyofit-import-20261029-1200.ndjson.gz", {
+        method: "POST",
+        headers: { cookie: GOOD, ...IMPORT_FROM_APP, "content-length": "5" },
+        body: "hello",
+      });
+      expect(res.status).toBe(201);
+      expect(res.headers.get("cache-control")).toBe("private, no-store");
+      expect(calls).toHaveLength(1);
+      expect(calls[0]).toMatchObject({
+        url: "https://fit.test/v1/imports?filename=joyofit-import-20261029-1200.ndjson.gz",
+        method: "POST",
+        body: "hello",
+      });
+      expect(calls[0]?.headers.get("content-type")).toBe(IMPORT_TYPE);
+      expect(calls[0]?.headers.get("content-length")).toBe("5");
+      expect(calls[0]?.headers.get("cookie")).toBe(
+        "better-auth.session_token=good; better-auth.session_data=abc",
+      );
+      expect(calls[0]?.headers.get("origin")).toBeNull();
+    });
+
+    test("the import type is matched case-insensitively and parameters are dropped", async () => {
+      const { app, calls } = setup(() => Response.json({}, { status: 201 }));
+      const res = await app.request("/api/fit/imports", {
+        method: "POST",
+        headers: {
+          cookie: GOOD,
+          origin: APP_ORIGIN,
+          "content-type": "Application/X-JoyoFit-Import+Gzip; x=1",
+          "content-length": "1",
+        },
+        body: "x",
+      });
+      expect(res.status).toBe(201);
+      expect(calls[0]?.headers.get("content-type")).toBe(IMPORT_TYPE);
+    });
+
+    test("each body route has its own type: octet-stream is refused on imports, the import type on watch faces and studio", async () => {
+      const { app, calls } = setup(() => Response.json({}, { status: 201 }));
+      const send = (path: string, method: string, type: string) =>
+        app.request(path, {
+          method,
+          headers: { cookie: GOOD, origin: APP_ORIGIN, "content-type": type, "content-length": "1" },
+          body: "x",
+        });
+      for (const type of [
+        "application/octet-stream",
+        "application/json",
+        "text/plain",
+        "multipart/form-data; boundary=x",
+        "application/x-www-form-urlencoded",
+        "application/gzip",
+      ]) {
+        expect((await send("/api/fit/imports", "POST", type)).status).toBe(415);
+      }
+      const noType = await app.request("/api/fit/imports", {
+        method: "POST",
+        headers: { cookie: GOOD, origin: APP_ORIGIN, "content-length": "1" },
+        body: "x",
+      });
+      expect(noType.status).toBe(415);
+      expect((await send("/api/fit/watchfaces", "POST", IMPORT_TYPE)).status).toBe(415);
+      expect((await send("/api/fit/studio/projects", "POST", IMPORT_TYPE)).status).toBe(415);
+      expect(calls).toHaveLength(0);
+    });
+
+    test("an import without a length is 411 and nothing is forwarded", async () => {
+      const { app, calls } = setup(() => Response.json({}, { status: 201 }));
+      const res = await app.request("/api/fit/imports", {
+        method: "POST",
+        headers: { cookie: GOOD, ...IMPORT_FROM_APP, "transfer-encoding": "chunked" },
+      });
+      expect(res.status).toBe(411);
+      expect(await res.json()).toEqual({ error: "content_length_required" });
+      expect(calls).toHaveLength(0);
+    });
+
+    test("the cap is 100 MiB for imports (100 MiB + 1 is 413, never forwarded) and still 8 MiB for watch faces", async () => {
+      const { app, calls } = setup(() => Response.json({}, { status: 201 }));
+      const post = (path: string, headers: Record<string, string>, length: number) =>
+        app.request(path, {
+          method: "POST",
+          headers: { cookie: GOOD, ...headers, "content-length": String(length) },
+          body: "x",
+        });
+      const tooBig = await post("/api/fit/imports", IMPORT_FROM_APP, MAX + 1);
+      expect(tooBig.status).toBe(413);
+      expect(await tooBig.json()).toEqual({ error: "too_large", maxBytes: MAX });
+      expect((await post("/api/fit/watchfaces", FROM_APP, 8 * 1024 * 1024 + 1)).status).toBe(413);
+      expect(calls).toHaveLength(0);
+
+      // 8 MiB + 1 is fine for an import, and so is exactly the cap.
+      expect((await post("/api/fit/imports", IMPORT_FROM_APP, 8 * 1024 * 1024 + 1)).status).toBe(201);
+      expect((await post("/api/fit/imports", IMPORT_FROM_APP, MAX)).status).toBe(201);
+      expect(calls).toHaveLength(2);
+    });
+
+    test("an import needs the Origin of one of our web apps and a session", async () => {
+      const { app, calls } = setup(() => Response.json({}, { status: 201 }));
+      const base = { "content-type": IMPORT_TYPE, "content-length": "1" };
+      for (const origin of ["https://evil.test", "http://app.test", "null", undefined]) {
+        const headers: Record<string, string> = { cookie: GOOD, ...base };
+        if (origin) headers.origin = origin;
+        const res = await app.request("/api/fit/imports", { method: "POST", headers, body: "x" });
+        expect(res.status).toBe(403);
+        expect(await res.json()).toEqual({ error: "forbidden_origin" });
+      }
+      const noSession = await app.request("/api/fit/imports", {
+        method: "POST",
+        headers: { origin: APP_ORIGIN, ...base },
+        body: "x",
+      });
+      expect(noSession.status).toBe(401);
+      const staleSession = await app.request("/api/fit/imports", {
+        method: "POST",
+        headers: { cookie: "better-auth.session_token=stale", origin: APP_ORIGIN, ...base },
+        body: "x",
+      });
+      expect(staleSession.status).toBe(401);
+      expect(calls).toHaveLength(0);
+    });
+
+    test("the other API's refusals (Pro only, too large) are the answer; only POST /imports exists here", async () => {
+      const answers = [402, 413];
+      const { app, calls } = setup(() => {
+        const status = answers.shift() ?? 404;
+        return Response.json({ error: status === 402 ? "pro_required" : "too_large" }, { status });
+      });
+      const post = () =>
+        app.request("/api/fit/imports", {
+          method: "POST",
+          headers: { cookie: GOOD, ...IMPORT_FROM_APP, "content-length": "1" },
+          body: "x",
+        });
+      const paywall = await post();
+      expect(paywall.status).toBe(402);
+      expect(await paywall.json()).toEqual({ error: "pro_required" });
+      expect((await post()).status).toBe(413);
+
+      // The phone lists, downloads and deletes through the JoyoFit API itself: no other import route is relayed.
+      const before = calls.length;
+      for (const [method, path] of [
+        ["GET", "/api/fit/imports"],
+        ["DELETE", "/api/fit/imports"],
+        ["PUT", "/api/fit/imports"],
+        ["GET", "/api/fit/imports/a1b2c3d4-0000"],
+        ["DELETE", "/api/fit/imports/a1b2c3d4-0000"],
+        ["GET", "/api/fit/imports/a1b2c3d4-0000/file"],
+        ["POST", "/api/fit/imports/a1b2c3d4-0000"],
+      ] as const) {
+        const res = await app.request(path, { method, headers: { cookie: GOOD, origin: APP_ORIGIN } });
+        expect(res.status).toBe(404);
+      }
+      expect(calls).toHaveLength(before);
+    });
+  });
+
   test("an unreachable JoyoFit API is a 502, not a hang or a leak", async () => {
     const app = new Hono();
     registerFitProxy(app, {
