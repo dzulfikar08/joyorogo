@@ -1,18 +1,20 @@
 /**
  * Locale formatting without Intl (Hermes ships a partial Intl, and Node/web/native
- * must print the same string). Two locales: id and en.
+ * must print the same string). Three locales: id, en and ms.
  */
 
-export type Locale = "id" | "en";
+export type Locale = "id" | "en" | "ms";
 
 const SEP: Record<Locale, { group: string; decimal: string }> = {
   id: { group: ".", decimal: "," },
   en: { group: ",", decimal: "." },
+  ms: { group: ",", decimal: "." },
 };
 
 const MONTHS: Record<Locale, readonly string[]> = {
   id: ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"],
   en: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  ms: ["Jan", "Feb", "Mac", "Apr", "Mei", "Jun", "Jul", "Ogo", "Sep", "Okt", "Nov", "Dis"],
 };
 
 const MONTHS_LONG: Record<Locale, readonly string[]> = {
@@ -44,16 +46,32 @@ const MONTHS_LONG: Record<Locale, readonly string[]> = {
     "November",
     "December",
   ],
+  ms: [
+    "Januari",
+    "Februari",
+    "Mac",
+    "April",
+    "Mei",
+    "Jun",
+    "Julai",
+    "Ogos",
+    "September",
+    "Oktober",
+    "November",
+    "Disember",
+  ],
 };
 
 const WEEKDAYS: Record<Locale, readonly string[]> = {
   id: ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
   en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  ms: ["Ahad", "Isnin", "Selasa", "Rabu", "Khamis", "Jumaat", "Sabtu"],
 };
 
 const WEEKDAYS_SHORT: Record<Locale, readonly string[]> = {
   id: ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"],
   en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+  ms: ["Aha", "Isn", "Sel", "Rab", "Kha", "Jum", "Sab"],
 };
 
 /** Round half away from zero to `digits` decimals, immune to 1.005-style float noise. */
@@ -141,7 +159,7 @@ export function formatDurationHM(totalSeconds: number, locale: Locale): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   if (h === 0) return `${m}m`;
-  return `${h}${locale === "id" ? "j" : "h"} ${String(m).padStart(2, "0")}m`;
+  return `${h}${locale === "en" ? "h" : "j"} ${String(m).padStart(2, "0")}m`;
 }
 
 /** Seconds per km -> `5:42`. */
@@ -220,5 +238,6 @@ export function formatTime(value: unknown, locale: Locale): string {
   const h = date.getHours();
   const m = String(date.getMinutes()).padStart(2, "0");
   if (locale === "id") return `${String(h).padStart(2, "0")}.${m}`;
-  return `${h % 12 === 0 ? 12 : h % 12}:${m} ${h < 12 ? "AM" : "PM"}`;
+  const meridiem = locale === "ms" ? (h < 12 ? "PG" : "PTG") : h < 12 ? "AM" : "PM";
+  return `${h % 12 === 0 ? 12 : h % 12}:${m} ${meridiem}`;
 }
