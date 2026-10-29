@@ -62,9 +62,10 @@ Store prices checked 2026-10-18 (read back after the change):
 | Store | Product | Monthly | Yearly |
 | --- | --- | --- | --- |
 | App Store Connect (IDN) | auto-renewable `com.joyodigitama.joyorogo.founder.monthly` / `.yearly` | Rp29.000 | **Rp199.000** |
+| App Store Connect (IDN), JoyoFit app | auto-renewable `com.joyodigitama.joyofit.pro.monthly` / `.yearly` (JoyoFit's own subscription group "JoyoRogo Pro"; grants the same JoyoRogo Pro) | Rp29.000 | **Rp199.000** |
 | Google Play | subscription `pro`, base plans `monthly` / `yearly` (ID region, Indonesia price shown; other regions below) | Rp29.000 | **Rp199.000** |
 
-The current step (buyers 11-60; step 2 was 11-110 until 2026-10-27) matches both stores in Indonesia. The server accepts only the two auto-renewable Apple products (`DEFAULT_APPLE_SUB_*_PRODUCT_ID` in `packages/api/src/lib/apple.ts`).
+The current step (buyers 11-60; step 2 was 11-110 until 2026-10-27) matches both stores in Indonesia. The server accepts only the four auto-renewable Apple products in `APPLE_PRODUCTS` (`packages/api/src/lib/apple.ts`): JoyoRogo's `founder.monthly` / `.yearly` and JoyoFit's `pro.monthly` / `.yearly`. Each product is valid only under its own app's bundle id (`APPLE_BUNDLE_IDS`), and a JoyoFit product is priced in the ledger like the JoyoRogo product of the same plan (monthly / yearly). JoyoFit's products carry the same prices as JoyoRogo's (Rp29.000 / Rp199.000 in Indonesia, US$9.99 / US$59.99 elsewhere, Apple's equalized price points).
 
 Outside Indonesia the price follows the web USD price (US$9.99/month, US$59.99/year), not the founder ladder. Apple, changed 2026-10-18 with `preserveCurrentPrice: true` (existing subscribers keep their old price): USA price point 9.99 / 59.99, every other territory on Apple's equalized price point of it, except Indonesia (unchanged) and 53 low/lower-middle-income territories (World Bank LIC/LMC) held at the old price pending an owner decision. Full territory list: `store-prices-plan.md` (outside the repo).
 

@@ -17,12 +17,14 @@ import {
 } from "@joyorogo/api/lib/google-play-billing";
 import type { GoogleVerifyResult } from "@joyorogo/api/lib/google-play-billing";
 import { serverT } from "@joyorogo/api/lib/messages";
+import type { LedgerKind } from "@joyorogo/api/lib/revklik";
 import { paywallConfig, paywallEnabled } from "@joyorogo/api/lib/tiers";
 import type { PaywallEnv } from "@joyorogo/api/lib/tiers";
 import type { Database } from "@joyorogo/db";
 import { requestLocale } from "./context";
 import { sendOrderEmails } from "./email";
 import type { EmailEnv } from "./email";
+import type { Revklik } from "./revklik";
 
 export type GoogleBillingEnv = PaywallEnv &
   EmailEnv &
@@ -34,6 +36,8 @@ type Deps = {
   env: GoogleBillingEnv;
   getDb: () => Database;
   createAuth: () => Promise<JoyoAuth>;
+  /** RevKlik revenue forwarding; queues an event after every paid flip and refund. */
+  revklik?: Revklik;
 };
 
 export const GOOGLE_VERIFY_PATH = "/api/billing/google";
@@ -75,6 +79,7 @@ export function registerGooglePlayRoutes(app: Hono, deps: Deps) {
           db: deps.getDb(),
           client,
           config,
+          onLedger: deps.revklik ? (orderId: string, kind: LedgerKind) => (deps.revklik as Revklik).onLedger(orderId, kind) : undefined,
           fallbackPriceIdr: {
             monthly: paywall.founderPriceIdr,
             yearly: paywall.founderYearlyPriceIdr,

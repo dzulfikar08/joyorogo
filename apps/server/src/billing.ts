@@ -1,13 +1,11 @@
 import { and, desc, eq, gt, gte, inArray, like, lte, sql } from "drizzle-orm";
 import type { SendEmail } from "@cloudflare/workers-types";
 import type { JoyoAuth } from "@joyorogo/auth";
+import { appleBundleIds } from "@joyorogo/auth/apple-audience";
 import type { Context, Hono } from "hono";
 
 import {
   APPLE_ROOT_CA_G3_SHA256,
-  DEFAULT_APPLE_BUNDLE_ID,
-  DEFAULT_APPLE_SUB_MONTHLY_PRODUCT_ID,
-  DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID,
   verifyAppleNotificationJws,
   verifyAppleTransactionJws,
 } from "@joyorogo/api/lib/apple";
@@ -54,6 +52,9 @@ import type { PolarEnv } from "@joyorogo/api/lib/polar";
 import { frankfurterRate } from "@joyorogo/api/lib/fx";
 import type { FxRateSource } from "@joyorogo/api/lib/fx";
 import { processPolarEvent } from "@joyorogo/api/lib/polar-billing";
+import { parseRevklikIds } from "@joyorogo/api/lib/revklik";
+import type { LedgerHook } from "@joyorogo/api/lib/revklik";
+import type { Revklik } from "./revklik";
 import {
   checkoutAmountIdr,
   grandfatheredMonthlyIdr,
@@ -93,7 +94,7 @@ export type BillingEnv = PaywallEnv & GooglePlayEnv & PolarEnv & AppVersionEnv &
   PAKASIR_WEBHOOK_SECRET?: string;
   /** "1" lets Pakasir sandbox-mode payments credit Founder (testing only). */
   PAKASIR_SANDBOX?: string;
-  APPLE_BUNDLE_ID?: string;
+  APPLE_BUNDLE_IDS?: string;
   APPLE_TEAM_ID?: string;
   APPLE_SIWA_KEY_ID?: string;
   APPLE_SIWA_PRIVATE_KEY?: string;
@@ -116,6 +117,8 @@ type Deps = {
   onSandboxGrant?: (userId: string) => Promise<void>;
   /** IDR rate for MYR/SGD Polar orders; default is the ECB reference rate (Frankfurter), then the in-code table. */
   fxRate?: FxRateSource;
+  /** RevKlik revenue forwarding; queues an event after every paid flip and refund. */
+  revklik?: Revklik;
 };
 
 type Provider = "doku" | "pakasir";
@@ -184,6 +187,10 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   const apiUrl = env.BETTER_AUTH_URL.replace(/\/$/, "");
   const dokuNotifyUrl = `${(env.DOKU_NOTIFY_BASE_URL || apiUrl).replace(/\/$/, "")}${DOKU_WEBHOOK_PATH}`;
 
+  const ledgerHook: LedgerHook | undefined = deps.revklik
+    ? (orderId, kind) => (deps.revklik as Revklik).onLedger(orderId, kind)
+    : undefined;
+
   const sessionUser = async (headers: Headers) =>
     (await (await deps.createAuth()).api.getSession({ headers }))?.user ?? null;
 
@@ -237,6 +244,9 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
         ),
     ]);
     if (flipped.length === 1) {
+      await deps.revklik?.onLedger(order.orderId, "paid", order.gateway).catch((error: unknown) =>
+        console.error(`[revklik] enqueue ${order.orderId} failed:`, error),
+      );
       notify(
         sendOrderEmails(env, db, order, { founderDailyCap: config.founderDailyCap }),
       );
@@ -344,6 +354,8 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     const body = (await c.req.json().catch(() => null)) as {
       plan?: unknown;
       method?: unknown;
+      revklikVisitorId?: unknown;
+      revklikSessionId?: unknown;
     } | null;
     const plan: FounderPlan = body?.plan === "yearly" ? "yearly" : "monthly";
     const method = PAYMENT_METHODS.find((m) => m === body?.method) ?? null;
@@ -377,7 +389,13 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
 
     const orderId = buildOrderId();
     const returnUrl = `${appUrl}/pembayaran?order=${encodeURIComponent(orderId)}`;
-    await db.insert(payment).values({ orderId, userId: me.id, amountIdr, months });
+    await db.insert(payment).values({
+      orderId,
+      userId: me.id,
+      amountIdr,
+      months,
+      ...parseRevklikIds({ visitorId: body?.revklikVisitorId, sessionId: body?.revklikSessionId }),
+    });
     try {
       const { paymentUrl } =
         gateway === "pakasir"
@@ -495,7 +513,11 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     if (!polar) return c.json({ error: "USD checkout is not available." }, 404);
     const me = await sessionUser(c.req.raw.headers);
     if (!me) return c.json({ error: t(c)("billing.signInToSubscribe") }, 401);
-    const body = (await c.req.json().catch(() => null)) as { plan?: unknown } | null;
+    const body = (await c.req.json().catch(() => null)) as {
+      plan?: unknown;
+      revklikVisitorId?: unknown;
+      revklikSessionId?: unknown;
+    } | null;
     const plan: FounderPlan = body?.plan === "yearly" ? "yearly" : "monthly";
     const db = deps.getDb();
     const [live] = await db
@@ -515,6 +537,9 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
         successUrl: `${appUrl}/pro?polar=success`,
         returnUrl: `${appUrl}/pro`,
         customerIp: c.req.header("CF-Connecting-IP"),
+        revklik: (({ revklikVisitorId, revklikSessionId }) => ({ visitorId: revklikVisitorId, sessionId: revklikSessionId }))(
+          parseRevklikIds({ visitorId: body?.revklikVisitorId, sessionId: body?.revklikSessionId }),
+        ),
       });
       return c.json({ url });
     } catch (error) {
@@ -598,6 +623,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
         config: polar,
         fallbackPriceIdr: { monthly: config.founderPriceIdr, yearly: config.founderYearlyPriceIdr },
         fxRate: deps.fxRate ?? frankfurterRate(),
+        onLedger: ledgerHook,
       },
       eventId,
       parsed,
@@ -617,20 +643,10 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     return c.json({ received: true, outcome: result.outcome });
   });
 
-  const appleProductConfig = () => ({
-    subscriptionIds: {
-      monthly: DEFAULT_APPLE_SUB_MONTHLY_PRODUCT_ID,
-      yearly: DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID,
-    },
-  });
-  const appleProductIds = () => {
-    const { subscriptionIds } = appleProductConfig();
-    return [subscriptionIds.monthly, subscriptionIds.yearly];
-  };
   const appleBillingDeps = (db: Database): AppleBillingDeps => ({
     db,
+    onLedger: ledgerHook,
     config: {
-      ...appleProductConfig(),
       sandboxAllowlist: env.APPLE_SANDBOX_EMAILS,
       fallbackPriceIdr: {
         monthly: config.founderPriceIdr,
@@ -656,8 +672,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     const billing = appleBillingDeps(deps.getDb());
     const verification = await verifyAppleTransactionJws(body.signedTransaction, {
       rootSha256: APPLE_ROOT_CA_G3_SHA256,
-      bundleId: env.APPLE_BUNDLE_ID || DEFAULT_APPLE_BUNDLE_ID,
-      productIds: appleProductIds(),
+      bundleIds: appleBundleIds(env.APPLE_BUNDLE_IDS),
     });
     if (!verification.ok) {
       console.error(`apple billing rejected: ${verification.reason}`);
@@ -740,8 +755,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     }
     const verification = await verifyAppleNotificationJws(body.signedPayload, {
       rootSha256: APPLE_ROOT_CA_G3_SHA256,
-      bundleId: env.APPLE_BUNDLE_ID || DEFAULT_APPLE_BUNDLE_ID,
-      productIds: appleProductIds(),
+      bundleIds: appleBundleIds(env.APPLE_BUNDLE_IDS),
     });
     if (!verification.ok) {
       console.error(`apple notification rejected: ${verification.reason}`);

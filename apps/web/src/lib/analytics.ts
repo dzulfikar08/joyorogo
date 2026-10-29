@@ -20,9 +20,26 @@ export function trackEvent(name: string, props?: Props) {
   window.klikapa?.track(name, props);
 }
 
-/** A goal reached; `revenueIdr` puts it in Revklik's revenue panels. */
-export function trackConversion(name: string, revenueIdr?: number, props?: Props) {
-  window.klikapa?.conversion(name, revenueIdr ?? null, props);
+/**
+ * A goal reached, without revenue: money is forwarded by the server from the payment ledger (docs/revklik-forwarding.md),
+ * and a client-side amount would count the same sale twice.
+ */
+export function trackConversion(name: string, props?: Props) {
+  window.klikapa?.conversion(name, null, props);
+}
+
+/**
+ * The tag's visitor and session ids, sent with a checkout so the server can attribute the sale to this visitor.
+ * Empty when the tag is not loaded (self-host, localhost, blocked) or storage is unavailable.
+ */
+export function revklikIds(): { revklikVisitorId?: string; revklikSessionId?: string } {
+  try {
+    const visitor = localStorage.getItem("_kp_vid");
+    const session = sessionStorage.getItem("_kp_sid");
+    return { ...(visitor ? { revklikVisitorId: visitor } : {}), ...(session ? { revklikSessionId: session } : {}) };
+  } catch {
+    return {};
+  }
 }
 
 // Visitors who come from fit.joyorogo.com carry ?from=joyofit on the pricing and
@@ -79,5 +96,5 @@ export function reportSignIn() {
   } catch {
     return;
   }
-  trackConversion("signin_success", undefined, fromProps());
+  trackConversion("signin_success", fromProps());
 }

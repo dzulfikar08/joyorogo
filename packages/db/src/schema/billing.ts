@@ -37,6 +37,10 @@ export const payment = sqliteTable(
     // 1 = a test purchase that was not really charged (Play license tester, Apple Sandbox, Polar sandbox), 0 = real, null = unknown (old rows).
     // Excluded from revenue totals.
     isTest: integer("is_test"),
+    // RevKlik visitor and session ids of the browser that opened a web checkout (the tag's _kp_vid / _kp_sid), so the
+    // forwarded sale inherits that visitor's utm/referrer/geo. Null for native purchases and renewals.
+    revklikVisitorId: text("revklik_visitor_id"),
+    revklikSessionId: text("revklik_session_id"),
     // Founder period end this payment produced (set on the paid flip).
     founderUntil: integer("founder_until", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
@@ -196,3 +200,25 @@ export const polarEvent = sqliteTable("polar_event", {
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),
 });
+
+/**
+ * Revenue events waiting to be forwarded to RevKlik (docs/revklik-forwarding.md). One row per ledger event, keyed by the
+ * RevKlik external_id (sale = payment.order_id, refund = order_id + ':refund'), so enqueueing twice is a no-op.
+ * forwarded_at set = delivered (or already known to RevKlik); attempts >= the cap or a 4xx parks the row with last_error.
+ */
+export const revklikOutbox = sqliteTable(
+  "revklik_outbox",
+  {
+    externalId: text("external_id").primaryKey(),
+    // The /api/v1/events/server body without site_id and token (those come from the Worker env at send time).
+    body: text("body").notNull(),
+    attempts: integer("attempts").default(0).notNull(),
+    forwardedAt: integer("forwarded_at", { mode: "timestamp_ms" }),
+    lastAttemptAt: integer("last_attempt_at", { mode: "timestamp_ms" }),
+    lastError: text("last_error"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+  },
+  (table) => [index("revklik_outbox_pending_idx").on(table.forwardedAt, table.createdAt)],
+);

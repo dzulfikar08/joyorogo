@@ -39,6 +39,7 @@ import { registerAnonScanRoutes } from "./anon";
 import { registerBillingRoutes } from "./billing";
 import { registerGooglePlayRoutes } from "./google-billing";
 import { registerAdminRoutes } from "./admin";
+import { createRevklik } from "./revklik";
 import { dailyAccuracyDue, runDailyAccuracy } from "./accuracy-job";
 import { registerAccuracyRoutes } from "./accuracy-routes";
 import { runBroadcastTick } from "./broadcast";
@@ -125,10 +126,19 @@ const testflightNotice = testflightNoticeConfig(env);
 
 // Public config, Founder checkout (DOKU/Pakasir) + webhooks, personal AI usage.
 // After CORS so web can read errors.
+const revklik = createRevklik({ env, getDb });
+// Deliver whatever a billing request just queued (webhooks, purchases, order checks) without delaying its answer.
+app.use("/api/billing/*", async (c, next) => {
+  await next();
+  if (revklik.enabled && c.req.method === "POST") {
+    c.executionCtx.waitUntil(revklik.flush().catch((error: unknown) => console.error("[revklik] flush failed", error)));
+  }
+});
 const billing = registerBillingRoutes(app, {
   env,
   getDb,
   createAuth,
+  revklik,
   onSandboxGrant: async (userId) => {
     const broadcast = broadcastDeps();
     if (broadcast) await sendTestflightNotice(broadcast, testflightNotice, userId);
@@ -136,11 +146,12 @@ const billing = registerBillingRoutes(app, {
 });
 
 // Google Play Billing (Play build Pro subscription) + its Pub/Sub notifications.
-registerGooglePlayRoutes(app, { env, getDb, createAuth });
+registerGooglePlayRoutes(app, { env, getDb, createAuth, revklik });
 
 // Operator console API for admin.joyorogo.com (ADMIN_EMAILS allowlist).
 registerAdminRoutes(app, {
   adminEmails: env.ADMIN_EMAILS,
+  revklikBackfill: revklik.backfill,
   badgesUserIds: env.BADGES_USER_IDS,
   getDb,
   createAuth,
@@ -883,6 +894,7 @@ export default {
       ),
     );
     ctx.waitUntil(billing.reconcilePending());
+    ctx.waitUntil(revklik.cron().catch((error: unknown) => console.error("[revklik] cron failed", error)));
     ctx.waitUntil(billing.runEmails());
     ctx.waitUntil(runStravaRetention());
     ctx.waitUntil(

@@ -1,10 +1,11 @@
 {
   "title": "Unggah",
-  "subtitle": "Masukkan latihan dari berkas dan kelola watchface-mu.",
+  "subtitle": "Masukkan latihan dari berkas, impor riwayat Huawei Health, dan kelola watchface-mu.",
   "tabs": {
     "label": "Jenis unggahan",
     "workouts": "Latihan",
-    "watchfaces": "Watchface"
+    "watchfaces": "Watchface",
+    "huawei": "Huawei Health"
   },
   "workouts": {
     "title": "Berkas latihan",
@@ -126,6 +127,114 @@
       "cancel": "Batal",
       "pricing": "Lihat harga Pro",
       "dismiss": "Tutup pesan"
+    }
+  },
+  "huawei": {
+    "title": "Impor dari Huawei Health",
+    "intro": "Ubah ekspor data Huawei jadi satu berkas impor langsung di browsermu. Setelah itu simpan berkasnya, atau kirim ke akun JoyoFit-mu supaya ponselmu yang memasukkannya.",
+    "local": "ZIP dan kata sandinya tidak keluar dari browser ini, dan tidak ada yang dibaca di server. Yang bisa dikirim hanya berkas impor hasil ubah, dan hanya kalau kamu menekan Kirim ke HP.",
+    "how": {
+      "title": "Cara meminta datamu",
+      "steps": {
+        "1": "Buka privacy.consumer.huawei.com (atau di Huawei Health: Me, akunmu, Privacy Center), pilih Request Your Data, lalu centang Health.",
+        "2": "Atur kata sandi ZIP dan ingat baik-baik. Kata sandi itulah yang kamu ketik di sini.",
+        "3": "Tunggu email dari Huawei, bisa sampai 7 hari, dan tautannya berlaku 21 hari. Berkasnya bernama HUAWEI_HEALTH_<waktu>.zip.",
+        "4": "Sebelum melepas jam dari Huawei Health, sinkron sekali lagi di sana. Data yang hanya ada di jam hilang saat dilepas."
+      },
+      "link": "Buka privacy.consumer.huawei.com",
+      "disclaimer": "JoyoFit tidak berafiliasi dengan Huawei."
+    },
+    "convert": {
+      "title": "Ubah ZIP-nya",
+      "subtitle": "Berjalan di browser ini. Ekspor besar bisa makan beberapa menit."
+    },
+    "drop": {
+      "title": "Tarik ZIP ke sini",
+      "active": "Lepas untuk memilih",
+      "or": "atau",
+      "button": "Pilih ZIP",
+      "hint": "Berkas .zip dari email Huawei. Tidak diunggah ke mana pun."
+    },
+    "file": {
+      "label": "ZIP yang dipilih"
+    },
+    "password": {
+      "label": "Kata sandi ZIP",
+      "hint": "Yang kamu atur saat meminta data. Hanya dipakai di browser ini dan tidak disimpan."
+    },
+    "action": {
+      "convert": "Ubah",
+      "cancel": "Batalkan",
+      "save": "Simpan berkas",
+      "send": "Kirim ke HP",
+      "sending": "Mengirim",
+      "pricing": "Lihat harga Pro"
+    },
+    "progress": {
+      "label": "Kemajuan mengubah ZIP",
+      "opening": "Membuka ZIP",
+      "file": "Berkas {{index}} dari {{count}}",
+      "keepOpen": "Biarkan tab ini terbuka sampai selesai."
+    },
+    "found": {
+      "workouts": "Latihan",
+      "heartRate": "Menit detak jantung",
+      "sleep": "Tahap tidur",
+      "weighIns": "Penimbangan",
+      "meals": "Makanan",
+      "unreadable": "Tak terbaca",
+      "restingHr": "Pembacaan detak istirahat",
+      "spo2": "Pembacaan oksigen darah",
+      "stress": "Pembacaan stres",
+      "metrics": "HRV dan bacaan lain",
+      "sleepScores": "Skor tidur",
+      "dayTotals": "Hari dengan total langkah",
+      "waterDays": "Hari minum"
+    },
+    "cancelled": "Pengubahan dibatalkan. Tidak ada yang disimpan atau dikirim.",
+    "errors": {
+      "bad_password": "Kata sandi itu tidak bisa membuka ZIP. Pakai yang kamu atur saat meminta data dari Huawei.",
+      "password_required": "ZIP ini terkunci. Masukkan kata sandi yang kamu atur saat meminta data.",
+      "not_a_zip": "Berkas ini bukan ZIP. Pilih berkas .zip dari email Huawei.",
+      "not_an_export": "ZIP ini bukan ekspor Huawei Health. Pilih ZIP dari email Huawei yang berisi data Health-mu.",
+      "failed": "Pengubahan gagal. Coba lagi, atau pilih ulang ZIP-nya.",
+      "failed_detail": "Pengubahan gagal: {{detail}}"
+    },
+    "result": {
+      "title": "Berkas impor siap",
+      "range": "Data dari {{from}} sampai {{to}}",
+      "empty": "Tidak ada data yang bisa dibaca dari ZIP ini, jadi tidak ada berkas impor yang dibuat.",
+      "fileSize": "Ukuran berkas impor: {{size}}",
+      "memory": "Hasilnya hanya ada di tab ini. Simpan atau kirim sebelum menutupnya.",
+      "profile": {
+        "line": "Profil dari ekspor: {{parts}}",
+        "height": "tinggi {{value}} cm",
+        "weight": "berat {{value}} kg",
+        "sex": "jenis kelamin {{value}}",
+        "birthYear": "lahir {{value}}",
+        "male": "laki-laki",
+        "female": "perempuan"
+      },
+      "unreadable": {
+        "title": "Yang tidak terbaca",
+        "badRecords_other": "{{count}} catatan rusak dilewati.",
+        "filesFailed_other": "{{count}} berkas di dalam ZIP tidak bisa dibaca. Unduh ulang ekspornya kalau datanya terasa kurang.",
+        "rejected_other": "{{count}} bacaan dilewati karena nilainya tidak masuk akal."
+      }
+    },
+    "save": {
+      "hint": "Pindahkan berkasnya ke ponselmu, lalu di JoyoFit buka Pengaturan → Impor dari Huawei Health dan pilih berkas ini."
+    },
+    "send": {
+      "hint": "Butuh JoyoRogo Pro. Yang terkirim hanya berkas impor, bukan ZIP-nya, dan dihapus dari server setelah ponselmu memakainya.",
+      "sent": "Terkirim ke akunmu. Di JoyoFit pada ponselmu, buka Pengaturan → Impor dari Huawei Health: berkas yang menunggu dari akunmu tampil di sana.",
+      "errors": {
+        "paywall": "Mengirim ke HP butuh JoyoRogo Pro. Menyimpan berkasnya dan memindahkannya sendiri tetap bisa.",
+        "unauthorized": "Sesimu berakhir. Simpan berkasnya dulu, atau masuk lagi di tab lain lalu kirim ulang.",
+        "too_large": "Berkas impornya lebih dari {{mb}} MB, batas di server. Pakai Simpan berkas.",
+        "network": "Tidak bisa menghubungi server. Coba lagi.",
+        "server": "Server gagal menyimpan berkas ini. Coba lagi, atau pakai Simpan berkas."
+      }
     }
   }
 }

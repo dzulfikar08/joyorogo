@@ -1,10 +1,11 @@
 {
   "title": "Upload",
-  "subtitle": "Add workouts from files and manage your watch faces.",
+  "subtitle": "Add workouts from files, import your Huawei Health history and manage your watch faces.",
   "tabs": {
     "label": "Upload type",
     "workouts": "Workouts",
-    "watchfaces": "Watch faces"
+    "watchfaces": "Watch faces",
+    "huawei": "Huawei Health"
   },
   "workouts": {
     "title": "Workout files",
@@ -129,6 +130,117 @@
       "cancel": "Cancel",
       "pricing": "See Pro pricing",
       "dismiss": "Dismiss message"
+    }
+  },
+  "huawei": {
+    "title": "Import from Huawei Health",
+    "intro": "Turn your Huawei data export into one import file, right in your browser. Then save the file, or send it to your JoyoFit account so your phone does the importing.",
+    "local": "The ZIP and its password never leave this browser, and nothing is read on a server. The only thing that can be sent is the import file it produces, and only when you press Send to phone.",
+    "how": {
+      "title": "How to request your data",
+      "steps": {
+        "1": "Open privacy.consumer.huawei.com (or in Huawei Health: Me, your account, Privacy Center), choose Request Your Data, and tick Health.",
+        "2": "Set a ZIP password and keep it somewhere safe. It is the password you type here.",
+        "3": "Wait for the email from Huawei. It can take up to 7 days, and the link works for 21 days. The file is called HUAWEI_HEALTH_<timestamp>.zip.",
+        "4": "Before you unbind your watch from Huawei Health, sync it there once more. Data that only lives on the watch is lost when you unbind."
+      },
+      "link": "Open privacy.consumer.huawei.com",
+      "disclaimer": "JoyoFit is not affiliated with Huawei."
+    },
+    "convert": {
+      "title": "Convert the ZIP",
+      "subtitle": "Runs in this browser. A large export can take a few minutes."
+    },
+    "drop": {
+      "title": "Drop the ZIP here",
+      "active": "Release to choose it",
+      "or": "or",
+      "button": "Choose ZIP",
+      "hint": "The .zip file from the Huawei email. It is not uploaded anywhere."
+    },
+    "file": {
+      "label": "Chosen ZIP"
+    },
+    "password": {
+      "label": "ZIP password",
+      "hint": "The one you set when you requested the data. It is only used in this browser and is not stored."
+    },
+    "action": {
+      "convert": "Convert",
+      "cancel": "Cancel",
+      "save": "Save file",
+      "send": "Send to phone",
+      "sending": "Sending",
+      "pricing": "See Pro pricing"
+    },
+    "progress": {
+      "label": "Conversion progress",
+      "opening": "Opening the ZIP",
+      "file": "File {{index}} of {{count}}",
+      "keepOpen": "Keep this tab open until it finishes."
+    },
+    "found": {
+      "workouts": "Workouts",
+      "heartRate": "Heart-rate minutes",
+      "sleep": "Sleep segments",
+      "weighIns": "Weigh-ins",
+      "meals": "Meals",
+      "unreadable": "Unreadable",
+      "restingHr": "Resting heart-rate readings",
+      "spo2": "Blood-oxygen readings",
+      "stress": "Stress readings",
+      "metrics": "HRV and other readings",
+      "sleepScores": "Sleep scores",
+      "dayTotals": "Days with step totals",
+      "waterDays": "Water days"
+    },
+    "cancelled": "Conversion cancelled. Nothing was saved or sent.",
+    "errors": {
+      "bad_password": "That password does not open the ZIP. Use the one you set when you requested the data from Huawei.",
+      "password_required": "This ZIP is locked. Enter the password you set when you requested the data.",
+      "not_a_zip": "This file is not a ZIP. Choose the .zip file from the Huawei email.",
+      "not_an_export": "This ZIP is not a Huawei Health export. Choose the ZIP from the Huawei email that holds your Health data.",
+      "failed": "The conversion failed. Try again, or choose the ZIP again.",
+      "failed_detail": "The conversion failed: {{detail}}"
+    },
+    "result": {
+      "title": "Import file ready",
+      "range": "Data from {{from}} to {{to}}",
+      "empty": "Nothing could be read from this ZIP, so no import file was made.",
+      "fileSize": "Import file size: {{size}}",
+      "memory": "The result only exists in this tab. Save or send it before you close it.",
+      "profile": {
+        "line": "Profile from the export: {{parts}}",
+        "height": "height {{value}} cm",
+        "weight": "weight {{value}} kg",
+        "sex": "sex {{value}}",
+        "birthYear": "born {{value}}",
+        "male": "male",
+        "female": "female"
+      },
+      "unreadable": {
+        "title": "What could not be read",
+        "badRecords_one": "{{count}} damaged record was skipped.",
+        "badRecords_other": "{{count}} damaged records were skipped.",
+        "filesFailed_one": "{{count}} file inside the ZIP could not be read. Download the export again if data looks missing.",
+        "filesFailed_other": "{{count}} files inside the ZIP could not be read. Download the export again if data looks missing.",
+        "rejected_one": "{{count}} reading was skipped because its value made no sense.",
+        "rejected_other": "{{count}} readings were skipped because their values made no sense."
+      }
+    },
+    "save": {
+      "hint": "Move the file to your phone, then in JoyoFit open Settings → Import from Huawei Health and choose this file."
+    },
+    "send": {
+      "hint": "Needs JoyoRogo Pro. Only the import file is sent, not the ZIP, and it is deleted from the server once your phone has used it.",
+      "sent": "Sent to your account. In JoyoFit on your phone, open Settings → Import from Huawei Health: the files waiting from your account are listed there.",
+      "errors": {
+        "paywall": "Sending to your phone needs JoyoRogo Pro. Saving the file and moving it yourself still works.",
+        "unauthorized": "Your session expired. Save the file first, or sign in again in another tab and send it again.",
+        "too_large": "The import file is over {{mb}} MB, the server limit. Use Save file.",
+        "network": "Could not reach the server. Try again.",
+        "server": "The server could not store this file. Try again, or use Save file."
+      }
     }
   }
 }

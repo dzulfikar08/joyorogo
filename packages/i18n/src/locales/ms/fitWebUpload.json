@@ -1,10 +1,11 @@
 {
   "title": "Muat naik",
-  "subtitle": "Masukkan latihan daripada fail dan urus watchface anda.",
+  "subtitle": "Masukkan latihan daripada fail, import sejarah Huawei Health dan urus watchface anda.",
   "tabs": {
     "label": "Jenis muat naik",
     "workouts": "Latihan",
-    "watchfaces": "Watchface"
+    "watchfaces": "Watchface",
+    "huawei": "Huawei Health"
   },
   "workouts": {
     "title": "Fail latihan",
@@ -126,6 +127,114 @@
       "cancel": "Batal",
       "pricing": "Lihat harga Pro",
       "dismiss": "Tutup mesej"
+    }
+  },
+  "huawei": {
+    "title": "Import daripada Huawei Health",
+    "intro": "Tukarkan eksport data Huawei kepada satu fail import terus dalam pelayar anda. Selepas itu simpan failnya, atau hantar ke akaun JoyoFit anda supaya telefon anda yang memasukkannya.",
+    "local": "ZIP dan kata laluannya tidak keluar daripada pelayar ini, dan tiada apa dibaca di pelayan. Yang boleh dihantar hanyalah fail import hasil tukaran, dan hanya apabila anda menekan Hantar ke telefon.",
+    "how": {
+      "title": "Cara meminta data anda",
+      "steps": {
+        "1": "Buka privacy.consumer.huawei.com (atau dalam Huawei Health: Me, akaun anda, Privacy Center), pilih Request Your Data, kemudian tandakan Health.",
+        "2": "Tetapkan kata laluan ZIP dan ingat baik-baik. Kata laluan itulah yang anda taip di sini.",
+        "3": "Tunggu e-mel daripada Huawei, boleh mengambil sehingga 7 hari, dan pautannya sah selama 21 hari. Failnya bernama HUAWEI_HEALTH_<masa>.zip.",
+        "4": "Sebelum memutuskan pasangan jam daripada Huawei Health, segerak sekali lagi di sana. Data yang hanya ada pada jam hilang apabila diputuskan."
+      },
+      "link": "Buka privacy.consumer.huawei.com",
+      "disclaimer": "JoyoFit tidak berafiliasi dengan Huawei."
+    },
+    "convert": {
+      "title": "Tukar ZIP",
+      "subtitle": "Berjalan dalam pelayar ini. Eksport yang besar boleh mengambil beberapa minit."
+    },
+    "drop": {
+      "title": "Seret ZIP ke sini",
+      "active": "Lepas untuk memilih",
+      "or": "atau",
+      "button": "Pilih ZIP",
+      "hint": "Fail .zip daripada e-mel Huawei. Tidak dimuat naik ke mana-mana."
+    },
+    "file": {
+      "label": "ZIP yang dipilih"
+    },
+    "password": {
+      "label": "Kata laluan ZIP",
+      "hint": "Yang anda tetapkan semasa meminta data. Hanya digunakan dalam pelayar ini dan tidak disimpan."
+    },
+    "action": {
+      "convert": "Tukar",
+      "cancel": "Batal",
+      "save": "Simpan fail",
+      "send": "Hantar ke telefon",
+      "sending": "Menghantar",
+      "pricing": "Lihat harga Pro"
+    },
+    "progress": {
+      "label": "Kemajuan penukaran ZIP",
+      "opening": "Membuka ZIP",
+      "file": "Fail {{index}} daripada {{count}}",
+      "keepOpen": "Biarkan tab ini terbuka sehingga selesai."
+    },
+    "found": {
+      "workouts": "Latihan",
+      "heartRate": "Minit degupan jantung",
+      "sleep": "Peringkat tidur",
+      "weighIns": "Penimbangan",
+      "meals": "Hidangan",
+      "unreadable": "Tidak dapat dibaca",
+      "restingHr": "Bacaan degupan rehat",
+      "spo2": "Bacaan oksigen darah",
+      "stress": "Bacaan tekanan",
+      "metrics": "HRV dan bacaan lain",
+      "sleepScores": "Skor tidur",
+      "dayTotals": "Hari dengan jumlah langkah",
+      "waterDays": "Hari minum air"
+    },
+    "cancelled": "Penukaran dibatalkan. Tiada apa disimpan atau dihantar.",
+    "errors": {
+      "bad_password": "Kata laluan itu tidak dapat membuka ZIP. Gunakan yang anda tetapkan semasa meminta data daripada Huawei.",
+      "password_required": "ZIP ini dikunci. Masukkan kata laluan yang anda tetapkan semasa meminta data.",
+      "not_a_zip": "Fail ini bukan ZIP. Pilih fail .zip daripada e-mel Huawei.",
+      "not_an_export": "ZIP ini bukan eksport Huawei Health. Pilih ZIP daripada e-mel Huawei yang mengandungi data Health anda.",
+      "failed": "Penukaran gagal. Cuba lagi, atau pilih semula ZIP.",
+      "failed_detail": "Penukaran gagal: {{detail}}"
+    },
+    "result": {
+      "title": "Fail import sedia",
+      "range": "Data dari {{from}} hingga {{to}}",
+      "empty": "Tiada data yang dapat dibaca daripada ZIP ini, jadi tiada fail import dibuat.",
+      "fileSize": "Saiz fail import: {{size}}",
+      "memory": "Hasilnya hanya wujud dalam tab ini. Simpan atau hantar sebelum anda menutupnya.",
+      "profile": {
+        "line": "Profil daripada eksport: {{parts}}",
+        "height": "tinggi {{value}} cm",
+        "weight": "berat {{value}} kg",
+        "sex": "jantina {{value}}",
+        "birthYear": "lahir {{value}}",
+        "male": "lelaki",
+        "female": "perempuan"
+      },
+      "unreadable": {
+        "title": "Yang tidak dapat dibaca",
+        "badRecords_other": "{{count}} rekod rosak dilangkau.",
+        "filesFailed_other": "{{count}} fail dalam ZIP tidak dapat dibaca. Muat turun semula eksport jika data kelihatan kurang.",
+        "rejected_other": "{{count}} bacaan dilangkau kerana nilainya tidak munasabah."
+      }
+    },
+    "save": {
+      "hint": "Alihkan fail ke telefon anda, kemudian dalam JoyoFit buka Settings → Import from Huawei Health dan pilih fail ini."
+    },
+    "send": {
+      "hint": "Memerlukan JoyoRogo Pro. Hanya fail import dihantar, bukan ZIP, dan ia dipadam daripada pelayan selepas telefon anda menggunakannya.",
+      "sent": "Dihantar ke akaun anda. Dalam JoyoFit pada telefon anda, buka Settings → Import from Huawei Health: fail yang menunggu daripada akaun anda disenaraikan di sana.",
+      "errors": {
+        "paywall": "Menghantar ke telefon memerlukan JoyoRogo Pro. Menyimpan fail dan mengalihkannya sendiri masih boleh.",
+        "unauthorized": "Sesi anda tamat. Simpan fail dahulu, atau log masuk semula dalam tab lain kemudian hantar lagi.",
+        "too_large": "Fail import melebihi {{mb}} MB, had pelayan. Guna Simpan fail.",
+        "network": "Tidak dapat menghubungi pelayan. Cuba lagi.",
+        "server": "Pelayan tidak dapat menyimpan fail ini. Cuba lagi, atau guna Simpan fail."
+      }
     }
   }
 }

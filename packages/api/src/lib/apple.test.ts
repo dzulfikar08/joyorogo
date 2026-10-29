@@ -1,13 +1,9 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 
+import { JOYOFIT_APPLE_BUNDLE_ID, JOYOROGO_APPLE_BUNDLE_ID, appleBundleIds } from "@joyorogo/auth/apple-audience";
+
 import type { AppleVerifyOptions } from "./apple";
-import {
-  APPLE_ROOT_CA_G3_SHA256,
-  DEFAULT_APPLE_BUNDLE_ID,
-  DEFAULT_APPLE_SUB_MONTHLY_PRODUCT_ID,
-  DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID,
-  verifyAppleTransactionJws,
-} from "./apple";
+import { APPLE_ROOT_CA_G3_SHA256, appleAppName, appleProduct, verifyAppleTransactionJws } from "./apple";
 
 // Apple's real intermediates and root (public certs, downloaded from
 // apple.com/certificateauthority). The leaf key is Apple's secret, so the
@@ -23,9 +19,9 @@ const APPLE_WWDR_G6_B64 =
 // the tests pin the generated root exactly like the server pins Apple Root
 // CA - G3.
 
-const BUNDLE = DEFAULT_APPLE_BUNDLE_ID;
-const PRODUCT = DEFAULT_APPLE_SUB_MONTHLY_PRODUCT_ID;
-const YEARLY = DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID;
+const BUNDLE = JOYOROGO_APPLE_BUNDLE_ID;
+const PRODUCT = "com.joyodigitama.joyorogo.founder.monthly";
+const YEARLY = "com.joyodigitama.joyorogo.founder.yearly";
 const SIGNED_DATE = Date.parse("2026-10-13T00:00:00Z");
 const NOT_BEFORE = Date.parse("2026-01-01T00:00:00Z");
 const NOT_AFTER = Date.parse("2027-01-01T00:00:00Z");
@@ -316,7 +312,7 @@ beforeAll(async () => {
   );
   leaf384 = await issueLeaf(intermediate384, NOT_AFTER, [markerExt(APPLE_LEAF_OID)], "SHA-384");
 
-  pinned = { rootSha256: await sha256Hex(root.der), bundleId: BUNDLE, productIds: [PRODUCT, YEARLY] };
+  pinned = { rootSha256: await sha256Hex(root.der), bundleIds: appleBundleIds() };
 });
 
 const validJws = (payload = validPayload()) =>
@@ -345,6 +341,35 @@ describe("verifyAppleTransactionJws", () => {
     const jws = await validJws(validPayload({ productId: YEARLY }));
     const result = await verifyAppleTransactionJws(jws, pinned);
     expect(result.ok && result.transaction.productId).toBe(YEARLY);
+  });
+
+  test("accepts JoyoFit's products under JoyoFit's bundle", async () => {
+    for (const [productId, plan] of [
+      ["com.joyodigitama.joyofit.pro.monthly", "monthly"],
+      ["com.joyodigitama.joyofit.pro.yearly", "yearly"],
+    ] as const) {
+      const jws = await validJws(validPayload({ bundleId: JOYOFIT_APPLE_BUNDLE_ID, productId }));
+      const result = await verifyAppleTransactionJws(jws, pinned);
+      expect(result.ok && result.transaction.productId).toBe(productId);
+      expect(appleProduct(productId)).toEqual({ bundleId: JOYOFIT_APPLE_BUNDLE_ID, plan });
+    }
+    expect(appleProduct("constructor")).toBeNull();
+    expect(appleAppName(JOYOFIT_APPLE_BUNDLE_ID)).toBe("JoyoFit");
+    expect(appleAppName("com.other.app")).toBeNull();
+  });
+
+  test("rejects a product under another app's bundle", async () => {
+    const jwsFitUnderRogo = await validJws(validPayload({ productId: "com.joyodigitama.joyofit.pro.monthly" }));
+    expect(await rejectReason(jwsFitUnderRogo)).toBe("product");
+    const jwsRogoUnderFit = await validJws(validPayload({ bundleId: JOYOFIT_APPLE_BUNDLE_ID }));
+    expect(await rejectReason(jwsRogoUnderFit)).toBe("product");
+  });
+
+  test("rejects a bundle outside bundleIds", async () => {
+    const jws = await validJws(
+      validPayload({ bundleId: JOYOFIT_APPLE_BUNDLE_ID, productId: "com.joyodigitama.joyofit.pro.monthly" }),
+    );
+    expect(await rejectReason(jws, { ...pinned, bundleIds: [JOYOROGO_APPLE_BUNDLE_ID] })).toBe("bundle");
   });
 
   test("verifies Apple's real WWDR G6 under the pinned G3 root (P-384, SHA-384)", async () => {

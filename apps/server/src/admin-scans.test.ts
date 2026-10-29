@@ -25,6 +25,7 @@ registerAdminRoutes(app, {
     }) as unknown as JoyoAuth,
   getBucket: () => undefined,
   reconcileById: async () => "noop",
+  revklikBackfill: async () => ({}),
   sendTestEmail: async () => "sent",
   now: () => now,
 });

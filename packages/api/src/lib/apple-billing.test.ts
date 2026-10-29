@@ -6,12 +6,12 @@ import { user } from "@joyorogo/db/schema/auth";
 import { appleSubscription, payment } from "@joyorogo/db/schema/billing";
 
 import {
-  DEFAULT_APPLE_BUNDLE_ID,
-  DEFAULT_APPLE_SUB_MONTHLY_PRODUCT_ID,
-  DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID,
-  appleAccountToken,
-  verifyAppleNotificationJws,
-} from "./apple";
+  JOYOFIT_APPLE_BUNDLE_ID,
+  JOYOROGO_APPLE_BUNDLE_ID,
+  appleBundleIds,
+} from "@joyorogo/auth/apple-audience";
+
+import { appleAccountToken, verifyAppleNotificationJws, verifyAppleTransactionJws } from "./apple";
 import type { AppleVerifyOptions } from "./apple";
 import { handleAppleNotification, redeemAppleTransaction } from "./apple-billing";
 import type { AppleBillingDeps } from "./apple-billing";
@@ -20,7 +20,10 @@ import type { TestAppleChain } from "./apple-test-chain";
 
 const DAY = 86_400_000;
 const NOW = new Date(Date.UTC(2026, 9, 16, 3, 0, 0));
-const MONTHLY = DEFAULT_APPLE_SUB_MONTHLY_PRODUCT_ID;
+const MONTHLY = "com.joyodigitama.joyorogo.founder.monthly";
+const FIT_MONTHLY = "com.joyodigitama.joyofit.pro.monthly";
+const FIT_YEARLY = "com.joyodigitama.joyofit.pro.yearly";
+const FIT = { bundleId: JOYOFIT_APPLE_BUNDLE_ID, productId: FIT_MONTHLY };
 
 const { client, db } = await d1TestDb();
 
@@ -32,8 +35,7 @@ beforeAll(async () => {
   chain = await createTestAppleChain();
   opts = {
     rootSha256: chain.rootSha256,
-    bundleId: DEFAULT_APPLE_BUNDLE_ID,
-    productIds: [MONTHLY, DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID],
+    bundleIds: appleBundleIds(),
   };
 });
 
@@ -46,7 +48,6 @@ beforeEach(async () => {
     db,
     now: () => NOW,
     config: {
-      subscriptionIds: { monthly: MONTHLY, yearly: DEFAULT_APPLE_SUB_YEARLY_PRODUCT_ID },
       sandboxAllowlist: "u1@test.id",
       fallbackPriceIdr: { monthly: 29_000, yearly: 199_000 },
     },
@@ -58,7 +59,7 @@ type TxOverrides = Record<string, unknown>;
 const txPayload = (overrides: TxOverrides = {}) => ({
   transactionId: "1000",
   originalTransactionId: "900",
-  bundleId: DEFAULT_APPLE_BUNDLE_ID,
+  bundleId: JOYOROGO_APPLE_BUNDLE_ID,
   productId: MONTHLY,
   environment: "Production",
   signedDate: NOW.getTime(),
@@ -78,7 +79,7 @@ async function notify(
 ) {
   const data: Record<string, unknown> = {
     environment: extra.environment ?? "Production",
-    bundleId: DEFAULT_APPLE_BUNDLE_ID,
+    bundleId: typeof tx?.bundleId === "string" ? tx.bundleId : JOYOROGO_APPLE_BUNDLE_ID,
   };
   if (tx) {
     data.signedTransactionInfo = await chain.sign(
@@ -133,6 +134,30 @@ describe("verifyAppleNotificationJws", () => {
     expect(result).toEqual({ ok: false, reason: "bundle" });
   });
 
+  test("rejects a bundle that is not enabled, even for a known product", async () => {
+    const signed = await chain.sign({
+      notificationType: "TEST",
+      signedDate: NOW.getTime(),
+      data: { bundleId: JOYOFIT_APPLE_BUNDLE_ID, environment: "Production" },
+    });
+    expect(await verifyAppleNotificationJws(signed, opts)).toMatchObject({ ok: true });
+    const rogoOnly = { ...opts, bundleIds: [JOYOROGO_APPLE_BUNDLE_ID] };
+    expect(await verifyAppleNotificationJws(signed, rogoOnly)).toEqual({ ok: false, reason: "bundle" });
+  });
+
+  test("rejects a JoyoFit product signed under JoyoRogo's bundle inside a notification", async () => {
+    const signed = await chain.sign({
+      notificationType: "DID_RENEW",
+      signedDate: NOW.getTime(),
+      data: {
+        bundleId: JOYOROGO_APPLE_BUNDLE_ID,
+        environment: "Production",
+        signedTransactionInfo: await chain.sign(txPayload({ productId: FIT_MONTHLY })),
+      },
+    });
+    expect(await verifyAppleNotificationJws(signed, opts)).toEqual({ ok: false, reason: "product" });
+  });
+
   test("decodes transaction and renewal info", async () => {
     const n = await notify("DID_RENEW", undefined, txPayload(), {
       renewal: { originalTransactionId: "900", autoRenewStatus: 1 },
@@ -140,6 +165,46 @@ describe("verifyAppleNotificationJws", () => {
     expect(n.transaction?.originalTransactionId).toBe("900");
     expect(n.transaction?.expiresDate?.getTime()).toBe(NOW.getTime() + 30 * DAY);
     expect(n.renewalInfo?.autoRenewStatus).toBe(1);
+  });
+});
+
+describe("verifyAppleTransactionJws bundle and product pairing", () => {
+  const verify = async (overrides: TxOverrides, options: AppleVerifyOptions = opts) =>
+    verifyAppleTransactionJws(await chain.sign(txPayload(overrides)), options);
+
+  test("each app's own products verify", async () => {
+    expect(await verify({})).toMatchObject({ ok: true });
+    expect(await verify({ productId: "com.joyodigitama.joyorogo.founder.yearly" })).toMatchObject({ ok: true });
+    expect(await verify(FIT)).toMatchObject({ ok: true });
+    expect(await verify({ ...FIT, productId: FIT_YEARLY })).toMatchObject({ ok: true });
+  });
+
+  test("a JoyoFit product under JoyoRogo's bundle, or the reverse, is rejected", async () => {
+    expect(await verify({ productId: FIT_MONTHLY })).toEqual({ ok: false, reason: "product" });
+    expect(await verify({ bundleId: JOYOFIT_APPLE_BUNDLE_ID, productId: MONTHLY })).toEqual({
+      ok: false,
+      reason: "product",
+    });
+  });
+
+  test("an unknown bundle is rejected, whatever the product", async () => {
+    expect(await verify({ bundleId: "com.other.app" })).toEqual({ ok: false, reason: "bundle" });
+    expect(await verify({ bundleId: "com.other.app", productId: FIT_MONTHLY })).toEqual({
+      ok: false,
+      reason: "bundle",
+    });
+  });
+
+  test("a known bundle missing from bundleIds is rejected; an unknown product too", async () => {
+    expect(await verify(FIT, { ...opts, bundleIds: [JOYOROGO_APPLE_BUNDLE_ID] })).toEqual({
+      ok: false,
+      reason: "bundle",
+    });
+    expect(await verify({ productId: "com.joyodigitama.joyorogo.founder.1m" })).toEqual({
+      ok: false,
+      reason: "product",
+    });
+    expect(await verify({ productId: "constructor" })).toEqual({ ok: false, reason: "product" });
   });
 });
 
@@ -153,6 +218,38 @@ describe("appleAccountToken", () => {
 });
 
 describe("redeemAppleTransaction", () => {
+  test("JoyoFit monthly credits the same account at the same plan price", async () => {
+    const result = await redeemFor("u1", FIT);
+    expect(result).toMatchObject({ ok: true, status: "granted", amountIdr: 29_000 });
+    expect((await founderUntil("u1"))?.getTime()).toBe(NOW.getTime() + 30 * DAY);
+    const [link] = await db.select().from(appleSubscription);
+    expect(link).toMatchObject({ userId: "u1", productId: FIT_MONTHLY, state: "active" });
+    const [row] = await db.select().from(payment);
+    expect(row).toMatchObject({ orderId: "apple:1000", status: "paid", amountIdr: 29_000 });
+  });
+
+  test("JoyoFit yearly outside IDR is priced at the yearly plan price", async () => {
+    const result = await redeemFor("u1", {
+      ...FIT,
+      productId: FIT_YEARLY,
+      currency: "USD",
+      price: 59_990,
+      expiresDate: NOW.getTime() + 365 * DAY,
+    });
+    expect(result).toMatchObject({ ok: true, status: "granted", amountIdr: 199_000 });
+  });
+
+  test("a JoyoFit purchase tops up a JoyoRogo one (one Pro period per account)", async () => {
+    await redeemFor("u1");
+    await redeemFor("u1", {
+      ...FIT,
+      transactionId: "1100",
+      originalTransactionId: "910",
+      expiresDate: NOW.getTime() + 60 * DAY,
+    });
+    expect((await founderUntil("u1"))?.getTime()).toBe(NOW.getTime() + 60 * DAY);
+  });
+
   test("grants founderUntil = expiresDate and links the subscription", async () => {
     const result = await redeemFor("u1");
     expect(result).toMatchObject({ ok: true, status: "granted", amountIdr: 29_000 });
@@ -242,6 +339,25 @@ describe("handleAppleNotification", () => {
     expect(second).toEqual({ kind: "synced", granted: null });
     expect((await founderUntil("u1"))?.getTime()).toBe(NOW.getTime() + 60 * DAY);
     expect(await db.select().from(payment)).toHaveLength(2);
+  });
+
+  test("JoyoFit DID_RENEW credits the account that bought it", async () => {
+    await redeemFor("u1", FIT);
+    const n = await notify("DID_RENEW", undefined, {
+      ...FIT,
+      transactionId: "1002",
+      expiresDate: NOW.getTime() + 60 * DAY,
+    });
+    const result = await handleAppleNotification(deps, n);
+    expect(result).toMatchObject({ kind: "synced", granted: { userId: "u1", orderId: "apple:1002", amountIdr: 29_000 } });
+    expect((await founderUntil("u1"))?.getTime()).toBe(NOW.getTime() + 60 * DAY);
+  });
+
+  test("JoyoFit REFUND takes the period back", async () => {
+    await redeemFor("u1", FIT);
+    const n = await notify("REFUND", undefined, { ...FIT, revocationDate: NOW.getTime() });
+    expect((await handleAppleNotification(deps, n)).kind).toBe("revoked");
+    expect((await founderUntil("u1"))?.getTime()).toBe(NOW.getTime());
   });
 
   test("falls back to appAccountToken when the original transaction is new", async () => {

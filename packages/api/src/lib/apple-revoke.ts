@@ -1,6 +1,4 @@
-import { appleAudiences } from "@joyorogo/auth/apple-audience";
-
-import { DEFAULT_APPLE_BUNDLE_ID } from "./apple";
+import { appleBundleIds } from "@joyorogo/auth/apple-audience";
 
 export const DEFAULT_APPLE_TEAM_ID = "F6Q6UFUK69";
 const APPLE_AUDIENCE = "https://appleid.apple.com";
@@ -11,7 +9,7 @@ export type AppleRevokeEnv = {
   APPLE_TEAM_ID?: string;
   APPLE_SIWA_KEY_ID?: string;
   APPLE_SIWA_PRIVATE_KEY?: string;
-  APPLE_BUNDLE_ID?: string;
+  APPLE_BUNDLE_IDS?: string;
 };
 
 export type AppleRevokeConfig = {
@@ -24,7 +22,7 @@ export type AppleRevokeConfig = {
 /**
  * null when the Sign in with Apple key is not configured. `clientId` is the bundle id of the app that
  * obtained the authorization code (Apple only exchanges a code for the client it was issued to); it
- * must be one of the apps that sign in here, otherwise it falls back to JoyoRogo's.
+ * must be one of the enabled apps (APPLE_BUNDLE_IDS), otherwise it falls back to the first (JoyoRogo's by default).
  */
 export function appleRevokeConfig(env: AppleRevokeEnv, clientId?: string): AppleRevokeConfig | null {
   const keyId = env.APPLE_SIWA_KEY_ID?.trim();
@@ -39,8 +37,8 @@ export function appleRevokeConfig(env: AppleRevokeEnv, clientId?: string): Apple
 }
 
 function appleRevokeClientId(env: AppleRevokeEnv, requested?: string): string {
-  const own = env.APPLE_BUNDLE_ID?.trim() || DEFAULT_APPLE_BUNDLE_ID;
-  return requested && appleAudiences(own).includes(requested) ? requested : own;
+  const bundles = appleBundleIds(env.APPLE_BUNDLE_IDS);
+  return requested && bundles.includes(requested) ? requested : bundles[0]!;
 }
 
 function b64url(bytes: Uint8Array): string {

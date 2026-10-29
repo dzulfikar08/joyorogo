@@ -25,6 +25,7 @@ registerAdminRoutes(app, {
     ({ api: { getSession: async () => (signedInAs ? { user: signedInAs } : null) } }) as unknown as JoyoAuth,
   getBucket: () => undefined,
   reconcileById: async () => "noop",
+  revklikBackfill: async () => ({}),
   sendTestEmail: async () => "sent",
 });
 

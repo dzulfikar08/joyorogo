@@ -4,8 +4,10 @@ import { user } from "@joyorogo/db/schema/auth";
 import { appleSubscription, payment } from "@joyorogo/db/schema/billing";
 import type { Database } from "@joyorogo/db";
 
-import { appleAccountToken } from "./apple";
+import { appleAccountToken, appleProduct } from "./apple";
 import type { AppleNotification, AppleTransaction } from "./apple";
+import { notifyLedger } from "./revklik";
+import type { LedgerHook } from "./revklik";
 import { appleSubscriptionGrant, planMonths } from "./tiers";
 import type { FounderPlan } from "./tiers";
 
@@ -14,24 +16,14 @@ const CREDIT_ATTEMPTS = 3;
 export type AppleBillingDeps = {
   db: Database;
   config: {
-    /** Auto-renewable subscription product ids. */
-    subscriptionIds: Record<FounderPlan, string>;
     sandboxAllowlist?: string;
-    /** Plan prices in IDR for transactions Apple does not bill in IDR. */
+    /** Plan prices in IDR for transactions Apple does not bill in IDR; the same for every app's product of that plan. */
     fallbackPriceIdr: Record<FounderPlan, number>;
   };
   now?: () => Date;
+  /** Queues the ledger event for RevKlik after a paid flip or a refund. */
+  onLedger?: LedgerHook;
 };
-
-/** Which plan a product id sells. null = not a Founder product. */
-export function appleProductPlan(
-  config: AppleBillingDeps["config"],
-  productId: string,
-): FounderPlan | null {
-  if (productId === config.subscriptionIds.monthly) return "monthly";
-  if (productId === config.subscriptionIds.yearly) return "yearly";
-  return null;
-}
 
 /** Order id of an App Store transaction in the shared payment ledger. */
 export function appleLedgerId(transactionId: string): string {
@@ -124,7 +116,10 @@ async function creditTransaction(
           ),
         ),
     ]);
-    if (flipped.length === 1) return { outcome: "granted", until, amountIdr };
+    if (flipped.length === 1) {
+      await notifyLedger(deps.onLedger, ledgerId, "paid");
+      return { outcome: "granted", until, amountIdr };
+    }
     // Lost a race with another credit: re-read and try again from the new period.
   }
   return { outcome: "busy" };
@@ -201,7 +196,7 @@ export async function redeemAppleTransaction(
   input: { userId: string; email: string; transaction: AppleTransaction },
 ): Promise<AppleRedeemResult> {
   const { transaction } = input;
-  const plan = appleProductPlan(deps.config, transaction.productId);
+  const plan = appleProduct(transaction.productId)?.plan;
   if (!plan) return { ok: false, error: "wrong-product" };
 
   if (
@@ -243,7 +238,7 @@ export async function redeemAppleTransaction(
  * purchase). Zero-revenue sandbox trials are left to lapse on their own.
  */
 export async function revokeAppleTransaction(
-  deps: Pick<AppleBillingDeps, "db" | "now">,
+  deps: Pick<AppleBillingDeps, "db" | "now" | "onLedger">,
   transaction: AppleTransaction,
 ): Promise<"revoked" | "none"> {
   const { db } = deps;
@@ -292,7 +287,10 @@ export async function revokeAppleTransaction(
           ),
         ),
     ]);
-    if (flipped.length === 1) return "revoked";
+    if (flipped.length === 1) {
+      await notifyLedger(deps.onLedger, ledgerId, "refund");
+      return "revoked";
+    }
     // The period moved under us (a concurrent credit): redo from the new one.
   }
   return "none";
@@ -329,7 +327,7 @@ export async function handleAppleNotification(
   const { notificationType: type, subtype, transaction } = notification;
   if (type === "TEST") return { kind: "test", granted: null };
   if (!transaction) return ignored;
-  const plan = appleProductPlan(deps.config, transaction.productId);
+  const plan = appleProduct(transaction.productId)?.plan;
   if (!plan) return ignored;
 
   // Refunds hit the ledger by transaction id: no subscription link needed.

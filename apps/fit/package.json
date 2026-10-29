@@ -27,6 +27,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "^1.170.32",
+    "@zip.js/zip.js": "^2.24.0",
     "better-auth": "catalog:",
     "i18next": "^26.4.7",
     "lucide-react": "catalog:",

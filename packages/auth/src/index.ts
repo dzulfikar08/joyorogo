@@ -10,10 +10,8 @@ import { setSessionCookie } from "better-auth/cookies";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { jwt } from "better-auth/plugins";
 
-import { appleAudiences } from "./apple-audience";
+import { appleBundleIds } from "./apple-audience";
 import { MCP_OFFLINE_SCOPE, MCP_PATH, MCP_SCOPES } from "./mcp-scopes";
-
-const DEFAULT_APPLE_BUNDLE_ID = "com.joyodigitama.joyorogo";
 
 export type AuthConfig = {
   BETTER_AUTH_URL: string;
@@ -23,8 +21,8 @@ export type AuthConfig = {
   APP_URL?: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
-  /** iOS bundle id, the audience of native Sign in with Apple identity tokens. */
-  APPLE_BUNDLE_ID?: string;
+  /** Comma-separated iOS bundle ids (JoyoRogo, JoyoFit): the audiences of native Sign in with Apple identity tokens. Unset = both. */
+  APPLE_BUNDLE_IDS?: string;
   DEV_LOGIN?: string;
   /**
    * Comma-separated emails allowed to sign in with email + password (Google
@@ -297,7 +295,7 @@ export function createAuth(
   database: Database,
   desktopOrigins: readonly string[] = [],
 ) {
-  const appleBundleId = env.APPLE_BUNDLE_ID || DEFAULT_APPLE_BUNDLE_ID;
+  const appleBundles = appleBundleIds(env.APPLE_BUNDLE_IDS);
   const review = reviewLoginOptions(
     parseReviewLoginEmails(env.REVIEW_LOGIN_EMAILS),
     env.REVIEW_LOGIN_LIMITER,
@@ -334,11 +332,11 @@ export function createAuth(
       // those are needed only for the web redirect / code-exchange flow,
       // which this app never starts.
       apple: {
-        clientId: appleBundleId,
-        appBundleIdentifier: appleBundleId,
-        // JoyoFit (iOS) signs in to the same account with its own bundle id as
-        // the token audience; `audience` wins over appBundleIdentifier.
-        audience: appleAudiences(appleBundleId),
+        clientId: appleBundles[0]!,
+        appBundleIdentifier: appleBundles[0]!,
+        // Every enabled app (JoyoRogo, JoyoFit) signs in to the same account with
+        // its own bundle id as the token audience; `audience` wins over appBundleIdentifier.
+        audience: appleBundles,
         // Apple omits the name on every sign-in after the first (and on
         // relay-only grants); never store an empty one.
         mapProfileToUser: (profile) => (profile.name ? {} : { name: "Pengguna" }),

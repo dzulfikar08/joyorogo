@@ -444,7 +444,7 @@ If a Founder rung sells out, that is a real event. Post it plainly ("Slot Rp15.0
 
 Revklik (tag only on public pages; conversions pass from anywhere): overview, top pages, referrers, campaigns by UTM, geo and device, revenue breakdown, visitor journeys, Search Console queries (`gsc_queries`).
 
-Goals defined in the repo: `try_scan_click`, `signup_click` (location hero, pricing, closing, blog), `login_click`, `google_signin`, `apk_download` (a click, not an install), `pricing_click`, `privacy_click`. Conversions: `onboarding_complete`, `founder_purchase` (carries revenue and order).
+Goals defined in the repo: `try_scan_click`, `signup_click` (location hero, pricing, closing, blog), `login_click`, `google_signin`, `apk_download` (a click, not an install), `pricing_click`, `privacy_click`. Conversions: `onboarding_complete`, `founder_purchase` (carries the order, no revenue: the server forwards the sale from the payment ledger, see `docs/revklik-forwarding.md`).
 
 Invisible to Revklik: everything after sign-in (Beranda, scans, groups, stories), installs, retention.
 
@@ -467,7 +467,7 @@ Admin (`admin.joyorogo.com`): users, onboarded, signups today and 7 days, active
 | Revenue | Founder buyers, revenue, rung | Admin orders; `/api/config` `promo.taken` |
 | Cost watch | Scans today, anon scans | Admin overview |
 
-JoyoFit tester funnel (same Revklik site; fit.joyorogo.com loads the tag, filter hostname `fit.joyorogo.com` for pageviews). Goal names, in order: `tester_group_click` and `tester_optin_click` (location `hero` or `cara`, on fit.joyorogo.com), then `google_signin` (click) and `signin_success` (reported after the Google round trip returns a session, once per button press), then `founder_purchase` (revenue). Links from fit.joyorogo.com to `/harga` carry `from=joyofit` plus `utm_source=joyofit`; `signin_success` and `founder_purchase` get the prop `from=joyofit` when that marker was stored in the browser (`captureFrom` in `apps/web/src/lib/analytics.ts`). Visitor ids are per origin, so the stages are compared as counts, not followed per visitor. Sign-in inside the JoyoFit app happens in the system browser against api.joyorogo.com and is not seen by Revklik; use the cloud worker or admin signups for that.
+JoyoFit tester funnel (same Revklik site; fit.joyorogo.com loads the tag, filter hostname `fit.joyorogo.com` for pageviews). Goal names, in order: `tester_group_click` and `tester_optin_click` (location `hero` or `cara`, on fit.joyorogo.com), then `google_signin` (click) and `signin_success` (reported after the Google round trip returns a session, once per button press), then `founder_purchase` (the funnel step; revenue comes from the server forward, never from this event). Links from fit.joyorogo.com to `/harga` carry `from=joyofit` plus `utm_source=joyofit`; `signin_success` and `founder_purchase` get the prop `from=joyofit` when that marker was stored in the browser (`captureFrom` in `apps/web/src/lib/analytics.ts`). Visitor ids are per origin, so the stages are compared as counts, not followed per visitor. Sign-in inside the JoyoFit app happens in the system browser against api.joyorogo.com and is not seen by Revklik; use the cloud worker or admin signups for that.
 
 ### 11.4 Weekly SQL (read-only; run `bunx wrangler d1 execute DB --remote --command "..."` from `apps/server`; timestamps are epoch milliseconds)
 

@@ -434,6 +434,7 @@ describe("admin Laporan routes and the manual run route", () => {
       ({ api: { getSession: async () => ({ user: { email: ADMIN, emailVerified: true } }) } }) as unknown as JoyoAuth,
     getBucket: () => stored.bucket,
     reconcileById: async () => "noop",
+    revklikBackfill: async () => ({}),
     sendTestEmail: async () => "sent",
   });
   registerAccuracyRoutes(app, {

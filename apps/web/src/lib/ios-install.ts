@@ -23,7 +23,7 @@ function subscribe(listener: () => void) {
 export function openIosInstall(source: string) {
   if (open) return;
   open = true;
-  trackConversion("ios_install_sheet_open", undefined, { source });
+  trackConversion("ios_install_sheet_open", { source });
   emit();
 }
 
