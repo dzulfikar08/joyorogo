@@ -33,6 +33,7 @@ Each item: `name` (as the model would say it), `said` (his words), `grams` (weig
 - **`plate`** (optional, case level): the plate or bowl the meal was eaten from, as the contributor measured it: `{name, kind: "flat"|"bowl"|"rattan"|"lunchbox", diameterCm, widthCm?, description?, inPhoto?}`. `inPhoto: false` marks a plate that is NOT in this photo (a check that the model answers "none"). It only feeds the `plate-ref` variant ("Piring saya", `docs/dishware.md`); it is never truth about the food.
 
 - **`card`** (optional, case level): whether a standard card (ATM, KTP, SIM, e-money; 85.6 x 54 mm) lies next to the food in this photo, for the `card-ref` variant: `true` = it does, `false` = someone checked and there is none. Leave it out when nobody looked: an unlabelled photo is never assumed to have no card.
+- **`plateCm`** (optional, case level, 5-60): the hand-measured diameter in cm of the plate or bowl in the photo, for the `card-plate` variants: the diameter the card measured is scored against it (`--cards` takes `{"card": true, "plateCm": 19.5}` per case too).
 
   Hand labels for owner scans (a scan never saved, or saved with the wrong item) live in `scripts/eval-owner-labels.json` (case id -> `{label, truth: [{name, grams, kcal}]}`): `eval-scans.ts` applies them over the diary save, they survive a `dataset-export` re-run, and the photos themselves stay git-ignored.
 
@@ -69,6 +70,8 @@ bun run scripts/eval-scans.ts --only external --reps 2       # production prompt
 #    --variant card-ref --cards <file>   a card beside the food as the size reference: cases with a `card` label (or
 #                                a JSON file of { "<caseId>" | "group:<group>": true|false }) run, all variants of
 #                                the run are limited to them; reports card seen / used with and without a card
+#    --variant card-plate / card-plate-geometry   the card measures the plate (docs/dishware.md), same cases as card-ref;
+#                                add `plateCm` to score the diameter, run with card-ref for the paired grams change
 #    --comparators               for cases with comparators: also run our text path ("Ceritakan") on his own
 #                                words with his grams and print per meal: reference kcal for his grams vs
 #                                the comparator vs our photo answer vs our text answer, plus the text path

@@ -48,6 +48,9 @@
 //                      photo, false = checked: there is none. External cases can carry `card` in their
 //                      labels. Unlabelled cases are left out of every variant of a run with `card-ref`
 //                      (nothing is assumed about a photo nobody checked), so comparisons stay paired.
+//                      A value may also be {"card": true, "plateCm": 19.5}: the hand-measured diameter of
+//                      the plate or bowl in that photo (external labels: `plateCm`), which the `card-plate`
+//                      variants' measured diameter is scored against.
 //   --dry-run          list the cases, their truth and the model calls, then exit (no calls)
 //   --dir <path>       exported dataset dir (default .tmp/dataset)
 //   --limit <N>        at most N cases in total (owner, feedback, external, then wikimedia)
@@ -71,10 +74,15 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { z } from "zod";
 import { ateReference, EXTERNAL_META_VERSION, truthOf } from "../packages/api/src/lib/external-case";
 import type { Comparator, ExternalMeta } from "../packages/api/src/lib/external-case";
 import { parseFoodStory } from "../packages/api/src/lib/story";
+import { measureCardPlate, measuredPromptPlate, MEASURE_PROMPT, scanWithMeasuredPlate } from "../packages/api/src/lib/card-plate";
+import type { CardPlateOutcome } from "../packages/api/src/lib/card-plate";
 import { cardOutcome, dishwareInstruction, dishwareLabel, plateRefSchema, referenceInstruction } from "../packages/api/src/lib/dishware";
+import { applyPieceGeometry } from "../packages/api/src/lib/piece-geometry";
+import type { PieceReading } from "../packages/api/src/lib/piece-geometry";
 import type { PlateRef } from "../packages/api/src/lib/dishware";
 
 import { ALT_RULE, ALT_SHAPE, analyzeFoodPhoto, COUNT_RULE, DEFAULT_VISION_MODEL, DRINK_RULE, extractJson, JUICE_RULE, LOOKALIKE_RULE, PACKAGE_RULE, PRINTED_TEXT_RULE, responseText, SAUCE_RULE, visionPrompt, VisionError } from "../packages/api/src/lib/vision";
@@ -131,6 +139,12 @@ type Variant = {
   appliesTo?: (c: Case) => boolean;
   /** Production's kitchen-scale readout (lib/scale-reading.ts) on top of the baseline: prompt rule, then applyScaleReading. */
   scaleReadout?: true;
+  /**
+   * "Card measures the plate" (lib/card-plate.ts) exactly as the router runs it: the measure call beside the scan, and the
+   * scan again with the plate text when it found a diameter. `geometry` also sizes isolated separate pieces from the card
+   * scale (lib/piece-geometry.ts) and uses those grams where the rule lets them replace the model's.
+   */
+  cardPlate?: "plate" | "geometry";
   /**
    * A boiled-egg recount after the scan (lib/egg-count.ts): `list` = production's call (every piece listed with a box),
    * `yolks` = the rejected one that asks for the two numbers directly. Only plates with a boiled-egg row make the call.
@@ -320,6 +334,18 @@ const VARIANTS: Record<string, Variant> = {
     appliesTo: (c) => c.card !== undefined,
     notes: "Card in the photo as a size reference: the shipped card block (lib/dishware.ts CARD_INSTRUCTION; any ID-1 card, 85.6 x 54 mm) goes into the prompt as production sends it to an allowlisted user, with no plates, so the effect of the card is read alone. The model reports {seen, confidence}; a card counts as used from confidence 0.6. Only cases whose photo was checked for a card (labels `card`, or --cards: true = a card lies beside the food, false = none) run, for every variant of the run. Reports detection on the cases with a card and false detections on the checked cases without.",
   },
+  "card-plate": {
+    cardPlate: "plate",
+    asksCard: true,
+    appliesTo: (c) => c.card !== undefined,
+    notes: "Card measures the plate (lib/card-plate.ts), as the router runs it for an allowlisted user: the card block is in the scan prompt (as `card-ref`), a second small call at temperature 0 reads the card's corners and the plate's box, code turns them into a diameter (card long side = 8.56 cm; implausible outside 12-34 cm, odd card shape, cut-off or non-round plate = no diameter), and when it has one the scan is run again with the plate as a plate of known size ('piring di foto'). Same cases as `card-ref` (photos checked for a card), so `card-ref` vs `card-plate` is paired: the first scan of a card-plate run is card-ref's request. The report adds detection, false detections on photos with no card, diameter error where `plateCm` is known and the spread over reps.",
+  },
+  "card-plate-geometry": {
+    cardPlate: "geometry",
+    asksCard: true,
+    appliesTo: (c) => c.card !== undefined,
+    notes: "`card-plate` plus the piece geometry (lib/piece-geometry.ts): an isolated separate piece (egg, tempe, tahu, bakwan, a fried chicken piece; overlap with other boxes under 20%, one piece, a box in the scan answer) is sized from its box and the card scale (footprint x piece height x density), and the computed grams replace the model's only within 0.6-2x of the model's. Production does not apply this (owner decision of 2026-10-20 stands): it only logs the computed grams. The scan and measure calls are `card-plate`'s, so the two are paired.",
+  },
   "scale-readout": {
     scaleReadout: true,
     notes: "Production's kitchen-scale readout (lib/scale-reading.ts): a second, tiny vision call asks only for the scale display; a read with confidence >= 0.75 puts its grams on the item it names (a plate total is shared in the model's proportions; kcal follow through calibration). The scan itself is baseline's request, so its answer is baseline's answer and the comparison is paired. A reading on a photo without a display counts as a false read.",
@@ -477,6 +503,8 @@ type Case = {
   truth: TruthItem[] | null;
   /** A standard card lies beside the food in this photo (true), or the photo was checked and has none (false); undefined = nobody looked. */
   card?: boolean;
+  /** True diameter in cm of the plate or bowl in this photo (labels `plateCm`, or --cards); what the `card-plate` variants' diameter is scored against. */
+  plateCm?: number;
   /** The plate this meal was eaten from (labels or --plates); what the `plate-ref` variant tells the model. */
   plate?: PlateRef;
   /** Wikimedia only: dish name and the kcal band one serving is expected in. */
@@ -894,15 +922,24 @@ function usageOf(usage: Record<string, unknown> | null): { in: number; out: numb
   return typeof input === "number" && typeof output === "number" ? { in: input, out: output } : null;
 }
 
+/** What a `card-plate` run did: the measure's outcome, whether the scan was run again, and the geometry's readings. */
+type CardPlateRun = {
+  outcome: CardPlateOutcome;
+  /** Wall time of the measure call alone. */
+  measureMs: number;
+  rescanned: boolean;
+  pieces?: PieceReading[];
+};
+
 type RunResult =
-  | { ok: true; items: RunItem[]; attempts?: number; repaired?: boolean; ms: number; modelMs: number; tooMany: boolean; cached: boolean; usage?: { in: number; out: number }; plate?: string | null; card?: CardAnswer; scale?: ScaleOutcome | null; scaleError?: string; chips?: { you: number; typical: number; tapped: number; items: number } }
+  | { ok: true; items: RunItem[]; attempts?: number; repaired?: boolean; ms: number; modelMs: number; tooMany: boolean; cached: boolean; usage?: { in: number; out: number }; plate?: string | null; card?: CardAnswer; cardPlate?: CardPlateRun; scale?: ScaleOutcome | null; scaleError?: string; chips?: { you: number; typical: number; tapped: number; items: number } }
   | { ok: false; reason: string; ms: number; cached: false };
 
 /** Cache key of a variant for one case: model, final prompt (variant diff + the case's own line) and calibration. */
 const fingerprint = (variant: Variant, c?: Case) =>
   createHash("sha256")
     .update(
-      `${variant.model ?? DEFAULT_VISION_MODEL}\n${promptFor(variant)(visionPrompt())}\n${variant.scaleReadout ? SCALE_PROMPT : ""}\n${variant.eggCount === "list" ? EGG_COUNT_PROMPT : variant.eggCount === "yolks" ? EGG_YOLKS_PROMPT : ""}\n${JSON.stringify(variant.calibration ?? {}, (_k, v) => (v === Infinity ? "inf" : v))}\n${priorSignature(variant, c)}\n${(c && variant.dishware?.(c)) ?? ""}${variant.temperature === undefined ? "" : `\nT${variant.temperature}`}`,
+      `${variant.model ?? DEFAULT_VISION_MODEL}\n${promptFor(variant)(visionPrompt())}\n${variant.scaleReadout ? SCALE_PROMPT : ""}\n${variant.cardPlate ? `${MEASURE_PROMPT}\n${variant.cardPlate}` : ""}\n${variant.eggCount === "list" ? EGG_COUNT_PROMPT : variant.eggCount === "yolks" ? EGG_YOLKS_PROMPT : ""}\n${JSON.stringify(variant.calibration ?? {}, (_k, v) => (v === Infinity ? "inf" : v))}\n${priorSignature(variant, c)}\n${(c && variant.dishware?.(c)) ?? ""}${variant.temperature === undefined ? "" : `\nT${variant.temperature}`}`,
     )
     .digest("hex")
     .slice(0, 8);
@@ -976,19 +1013,44 @@ async function runOne(
     const runner = rawCache(ai, rep, useCache);
     const image = Buffer.from(bytes).toString("base64");
     // The scale call runs beside the scan, as in production; the scan's request is baseline's own, so its answer is replayed.
+    const scanOptions = (dishware: string | undefined) => ({
+      imageBase64: image,
+      mimeType: "image/jpeg",
+      model: variant.model,
+      promptTransform: promptFor(variant),
+      dishware,
+      calibration: variant.calibration,
+      temperature: variant.temperature,
+    });
+    // The measure asks the same request twice and wants two answers that agree; the raw cache would hand both calls one
+    // answer, so each call (and retry) of a rep gets its own cache slot.
+    let measureCalls = 0;
+    const measureRunner: AiRunner = { run: (model, input) => rawCache(ai, rep * 10 + (measureCalls++ % 2), useCache).run(model, input) };
+    // Card measures the plate: exactly the router's ordering (lib/card-plate.ts scanWithMeasuredPlate), no registered plates.
+    const cardRun = variant.cardPlate
+      ? await scanWithMeasuredPlate({
+          measure: measureCardPlate(measureRunner, { imageBase64: image, mimeType: "image/jpeg", bytes, model: variant.model }),
+          // Scans are replayed from the raw cache and finish at once: the grace production gives the measure would always expire.
+          lateMs: Infinity,
+          run: (plate) => analyzeFoodPhoto(runner, scanOptions(referenceInstruction(plate ? [measuredPromptPlate(plate)] : [], true) ?? undefined)),
+        })
+      : null;
     const [analysis, call] = await Promise.all([
-      analyzeFoodPhoto(runner, {
-        imageBase64: image,
-        mimeType: "image/jpeg",
-        model: variant.model,
-        promptTransform: promptFor(variant),
-        dishware: variant.dishware?.(c),
-        calibration: variant.calibration,
-        temperature: variant.temperature,
-      }),
+      cardRun ? cardRun.value : analyzeFoodPhoto(runner, scanOptions(variant.dishware?.(c))),
       variant.scaleReadout ? readScaleDisplay(runner, { imageBase64: image, mimeType: "image/jpeg", model: variant.model }) : null,
     ]);
-    const counted = variant.eggCount ? await recountEggs(runner, variant, image, analysis.items) : analysis.items;
+    const geometry =
+      variant.cardPlate === "geometry" && cardRun?.result?.outcome.card ? applyPieceGeometry(analysis.items, cardRun.result.outcome.card) : null;
+    const cardPlate: CardPlateRun | undefined =
+      cardRun?.result
+        ? {
+            outcome: cardRun.result.outcome,
+            measureMs: cardRun.result.ms,
+            rescanned: cardRun.plate !== undefined,
+            ...(geometry ? { pieces: geometry.readings.filter((r) => r.skip !== "not_piece") } : {}),
+          }
+        : undefined;
+    const counted = variant.eggCount ? await recountEggs(runner, variant, image, geometry?.items ?? analysis.items) : (geometry?.items ?? analysis.items);
     const read = call ? applyScaleReading(counted, call.reading) : null;
     const shown: typeof analysis.items = read?.items ?? counted;
     const plan = variant.portionPrior ? priorPlan(variant, c) : null;
@@ -1018,6 +1080,7 @@ async function runOne(
       ...(usageOf(analysis.usage) ? { usage: usageOf(analysis.usage)! } : {}),
       ...(analysis.plate !== undefined ? { plate: analysis.plate } : {}),
       ...(analysis.card !== undefined ? { card: analysis.card } : {}),
+      ...(cardPlate ? { cardPlate } : {}),
       ...(plan ? { chips: { ...chips, items: answered.length } } : {}),
     };
     await Bun.write(cacheFile, JSON.stringify(result));
@@ -1093,20 +1156,23 @@ async function applyPlates(cases: Case[], skipped: Case[], file: string): Promis
  * the `card` of an external case's labels.
  */
 async function applyCards(cases: Case[], skipped: Case[], file: string): Promise<number> {
-  // Boundary: a hand-written file; every value must be a boolean.
+  // Boundary: a hand-written file; every value is true/false or {card, plateCm?}.
   const raw: unknown = await Bun.file(file).json();
-  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) throw new Error(`${file}: expected an object of true/false`);
-  const flags = new Map<string, boolean>(
-    Object.entries(raw).map(([key, flag]) => {
-      if (typeof flag !== "boolean") throw new Error(`${file}: "${key}" must be true or false`);
-      return [key, flag];
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) throw new Error(`${file}: expected an object of true/false or {card, plateCm}`);
+  const flags = new Map<string, { card: boolean; plateCm?: number }>(
+    Object.entries(raw).map(([key, value]) => {
+      if (typeof value === "boolean") return [key, { card: value }];
+      const parsed = z.object({ card: z.boolean(), plateCm: z.number().min(5).max(60).optional() }).safeParse(value);
+      if (!parsed.success) throw new Error(`${file}: "${key}" must be true, false or {"card": boolean, "plateCm"?: number}`);
+      return [key, parsed.data];
     }),
   );
   let n = 0;
   for (const c of [...cases, ...skipped]) {
     const flag = flags.get(c.id) ?? flags.get(`group:${c.group}`);
     if (flag !== undefined) {
-      c.card = flag;
+      c.card = flag.card;
+      if (flag.plateCm !== undefined) c.plateCm = flag.plateCm;
       n++;
     }
   }
@@ -1173,6 +1239,7 @@ async function loadCases(args: Args): Promise<{ cases: Case[]; skipped: Case[] }
           label: `${meta.trust} trust, day ${meta.source.day} ${meta.source.meal}`,
           ...(meta.plate ? { plate: meta.plate } : {}),
           ...(meta.card !== undefined ? { card: meta.card } : {}),
+          ...(meta.plateCm !== undefined ? { plateCm: meta.plateCm } : meta.plate && meta.plate.inPhoto !== false ? { plateCm: meta.plate.diameterCm } : {}),
           recorded: null,
           truth: scored.map((i) => ({
             name: i.name,
@@ -1329,6 +1396,97 @@ function portionSection(variants: string[], runs: Array<Run & { variant: string 
 }
 
 type Run = { c: Case; rep: number; result: RunResult; scored: Scored | null };
+
+/**
+ * `card-plate` variants: did the card get found where it lies, was it invented where there is none, how far is the
+ * measured diameter from the true one (`plateCm`, where known), how much does it vary over reps, what did the second scan
+ * change against the reference run (card-ref: the same first scan without a plate), and what did the measure cost in time.
+ */
+function cardPlateSection(variants: string[], runs: Array<Run & { variant: string }>): string[] {
+  const mine = variants.filter((v) => VARIANTS[v]!.cardPlate);
+  const md = ["## Card measures the plate", ""];
+  const reference = variants.find((v) => !VARIANTS[v]!.cardPlate && VARIANTS[v]!.asksCard) ?? variants.find((v) => !VARIANTS[v]!.cardPlate);
+  for (const v of mine) {
+    const done = runs.flatMap((r) => (r.variant === v && r.result.ok && r.result.cardPlate ? [{ r, run: r.result.cardPlate, result: r.result }] : []));
+    const shown = done.filter((d) => d.r.c.card === true);
+    const hidden = done.filter((d) => d.r.c.card === false);
+    const tally = (rows: typeof done) => {
+      const reasons = new Map<string, number>();
+      for (const d of rows) {
+        const key = d.run.outcome.used ? "diameter used" : (d.run.outcome.skipped ?? "?");
+        reasons.set(key, (reasons.get(key) ?? 0) + 1);
+      }
+      return [...reasons].map(([k, n]) => `${k} ${n}`).join(", ") || "-";
+    };
+    md.push(`### \`${v}\``, "");
+    md.push(`- Card photos: ${shown.length} runs over ${new Set(shown.map((d) => d.r.c.id)).size} photos; card seen ${shown.filter((d) => d.run.outcome.seen).length}, diameter used ${shown.filter((d) => d.run.outcome.used).length}. Outcomes: ${tally(shown)}.`);
+    md.push(`- Photos with no card (checked): ${hidden.length} runs over ${new Set(hidden.map((d) => d.r.c.id)).size} photos; **false card detections ${hidden.filter((d) => d.run.outcome.seen).length}**, false diameters used ${hidden.filter((d) => d.run.outcome.used).length}. Outcomes: ${tally(hidden)}.`);
+    const fresh = done.filter((d) => !d.result.cached);
+    if (fresh.length) {
+      const withCard = fresh.filter((d) => d.run.outcome.used);
+      const without = fresh.filter((d) => !d.run.outcome.used);
+      md.push(`- Time (REST, uncached runs ${fresh.length}): measure call p50 ${sec(quantile(fresh.map((d) => d.run.measureMs), 0.5))} / p95 ${sec(quantile(fresh.map((d) => d.run.measureMs), 0.95))}; whole run with a diameter (measure + second scan) p50 ${sec(quantile(withCard.map((d) => d.result.ms), 0.5))} (${withCard.length}), without one p50 ${sec(quantile(without.map((d) => d.result.ms), 0.5))} (${without.length}).`);
+    }
+    // Diameter per photo over reps, against the hand-measured truth where there is one.
+    const byCase = Map.groupBy(shown, (d) => d.r.c.id);
+    if (byCase.size) {
+      md.push("", "| Photo | true plate cm | measured per rep (cm) | median | spread (max-min) | error of median | card aspect |", "|---|---|---|---|---|---|---|");
+      for (const [id, rows] of byCase) {
+        const truth = rows[0]!.r.c.plateCm;
+        const cms = rows.flatMap((d) => (d.run.outcome.used && d.run.outcome.diameterCm !== undefined ? [d.run.outcome.diameterCm] : []));
+        const skipped = rows.filter((d) => !d.run.outcome.used).map((d) => d.run.outcome.skipped ?? "?");
+        const med = quantile(cms, 0.5);
+        const aspects = rows.flatMap((d) => (d.run.outcome.card ? [d.run.outcome.card.aspect] : []));
+        md.push(
+          `| ${id} | ${truth ?? "-"} | ${cms.map((n) => f(n)).join(", ") || "-"}${skipped.length ? ` (skipped: ${skipped.join(", ")})` : ""} | ${f(med)} | ${cms.length ? f(Math.max(...cms) - Math.min(...cms)) : "-"} | ${truth && Number.isFinite(med) ? `${f(((med - truth) / truth) * 100, 0)}% (${f(med - truth)} cm)` : "no truth"} | ${aspects.length ? f(mean(aspects), 2) : "-"} |`,
+        );
+      }
+      const scored = shown.flatMap((d) => (d.r.c.plateCm && d.run.outcome.used && d.run.outcome.diameterCm !== undefined ? [{ truth: d.r.c.plateCm, cm: d.run.outcome.diameterCm }] : []));
+      md.push("", scored.length ? `Diameter error where the true diameter is known: n ${scored.length} runs over ${new Set(shown.filter((d) => d.r.c.plateCm).map((d) => d.r.c.id)).size} photos, signed mean ${f(mean(scored.map((x) => ((x.cm - x.truth) / x.truth) * 100)))}%, MAE ${f(mean(scored.map((x) => Math.abs(x.cm - x.truth))))} cm.` : "No photo in this run has a hand-measured plate diameter (`plateCm`), so the diameter error cannot be scored; only its spread over reps is shown.", "");
+    }
+    // What the second scan changed against the reference run: the same first scan, without the plate.
+    if (reference) {
+      const rescanned = done.filter((d) => d.run.rescanned && d.result.items.length);
+      const ratios: Array<{ id: string; name: string; before: number; after: number }> = [];
+      for (const d of rescanned) {
+        const base = runs.find((x) => x.variant === reference && x.c.id === d.r.c.id && x.rep === d.r.rep);
+        if (!base || !base.result.ok) continue;
+        for (const item of d.result.items) {
+          const before = base.result.items.find((b) => nameScore(b.name, item.name) >= NAME_MATCH_MIN);
+          if (before?.grams && item.grams) ratios.push({ id: d.r.c.id, name: item.name, before: before.grams, after: item.grams });
+        }
+      }
+      if (ratios.length) {
+        md.push(`Grams of the second scan against \`${reference}\` (same photo and rep, matched by name), ${ratios.length} item rows: up ${ratios.filter((x) => x.after > x.before).length}, down ${ratios.filter((x) => x.after < x.before).length}, same ${ratios.filter((x) => x.after === x.before).length}; mean change ${f(mean(ratios.map((x) => ((x.after - x.before) / x.before) * 100)), 0)}%.`, "");
+        const per = Map.groupBy(ratios, (x) => `${x.id} / ${x.name}`);
+        md.push("| Photo / item | rows | reference g (median) | with plate g (median) |", "|---|---|---|---|");
+        for (const [key, rows] of per) md.push(`| ${key} | ${rows.length} | ${f(quantile(rows.map((x) => x.before), 0.5), 0)} | ${f(quantile(rows.map((x) => x.after), 0.5), 0)} |`);
+        md.push("");
+      } else md.push("No run of this variant was scanned again with a plate, so there is no grams change to compare.", "");
+    }
+    if (VARIANTS[v]!.cardPlate === "geometry") {
+      const pieces = done.flatMap((d) => (d.run.pieces ?? []).map((p) => ({ ...p, id: d.r.c.id })));
+      const applied = pieces.filter((p) => p.applied);
+      md.push(`Piece geometry: ${pieces.length} piece-named rows in ${done.length} card runs; applied ${applied.length}; skipped ${tallyBy(pieces.filter((p) => !p.applied).map((p) => p.skip ?? "?"))}.`);
+      if (pieces.some((p) => p.geoG !== undefined)) {
+        md.push("", "| Photo / item | rows | model g (median) | computed g (median) | applied |", "|---|---|---|---|---|");
+        for (const [key, rows] of Map.groupBy(pieces.filter((p) => p.geoG !== undefined), (p) => `${p.id} / ${p.name}`)) {
+          md.push(`| ${key} | ${rows.length} | ${f(quantile(rows.map((p) => p.modelG ?? NaN), 0.5), 0)} | ${f(quantile(rows.map((p) => p.geoG!), 0.5), 0)} | ${rows.filter((p) => p.applied).length} |`);
+        }
+      }
+      md.push("");
+    }
+  }
+  return md;
+}
+
+/** "reason n, reason n". */
+function tallyBy(keys: string[]): string {
+  const counts = new Map<string, number>();
+  for (const k of keys) counts.set(k, (counts.get(k) ?? 0) + 1);
+  return [...counts].map(([k, n]) => `${k} ${n}`).join(", ") || "-";
+}
+
 
 /** Grams the answer put on the items a labelled display covers (the whole answer for "plate"). */
 function coveredGrams(r: Run, t: ScaleTruth): number {
@@ -2045,6 +2203,9 @@ async function main() {
   md.push(...costSection(args.variants, results.map((r, i) => ({ ...r, variant: jobs[i]!.variant }))));
   if (cases.some((c) => c.scale || c.group === "scale") || args.variants.some((v) => VARIANTS[v]!.scaleReadout)) {
     md.push(...scaleSection(args.variants, cases, results.map((r, i) => ({ ...r, variant: jobs[i]!.variant }))));
+  }
+  if (args.variants.some((v) => VARIANTS[v]!.cardPlate)) {
+    md.push(...cardPlateSection(args.variants, results.map((r, i) => ({ ...r, variant: jobs[i]!.variant }))));
   }
   if (args.variants.some((v) => VARIANTS[v]!.portionPrior)) {
     md.push(...portionSection(args.variants, results.map((r, i) => ({ ...r, variant: jobs[i]!.variant }))));

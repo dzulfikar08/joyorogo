@@ -11,13 +11,17 @@ type ScanResult = InferClientOutputs<AppRouterClient>["ai"]["analyzeFood"];
 export type ScanReferences = Pick<ScanResult, "plate" | "card">;
 
 /**
- * One muted line under the scan result. A card the model was sure of is "seen, a size hint only" (nothing turns it into grams);
- * without one, the registered plate it saw or "Piring tidak dikenali". Nothing when neither was asked.
+ * One muted line under the scan result. A plate the card in the photo measured says its size; otherwise a card the model was
+ * sure of is "seen, a size hint only" (nothing turns it into grams); without one, the registered plate it saw or
+ * "Piring tidak dikenali". Nothing when none of it was asked.
  */
 export function PlateNote({ note }: { note: ScanReferences | null | undefined }) {
   const { t } = useTranslation("scan");
   if (!note) return null;
   const { plate, card } = note;
+  if (plate?.status === "matched" && plate.source === "card") {
+    return <Text style={styles.note}>{t("dishware.measured", { cm: plate.diameterCm })}</Text>;
+  }
   if (card) return <Text style={styles.note}>{t("dishware.card")}</Text>;
   if (!plate) return null;
   if (plate.status === "none") {

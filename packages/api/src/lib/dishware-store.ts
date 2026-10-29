@@ -4,6 +4,8 @@ import { asc, eq } from "drizzle-orm";
 import type { Database } from "@joyorogo/db";
 import { dishware } from "@joyorogo/db/schema/dishware";
 
+import { measuredPromptPlate, MEASURED_PLATE_ID, MEASURED_PLATE_NAME } from "./card-plate";
+import type { MeasuredPlate } from "./card-plate";
 import { cardOutcome, matchDishware, MAX_DISHWARE, referenceInstruction } from "./dishware";
 import type { DishwareKind } from "./dishware";
 import type { CardAnswer } from "./vision";
@@ -32,7 +34,16 @@ export async function loadDishware(db: Database, userId: string): Promise<Dishwa
 
 /** What the scan result tells the user about their plates. Absent from the result = nothing was asked. */
 export type DishwareScanNote =
-  | { status: "matched"; id: string; name: string; kind: DishwareKind; diameterCm: number; widthCm: number | null }
+  | {
+      status: "matched";
+      id: string;
+      name: string;
+      kind: DishwareKind;
+      diameterCm: number;
+      widthCm: number | null;
+      /** `card`: not a registered plate, the card in the photo measured it ("Piring ±24 cm, diukur dari kartu"). */
+      source?: "card";
+    }
   | { status: "none" };
 
 /** A card lay next to the food and the model was told its size as a hint ("Kartu terlihat ..., petunjuk saja"). Absent = nothing to say. */
@@ -45,10 +56,12 @@ export type ScanReference = {
   plates: DishwareRow[];
   /** The prompt block (lib/dishware.ts): the card reference, then the plates; no image is sent for either. */
   instruction: string;
-  /** Turns the model's `plate` answer into what the result carries; undefined when the user has no plates (nothing was asked). */
+  /** Turns the model's `plate` answer into what the result carries; undefined when nothing was asked (no plates, no measured plate). */
   plateNote: (answer: string | null | undefined) => DishwareScanNote | undefined;
   /** The model's `card` answer: what the result says (only a card that counted) and what the ledger keeps. */
   cardNote: (answer: CardAnswer | undefined) => { note: CardScanNote | undefined; ledger: CardLedger };
+  /** The same reference with the plate the card measured added after the registered ones (lib/card-plate.ts). */
+  withMeasured: (plate: MeasuredPlate) => ScanReference;
 };
 
 /**
@@ -68,21 +81,33 @@ export async function loadScanReference(
   } catch (error) {
     console.error("[ai] dishware read failed", error);
   }
-  const instruction = referenceInstruction(plates, true);
-  if (instruction === null) return null;
+  return buildScanReference(plates);
+}
+
+/** The reference for a list of registered plates and, once the card measured one, that plate as the last entry (P<n+1>). */
+export function buildScanReference(plates: DishwareRow[], measured?: MeasuredPlate): ScanReference {
+  const promptPlates = measured ? [...plates, measuredPromptPlate(measured)] : plates;
+  // referenceInstruction is null only without the card block, which an allowlisted user always has.
+  const instruction = referenceInstruction(promptPlates, true)!;
   return {
     plates,
     instruction,
     plateNote: (answer) => {
-      if (plates.length === 0) return undefined;
-      const match = matchDishware(answer, plates);
+      if (promptPlates.length === 0) return undefined;
+      const match = matchDishware(answer, [
+        ...plates,
+        ...(measured
+          ? [{ id: MEASURED_PLATE_ID, name: MEASURED_PLATE_NAME, kind: measured.kind, diameterCm: measured.diameterCm, widthCm: null, source: "card" as const }]
+          : []),
+      ]);
       if (match.status === "none") return { status: "none" };
       const { id, name, kind, diameterCm, widthCm } = match.plate;
-      return { status: "matched", id, name, kind, diameterCm, widthCm };
+      return { status: "matched", id, name, kind, diameterCm, widthCm, ...("source" in match.plate ? { source: "card" as const } : {}) };
     },
     cardNote: (answer) => {
       const outcome = cardOutcome(answer);
       return { note: outcome.used ? { status: "used" } : undefined, ledger: outcome };
     },
+    withMeasured: (plate) => buildScanReference(plates, plate),
   };
 }
