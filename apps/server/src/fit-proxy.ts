@@ -12,27 +12,16 @@ import type { Hono } from "hono";
  * - `GET /api/fit/sleep?from&to`
  * - `GET|POST /api/fit/watchfaces`, `DELETE /api/fit/watchfaces/:id`, `GET /api/fit/watchfaces/:id/file`
  * - `GET|POST /api/fit/studio/projects`, `GET|PUT|DELETE /api/fit/studio/projects/:id` (JoyoFit Studio's cloud projects, JSON bodies)
+ * - `POST /api/fit/imports?filename=` (a Huawei Health import file the web app converted in the browser: gzip NDJSON, `application/x-joyofit-import+gzip`, up to 100 MiB; the phone lists, downloads and deletes these on the JoyoFit API directly)
  *
  * Nothing else is forwarded, so this is not an open relay.
  */
 const ID = "[A-Za-z0-9-]{8,64}";
-/** What a route's request carries: nothing, an uploaded file (octet-stream) or a JSON document. */
-type Body = "none" | "octet" | "json";
-const ROUTES: readonly { method: string; path: RegExp; body: Body }[] = [
-  { method: "GET", path: /^sleep$/, body: "none" },
-  { method: "GET", path: /^watchfaces$/, body: "none" },
-  { method: "POST", path: /^watchfaces$/, body: "octet" },
-  { method: "DELETE", path: new RegExp(`^watchfaces/${ID}$`), body: "none" },
-  { method: "GET", path: new RegExp(`^watchfaces/${ID}/file$`), body: "none" },
-  { method: "GET", path: /^studio\/projects$/, body: "none" },
-  { method: "POST", path: /^studio\/projects$/, body: "json" },
-  { method: "GET", path: new RegExp(`^studio/projects/${ID}$`), body: "none" },
-  { method: "PUT", path: new RegExp(`^studio/projects/${ID}$`), body: "json" },
-  { method: "DELETE", path: new RegExp(`^studio/projects/${ID}$`), body: "none" },
-];
+/** What a route's request carries: nothing, or a body of one exact content type up to a size. Both are checked here, before one byte is forwarded. */
+type Body = "none" | { type: string; max: number };
 
 const PREFIX = "/api/fit/";
-/** The most a watch face upload may weigh: the JoyoFit API's own limit (watch-fit server/src/limits.ts, 8 MiB). Checked here, before one byte is forwarded. */
+/** The most a watch face upload may weigh: the JoyoFit API's own limit (watch-fit server/src/limits.ts, 8 MiB). */
 export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 /**
  * The most a Studio project request may weigh here: the JoyoFit API's 5 MiB (MAX_STUDIO_BODY_BYTES in watch-fit
@@ -40,6 +29,27 @@ export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
  * oversized body before one byte is forwarded.
  */
 export const MAX_STUDIO_BODY_BYTES = 5 * 1024 * 1024 + 64 * 1024;
+/** The most a Huawei import file may weigh: the JoyoFit API's default (100 MiB). It enforces its own limit too. */
+export const MAX_IMPORT_BYTES = 100 * 1024 * 1024;
+
+const WATCHFACE_BODY = { type: "application/octet-stream", max: MAX_UPLOAD_BYTES } as const;
+const STUDIO_BODY = { type: "application/json", max: MAX_STUDIO_BODY_BYTES } as const;
+const IMPORT_BODY = { type: "application/x-joyofit-import+gzip", max: MAX_IMPORT_BYTES } as const;
+
+const ROUTES: readonly { method: string; path: RegExp; body: Body }[] = [
+  { method: "GET", path: /^sleep$/, body: "none" },
+  { method: "GET", path: /^watchfaces$/, body: "none" },
+  { method: "POST", path: /^watchfaces$/, body: WATCHFACE_BODY },
+  { method: "DELETE", path: new RegExp(`^watchfaces/${ID}$`), body: "none" },
+  { method: "GET", path: new RegExp(`^watchfaces/${ID}/file$`), body: "none" },
+  { method: "GET", path: /^studio\/projects$/, body: "none" },
+  { method: "POST", path: /^studio\/projects$/, body: STUDIO_BODY },
+  { method: "GET", path: new RegExp(`^studio/projects/${ID}$`), body: "none" },
+  { method: "PUT", path: new RegExp(`^studio/projects/${ID}$`), body: STUDIO_BODY },
+  { method: "DELETE", path: new RegExp(`^studio/projects/${ID}$`), body: "none" },
+  { method: "POST", path: /^imports$/, body: IMPORT_BODY },
+];
+
 /** Response headers worth passing back: the body's description and a download's name. Everything else (CORS, cookies) is this server's. */
 const PASS_HEADERS = [
   "content-type",
@@ -93,8 +103,7 @@ export function registerFitProxy(app: Hono, deps: Deps) {
     // and everything else the browser sent stay behind. Only what the JoyoFit API reads is set.
     const headers = new Headers({ cookie, accept: "application/json, application/octet-stream" });
     if (route.body !== "none") {
-      const kind = route.body === "octet" ? "application/octet-stream" : "application/json";
-      const max = route.body === "octet" ? MAX_UPLOAD_BYTES : MAX_STUDIO_BODY_BYTES;
+      const { type: kind, max } = route.body;
       // A body needs its size up front (the JoyoFit API streams or bounds it), and an oversized one must not be forwarded at all.
       const declared = c.req.header("content-length");
       const length = declared === undefined ? NaN : Number(declared);
