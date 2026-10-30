@@ -4,7 +4,7 @@ feature: JoyoRogo Android di Google Play
 shipped: 2026-10-19
 available: store
 tier: free
-post: todo
+post: planned 2026-10-31
 atur: JRG-468
 ---
 
