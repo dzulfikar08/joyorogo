@@ -64,13 +64,12 @@ describe("widget registration", () => {
     }
   });
 
-  test("StreakCatat is a 2x2 tile that refreshes hourly with the day widgets and opens the scan camera", () => {
+  test("StreakCatat is a 2x2 tile that refreshes every 30 minutes (Android's floor, so Joyo's mood turns soon after 12:00, 17:00 and 21:00) and opens the scan camera", () => {
     const w = widgets.find((x) => x.name === "StreakCatat");
     expect(w).toBeDefined();
     expect(w?.targetCellWidth).toBe(2);
     expect(w?.targetCellHeight).toBe(2);
-    expect(w?.updatePeriodMillis).toBe(3600000);
-    expect(w?.updatePeriodMillis).toBe(widgets.find((x) => x.name === "ProgresHariIni")?.updatePeriodMillis);
+    expect(w?.updatePeriodMillis).toBe(1800000);
     expect(existsSync(resolve(root, "app/makan-ai.tsx"))).toBe(true);
   });
 

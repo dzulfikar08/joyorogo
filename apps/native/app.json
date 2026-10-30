@@ -2,7 +2,7 @@
   "expo": {
     "name": "JoyoRogo",
     "slug": "joyorogo",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "joyorogo",
@@ -201,7 +201,7 @@
               "maxResizeHeight": "250dp",
               "resizeMode": "horizontal|vertical",
               "previewImage": "./assets/widget-preview/streak-catat.png",
-              "updatePeriodMillis": 3600000
+              "updatePeriodMillis": 1800000
             }
           ]
         }
