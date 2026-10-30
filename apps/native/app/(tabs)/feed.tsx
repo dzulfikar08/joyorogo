@@ -163,6 +163,7 @@ export default function Feed() {
               <PostCard
                 post={item.post}
                 onPress={() => router.push(`/feed/${item.post!.id}`)}
+                onComment={() => router.push(`/feed/${item.post!.id}?comment=1`)}
                 onPressAuthor={(handle) => openAuthor(handle)}
               />
             ) : (

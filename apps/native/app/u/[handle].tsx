@@ -225,6 +225,7 @@ export default function ProfilPublik() {
                   key={post.id}
                   post={post}
                   onPress={() => router.push(`/feed/${post.id}`)}
+                  onComment={() => router.push(`/feed/${post.id}?comment=1`)}
                   onPressAuthor={(handle) => openAuthor(handle)}
                 />
               ))}

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, View, type TextInput } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
@@ -32,18 +32,24 @@ export function CommentComposer({
   replyTo,
   onCancelReply,
   onSent,
+  focusSignal = 0,
 }: {
   postId: string;
   replyTo: ReplyTarget | null;
   onCancelReply: () => void;
   /** The thread the comment landed in (null for a top-level comment). */
   onSent: (topId: string | null) => void;
+  /** Bump to put the cursor in the field (the post's comment button, or arriving from the feed's). 0 = leave it. */
+  focusSignal?: number;
 }) {
   const { t } = useTranslation("feed");
   const { theme } = useUnistyles();
   const toast = useToast();
   const queryClient = useQueryClient();
   const inputRef = useRef<TextInput>(null);
+  useEffect(() => {
+    if (focusSignal > 0) inputRef.current?.focus();
+  }, [focusSignal]);
   const [body, setBody] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);

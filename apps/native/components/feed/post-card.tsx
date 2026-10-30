@@ -310,12 +310,15 @@ function PostChips({ post }: { post: FeedItem }) {
 export function PostCard({
   post,
   onPress,
+  onComment,
   onPressAuthor,
   right,
   hideMap,
 }: {
   post: FeedItem;
   onPress?: () => void;
+  /** The comment button: the feed opens the post with the composer focused, the detail screen focuses its composer. */
+  onComment?: () => void;
   onPressAuthor?: (handle: string | null) => void;
   /** Extra header action (detail screen's overflow menu). */
   right?: ReactNode;
@@ -441,12 +444,18 @@ export function PostCard({
             {t("post.kudos.label")}{kudos.count > 0 ? ` · ${fmtInt(kudos.count)}` : ""}
           </Text>
         </Pressable>
-        <View style={styles.actionButton}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("comments.placeholder")}
+          onPress={onComment}
+          disabled={!onComment}
+          style={({ pressed }) => [styles.actionButton, pressed && styles.pressed]}
+        >
           <Ionicons name="chatbubble-outline" size={18} color={theme.colors.mutedForeground} />
           <Text style={styles.actionText}>
             {t("comments.title")}{post.commentCount > 0 ? ` · ${fmtInt(post.commentCount)}` : ""}
           </Text>
-        </View>
+        </Pressable>
       </View>
     </Card>
   );

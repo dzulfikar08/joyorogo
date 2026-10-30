@@ -44,7 +44,9 @@ export default function DetailPost() {
   const { theme } = useUnistyles();
   const gate = useSessionGate();
   const queryClient = useQueryClient();
-  const { postId: id } = useLocalSearchParams<{ postId: string }>();
+  const { postId: id, comment } = useLocalSearchParams<{ postId: string; comment?: string }>();
+  // The feed's comment button lands here with ?comment=1: the field takes the cursor once the post has loaded.
+  const [focusComposer, setFocusComposer] = useState(comment === "1" ? 1 : 0);
 
   const { data: session } = authClient.useSession();
   const me = session?.user.id ?? null;
@@ -193,6 +195,7 @@ export default function DetailPost() {
           postId={id}
           replyTo={replyTo}
           onCancelReply={() => setReplyTo(null)}
+          focusSignal={focusComposer}
           onSent={(topId) => {
             if (topId) setExpanded((prev) => new Set(prev).add(topId));
           }}
@@ -216,6 +219,7 @@ export default function DetailPost() {
       <PostCard
         post={data}
         onPressAuthor={(handle) => openAuthor(handle)}
+        onComment={() => setFocusComposer((n) => n + 1)}
         right={null}
         hideMap
       />
