@@ -16,4 +16,4 @@ atur: JRG-469
 
 **Bukti visual:** Beranda tab, kartu kalori, baris Protein / Karbo / Lemak dengan bar tipis (akun dengan profil lengkap, bukan Hamil / Menyusui).
 
-**Jangan klaim:** Ini panduan umum, bukan resep diet medis. Sampai lewat pembaruan cepat (OTA) di build 1.1.1, bukan build toko baru; web sudah langsung. Tidak berlaku untuk Hamil / Menyusui (barisnya tidak tampil). Sinkron hari Beranda-Makan dan tombol "Hari ini" hanya di aplikasi HP, belum di web.
+**Jangan klaim:** Ini panduan umum, bukan resep diet medis. Sampai lewat pembaruan cepat (OTA) di build 1.1.1, bukan build toko baru; web sudah langsung. Tidak berlaku untuk Hamil / Menyusui (barisnya tidak tampil). Tombol "Hari ini" ada di HP dan web; sinkron hari Beranda-Makan hanya di aplikasi HP, belum di web.
