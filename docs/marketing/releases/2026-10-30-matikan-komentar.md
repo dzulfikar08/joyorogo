@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Matikan komentar di postingan sendiri
 shipped: 2026-10-30
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-471
@@ -16,4 +16,4 @@ atur: JRG-471
 
 **Bukti visual:** Tangkap layar menu titik tiga di detail postingan sendiri (baris "Matikan komentar"), lalu detail postingan yang sama dari akun lain (keterangan menggantikan kolom tulis) dan tombol "Komentar dimatikan" di kartu feed. Perlu dua akun dan build/versi web yang memuat fitur ini.
 
-**Jangan klaim:** Live di web (app.joyorogo.com) dan di Android 1.1.2 lewat pembaruan cepat (OTA) sejak 2026-10-30; iPhone ikut build 1.1.2 yang masih direview Apple, jadi jangan tulis "di iPhone" sebelum lolos. Bukan moderasi otomatis dan tidak menghapus komentar lama. Penulis tetap bisa berkomentar di postingannya; jangan menyiratkan komentar tertutup total. Aplikasi lama (1.1.1) yang belum diperbarui tidak menampilkan keterangan, jadi penolakan dari server tampil sebagai pesan galat biasa.
+**Jangan klaim:** Ada di web dan versi 1.1.2 di Google Play dan App Store (iOS 1.1.2 lolos review 2026-10-31). Bukan moderasi otomatis dan tidak menghapus komentar lama. Penulis tetap bisa berkomentar di postingannya; jangan menyiratkan komentar tertutup total. Aplikasi lama (1.1.1) yang belum diperbarui tidak menampilkan keterangan, jadi penolakan dari server tampil sebagai pesan galat biasa; ajak update dulu.

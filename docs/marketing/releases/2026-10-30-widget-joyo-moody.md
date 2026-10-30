@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Widget Streak Catat: Joyo makin berekspresi
 shipped: 2026-10-30
-available: test-build
+available: store
 tier: free
 post: todo
 atur: JRG-470
@@ -16,4 +16,4 @@ atur: JRG-470
 
 **Bukti visual:** Tangkap layar widget kecil dan sedang di tiap mood (pagi, siang, sore, malam; streak putus 1, 2, 4, 7, 14 hari; hari ke-7; kembali setelah seminggu) dalam mode terang dan gelap. Cara cepat: ubah jam HP dan tanggal terakhir catat, lalu tunggu widget diperbarui. Pratinjau iPhone belum pernah dilihat di perangkat.
 
-**Jangan klaim:** Android: sampai lewat pembaruan cepat (OTA) ke build 1.1.1, gambar Joyo baru ikut di dalamnya. iPhone: widget baru butuh build App Store berikutnya; sampai itu iPhone masih widget lama, jadi jangan tulis "di iPhone". Mood di Android berganti paling lambat sekitar satu jam setelah jam 12, 17, 21 (widget diperbarui tiap jam), tidak tepat di menit 12:00. Di iPhone (setelah build baru) pergantian terjadi di jam 12, 17, 21 selama iOS memberi anggaran refresh (tidak dijamin tepat). Sambutan "balik setelah seminggu" hanya muncul kalau aplikasi di HP itu pernah melihat catatan sebelumnya; pemasangan baru atau akun baru tidak mendapat sambutan itu. Jangan menyiratkan angka streak atau kalimatnya menghukum: nadanya bercanda, tidak pernah menyinggung berat badan.
+**Jangan klaim:** Ada di versi 1.1.2 di Google Play dan App Store (iOS lolos review 2026-10-31); pengguna perlu update ke 1.1.2. Mood di Android berganti paling lambat sekitar satu jam setelah jam 12, 17, 21 (widget diperbarui tiap jam), tidak tepat di menit 12:00. Di iPhone (setelah build baru) pergantian terjadi di jam 12, 17, 21 selama iOS memberi anggaran refresh (tidak dijamin tepat). Sambutan "balik setelah seminggu" hanya muncul kalau aplikasi di HP itu pernah melihat catatan sebelumnya; pemasangan baru atau akun baru tidak mendapat sambutan itu. Jangan menyiratkan angka streak atau kalimatnya menghukum: nadanya bercanda, tidak pernah menyinggung berat badan.
