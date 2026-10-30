@@ -4,15 +4,12 @@ Canonical source PNGs for the JoyoRogo mascot ("Joyo" — green wayang-armoured 
 
 ## Where the art comes from
 
-All art is the 2026-10-25/26 ChatGPT set (replacing the original low-res concept sheet): the emote sheet
-(1536×1024, 15 busts with labels), the app-icon tile (1254×1254), the peek strip (2048×768), the full-body
-pose sheet (1750×899: hero, ready), the sitting relax (1254×1254), the alert/head pair (1932×814), and for the
-app icons a plain bust (1254×1254) and a flat monochrome glyph (1254×1254). Cut with rembg
-(isnet-general-use) plus a key on the flat sheet background, so the sparkles, `!`, `?`, `Zzz` and hearts drawn
-next to a pose stay in its cut-out; the peek was keyed off its flat dark-green backdrop and cut at the ledge.
-Emote poses are ~300 px crops fitted to 512×512 (Lanczos); bust bottoms keep the sheet's soft fade. Full-body
-poses are trimmed (no upscaling; `relax` downscaled to 600 px); `alert` and `head` are ~800 px cuts fitted to
-512×512.
+All poses except `peek` and `icon` (and the `scan` scene) were regenerated on 2026-10-30 in ChatGPT, one pose per image
+(1254×1254, real alpha, subject fully inside the frame, busts ending in a clean rounded edge instead of the old sheet
+fade), using `wave` as the style reference and the previous cut-out of the same name as the pose reference. Exports
+crop to the alpha bounding box (alpha > 8%), then: square poses fitted to 496 px inside 512×512; `hero` 857 px tall;
+`ready`/`relax` fitted to 600 px; widget art fitted to 192 px; iOS widget art 300 px tall. `peek` and `icon` are still
+the 2026-10-25/26 set (peek keyed off its flat backdrop, icon tile 1254×1254).
 
 ## Files
 
@@ -33,9 +30,9 @@ poses are trimmed (no upscaling; `relax` downscaled to 600 px); `alert` and `hea
 | `love`                                     | hugging a heart                                                | 512×512   | sheet "Love"        |
 | `icon`                                     | full rounded app-icon tile (not a cutout), transparent corners | 1024×1024 | icon tile           |
 | `peek`                                     | peeking-over head with paws, trimmed                           | 1721×649  | peek strip          |
-| `hero`                                     | standing, hands on hips, tail, trimmed                         | 673×857   | pose sheet          |
-| `ready`                                    | fighting stance, fist forward, trimmed                         | 551×523   | pose sheet          |
-| `relax`                                    | sitting cross-legged, hand behind head, eyes closed, trimmed   | 590×600   | relax image         |
+| `hero`                                     | standing, hands on hips, tail, trimmed                         | 620×857   | ChatGPT 2026-10-30  |
+| `ready`                                    | fighting stance, fist forward, trimmed                         | 578×600   | ChatGPT 2026-10-30  |
+| `relax`                                    | sitting cross-legged, hand behind head, eyes closed, trimmed   | 585×600   | ChatGPT 2026-10-30  |
 | `alert`                                    | startled bust, eyes wide, `!`                                  | 512×512   | alert/head pair     |
 | `head`                                     | head-only cutout, calm smile                                   | 512×512   | alert/head pair     |
 | `wave`                                     | upper body waving, other paw on hip (login screens)            | 512×512   | ChatGPT 2026-10-30  |

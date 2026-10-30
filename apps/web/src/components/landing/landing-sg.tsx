@@ -381,7 +381,7 @@ export function LandingSg() {
             <img
               src="/mascot/hero.webp"
               alt="Joyo, JoyoRogo's mascot: a green cat in traditional Javanese armour"
-              width={673}
+              width={620}
               height={857}
               loading="lazy"
               decoding="async"

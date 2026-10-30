@@ -417,7 +417,7 @@ export function LandingMy() {
             <img
               src="/mascot/hero.webp"
               alt="Joyo, maskot JoyoRogo: kucing hijau berperisai tradisional Jawa"
-              width={673}
+              width={620}
               height={857}
               loading="lazy"
               decoding="async"

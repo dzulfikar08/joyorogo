@@ -50,7 +50,7 @@ const PEEK: Record<MascotSize, string> = {
   xl: "w-[260px] md:w-[360px]",
 };
 
-// `hero` is tall (673x857): size steps are heights.
+// `hero` is tall (620x857): size steps are heights.
 const TALL: Record<MascotSize, string> = {
   sm: "h-24",
   md: "h-40",
@@ -60,9 +60,9 @@ const TALL: Record<MascotSize, string> = {
 
 const INTRINSIC: Partial<Record<MascotPose, [number, number]>> = {
   peek: [960, 362],
-  relax: [590, 600],
-  hero: [673, 857],
-  ready: [551, 523],
+  relax: [585, 600],
+  hero: [620, 857],
+  ready: [578, 600],
 };
 
 /** Joyo cut-out. Lazy by default; pass `eager` for above-the-fold art.
