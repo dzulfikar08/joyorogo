@@ -17,7 +17,6 @@ import {
 import { PressableScale } from "@/components/motion";
 import { stickerUrl } from "@/components/sticker";
 import { StoryShareSheet } from "@/components/story/share-story-button";
-import { Text } from "@/components/ui";
 
 /** How long one cutout gets to load before the share draws without it. */
 const PREFLIGHT_MS = 8_000;
@@ -45,14 +44,17 @@ async function failedCutouts(rows: readonly DayShareRow[]): Promise<Set<string>>
   return new Set(ids.filter((_, index) => !loads[index]));
 }
 
-type DayShareButtonProps = Omit<DayShareInput, "mealLabel" | "stickerUrl" | "failedStickers" | "rows" | "plateNames"> & {
+type DayShareButtonProps = Omit<
+  DayShareInput,
+  "mealLabel" | "stickerUrl" | "failedStickers" | "rows" | "plateNames"
+> & {
   rows: readonly DayShareRow[];
   plateNames: Readonly<Record<string, string>>;
 };
 
 /**
- * "Bagikan makanku sehari": one quiet control under the day summary that opens the share sheet on the whole day.
- * The cutouts are checked first (busy state on the control), and the sheet only opens once they are known to load.
+ * "Bagikan makanku sehari": a round share icon beside the day switcher that opens the share sheet on the whole day.
+ * The cutouts are checked first (spinner in the circle), and the sheet only opens once they are known to load.
  */
 export function DayShareButton(props: DayShareButtonProps) {
   const { t } = useTranslation(["makan"]);
@@ -101,11 +103,10 @@ export function DayShareButton(props: DayShareButtonProps) {
         scaleTo={0.97}
       >
         {busy ? (
-          <ActivityIndicator size="small" color={theme.colors.makanText} />
+          <ActivityIndicator size="small" color={theme.colors.foreground} />
         ) : (
-          <Ionicons name="share-outline" size={18} color={theme.colors.makanText} />
+          <Ionicons name="share-outline" size={20} color={theme.colors.foreground} />
         )}
-        <Text style={styles.label}>{label}</Text>
       </PressableScale>
       {story ? (
         <StoryShareSheet
@@ -122,16 +123,11 @@ export function DayShareButton(props: DayShareButtonProps) {
 
 const styles = StyleSheet.create((theme) => ({
   control: {
-    flexDirection: "row",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.card,
     alignItems: "center",
-    alignSelf: "flex-start",
-    gap: theme.spacing.sm,
-    minHeight: 44,
-    paddingHorizontal: theme.spacing.xs,
-  },
-  label: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: "600",
-    color: theme.colors.makanText,
+    justifyContent: "center",
   },
 }));

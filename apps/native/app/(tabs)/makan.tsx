@@ -298,7 +298,13 @@ export default function Makan() {
         },
       };
     },
-    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.diary.key(), orpc.fasting.key()],
+    invalidate: () => [
+      orpc.food.key(),
+      orpc.plate.key(),
+      orpc.day.key(),
+      orpc.diary.key(),
+      orpc.fasting.key(),
+    ],
   });
 
   const deleteFood = useDelayedDelete<FoodRow>({
@@ -319,7 +325,13 @@ export default function Makan() {
     },
     label: (row) => row.name,
     fallback: t("diary.toast.entryFallback"),
-    invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.diary.key(), orpc.fasting.key()],
+    invalidate: () => [
+      orpc.food.key(),
+      orpc.plate.key(),
+      orpc.day.key(),
+      orpc.diary.key(),
+      orpc.fasting.key(),
+    ],
   });
 
   const updatePlate = useOptimisticMutation<
@@ -329,9 +341,9 @@ export default function Makan() {
   >({
     mutationFn: (input) => client.plate.update(input),
     patch: (input, cache) => {
-      const plateRows = (queryClient.getQueryData<{ items: FoodRow[] }>(foodListKey)?.items ?? []).filter(
-        (item) => item.plateId === input.id,
-      );
+      const plateRows = (
+        queryClient.getQueryData<{ items: FoodRow[] }>(foodListKey)?.items ?? []
+      ).filter((item) => item.plateId === input.id);
       const found =
         (queryClient.getQueryData<PlateRow[]>(plateDayKey) ?? []).find(
           (plate) => plate.id === input.id,
@@ -442,7 +454,13 @@ export default function Makan() {
         undo: restore === null ? undefined : () => void client.plate.update(restore),
       };
     },
-    invalidate: () => [orpc.plate.key(), orpc.food.key(), orpc.day.key(), orpc.diary.key(), orpc.fasting.key()],
+    invalidate: () => [
+      orpc.plate.key(),
+      orpc.food.key(),
+      orpc.day.key(),
+      orpc.diary.key(),
+      orpc.fasting.key(),
+    ],
   });
 
   const [sheetMeal, setSheetMeal] = useState<Meal | null>(null);
@@ -530,7 +548,11 @@ export default function Makan() {
   // Carb/fat/fiber targets are the server's personal ones (day.summary `macros`).
   const serverMacros = summaryQuery.data?.macros;
   const macroBudgets = serverMacros
-    ? { carbsG: serverMacros.carbsTargetG, fatG: serverMacros.fatTargetG, fiberG: serverMacros.fiberTargetG }
+    ? {
+        carbsG: serverMacros.carbsTargetG,
+        fatG: serverMacros.fatTargetG,
+        fiberG: serverMacros.fiberTargetG,
+      }
     : null;
 
   const manualKind = kindOverride ?? foodKind(name);
@@ -798,7 +820,36 @@ export default function Makan() {
 
       {view === "daftar" ? (
         <>
-          <DaySwitcher date={date} today={today} onChange={setDate} />
+          <DaySwitcher
+            date={date}
+            today={today}
+            onChange={setDate}
+            trailing={
+              // Placeholder data is the previous day's rows while the new day loads: share only a settled day.
+              items.length > 0 &&
+              !listQuery.isPlaceholderData &&
+              !summaryQuery.isPlaceholderData ? (
+                <DayShareButton
+                  date={date}
+                  rows={items}
+                  plateNames={Object.fromEntries(
+                    (plateDayQuery.data ?? []).map((row) => [row.id, row.name]),
+                  )}
+                  slots={MEAL_KEYS}
+                  eatenKcal={eatenKcal}
+                  targets={{
+                    kcal: targets?.eatKcal ?? null,
+                    proteinG: summaryQuery.data?.protein?.targetG ?? null,
+                    carbsG: macroBudgets?.carbsG ?? null,
+                    fatG: macroBudgets?.fatG ?? null,
+                    fiberG: macroBudgets?.fiberG ?? null,
+                  }}
+                  maternal={maternal}
+                  gain={gainPlan}
+                />
+              ) : null
+            }
+          />
 
           <DaySummary
             eatenKcal={eatenKcal}
@@ -813,26 +864,6 @@ export default function Makan() {
               fiberG: macroBudgets?.fiberG ?? null,
             }}
           />
-
-          {/* Placeholder data is the previous day's rows while the new day loads: share only a settled day. */}
-          {items.length > 0 && !listQuery.isPlaceholderData && !summaryQuery.isPlaceholderData ? (
-            <DayShareButton
-              date={date}
-              rows={items}
-              plateNames={Object.fromEntries((plateDayQuery.data ?? []).map((row) => [row.id, row.name]))}
-              slots={MEAL_KEYS}
-              eatenKcal={eatenKcal}
-              targets={{
-                kcal: targets?.eatKcal ?? null,
-                proteinG: summaryQuery.data?.protein?.targetG ?? null,
-                carbsG: macroBudgets?.carbsG ?? null,
-                fatG: macroBudgets?.fatG ?? null,
-                fiberG: macroBudgets?.fiberG ?? null,
-              }}
-              maternal={maternal}
-              gain={gainPlan}
-            />
-          ) : null}
 
           {isToday && summaryQuery.data ? (
             <FastLossNote note={summaryQuery.data.fastLoss} today={summaryQuery.data.date} />
@@ -878,7 +909,9 @@ export default function Makan() {
             </Reveal>
           ) : null}
 
-          {items.length === 0 ? <Text style={styles.dayEmpty}>{t("diary.list.dayEmpty")}</Text> : null}
+          {items.length === 0 ? (
+            <Text style={styles.dayEmpty}>{t("diary.list.dayEmpty")}</Text>
+          ) : null}
 
           {MEAL_KEYS.map(renderSlot)}
 

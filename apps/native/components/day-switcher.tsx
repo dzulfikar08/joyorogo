@@ -1,4 +1,5 @@
 import "@/unistyles";
+import type { ReactNode } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
@@ -19,10 +20,13 @@ export function DaySwitcher({
   date,
   onChange,
   today,
+  trailing,
 }: {
   date: string;
   onChange: (date: string) => void;
   today?: string;
+  /** An action pinned to the row's right edge (Makan: share the day); the chevrons stay centred. */
+  trailing?: ReactNode;
 }) {
   const { t: tr } = useTranslation("makan");
   const { theme } = useUnistyles();
@@ -53,6 +57,7 @@ export function DaySwitcher({
         >
           <Ionicons name="chevron-forward" size={20} color={theme.colors.foreground} />
         </PressableScale>
+        {trailing ? <View style={styles.trailing}>{trailing}</View> : null}
       </View>
       {isToday ? null : (
         <PressableScale
@@ -77,10 +82,15 @@ const styles = StyleSheet.create((theme) => ({
     gap: theme.spacing.sm,
   },
   row: {
+    alignSelf: "stretch",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: theme.spacing.sm,
+  },
+  trailing: {
+    position: "absolute",
+    right: 0,
   },
   arrow: {
     width: 44,
