@@ -353,6 +353,11 @@ export function PostCard({
     },
   });
 
+  // With comments off a visitor has nothing to focus: the button just opens the post (the notice sits there).
+  const { data: session } = authClient.useSession();
+  const commentsLocked = post.commentsOff && post.author.id !== session?.user.id;
+  const commentPress = commentsLocked ? onPress : onComment;
+
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
@@ -446,14 +451,19 @@ export function PostCard({
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t("comments.placeholder")}
-          onPress={onComment}
-          disabled={!onComment}
+          accessibilityLabel={post.commentsOff ? t("comments.off.label") : t("comments.placeholder")}
+          onPress={commentPress}
+          disabled={!commentPress}
           style={({ pressed }) => [styles.actionButton, pressed && styles.pressed]}
         >
-          <Ionicons name="chatbubble-outline" size={18} color={theme.colors.mutedForeground} />
-          <Text style={styles.actionText}>
-            {t("comments.title")}{post.commentCount > 0 ? ` · ${fmtInt(post.commentCount)}` : ""}
+          <Ionicons
+            name={post.commentsOff ? "lock-closed-outline" : "chatbubble-outline"}
+            size={18}
+            color={theme.colors.mutedForeground}
+          />
+          <Text style={[styles.actionText, post.commentsOff && styles.actionTextOff]}>
+            {post.commentsOff ? t("comments.off.button") : t("comments.title")}
+            {post.commentCount > 0 ? ` · ${fmtInt(post.commentCount)}` : ""}
           </Text>
         </Pressable>
       </View>
@@ -668,5 +678,8 @@ const styles = StyleSheet.create((theme) => ({
   },
   actionTextActive: {
     color: theme.colors.bakarText,
+  },
+  actionTextOff: {
+    opacity: 0.7,
   },
 }));

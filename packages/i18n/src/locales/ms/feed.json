@@ -176,6 +176,11 @@
       "streak_other": "{{count}} hari berturut-turut",
       "exercise": "{{value}} min senaman",
       "weightChange": "{{value}} kg minggu ini"
+    },
+    "off": {
+      "notice": "Penulis menutup komen pada hantaran ini.",
+      "button": "Komen ditutup",
+      "label": "Komen ditutup oleh penulis. Buka hantaran."
     }
   },
   "menu": {
@@ -197,7 +202,9 @@
       "reported": "Laporan dihantar, terima kasih.",
       "blocked": "Pengguna disekat.",
       "mapShown": "Peta dipaparkan.",
-      "mapHidden": "Peta disembunyikan."
+      "mapHidden": "Peta disembunyikan.",
+      "commentsOff": "Komen ditutup.",
+      "commentsOn": "Komen dibuka."
     },
     "mapShow": {
       "title": "Papar peta",
@@ -206,6 +213,14 @@
     "mapHide": {
       "title": "Sembunyikan peta",
       "subtitle": "Hantaran ini dipaparkan tanpa peta laluan"
+    },
+    "commentsOff": {
+      "title": "Tutup komen",
+      "subtitle": "Komen lama kekal kelihatan, anda masih boleh membalas"
+    },
+    "commentsOn": {
+      "title": "Buka komen",
+      "subtitle": "Semua orang boleh berkomen semula"
     }
   },
   "report": {
@@ -691,6 +706,8 @@
       "followLimit": "Had mengikut dicapai.",
       "commentQuota": "Kuota komen hari ini habis.",
       "notYourComment": "Bukan komen anda.",
+      "commentsOff": "Penulis menutup komen pada hantaran ini.",
+      "notYourPost": "Ini bukan hantaran anda.",
       "blockSelf": "Tidak boleh menyekat diri sendiri.",
       "reportOne": "Laporkan satu kandungan sahaja.",
       "reportSelf": "Tidak boleh melaporkan diri sendiri.",

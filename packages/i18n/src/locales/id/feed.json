@@ -176,6 +176,11 @@
       "streak_other": "{{count}} hari beruntun",
       "exercise": "{{value}} mnt olahraga",
       "weightChange": "{{value}} kg minggu ini"
+    },
+    "off": {
+      "notice": "Penulis menonaktifkan komentar di postingan ini.",
+      "button": "Komentar dimatikan",
+      "label": "Komentar dimatikan oleh penulis. Buka postingan."
     }
   },
   "menu": {
@@ -197,7 +202,9 @@
       "reported": "Laporan terkirim, terima kasih.",
       "blocked": "Pengguna diblokir.",
       "mapShown": "Peta ditampilkan.",
-      "mapHidden": "Peta disembunyikan."
+      "mapHidden": "Peta disembunyikan.",
+      "commentsOff": "Komentar dimatikan.",
+      "commentsOn": "Komentar dinyalakan."
     },
     "mapShow": {
       "title": "Tampilkan peta",
@@ -206,6 +213,14 @@
     "mapHide": {
       "title": "Sembunyikan peta",
       "subtitle": "Postingan ini tampil tanpa peta rute"
+    },
+    "commentsOff": {
+      "title": "Matikan komentar",
+      "subtitle": "Komentar lama tetap terlihat, kamu masih bisa membalas"
+    },
+    "commentsOn": {
+      "title": "Nyalakan komentar",
+      "subtitle": "Semua orang bisa berkomentar lagi"
     }
   },
   "report": {
@@ -691,6 +706,8 @@
       "followLimit": "Batas mengikuti tercapai.",
       "commentQuota": "Kuota komentar hari ini habis.",
       "notYourComment": "Bukan komentarmu.",
+      "commentsOff": "Penulis menonaktifkan komentar di postingan ini.",
+      "notYourPost": "Ini bukan postinganmu.",
       "blockSelf": "Tidak bisa memblokir diri sendiri.",
       "reportOne": "Lapor satu konten saja.",
       "reportSelf": "Tidak bisa melaporkan diri sendiri.",

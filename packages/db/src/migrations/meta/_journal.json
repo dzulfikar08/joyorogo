@@ -505,6 +505,13 @@
       "when": 1793181859746,
       "tag": "0071_payment_revklik_ids",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "6",
+      "when": 1793368207804,
+      "tag": "0072_post_comments_off",
+      "breakpoints": true
     }
   ]
 }

@@ -517,3 +517,59 @@ describe("app item attachments", () => {
     expect(note?.excerpt).toBeNull();
   });
 });
+
+describe("comments off", () => {
+  const OFF_POST = "77777777-7777-7777-7777-777777777777";
+  const setOff = (user: string, off: boolean, postId = OFF_POST) =>
+    call(socialRouter.setCommentsOff, { postId, off }, as(user));
+
+  test("posts are commentable by default and the flag rides on feed and detail items", async () => {
+    await client.execute(
+      `INSERT INTO post (id, user_id, kind, title, visibility) VALUES ('${OFF_POST}', 'own', 'cerita', 'Tutup', 'publik')`,
+    );
+    const detail = await call(socialRouter.post, { id: OFF_POST }, as("ann"));
+    expect(detail.commentsOff).toBe(false);
+    const mine = await call(socialRouter.myPosts, { limit: 25 }, as("own"));
+    expect(mine.items.find((it) => it.id === OFF_POST)?.commentsOff).toBe(false);
+  });
+
+  test("only the author can toggle; others are forbidden and a missing post is not found", async () => {
+    await rejects(setOff("ann", true), "FORBIDDEN");
+    await rejects(setOff("own", true, "nope"), "NOT_FOUND");
+    expect((await call(socialRouter.post, { id: OFF_POST }, as("ann"))).commentsOff).toBe(false);
+  });
+
+  test("with comments off others get FORBIDDEN, the author can still reply, old comments stay and can be deleted", async () => {
+    const before = await add("ann", { postId: OFF_POST, body: "sebelum ditutup" });
+    expect(await setOff("own", true)).toEqual({ ok: true, commentsOff: true });
+    // Idempotent.
+    expect(await setOff("own", true)).toEqual({ ok: true, commentsOff: true });
+
+    const detail = await call(socialRouter.post, { id: OFF_POST }, as("ann"));
+    expect(detail.commentsOff).toBe(true);
+    const mine = await call(socialRouter.myPosts, { limit: 25 }, as("own"));
+    expect(mine.items.find((it) => it.id === OFF_POST)?.commentsOff).toBe(true);
+
+    const error = (await add("bob", { postId: OFF_POST, body: "boleh?" }).then(
+      () => null,
+      (e: unknown) => e,
+    )) as { code?: string; message?: string } | null;
+    expect(error?.code).toBe("FORBIDDEN");
+    expect(error?.message).toBe("Penulis menonaktifkan komentar di postingan ini.");
+    await rejects(add("ann", { postId: OFF_POST, body: "balas", parentId: before.id }), "FORBIDDEN");
+
+    const last = await add("own", { postId: OFF_POST, body: "terima kasih semua", parentId: before.id });
+    expect(last.parentId).toBe(before.id);
+
+    expect((await top("cat", OFF_POST)).items.map((it) => it.id)).toContain(before.id);
+    expect((await del("ann", before.id)).ok).toBe(true);
+  });
+
+  test("turning comments back on lets everyone comment again, and other posts were never affected", async () => {
+    await add("bob", { body: "post lain tetap terbuka" });
+    expect(await setOff("own", false)).toEqual({ ok: true, commentsOff: false });
+    const made = await add("bob", { postId: OFF_POST, body: "sudah dibuka" });
+    expect(typeof made.id).toBe("string");
+    expect((await call(socialRouter.post, { id: OFF_POST }, as("bob"))).commentsOff).toBe(false);
+  });
+});

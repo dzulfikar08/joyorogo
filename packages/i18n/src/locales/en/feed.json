@@ -182,6 +182,11 @@
       "streak_other": "{{count}} day streak",
       "exercise": "{{value}} min active",
       "weightChange": "{{value}} kg this week"
+    },
+    "off": {
+      "notice": "The author turned off comments on this post.",
+      "button": "Comments off",
+      "label": "Comments are turned off by the author. Open the post."
     }
   },
   "menu": {
@@ -203,7 +208,9 @@
       "reported": "Report sent, thank you.",
       "blocked": "User blocked.",
       "mapShown": "Map shown.",
-      "mapHidden": "Map hidden."
+      "mapHidden": "Map hidden.",
+      "commentsOff": "Comments turned off.",
+      "commentsOn": "Comments turned on."
     },
     "mapShow": {
       "title": "Show map",
@@ -212,6 +219,14 @@
     "mapHide": {
       "title": "Hide map",
       "subtitle": "This post shows without a route map"
+    },
+    "commentsOff": {
+      "title": "Turn off comments",
+      "subtitle": "Existing comments stay visible, you can still reply"
+    },
+    "commentsOn": {
+      "title": "Turn on comments",
+      "subtitle": "Everyone can comment again"
     }
   },
   "report": {
@@ -698,6 +713,8 @@
       "followLimit": "You've reached the follow limit.",
       "commentQuota": "You've reached today's comment limit.",
       "notYourComment": "That's not your comment.",
+      "commentsOff": "The author turned off comments on this post.",
+      "notYourPost": "That's not your post.",
       "blockSelf": "You can't block yourself.",
       "reportOne": "Report one item at a time.",
       "reportSelf": "You cannot report yourself.",

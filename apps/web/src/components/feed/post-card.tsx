@@ -9,6 +9,7 @@ import {
   Globe,
   Heart,
   MessageCircle,
+  MessageCircleOff,
   PenLine,
   Scale,
   Utensils,
@@ -365,12 +366,17 @@ export function PostCard({
         <Button
           variant="ghost"
           size="sm"
-          className="gap-1.5 text-muted-foreground"
+          className={cn("gap-1.5 text-muted-foreground", post.commentsOff && "opacity-70")}
           onClick={() => setCommentsOpen(true)}
-          aria-label={t("post.comments.view")}
+          aria-label={post.commentsOff ? t("comments.off.label") : t("post.comments.view")}
         >
-          <MessageCircle className="size-4" aria-hidden />
-          {fmtInt(post.commentCount)}
+          {post.commentsOff ? (
+            <MessageCircleOff className="size-4" aria-hidden />
+          ) : (
+            <MessageCircle className="size-4" aria-hidden />
+          )}
+          {post.commentsOff ? t("comments.off.button") : null}
+          {post.commentsOff && post.commentCount === 0 ? null : fmtInt(post.commentCount)}
         </Button>
       </footer>
 

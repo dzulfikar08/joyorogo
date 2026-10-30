@@ -34,6 +34,8 @@ export type FeedItem = {
   /** Encoded polyline (precision 5) of a JoyoFit workout's shared route; absent when no map is shown. */
   mapLine?: string | undefined;
   caption: string | null;
+  /** The author turned comments off: others cannot write; the author still can. */
+  commentsOff: boolean;
   visibility: Visibility;
   createdAt: Date;
   author: FeedAuthor;

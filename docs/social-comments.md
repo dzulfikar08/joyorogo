@@ -42,6 +42,22 @@ Comment = {
 Cursors are the `createdAt` ms of the last item. The 30-a-day comment quota counts replies. Visibility of the post
 applies to every read; a comment from a blocked user is hidden both ways, and you cannot reply to them.
 
+## Comments off
+
+`post.comments_off` (default 0, migration `0072_post_comments_off`). Every feed or post item (`feed`, `myPosts`, `post`,
+`publicProfile.posts`) carries `commentsOff: boolean`; the field is additive, JoyoFit ignores it.
+
+| Procedure | Input | Output |
+|---|---|---|
+| `setCommentsOff` | `{ postId, off }`; the post's author only (`FORBIDDEN` otherwise, `NOT_FOUND` for a missing post); idempotent | `{ ok, commentsOff }` |
+
+- With comments off, `addComment` from anyone but the author answers `FORBIDDEN` with the localized
+  `server.error.commentsOff` ("Penulis menonaktifkan komentar di postingan ini."). The check follows the visibility check,
+  so a hidden post still answers `NOT_FOUND`.
+- The author can still comment and reply on their own post, to have the last word in a thread they are closing.
+- Existing comments stay readable (`comments`, `commentReplies` are unchanged) and `deleteComment` works as before.
+- Turning comments back on re-opens the post to everyone; nothing is lost in between.
+
 ## Attachments
 
 `addComment.attachment` is `{ kind: 'image', photoId }` or `{ kind: 'workout' | 'food' | 'weight' | 'recap' | 'route', refId }`.

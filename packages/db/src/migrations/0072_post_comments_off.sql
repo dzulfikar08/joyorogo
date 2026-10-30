@@ -1,0 +1,1 @@
+ALTER TABLE `post` ADD `comments_off` integer DEFAULT false NOT NULL;

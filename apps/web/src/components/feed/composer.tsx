@@ -119,6 +119,7 @@ export function FeedComposerSheet({
                     photoCount: input.photos.length,
                     caption: input.caption || null,
                     visibility: post.visibility,
+                    commentsOff: false,
                     createdAt: new Date(),
                     author: {
                       id: author?.id ?? "",

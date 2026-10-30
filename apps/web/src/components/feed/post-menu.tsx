@@ -2,14 +2,14 @@ import { Button } from "@joyorogo/ui/components/button";
 import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Textarea } from "@joyorogo/ui/components/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Flag, Map as MapIcon, MapPinOff, ShieldOff, Trash2, UserX } from "lucide-react";
+import { Flag, Map as MapIcon, MapPinOff, MessageCircle, MessageCircleOff, ShieldOff, Trash2, UserX } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
 import { ListButtonRow, ListGroup } from "@/components/kit/surface";
 import type { FeedPost } from "@/lib/api-types";
-import { useDelayedDelete } from "@/lib/optimistic";
+import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
 
 const REASONS = ["spam", "kasar", "salah_info", "lainnya"] as const;
@@ -66,6 +66,21 @@ export function PostMenuSheet({
       onError: (error) => toast.error(error.message),
     }),
   );
+  // Optimistic: every cached copy of the post flips at once, a refusal puts it back (and toasts the server message).
+  const setCommentsOff = useOptimisticMutation<{ postId: string; off: boolean }, { ok: boolean; commentsOff: boolean }>({
+    mutationFn: (input) => client.social.setCommentsOff(input),
+    patch: ({ postId, off }, cache) => {
+      const flip = (rows: FeedPost[]) => rows.map((row) => (row.id === postId ? { ...row, commentsOff: off } : row));
+      cache.eachPage<FeedPost, { items: FeedPost[] }>(orpc.social.feed.key(), flip);
+      cache.eachPage<FeedPost, { items: FeedPost[] }>(orpc.social.myPosts.key(), flip);
+      cache.matching<FeedPost>(orpc.social.post.key(), (old) => (old.id === postId ? { ...old, commentsOff: off } : old));
+      cache.matching<{ posts?: { items: FeedPost[] } }>(orpc.social.publicProfile.key(), (old) =>
+        old.posts ? { ...old, posts: { ...old.posts, items: flip(old.posts.items) } } : old,
+      );
+    },
+    success: ({ off }) => ({ message: off ? t("menu.toast.commentsOff") : t("menu.toast.commentsOn") }),
+    invalidate: () => [orpc.social.key()],
+  });
   const block = useMutation(
     orpc.social.block.mutationOptions({
       onSuccess: () => {
@@ -210,6 +225,25 @@ export function PostMenuSheet({
                   }
                   title={mapShown ? t("menu.mapHide.title") : t("menu.mapShow.title")}
                   subtitle={mapShown ? t("menu.mapHide.subtitle") : t("menu.mapShow.subtitle")}
+                />
+              )}
+              {isOwn && (
+                <ListButtonRow
+                  onClick={() => {
+                    onOpenChange(false);
+                    setCommentsOff.mutate({ postId: post.id, off: !post.commentsOff });
+                  }}
+                  icon={
+                    <span className="grid size-11 shrink-0 place-items-center rounded-full bg-muted">
+                      {post.commentsOff ? (
+                        <MessageCircle className="size-5 text-muted-foreground" aria-hidden />
+                      ) : (
+                        <MessageCircleOff className="size-5 text-muted-foreground" aria-hidden />
+                      )}
+                    </span>
+                  }
+                  title={post.commentsOff ? t("menu.commentsOn.title") : t("menu.commentsOff.title")}
+                  subtitle={post.commentsOff ? t("menu.commentsOn.subtitle") : t("menu.commentsOff.subtitle")}
                 />
               )}
               {isOwn && (

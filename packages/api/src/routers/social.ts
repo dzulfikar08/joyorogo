@@ -179,6 +179,7 @@ async function loadVisiblePost(
       statsJson: postTable.statsJson,
       caption: postTable.caption,
       visibility: postTable.visibility,
+      commentsOff: postTable.commentsOff,
       createdAt: postTable.createdAt,
       authorName: user.name,
       authorImage: user.image,
@@ -426,6 +427,7 @@ function toFeedItem(row: {
   statsJson: string | null;
   caption: string | null;
   visibility: "publik" | "grup";
+  commentsOff: boolean;
   createdAt: Date;
   authorId: string;
   authorName: string;
@@ -449,6 +451,7 @@ function toFeedItem(row: {
     photoCount: parseStringArray(row.photosJson).length || (row.photoId ? 1 : 0),
     caption: row.caption,
     visibility: row.visibility,
+    commentsOff: row.commentsOff,
     createdAt: row.createdAt,
     author: {
       id: row.authorId,
@@ -479,6 +482,7 @@ const postColumns = {
   statsJson: postTable.statsJson,
   caption: postTable.caption,
   visibility: postTable.visibility,
+  commentsOff: postTable.commentsOff,
   createdAt: postTable.createdAt,
   authorName: user.name,
   authorImage: user.image,
@@ -1211,6 +1215,26 @@ export const socialRouter = {
       return { ok: true };
     }),
 
+  /**
+   * Penulis menutup atau membuka komentar postingan sendiri. Idempoten. Komentar yang sudah ada tetap tampil dan
+   * bisa dihapus; penulis sendiri masih boleh membalas supaya bisa menutup utas dengan kata terakhir.
+   */
+  setCommentsOff: protectedProcedure
+    .input(z.object({ postId: z.string(), off: z.boolean() }))
+    .handler(async ({ context, input }) => {
+      const t = serverT(context.locale, "feed");
+      const me = context.session.user.id;
+      const [row] = await context.db
+        .select({ userId: postTable.userId })
+        .from(postTable)
+        .where(eq(postTable.id, input.postId))
+        .limit(1);
+      if (!row) throw new ORPCError("NOT_FOUND", { message: t("server.error.postNotFound") });
+      if (row.userId !== me) throw new ORPCError("FORBIDDEN", { message: t("server.error.notYourPost") });
+      await context.db.update(postTable).set({ commentsOff: input.off }).where(eq(postTable.id, input.postId));
+      return { ok: true, commentsOff: input.off };
+    }),
+
   myPosts: protectedProcedure
     .input(z.object({ cursor: cursorSchema, limit: z.number().int().min(1).max(25).default(PAGE_SIZE) }))
     .handler(async ({ context, input }) => {
@@ -1751,6 +1775,9 @@ export const socialRouter = {
         throw new ORPCError("BAD_REQUEST", { message: t("server.error.commentQuota") });
       }
       const row = await loadVisiblePost(db, input.postId, me, t);
+      if (row.commentsOff && row.userId !== me) {
+        throw new ORPCError("FORBIDDEN", { message: t("server.error.commentsOff") });
+      }
 
       let topLevelId: string | null = null;
       let replyToUserId: string | null = null;

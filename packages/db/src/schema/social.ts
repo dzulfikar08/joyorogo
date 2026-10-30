@@ -128,6 +128,8 @@ export const post = sqliteTable(
     caption: text("caption"),
     // 'publik' (Jelajah + profil publik) | 'grup' (rekan satu tim saja)
     visibility: text("visibility", { enum: ["publik", "grup"] }).notNull().default("grup"),
+    // Penulis mematikan komentar: yang lain tidak bisa menulis; komentar lama tetap terlihat.
+    commentsOff: integer("comments_off", { mode: "boolean" }).notNull().default(false),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),

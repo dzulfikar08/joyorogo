@@ -3,7 +3,7 @@ import { Sheet } from "@joyorogo/ui/components/sheet";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, MessageCircleOff, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
@@ -179,7 +179,12 @@ export function CommentsSheet({
 
         {/* Sticks to the bottom of the sheet while the list scrolls. The sheet pads its scroller by 1.5rem + 3rem (the popup sits 3rem under the fold), and sticky measures from the content box, so -bottom-6 lands it on the screen edge. */}
         <div className="sticky -bottom-6 z-10 -mx-5 border-t border-border bg-card px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
-          {myId ? (
+          {myId && post.commentsOff && !isOwn ? (
+            <p className="flex items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+              <MessageCircleOff className="size-4 shrink-0" aria-hidden />
+              {t("comments.off.notice")}
+            </p>
+          ) : myId ? (
             <CommentComposer
               postId={post.id}
               replyTo={replyTo}

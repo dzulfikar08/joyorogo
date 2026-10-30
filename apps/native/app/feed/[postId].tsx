@@ -30,6 +30,7 @@ import { useSessionGate } from "@/lib/use-session-gate";
 import { authClient } from "@/lib/auth-client";
 import { REPORT_REASONS, type FeedComment, type FeedItem, type ReportReason } from "@/src/lib/social";
 import { CommentComposer } from "@/components/feed/comment-composer";
+import { CommentsOffNotice } from "@/components/feed/comments-off-notice";
 import type { ReplyTarget } from "@/components/feed/comment-composer";
 import { CommentSection, afterCommentDelete } from "@/components/feed/comment-thread";
 import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
@@ -116,6 +117,14 @@ export default function DetailPost() {
     success: ({ show }) => ({ message: show ? t("menu.toast.mapShown") : t("menu.toast.mapHidden") }),
     invalidate: () => [orpc.social.key()],
   });
+  const setCommentsOff = useOptimisticMutation<{ off: boolean }, { ok: boolean; commentsOff: boolean }>({
+    mutationFn: ({ off }) => client.social.setCommentsOff({ postId: id, off }),
+    patch: ({ off }, cache) => {
+      cache.value<FeedItem>(postKey, (old) => (old ? { ...old, commentsOff: off } : old));
+    },
+    success: ({ off }) => ({ message: off ? t("menu.toast.commentsOff") : t("menu.toast.commentsOn") }),
+    invalidate: () => [orpc.social.key()],
+  });
   const report = useMutation({
     mutationFn: (input: { reason: ReportReason; note?: string }) =>
       client.social.report({ postId: id, ...input }),
@@ -191,15 +200,19 @@ export default function DetailPost() {
     <Screen
       scrollEnabled={!scrubbing}
       footer={
-        <CommentComposer
-          postId={id}
-          replyTo={replyTo}
-          onCancelReply={() => setReplyTo(null)}
-          focusSignal={focusComposer}
-          onSent={(topId) => {
-            if (topId) setExpanded((prev) => new Set(prev).add(topId));
-          }}
-        />
+        data.commentsOff && !isOwnPost ? (
+          <CommentsOffNotice />
+        ) : (
+          <CommentComposer
+            postId={id}
+            replyTo={replyTo}
+            onCancelReply={() => setReplyTo(null)}
+            focusSignal={focusComposer}
+            onSent={(topId) => {
+              if (topId) setExpanded((prev) => new Set(prev).add(topId));
+            }}
+          />
+        )
       }
     >
       <PageHeader
@@ -302,6 +315,18 @@ export default function DetailPost() {
               onPress={() => {
                 setMenuOpen(false);
                 setPostMap.mutate({ show: data.stats?.showMap === 0 });
+              }}
+            />
+          ) : null}
+          {isOwnPost ? (
+            <ListRow
+              icon={data.commentsOff ? "chatbubble-outline" : "lock-closed-outline"}
+              iconTint="tidur"
+              title={data.commentsOff ? t("menu.commentsOn.title") : t("menu.commentsOff.title")}
+              subtitle={data.commentsOff ? t("menu.commentsOn.subtitle") : t("menu.commentsOff.subtitle")}
+              onPress={() => {
+                setMenuOpen(false);
+                setCommentsOff.mutate({ off: !data.commentsOff });
               }}
             />
           ) : null}
