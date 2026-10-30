@@ -18,13 +18,18 @@ enum StreakKind: String {
 }
 
 enum StreakPose: String, CaseIterable {
-    case cheer, surprised, determined, sleepy, ready, relax
+    case cheer, milestone, welcome
+    case morning, sideeye, panic, lastchance
+    case teary, mopey, frozen, dusty, ghost
+    case ready, relax
 }
 
 /// What the app keeps of a streak: the status follows from these two and the date it is read on.
 struct StreakStamp: Decodable, Equatable {
     let days: Int
     let lastLoggedDate: String?
+    /// The log before `lastLoggedDate`, kept by the app so a first log after a break reads as a comeback. Absent in old payloads.
+    let previousLoggedDate: String?
 }
 
 struct StreakDay: Decodable, Equatable {
@@ -68,8 +73,16 @@ struct StreakModel: Equatable {
     let gain: Bool
 }
 
-/// A week without a log: Joyo has dozed off instead of giving the look.
-let sleepyAfterDays = 7
+/// Local hours at which an unlogged day gets more worried (12:00, 17:00, 21:00); the timeline has an entry at each.
+let moodHours = [12, 17, 21]
+
+/// A first log after at least this many days away is a comeback, not an ordinary day one.
+let comebackAfterDays = 7
+
+/// Run lengths that earn Joyo's party pose on the day they are reached: 7, 30, 100 and every further 100.
+func isMilestone(_ days: Int) -> Bool {
+    days == 7 || days == 30 || (days >= 100 && days % 100 == 0)
+}
 
 /// Days since 1970-01-01 of a 'YYYY-MM-DD' calendar day (proleptic Gregorian, pure integer math), nil when malformed.
 func epochDay(_ ymd: String) -> Int? {
@@ -103,8 +116,7 @@ func streakAt(_ stamp: StreakStamp, today: String) -> StreakState {
 }
 
 private let doneLines = ["misc:widget.streak.done.1", "misc:widget.streak.done.2"]
-private let atRiskLines = ["misc:widget.streak.atRisk.1", "misc:widget.streak.atRisk.2"]
-private let brokenLines = ["misc:widget.streak.broken.1", "misc:widget.streak.broken.2", "misc:widget.streak.broken.3"]
+private let mopeyLines = ["misc:widget.streak.broken.mopey.1", "misc:widget.streak.broken.mopey.2", "misc:widget.streak.broken.mopey.3"]
 
 /// The line for `date`: the same all day, a different one tomorrow.
 private func rotate(_ lines: [String], _ date: String) -> String {
@@ -112,9 +124,29 @@ private func rotate(_ lines: [String], _ date: String) -> String {
     return lines[((n % lines.count) + lines.count) % lines.count]
 }
 
-/// The model for `snapshot` on the person's date `today` ('YYYY-MM-DD' in their zone). nil is a widget the app has
-/// not written to yet (just installed, app never opened): it reads as signed out, "Buka JoyoRogo untuk masuk".
-func streakModel(_ snapshot: StreakSnapshot?, today: String) -> StreakModel {
+/// Joyo's worry while the run is alive and today is blank, by the phone's local hour.
+private func atRiskMood(_ hour: Int) -> (pose: StreakPose, lineKey: String) {
+    if hour < moodHours[0] { return (.morning, "misc:widget.streak.atRisk.morning") }
+    if hour < moodHours[1] { return (.sideeye, "misc:widget.streak.atRisk.sideeye") }
+    if hour < moodHours[2] { return (.panic, "misc:widget.streak.atRisk.panic") }
+    return (.lastchance, "misc:widget.streak.atRisk.lastchance")
+}
+
+/// Joyo's mood once the run is gone, by `lapseDays` (the count the tile shows: 2 is the first broken day). He counts
+/// the days the run has been gone, so `lapseDays - 1`: 1 teary, 2-3 mopey, 4-6 frozen, 7-13 dusty, 14 and more ghost.
+private func brokenMood(_ lapseDays: Int, _ today: String) -> (pose: StreakPose, lineKey: String) {
+    let gone = lapseDays - 1
+    if gone <= 1 { return (.teary, "misc:widget.streak.broken.teary") }
+    if gone <= 3 { return (.mopey, rotate(mopeyLines, today)) }
+    if gone <= 6 { return (.frozen, "misc:widget.streak.broken.frozen") }
+    if gone <= 13 { return (.dusty, "misc:widget.streak.broken.dusty") }
+    return (.ghost, "misc:widget.streak.broken.ghost")
+}
+
+/// The model for `snapshot` on the person's date `today` ('YYYY-MM-DD' in their zone) and the phone's local `hour`
+/// (0-23). nil is a widget the app has not written to yet (just installed, app never opened): it reads as signed out,
+/// "Buka JoyoRogo untuk masuk".
+func streakModel(_ snapshot: StreakSnapshot?, today: String, hour: Int) -> StreakModel {
     guard let snapshot, snapshot.signedIn else {
         return StreakModel(kind: .signedOut, pose: .ready, count: nil, titleKey: "misc:widget.signIn", lit: false,
                            labelKey: nil, lineKey: "misc:widget.streak.signInLine", gain: false)
@@ -132,17 +164,28 @@ func streakModel(_ snapshot: StreakSnapshot?, today: String) -> StreakModel {
     let state = streakAt(stamp, today: today)
     switch state.status {
     case .done:
-        return StreakModel(kind: .done, pose: .cheer, count: state.days, titleKey: nil, lit: true,
-                           labelKey: "misc:widget.streak.days", lineKey: rotate(doneLines, today), gain: gain)
+        var comeback = false
+        if state.days == 1, let previous = stamp.previousLoggedDate, let gap = daysBetween(previous, today) {
+            comeback = gap >= comebackAfterDays
+        }
+        var mood: (pose: StreakPose, lineKey: String) = (.cheer, rotate(doneLines, today))
+        if comeback {
+            mood = (.welcome, "misc:widget.streak.done.welcome")
+        } else if isMilestone(state.days) {
+            mood = (.milestone, "misc:widget.streak.done.milestone")
+        }
+        return StreakModel(kind: .done, pose: mood.pose, count: state.days, titleKey: nil, lit: true,
+                           labelKey: "misc:widget.streak.days", lineKey: mood.lineKey, gain: gain)
     case .atRisk:
-        return StreakModel(kind: .atRisk, pose: .surprised, count: state.days, titleKey: nil, lit: true,
+        let mood = atRiskMood(hour)
+        return StreakModel(kind: .atRisk, pose: mood.pose, count: state.days, titleKey: nil, lit: true,
                            labelKey: "misc:widget.streak.days",
-                           lineKey: gain ? "misc:widget.streak.atRisk.gain" : rotate(atRiskLines, today), gain: gain)
+                           lineKey: gain ? "misc:widget.streak.atRisk.gain" : mood.lineKey, gain: gain)
     case .broken:
-        let asleep = state.lapseDays >= sleepyAfterDays
-        return StreakModel(kind: .broken, pose: asleep ? .sleepy : .determined, count: state.lapseDays, titleKey: nil,
+        let mood = brokenMood(state.lapseDays, today)
+        return StreakModel(kind: .broken, pose: mood.pose, count: state.lapseDays, titleKey: nil,
                            lit: false, labelKey: gain ? "misc:widget.streak.lapseGain" : "misc:widget.streak.lapse",
-                           lineKey: asleep ? "misc:widget.streak.asleep" : rotate(brokenLines, today), gain: gain)
+                           lineKey: mood.lineKey, gain: gain)
     case .none:
         return StreakModel(kind: .fresh, pose: .ready, count: nil, titleKey: "misc:widget.streak.freshTitle", lit: false,
                            labelKey: nil,
@@ -166,7 +209,7 @@ func dayTimeZone(_ zone: String?) -> TimeZone {
     return TimeZone(secondsFromGMT: fixedOffsetSeconds(zone)) ?? TimeZone(secondsFromGMT: 7 * 3600)!
 }
 
-private func calendar(in zone: String?) -> Calendar {
+func calendar(in zone: String?) -> Calendar {
     var cal = Calendar(identifier: .gregorian)
     cal.timeZone = dayTimeZone(zone)
     return cal
@@ -178,16 +221,36 @@ func dayString(_ date: Date, zone: String?) -> String {
     return String(format: "%04d-%02d-%02d", c.year ?? 1970, c.month ?? 1, c.day ?? 1)
 }
 
-/// `date` itself, then the next `days` midnights in `zone`: one timeline entry per day, so the widget ages by itself
-/// (a lit flame turns "at risk" at midnight) with no network and no app launch.
-func timelineDates(from date: Date, zone: String?, days: Int) -> [Date] {
+/// The hour 0-23 it is at `date` on `calendar`: the phone's own clock (Calendar.current), which is what the mood follows.
+func localHour(_ date: Date, calendar: Calendar = .current) -> Int {
+    calendar.component(.hour, from: date)
+}
+
+/// `date` itself, then everything after it that can change the tile before the horizon (the `days`th midnight in
+/// `zone`): each midnight, so a lit flame turns "at risk" at midnight and "broken" a day later, and each mood hour
+/// (12:00, 17:00, 21:00 on `hourCalendar`, the phone's clock), so Joyo gets more worried at the hour. No network, no app launch.
+func timelineDates(from date: Date, zone: String?, days: Int, hourCalendar: Calendar = .current) -> [Date] {
     let cal = calendar(in: zone)
-    var dates = [date]
+    var midnights: [Date] = []
     var cursor = cal.startOfDay(for: date)
     for _ in 0..<days {
         guard let next = cal.date(byAdding: .day, value: 1, to: cursor) else { break }
-        dates.append(next)
+        midnights.append(next)
         cursor = next
     }
-    return dates
+    guard let horizon = midnights.last else { return [date] }
+
+    var marks = Set(midnights)
+    var dayStart = hourCalendar.startOfDay(for: date)
+    while dayStart < horizon {
+        for hour in moodHours {
+            if let mark = hourCalendar.date(bySettingHour: hour, minute: 0, second: 0, of: dayStart),
+               mark > date, mark < horizon {
+                marks.insert(mark)
+            }
+        }
+        guard let next = hourCalendar.date(byAdding: .day, value: 1, to: dayStart) else { break }
+        dayStart = next
+    }
+    return [date] + marks.sorted()
 }

@@ -11,8 +11,8 @@ let streakWidgetKind = "StreakCatat"
 /// login and brought back to it). Same string as CAMERA_WIDGET_URI in names.ts.
 let streakScanURL = URL(string: "joyorogo://makan-ai")!
 
-/// Midnights ahead each timeline carries. WidgetKit reloads at the end of the last one; the app also reloads it every
-/// time it writes a new snapshot.
+/// Midnights ahead each timeline carries (and, between them, the mood hours). WidgetKit reloads at the end of the last one;
+/// the app also reloads it every time it writes a new snapshot.
 let streakTimelineDays = 7
 
 // MARK: - Timeline
@@ -23,14 +23,15 @@ struct StreakEntry: TimelineEntry {
     let language: String
 
     var zone: String? { snapshot?.day?.zone }
-    var model: StreakModel { streakModel(snapshot, today: dayString(date, zone: zone)) }
+    /// The day is the person's (their zone); the mood hour is the phone's own clock, like the Android widget's.
+    var model: StreakModel { streakModel(snapshot, today: dayString(date, zone: zone), hour: localHour(date)) }
 }
 
 struct StreakProvider: TimelineProvider {
     /// Gallery and redacted placeholder: the lit state, so the picker shows the flame.
     private func sample(at date: Date = Date()) -> StreakEntry {
         let today = dayString(date, zone: nil)
-        let day = StreakDay(zone: nil, streak: StreakStamp(days: 12, lastLoggedDate: today), maternal: false, gain: false)
+        let day = StreakDay(zone: nil, streak: StreakStamp(days: 12, lastLoggedDate: today, previousLoggedDate: nil), maternal: false, gain: false)
         return StreakEntry(date: date, snapshot: StreakSnapshot(v: 1, signedIn: true, day: day),
                            language: StreakCopy.resolve(nil))
     }
@@ -43,8 +44,9 @@ struct StreakProvider: TimelineProvider {
         completion(StreakEntry(date: Date(), snapshot: stored.snapshot, language: stored.language))
     }
 
-    /// One entry now and one at each of the next midnights in the person's day zone, so a lit flame turns "at risk"
-    /// at midnight and "broken" a day later with no network and no app launch.
+    /// One entry now and one at each of the next midnights in the person's day zone and at each mood hour (12:00, 17:00,
+    /// 21:00 on the phone's clock), so a lit flame turns "at risk" at midnight and "broken" a day later and Joyo gets more
+    /// worried through the day, with no network and no app launch.
     func getTimeline(in context: Context, completion: @escaping (Timeline<StreakEntry>) -> Void) {
         let stored = StreakStore.load()
         let zone = stored.snapshot?.day?.zone

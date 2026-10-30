@@ -24,6 +24,7 @@ struct ModelVector: Decodable {
     let name: String
     let snapshot: StreakSnapshot
     let today: String
+    let hour: Int
     let expected: ExpectedModel
 }
 
@@ -59,7 +60,7 @@ guard CommandLine.arguments.count == 2,
 }
 
 for vector in vectors.models {
-    let m = streakModel(vector.snapshot, today: vector.today)
+    let m = streakModel(vector.snapshot, today: vector.today, hour: vector.hour)
     let e = vector.expected
     check(m.kind.rawValue == e.kind, "\(vector.name): kind \(m.kind.rawValue), want \(e.kind)")
     check(m.pose.rawValue == e.pose, "\(vector.name): pose \(m.pose.rawValue), want \(e.pose)")
@@ -80,7 +81,8 @@ for vector in vectors.days {
 
 for vector in vectors.timelines {
     let from = Date(timeIntervalSince1970: vector.fromSeconds)
-    let got = timelineDates(from: from, zone: vector.zone, days: vector.days).map { $0.timeIntervalSince1970 }
+    // The phone's clock is the person's zone in these vectors (the phone is where the person is).
+    let got = timelineDates(from: from, zone: vector.zone, days: vector.days, hourCalendar: calendar(in: vector.zone)).map { $0.timeIntervalSince1970 }
     check(got == vector.dates, "timeline from \(vector.fromSeconds) in \(vector.zone): \(got), want \(vector.dates)")
 }
 
@@ -93,9 +95,11 @@ check(StreakCopy.resolve("ms", preferred: ["en-US"]) == "ms", "stored language w
 check(StreakCopy.resolve("fr", preferred: ["fr-FR", "in-ID"]) == "id", "legacy 'in' is Indonesian")
 check(StreakCopy.resolve(nil, preferred: ["ms-MY", "en-US"]) == "ms", "device language")
 check(StreakCopy.resolve(nil, preferred: ["fr-FR"]) == "id", "unsupported device language falls back to Indonesian")
-let unknown = StreakSnapshot(v: 9, signedIn: true, day: StreakDay(zone: nil, streak: StreakStamp(days: 2, lastLoggedDate: "garbage"), maternal: nil, gain: nil))
-check(streakModel(unknown, today: "2026-10-23").kind == .fresh, "a malformed last day reads as no streak")
-check(streakModel(nil, today: "2026-10-23").kind == .signedOut, "no snapshot reads as signed out")
+let unknown = StreakSnapshot(v: 9, signedIn: true, day: StreakDay(zone: nil, streak: StreakStamp(days: 2, lastLoggedDate: "garbage", previousLoggedDate: nil), maternal: nil, gain: nil))
+check(streakModel(unknown, today: "2026-10-23", hour: 9).kind == .fresh, "a malformed last day reads as no streak")
+check(streakModel(nil, today: "2026-10-23", hour: 9).kind == .signedOut, "no snapshot reads as signed out")
+let garbagePrevious = StreakSnapshot(v: 1, signedIn: true, day: StreakDay(zone: nil, streak: StreakStamp(days: 1, lastLoggedDate: "2026-10-23", previousLoggedDate: "garbage"), maternal: nil, gain: nil))
+check(streakModel(garbagePrevious, today: "2026-10-23", hour: 9).pose == .cheer, "a malformed previous log is no comeback")
 
 if failures.isEmpty {
     print("streak-check: \(vectors.models.count) models, \(vectors.days.count) days, \(vectors.timelines.count) timelines ok")

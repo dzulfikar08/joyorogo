@@ -39,8 +39,8 @@ export interface IosStreakPayload {
   /** Null: signed in without a plan yet (and every signed-out snapshot). */
   day: {
     zone: DayZone;
-    /** Null in Hamil / Menyusui and when the snapshot has no streak. */
-    streak: StreakStamp | null;
+    /** Null in Hamil / Menyusui and when the snapshot has no streak. `previousLoggedDate`: the log before the last one (comeback). */
+    streak: (StreakStamp & { previousLoggedDate: string | null }) | null;
     maternal: boolean;
     gain: boolean;
   } | null;
@@ -55,7 +55,13 @@ export function iosStreakPayload(snapshot: WidgetSnapshot): IosStreakPayload {
     day: day
       ? {
           zone: isDayZone(day.zone) ? day.zone : DEFAULT_DAY_ZONE,
-          streak: day.streak ? { days: day.streak.days, lastLoggedDate: day.streak.lastLoggedDate } : null,
+          streak: day.streak
+            ? {
+                days: day.streak.days,
+                lastLoggedDate: day.streak.lastLoggedDate,
+                previousLoggedDate: day.streak.previousLoggedDate ?? null,
+              }
+            : null,
           maternal: day.maternal === true,
           gain: day.gain === true,
         }
@@ -78,13 +84,20 @@ export const IOS_STREAK_COPY_KEYS = {
   "misc:widget.streak.lapseGain": true,
   "misc:widget.streak.done.1": true,
   "misc:widget.streak.done.2": true,
-  "misc:widget.streak.atRisk.1": true,
-  "misc:widget.streak.atRisk.2": true,
+  "misc:widget.streak.done.milestone": true,
+  "misc:widget.streak.done.welcome": true,
+  "misc:widget.streak.atRisk.morning": true,
+  "misc:widget.streak.atRisk.sideeye": true,
+  "misc:widget.streak.atRisk.panic": true,
+  "misc:widget.streak.atRisk.lastchance": true,
   "misc:widget.streak.atRisk.gain": true,
-  "misc:widget.streak.broken.1": true,
-  "misc:widget.streak.broken.2": true,
-  "misc:widget.streak.broken.3": true,
-  "misc:widget.streak.asleep": true,
+  "misc:widget.streak.broken.teary": true,
+  "misc:widget.streak.broken.mopey.1": true,
+  "misc:widget.streak.broken.mopey.2": true,
+  "misc:widget.streak.broken.mopey.3": true,
+  "misc:widget.streak.broken.frozen": true,
+  "misc:widget.streak.broken.dusty": true,
+  "misc:widget.streak.broken.ghost": true,
   "misc:widget.streak.fresh": true,
   "misc:widget.streak.freshGain": true,
   "misc:widget.streak.off": true,

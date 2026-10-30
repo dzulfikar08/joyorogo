@@ -27,9 +27,17 @@ import type { StreakPose } from "@/src/lib/widgets/streak-model";
  */
 const POSE_IMAGE: Record<StreakPose, number> = {
   cheer: require("@/assets/widget/mascot/cheer.webp"),
-  surprised: require("@/assets/widget/mascot/surprised.webp"),
-  determined: require("@/assets/widget/mascot/determined.webp"),
-  sleepy: require("@/assets/widget/mascot/sleepy.webp"),
+  milestone: require("@/assets/widget/mascot/milestone.webp"),
+  welcome: require("@/assets/widget/mascot/welcome.webp"),
+  morning: require("@/assets/widget/mascot/morning.webp"),
+  sideeye: require("@/assets/widget/mascot/sideeye.webp"),
+  panic: require("@/assets/widget/mascot/panic.webp"),
+  lastchance: require("@/assets/widget/mascot/lastchance.webp"),
+  teary: require("@/assets/widget/mascot/teary.webp"),
+  mopey: require("@/assets/widget/mascot/mopey.webp"),
+  frozen: require("@/assets/widget/mascot/frozen.webp"),
+  dusty: require("@/assets/widget/mascot/dusty.webp"),
+  ghost: require("@/assets/widget/mascot/ghost.webp"),
   ready: require("@/assets/widget/mascot/ready.webp"),
   relax: require("@/assets/widget/mascot/relax.webp"),
 };
@@ -52,7 +60,8 @@ function flameSvg(lit: boolean, dark: boolean): string {
  * since the last log), and under it Joyo reacting to the state with one nudge line beside him. Every tap opens the scan
  * camera (the same deep link as the 1x1 camera tile), except signed out / no plan, which open the app.
  *
- * `today` is the phone's own day in the person's zone, so a stored snapshot ages by itself (see streak-model).
+ * `today` is the phone's own day in the person's zone and `hour` the phone's local hour, so a stored snapshot ages by
+ * itself (see streak-model): the day turns it from lit to at risk to broken, the hour moves Joyo's mood.
  */
 export function StreakWidget({
   snapshot,
@@ -67,7 +76,7 @@ export function StreakWidget({
 }) {
   const t = dark ? darkTheme : lightTheme;
   const zone = snapshot.day?.zone;
-  const model = streakWidgetModel(snapshot, dayIn(isDayZone(zone) ? zone : undefined));
+  const model = streakWidgetModel(snapshot, dayIn(isDayZone(zone) ? zone : undefined), new Date().getHours());
   const art = MASCOT_ART[model.pose];
   const count = model.count;
   const label = model.labelKey ? i18n.t(model.labelKey) : "";

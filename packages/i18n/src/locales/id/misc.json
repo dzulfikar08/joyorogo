@@ -273,19 +273,28 @@
       "lapseGain": "hari belum capai target",
       "done": {
         "1": "Apinya menyala. Sampai besok!",
-        "2": "Mantap, hari ini sudah beres."
+        "2": "Mantap, hari ini sudah beres.",
+        "milestone": "Rekor! Joyo bangga banget.",
+        "welcome": "Kamu balik! Joyo kangen banget!"
       },
       "atRisk": {
-        "1": "Jaga apinya: catat hari ini",
-        "2": "Satu foto cukup buat jaga apinya.",
+        "morning": "Sarapan apa?",
+        "sideeye": "Belum foto makan nih.",
+        "panic": "Jaga apinya!",
+        "lastchance": "Kesempatan terakhir!",
         "gain": "Jaga apinya: capai target hari ini"
       },
       "broken": {
-        "1": "Joyo nungguin. Satu foto, yuk.",
-        "2": "Santai, mulai lagi hari ini.",
-        "3": "Catat satu makan, api nyala."
+        "teary": "Yah, putus…",
+        "mopey": {
+          "1": "Joyo nungguin. Satu foto, yuk.",
+          "2": "Santai, mulai lagi hari ini.",
+          "3": "Catat satu makan, api nyala."
+        },
+        "frozen": "Cairkan lagi?",
+        "dusty": "Joyo sampai berdebu nungguin.",
+        "ghost": "Kamu ngilang ya?"
       },
-      "asleep": "Joyo ketiduran nungguin.",
       "freshTitle": "Nyalakan apinya",
       "fresh": "Catat satu makan, streak-mu dimulai.",
       "freshGain": "Capai target makan hari ini, streak-mu dimulai.",

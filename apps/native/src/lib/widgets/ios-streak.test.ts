@@ -22,7 +22,7 @@ import {
 import { CAMERA_WIDGET_URI } from "./names";
 // Type-only: snapshot.ts reads files through expo, which bun cannot load.
 import type { WidgetDaySnapshot, WidgetSnapshot } from "./snapshot";
-import { MASCOT_ART, streakWidgetModel } from "./streak-model";
+import { MASCOT_ART, MOOD_HOURS, streakWidgetModel } from "./streak-model";
 
 const NATIVE = resolve(import.meta.dir, "../../..");
 const TARGET = resolve(NATIVE, "targets/widget");
@@ -86,13 +86,25 @@ const SCENARIOS: Array<{ name: string; snapshot: WidgetSnapshot }> = [
   { name: "at risk", snapshot: fromDates([back(3), back(2), back(1)]) },
   { name: "broken, 3 days", snapshot: fromDates([back(9), back(4), back(3)]) },
   { name: "broken, 6 days", snapshot: fromDates([back(6)]) },
-  { name: "asleep, 7 days", snapshot: fromDates([back(7)]) },
-  { name: "asleep, a month", snapshot: fromDates([back(30)]) },
+  { name: "broken, 7 days", snapshot: fromDates([back(7)]) },
+  { name: "broken, 10 days", snapshot: fromDates([back(10)]) },
+  { name: "broken, a month", snapshot: fromDates([back(30)]) },
+  { name: "milestone: day 7", snapshot: snap({ streak: { days: 7, lastLoggedDate: TODAY } }) },
+  { name: "milestone: day 8", snapshot: snap({ streak: { days: 8, lastLoggedDate: TODAY } }) },
+  { name: "milestone: day 30", snapshot: snap({ streak: { days: 30, lastLoggedDate: TODAY } }) },
+  { name: "milestone: day 100", snapshot: snap({ streak: { days: 100, lastLoggedDate: TODAY } }) },
+  { name: "milestone: day 200", snapshot: snap({ streak: { days: 200, lastLoggedDate: TODAY } }) },
+  { name: "comeback: 7 days away", snapshot: snap({ streak: { days: 1, lastLoggedDate: TODAY, previousLoggedDate: back(7) } }) },
+  { name: "comeback: 30 days away", snapshot: snap({ streak: { days: 1, lastLoggedDate: TODAY, previousLoggedDate: back(30) } }) },
+  { name: "not a comeback: 6 days away", snapshot: snap({ streak: { days: 1, lastLoggedDate: TODAY, previousLoggedDate: back(6) } }) },
+  { name: "not a comeback: day 2", snapshot: snap({ streak: { days: 2, lastLoggedDate: TODAY, previousLoggedDate: back(30) } }) },
+  { name: "not a comeback: no earlier log", snapshot: snap({ streak: { days: 1, lastLoggedDate: TODAY, previousLoggedDate: null } }) },
+  { name: "not a comeback: garbage earlier log", snapshot: snap({ streak: { days: 1, lastLoggedDate: TODAY, previousLoggedDate: "garbage" } }) },
   { name: "fresh", snapshot: fromDates([]) },
   { name: "gain: done", snapshot: fromDates([TODAY], { gain: true }) },
   { name: "gain: at risk", snapshot: fromDates([back(2), back(1)], { gain: true }) },
   { name: "gain: broken", snapshot: fromDates([back(5)], { gain: true }) },
-  { name: "gain: asleep", snapshot: fromDates([back(12)], { gain: true }) },
+  { name: "gain: broken, 12 days", snapshot: fromDates([back(12)], { gain: true }) },
   { name: "gain: fresh", snapshot: fromDates([], { gain: true }) },
   { name: "maternal", snapshot: snap({ maternal: true, streak: null }) },
   { name: "maternal with a stale streak", snapshot: snap({ maternal: true, streak: { days: 4, lastLoggedDate: TODAY } }) },
@@ -107,28 +119,42 @@ const SCENARIOS: Array<{ name: string; snapshot: WidgetSnapshot }> = [
 /** Each scenario read on the day it was written and on the nine days after, so it ages through every state. */
 const AGE_DAYS = Array.from({ length: 10 }, (_, d) => d);
 
+/** The hours around every mood boundary (12, 17, 21) plus midnight, which the scenarios cycle through. */
+const HOURS = [0, 11, 12, 16, 17, 20, 21, 23];
+
+/** Scenarios read at every hour of their first day, so each at-risk mood is checked in the Swift port. */
+const HOUR_SWEEP = ["at risk", "gain: at risk"];
+
+function modelVector(name: string, snapshot: WidgetSnapshot, age: number, hour: number) {
+  const today = shiftDate(TODAY, age);
+  const m = streakWidgetModel(snapshot, today, hour);
+  return {
+    name: `${name} +${age}d @${hour}h`,
+    snapshot: iosStreakPayload(snapshot),
+    today,
+    hour,
+    expected: {
+      kind: m.kind,
+      pose: m.pose,
+      count: m.count,
+      titleKey: m.titleKey,
+      lit: m.lit,
+      labelKey: m.labelKey,
+      lineKey: m.lineKey,
+      gain: m.gain,
+    },
+  };
+}
+
 function modelVectors() {
-  return SCENARIOS.flatMap(({ name, snapshot }) =>
-    AGE_DAYS.map((age) => {
-      const today = shiftDate(TODAY, age);
-      const m = streakWidgetModel(snapshot, today);
-      return {
-        name: `${name} +${age}d`,
-        snapshot: iosStreakPayload(snapshot),
-        today,
-        expected: {
-          kind: m.kind,
-          pose: m.pose,
-          count: m.count,
-          titleKey: m.titleKey,
-          lit: m.lit,
-          labelKey: m.labelKey,
-          lineKey: m.lineKey,
-          gain: m.gain,
-        },
-      };
-    }),
+  // The hour of each cell follows its scenario and age, so every scenario meets every boundary hour over its ten days.
+  const cycled = SCENARIOS.flatMap(({ name, snapshot }, i) =>
+    AGE_DAYS.map((age) => modelVector(name, snapshot, age, HOURS[(age + i) % HOURS.length]!)),
   );
+  const swept = SCENARIOS.filter((s) => HOUR_SWEEP.includes(s.name)).flatMap(({ name, snapshot }) =>
+    Array.from({ length: 24 }, (_, hour) => modelVector(name, snapshot, 0, hour)),
+  );
+  return [...cycled, ...swept];
 }
 
 const ZONES: DayZone[] = ["Asia/Jakarta", "Asia/Kuala_Lumpur", "Asia/Singapore"];
@@ -151,13 +177,20 @@ function timelineVectors() {
   return ZONES.flatMap((zone) =>
     starts.map((from) => {
       const days = 8;
+      const fromSeconds = Date.parse(from) / 1000;
       const first = dayIn(zone, new Date(from));
+      const midnights = Array.from({ length: days }, (_, k) => midnightSeconds(zone, shiftDate(first, k + 1)));
+      const horizon = midnights[days - 1]!;
+      // The phone is where the person is here, so its mood hours (12:00, 17:00, 21:00) fall on the zone's clock.
+      const moods = Array.from({ length: days }, (_, k) => midnightSeconds(zone, shiftDate(first, k)))
+        .flatMap((dayStart) => MOOD_HOURS.map((hour) => dayStart + hour * 3600))
+        .filter((at) => at > fromSeconds && at < horizon);
       return {
         from,
-        fromSeconds: Date.parse(from) / 1000,
+        fromSeconds,
         zone,
         days,
-        dates: [Date.parse(from) / 1000, ...Array.from({ length: days }, (_, k) => midnightSeconds(zone, shiftDate(first, k + 1)))],
+        dates: [fromSeconds, ...[...midnights, ...moods].sort((a, b) => a - b)],
       };
     }),
   );
@@ -183,8 +216,18 @@ describe("iosStreakPayload", () => {
     expect(iosStreakPayload(fromDates([TODAY], { zone: "Asia/Kuala_Lumpur", gain: true }))).toEqual({
       v: IOS_STREAK_VERSION,
       signedIn: true,
-      day: { zone: "Asia/Kuala_Lumpur", streak: { days: 1, lastLoggedDate: TODAY }, maternal: false, gain: true },
+      day: {
+        zone: "Asia/Kuala_Lumpur",
+        streak: { days: 1, lastLoggedDate: TODAY, previousLoggedDate: null },
+        maternal: false,
+        gain: true,
+      },
     });
+  });
+
+  test("carries the log before the last one, for the comeback greeting", () => {
+    const payload = iosStreakPayload(snap({ streak: { days: 1, lastLoggedDate: TODAY, previousLoggedDate: back(9) } }));
+    expect(payload.day?.streak).toEqual({ days: 1, lastLoggedDate: TODAY, previousLoggedDate: back(9) });
   });
 
   test("an old snapshot without a zone is cut in Jakarta, Hamil / Menyusui has no streak, no plan has no day", () => {

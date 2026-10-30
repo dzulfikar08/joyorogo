@@ -277,19 +277,28 @@
       "lapseGain": "days short of target",
       "done": {
         "1": "The flame is lit. See you tomorrow!",
-        "2": "Nice, today's done."
+        "2": "Nice, today's done.",
+        "milestone": "New record! Joyo is so proud.",
+        "welcome": "You're back! Joyo missed you!"
       },
       "atRisk": {
-        "1": "Keep the flame: log today",
-        "2": "One photo keeps the flame alive.",
+        "morning": "What's for breakfast?",
+        "sideeye": "No meal photo yet…",
+        "panic": "Save the flame!",
+        "lastchance": "Last chance!",
         "gain": "Keep the flame: hit your target today"
       },
       "broken": {
-        "1": "Joyo's waiting. One photo?",
-        "2": "No worries. Start again today.",
-        "3": "Log one meal, flame's back."
+        "teary": "Aw, it broke…",
+        "mopey": {
+          "1": "Joyo's waiting. One photo?",
+          "2": "No worries. Start again today.",
+          "3": "Log one meal, flame's back."
+        },
+        "frozen": "Thaw it again?",
+        "dusty": "Joyo's gathering dust.",
+        "ghost": "Did you vanish?"
       },
-      "asleep": "Joyo fell asleep waiting.",
       "freshTitle": "Light the flame",
       "fresh": "Log one meal and your streak begins.",
       "freshGain": "Reach your eating target today to start a streak.",

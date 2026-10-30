@@ -14,7 +14,7 @@ flame with the days in a row and Joyo reacting, one tap to the scan camera. A Wi
 | Swift: App Group read, copy lookup | `targets/widget/StreakStore.swift` |
 | Swift: TimelineProvider, SwiftUI small + medium views, flame shape, `@main` bundle | `targets/widget/StreakWidget.swift`, `StreakWidgetBundle.swift` |
 | Copy in id / en / ms (generated from `packages/i18n/src/locales/*/misc.json`) | `targets/widget/streak-copy.json` |
-| Joyo poses (the six Android poses, 300 px tall PNGs, trimmed) | `targets/widget/Assets.xcassets/mascot-*.imageset` |
+| Joyo poses (the 14 Android poses, 300 px tall PNGs, trimmed) | `targets/widget/Assets.xcassets/mascot-*.imageset` |
 | Plus Jakarta Sans Bold / ExtraBold (registered through `UIAppFonts`), privacy manifest | `targets/widget/*.ttf`, `Info.plist`, `PrivacyInfo.xcprivacy` |
 | JS side: the payload, the App Group writer | `src/lib/widgets/ios-streak.ts` (pure), `ios-streak-store.ts` (native) |
 | Cross-check of the Swift model against the TypeScript model | `apps/native/widget-ios-check/` |
@@ -29,25 +29,29 @@ WidgetKit cannot run JavaScript, and iOS reloads a widget on its own budget, so 
 
 1. When the day summary loads (`app/(tabs)/index.tsx` calls `pushDaySnapshot`), `push.ts` also calls `mirrorStreakToIosWidget`. It writes into the
    App Group's `UserDefaults` (`group.com.joyodigitama.joyorogo`, through `ExtensionStorage` of the plugin) the key `streak`: JSON of
-   `IosStreakPayload` (signed in, day zone, streak stamp `{days, lastLoggedDate}`, Hamil/Menyusui flag, Naikin BB flag) and `streak.lang` (the app's
+   `IosStreakPayload` (signed in, day zone, streak stamp `{days, lastLoggedDate, previousLoggedDate}`, Hamil/Menyusui flag, Naikin BB flag) and `streak.lang` (the app's
    language). Then it calls `WidgetCenter.reloadTimelines(ofKind: "StreakCatat")`.
-2. `StreakProvider.getTimeline` builds one entry now and one at each of the next 7 midnights **in the person's day zone** (Asia/Jakarta,
-   Asia/Kuala_Lumpur or Asia/Singapore, from the payload). Each entry runs the Swift model on that entry's date, so a lit flame turns "at risk" at midnight and
-   "broken" the day after, and the nudge line rotates daily, with no network and no app launch. The timeline ends with `.after(last midnight)`.
+2. `StreakProvider.getTimeline` builds one entry now, one at each of the next 7 midnights **in the person's day zone** (Asia/Jakarta,
+   Asia/Kuala_Lumpur or Asia/Singapore, from the payload) and one at each mood hour (12:00, 17:00, 21:00 on the phone's own clock). Each entry runs the Swift model on that entry's date and
+   hour, so a lit flame turns "at risk" at midnight and "broken" the day after, Joyo gets more worried through the day, and the nudge line rotates daily, with no network and no app launch.
+   The timeline ends with `.after(last midnight)`.
 3. Sign out, account deletion and an expired session (`pushSignedOutSnapshot`) write a signed-out payload, so the last person's numbers never stay on the home screen.
    Until the app has ever written (just installed), the widget shows the signed-out tile ("Masuk dulu").
 
 Differences from Android: iOS has no headless refresh, so the widget does not fetch. A log made on another device shows after the app is opened once, and
 nothing updates while the app has not run since the last log; ageing at midnight works regardless. Copy is the app's language (`streak.lang`), not the phone's.
 
-States (same as Android, `streak-model.ts`): logged today (cheer), at risk (surprised, "Jaga apinya"), broken with "N hari tanpa catat" (determined), asleep after 7 days
-(sleepy), no streak (title "Nyalakan apinya"), Hamil/Menyusui (scan button only, no streak), no plan yet, signed out. Tap: `joyorogo://makan-ai` (the scan camera, same link as the 1x1
+States (same as Android, `streak-model.ts`; the hour is the phone's local hour): logged today (cheer; `milestone` on day 7, 30, 100 and every further 100; `welcome` on day 1 after 7 or more days away,
+which needs `previousLoggedDate`, kept by `writeSnapshot` from the stamp it replaces), at risk by the hour (before 12 `morning` "Sarapan apa?", 12-17 `sideeye`, 17-21 `panic` "Jaga apinya!", from 21
+`lastchance`), broken with "N hari tanpa catat" by the days the run has been gone, `lapseDays - 1` (1 `teary`, 2-3 `mopey`, 4-6 `frozen`, 7-13 `dusty`, 14+ `ghost`), no streak (title "Nyalakan apinya"),
+Hamil/Menyusui (scan button only, no streak), no plan yet, signed out. Tap: `joyorogo://makan-ai` (the scan camera, same link as the 1x1
 Android widget; a signed-out person is sent to the login and back); signed out and "no plan" only open the app.
 
 ## Keeping Swift and TypeScript the same
 
-- `StreakModel.swift` is a port; `widget-ios-check/streak-vectors.json` holds the TypeScript model's answers for 21 scenarios aged over 10 days (210 cases), day
-  strings at the midnights of all three zones and timeline dates. `swiftc` + `widget-ios-check/main.swift` fail on any difference:
+- `StreakModel.swift` is a port; `widget-ios-check/streak-vectors.json` holds the TypeScript model's answers for 33 scenarios aged over 10 days (each at a cycling local hour), the two
+  at-risk scenarios at every hour of the day, day strings at the midnights of all three zones and timeline dates (midnights plus 12:00, 17:00, 21:00). `swiftc` +
+  `widget-ios-check/main.swift` fail on any difference:
 
   ```bash
   swiftc -O apps/native/targets/widget/StreakModel.swift apps/native/targets/widget/StreakStore.swift apps/native/widget-ios-check/main.swift -o /tmp/streak-check

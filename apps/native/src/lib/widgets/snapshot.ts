@@ -1,7 +1,9 @@
 import { File, Paths } from "expo-file-system";
 
-import type { StreakStamp } from "@joyorogo/api/lib/streak";
 import type { DayZone } from "@joyorogo/i18n";
+
+import { withPreviousLog } from "./streak-stamp";
+import type { WidgetStreakStamp } from "./streak-stamp";
 
 /**
  * Plain-data snapshot the home-screen widgets render from.
@@ -22,11 +24,12 @@ export type WidgetDaySnapshot = {
   proteinTargetG: number | null;
   streakDays: number;
   /**
-   * The logging streak as the server counted it on `date`: the live run and the last counted day. The widget ages it
-   * on the phone's own date (api lib/streak `streakAt`), so a lit flame turns "at risk" at midnight without a fetch.
+   * The logging streak as the server counted it on `date`: the live run and the last counted day, plus the log before
+   * that day (writeSnapshot keeps it, for the comeback greeting). The widget ages it on the phone's own date (api lib/streak
+   * `streakAt`), so a lit flame turns "at risk" at midnight without a fetch.
    * Null in Hamil / Menyusui (no streak pressure); absent in snapshots written before the streak widget.
    */
-  streak?: StreakStamp | null;
+  streak?: WidgetStreakStamp | null;
   /** Hamil / Menyusui: no "left/over" budget wording, the day is a need to meet. Absent in old snapshots. */
   maternal?: boolean;
   /** Naikin BB: "Kurang X kkal lagi" instead of left/over, ring never red. Absent in old snapshots. */
@@ -88,11 +91,18 @@ export async function readSnapshot(): Promise<WidgetSnapshot> {
 export async function writeSnapshot(
   patch: Partial<Omit<WidgetSnapshot, "updatedAt">>,
 ): Promise<WidgetSnapshot> {
+  const before = await readSnapshot();
   const next: WidgetSnapshot = {
-    ...(await readSnapshot()),
+    ...before,
     ...patch,
     updatedAt: Date.now(),
   };
+  // The summary names only the latest logged day: the log before it is whatever the previous stamp (of the same
+  // signed-in session) said, so a first log after a long break can be greeted as a comeback.
+  if (patch.day?.streak) {
+    const earlier = before.signedIn ? before.day?.streak : null;
+    next.day = { ...patch.day, streak: withPreviousLog(patch.day.streak, earlier) };
+  }
   try {
     new File(Paths.document, SNAPSHOT_FILE).write(JSON.stringify(next));
   } catch {
