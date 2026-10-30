@@ -205,7 +205,7 @@ export default function Login() {
           bottomOffset={24}
         >
           <View style={styles.hero}>
-            <Mascot pose="mantap" size="lg" />
+            <Mascot pose="wave" size="lg" />
             <Text style={styles.logo}>JoyoRogo</Text>
             <Text style={styles.tagline}>{t("login.taglineApp")}</Text>
           </View>

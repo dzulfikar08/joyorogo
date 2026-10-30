@@ -38,6 +38,7 @@ poses are trimmed (no upscaling; `relax` downscaled to 600 px); `alert` and `hea
 | `relax`                                    | sitting cross-legged, hand behind head, eyes closed, trimmed   | 590×600   | relax image         |
 | `alert`                                    | startled bust, eyes wide, `!`                                  | 512×512   | alert/head pair     |
 | `head`                                     | head-only cutout, calm smile                                   | 512×512   | alert/head pair     |
+| `wave`                                     | upper body waving, other paw on hip (login screens)            | 512×512   | ChatGPT 2026-10-30  |
 
 Locations:
 

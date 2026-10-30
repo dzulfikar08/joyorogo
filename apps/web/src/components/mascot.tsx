@@ -26,6 +26,7 @@ const POSES = [
   "surprised",
   "thinking",
   "watch",
+  "wave",
   "wink",
   "working",
 ] as const;
