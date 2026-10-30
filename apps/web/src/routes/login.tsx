@@ -111,7 +111,7 @@ function RouteComponent() {
   return (
     <div className="flex min-h-svh flex-col">
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-10">
-        <Mascot pose="hero" size="md" eager />
+        <Mascot pose="mantap" size="lg" eager />
         <h1 className="mt-5 text-[2rem] leading-tight font-extrabold tracking-tight">JoyoRogo</h1>
         <p className="mt-2 max-w-xs text-center text-[0.9375rem] leading-relaxed text-muted-foreground">
           {t("login.tagline")}
