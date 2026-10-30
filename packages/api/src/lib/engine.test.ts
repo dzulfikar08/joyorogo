@@ -29,6 +29,7 @@ import {
   suggestMealForDish,
   suggestMealNow,
   weightTrend,
+  macroTargets,
 } from "./engine";
 
 const TODAY = "2026-09-13";
@@ -549,6 +550,30 @@ describe("proteinTargetG", () => {
     expect(proteinTargetG(60, 170)).toBe(90);
     // 170 cm healthy max is 72 kg: 130 kg asks for 108 g, not 195 g
     expect(proteinTargetG(130, 170)).toBe(108);
+  });
+});
+
+describe("macroTargets", () => {
+  test("carbs are what is left after the real protein and fat; fat is 25 % of kcal", () => {
+    // 60 kg basis, 90 g protein: fat 375 kcal (42 g), carbs (1500 - 360 - 375) / 4
+    expect(macroTargets(1500, 90, 60)).toEqual({ carbsG: 191, fatG: 42, fiberG: 25 });
+  });
+
+  test("the 0.5 g/kg fat floor wins at a low budget", () => {
+    // 25 % of 1000 = 250 kcal < 0.5 x 60 x 9 = 270 kcal: 30 g fat, carbs (1000 - 360 - 270) / 4
+    expect(macroTargets(1000, 90, 60)).toEqual({ carbsG: 93, fatG: 30, fiberG: 25 });
+    // the same budget for a heavier basis weight asks for more fat and leaves fewer carbs
+    const heavy = macroTargets(1000, 90, 72);
+    expect(heavy.fatG).toBe(36);
+    expect(heavy.carbsG).toBeLessThan(93);
+  });
+
+  test("carbs clamp at 0 when protein and fat already use the budget", () => {
+    expect(macroTargets(1000, 200, 60).carbsG).toBe(0);
+  });
+
+  test("fibre is 14 g per 1000 kcal, never under 25 g", () => {
+    expect(macroTargets(2500, 100, 70).fiberG).toBe(35);
   });
 });
 

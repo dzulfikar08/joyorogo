@@ -19,7 +19,6 @@ import {
   computeDeficit,
   effectiveRamadan,
   jakartaToday,
-  macroTargets,
   shiftDate,
   suggestMealNow,
 } from "../lib/engine";
@@ -38,11 +37,10 @@ import { IMPORT_SOURCE, IMPORTED_WEIGHT_SOURCES } from "../lib/history-import";
 import { dateSchema } from "../lib/schemas";
 import { loadIdeaValues } from "./plate";
 import { gainMealIdeas, mealIdeas } from "../lib/ideas";
-import { buildPlan, gainedKg, planQueries, proteinGoalG, trainingDayQuery } from "../lib/plan";
+import { buildPlan, gainedKg, macroGoals, planQueries, trainingDayQuery } from "../lib/plan";
 import { pickNightSleep } from "../lib/sleep-night";
 import { caffeineOfDay } from "../lib/maternal";
 import {
-  DIARY_MACRO_REFERENCE_KG,
   HISTORY_DAYS,
   MIN_HISTORY_DAYS,
   buildGuidance,
@@ -354,6 +352,7 @@ export const dayRouter = {
               gaining,
             })
           : null;
+      const goals = macroGoals(plan, prof.heightCm, workoutRows.length > 0, targets.eatKcal);
 
       return {
         hasProfile: true,
@@ -421,8 +420,10 @@ export const dayRouter = {
         fastLoss,
         protein: {
           eatenG: Math.round(eatenProteinG),
-          targetG: proteinGoalG(plan, prof.heightCm, workoutRows.length > 0),
+          targetG: goals.proteinG,
         },
+        // Personal carb / fat / fibre targets for the same budget as Sisa and the protein bar (lib/plan macroGoals).
+        macros: { carbsTargetG: goals.carbsG, fatTargetG: goals.fatG, fiberTargetG: goals.fiberG },
         // The other two macros of the day and the progress toward the goal weight, for the share stickers.
         carbsEatenG: Math.round(eatenCarbsG),
         fatEatenG: Math.round(eatenFatG),
@@ -596,11 +597,8 @@ export const dayRouter = {
       // The diary's bar and Sisa use the plan plus the counted exercise; guidance reads the same budget.
       const credit = await loadDayCredit(context.db, userId, today, builtPlan.targets.includedKcal);
       const eatKcal = budgetKcal(builtPlan.targets.eatKcal, credit);
-      targets = {
-        eatKcal,
-        proteinG: proteinGoalG(builtPlan, prof.heightCm, workoutRows.length > 0),
-        carbsG: macroTargets(eatKcal, DIARY_MACRO_REFERENCE_KG).carbsG,
-      };
+      const goals = macroGoals(builtPlan, prof.heightCm, workoutRows.length > 0, eatKcal);
+      targets = { eatKcal, proteinG: goals.proteinG, carbsG: goals.carbsG };
     }
 
     const history: HistoryFood[] = historyRows.map((row) => ({

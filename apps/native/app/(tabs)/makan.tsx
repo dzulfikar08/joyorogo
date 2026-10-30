@@ -12,7 +12,6 @@ import {
   MEAL_LABELS,
   effectiveRamadan,
   jakartaToday,
-  macroTargets,
   relativeDayLabel,
   slotsFor,
   suggestMealNow,
@@ -537,8 +536,11 @@ export default function Makan() {
     gaining: gainPlan,
     maternal,
   });
-  // Carb/fat/fiber floors from the engine; same reference as the web card.
-  const macroBudgets = targets ? macroTargets(targets.eatKcal, 70) : null;
+  // Carb/fat/fiber targets are the server's personal ones (day.summary `macros`).
+  const serverMacros = summaryQuery.data?.macros;
+  const macroBudgets = serverMacros
+    ? { carbsG: serverMacros.carbsTargetG, fatG: serverMacros.fatTargetG, fiberG: serverMacros.fiberTargetG }
+    : null;
 
   const manualKind = kindOverride ?? foodKind(name);
   const halveManual = () => {

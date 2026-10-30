@@ -15,6 +15,8 @@ import type {
 } from "./engine";
 import {
   computeTargets,
+  idealWeightRange,
+  macroTargets,
   proteinTargetG,
   shiftDate,
   weightTrend,
@@ -255,6 +257,22 @@ export function proteinGoalG(
     plan.targets.gain?.protein.targetG ??
     proteinTargetG(plan.weightNowKg, heightCm, trainingDay)
   );
+}
+
+/**
+ * The day's protein, carb, fat and fibre targets for a budget of `eatKcal`, all from the person's own weight: protein
+ * as `proteinGoalG`, fat and carbs from that protein and the same basis weight (the lesser of current weight and the
+ * top of the healthy range, which is also the gain plan's protein basis). Every server caller uses this.
+ */
+export function macroGoals(
+  plan: Pick<Plan, "targets" | "weightNowKg">,
+  heightCm: number,
+  trainingDay: boolean,
+  eatKcal: number,
+): { proteinG: number; carbsG: number; fatG: number; fiberG: number } {
+  const proteinG = proteinGoalG(plan, heightCm, trainingDay);
+  const basisKg = Math.min(plan.weightNowKg, idealWeightRange(heightCm).maxKg);
+  return { proteinG, ...macroTargets(eatKcal, proteinG, basisKg) };
 }
 
 /** Kg gained since a gain plan began (the stored baseline, else the onboarding weight); never negative. */

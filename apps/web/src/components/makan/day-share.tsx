@@ -1,5 +1,5 @@
 import { buildDayShare, dayShareStickerIds, type DayShareRow } from "@joyorogo/api/lib/day-share";
-import { MEAL_LABELS, macroTargets, type Meal } from "@joyorogo/api/lib/engine";
+import { MEAL_LABELS, type Meal } from "@joyorogo/api/lib/engine";
 import { Button } from "@joyorogo/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Share2 } from "lucide-react";
@@ -53,6 +53,7 @@ export function DayShareButton({
   eatenKcal,
   eatKcal,
   proteinTargetG,
+  macros,
   maternal,
   gain,
   slots,
@@ -65,6 +66,8 @@ export function DayShareButton({
   eatenKcal: number;
   eatKcal: number | null;
   proteinTargetG: number | null;
+  /** The server's personal carb / fat / fibre targets (`day.summary.macros`). */
+  macros: { carbsTargetG: number; fatTargetG: number; fiberTargetG: number } | null;
   maternal: boolean;
   gain: boolean;
   /** The diary's visible slots, in order. */
@@ -78,7 +81,6 @@ export function DayShareButton({
   const plateRows = plates.data;
 
   const story = useMemo(() => {
-    const budgets = eatKcal !== null ? macroTargets(eatKcal, 70) : null;
     return buildDayShare({
       date,
       rows,
@@ -91,14 +93,14 @@ export function DayShareButton({
       targets: {
         kcal: eatKcal,
         proteinG: proteinTargetG,
-        carbsG: budgets?.carbsG ?? null,
-        fatG: budgets?.fatG ?? null,
-        fiberG: budgets?.fiberG ?? null,
+        carbsG: macros?.carbsTargetG ?? null,
+        fatG: macros?.fatTargetG ?? null,
+        fiberG: macros?.fiberTargetG ?? null,
       },
       maternal,
       gain,
     });
-  }, [date, rows, plateRows, slotsKey, failed, eatenKcal, eatKcal, proteinTargetG, maternal, gain]);
+  }, [date, rows, plateRows, slotsKey, failed, eatenKcal, eatKcal, proteinTargetG, macros, maternal, gain]);
 
   const begin = async (open: () => void) => {
     if (busy) return;

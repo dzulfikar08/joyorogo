@@ -475,6 +475,12 @@ export default function Dashboard() {
   // stats list owns activity, sleep, water and the last weight, the weight card owns the trend.
   const carbsG = data.carbsEatenG ?? sumMacro(foods.data?.items, "carbs");
   const fatG = data.fatEatenG ?? sumMacro(foods.data?.items, "fat");
+  const macroValue = (eaten: number | null, target: number | undefined) =>
+    eaten === null
+      ? "–"
+      : target
+        ? t("macros.ofTarget", { eaten: fmtInt(eaten), target: fmtInt(target) })
+        : t("macros.grams", { g: fmtInt(eaten) });
   const weightKg = data.latestWeightKg ?? data.trend?.weightKg ?? null;
   const change = trendChange(trendPoints);
   const changeLabel = change
@@ -617,18 +623,20 @@ export default function Dashboard() {
               <MacroStat
                 macro="protein"
                 label={gain ? t("gain:today.protein") : MACRO_META.protein.label}
-                value={data.protein ? t("macros.proteinOf", { eaten: fmtInt(data.protein.eatenG), target: fmtInt(data.protein.targetG) }) : "–"}
+                value={data.protein ? t("macros.ofTarget", { eaten: fmtInt(data.protein.eatenG), target: fmtInt(data.protein.targetG) }) : "–"}
                 progress={data.protein && data.protein.targetG > 0 ? data.protein.eatenG / data.protein.targetG : 0}
               />
               <MacroStat
                 macro="carbs"
                 label={MACRO_META.carbs.label}
-                value={carbsG === null ? "–" : t("macros.grams", { g: fmtInt(carbsG) })}
+                value={macroValue(carbsG, data.macros?.carbsTargetG)}
+                progress={data.macros?.carbsTargetG && carbsG !== null ? carbsG / data.macros.carbsTargetG : undefined}
               />
               <MacroStat
                 macro="fat"
                 label={MACRO_META.fat.label}
-                value={fatG === null ? "–" : t("macros.grams", { g: fmtInt(fatG) })}
+                value={macroValue(fatG, data.macros?.fatTargetG)}
+                progress={data.macros?.fatTargetG && fatG !== null ? fatG / data.macros.fatTargetG : undefined}
               />
             </View>
           )}

@@ -116,6 +116,7 @@ export function fakeRpc(options: FixtureOptions = {}): RogoRpc {
         heartRate: HEALTH.heartRate,
         restingHeartRate: HEALTH.heartRate,
         protein: { eatenG: 11, targetG: 100 },
+        macros: { carbsTargetG: 215, fatTargetG: 56, fiberTargetG: 28 },
         carbsEatenG: 41,
         fatEatenG: 9,
         maternal: options.maternal ? { caffeine: { mg: 80 } } : null,

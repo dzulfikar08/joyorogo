@@ -319,22 +319,25 @@ export function jakartaClockHour(now: Date = new Date(), zone?: DayZone): number
   return clockHourIn(zone, now);
 }
 
+/**
+ * Carb, fat and fibre targets for a day budget. Fat is the larger of 25 % of kcal and 0.5 g/kg of the person's basis
+ * weight; carbs are what the budget has left after the real protein goal and that fat; fibre is 14 g per 1000 kcal
+ * (at least 25 g). `basisKg` is the weight protein is scaled by (`macroBasisKg`).
+ */
 export function macroTargets(
   eatKcal: number,
-  weightKg: number,
+  proteinG: number,
+  basisKg: number,
 ): {
-  proteinG: number;
   carbsG: number;
   fatG: number;
   fiberG: number;
 } {
-  const proteinG = Math.round(1.5 * weightKg);
-  const fatKcal = 0.25 * eatKcal;
-  const fatFromProteinFloor = Math.max(fatKcal, 0.5 * weightKg * 9);
-  const fatG = Math.round(fatFromProteinFloor / 9);
-  const carbsG = Math.max(0, Math.round((eatKcal - proteinG * 4 - fatFromProteinFloor) / 4));
+  const fatKcal = Math.max(0.25 * eatKcal, 0.5 * basisKg * 9);
+  const fatG = Math.round(fatKcal / 9);
+  const carbsG = Math.max(0, Math.round((eatKcal - proteinG * 4 - fatKcal) / 4));
   const fiberG = Math.max(25, Math.round((14 * eatKcal) / 1000));
-  return { proteinG, carbsG, fatG, fiberG };
+  return { carbsG, fatG, fiberG };
 }
 
 /**

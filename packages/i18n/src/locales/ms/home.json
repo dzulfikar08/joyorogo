@@ -291,7 +291,7 @@
   "macros": {
     "carbs": "Karbo",
     "fat": "Lemak",
-    "proteinOf": "{{eaten}} / {{target}} g",
+    "ofTarget": "{{eaten}} / {{target}} g",
     "grams": "{{g}} g"
   },
   "cards": {

@@ -68,7 +68,7 @@ describe("what the digest holds", () => {
     expect(id.units.energy).toBe("kkal");
     expect(buildDigest(await sourceFor(false, "en")).units.energy).toBe("kcal");
     expect(id.person).toEqual({ ageYears: 36, sex: "female", heightCm: 165, goal: "lose" });
-    expect(id.targets).toEqual({ eatKcal: 2000, proteinG: 100, carbsG: 270, fatG: 56, fiberG: 28, tdeeKcal: 2300, targetWeightKg: 65, targetDate: "2027-02-01" });
+    expect(id.targets).toEqual({ eatKcal: 2000, proteinG: 100, carbsG: 215, fatG: 56, fiberG: 28, tdeeKcal: 2300, targetWeightKg: 65, targetDate: "2027-02-01" });
     expect(id.today?.eaten).toEqual({ kcal: 410, proteinG: 11, carbsG: 40.8, fatG: 9.3, fiberG: 0.2 });
     expect(id.today?.remaining?.kcal).toBe(1590);
     expect(id.today?.partial).toEqual(["protein", "carbs", "fat", "fiber"]);

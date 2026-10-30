@@ -115,7 +115,8 @@ than 8 foods ends with one "+N lainnya" row that carries the rest's sums) and th
 Data: `buildDayShare` (`packages/api/src/lib/day-share.ts`, pure, tested) turns what Makan already loaded (`food.listByDate`
 rows, `plate.byDate` names, `day.summary` targets, the diary's kcal) into the engine's `DayFoodStory`
 (`packages/sticker/src/rogo/dayfood.ts`); there is no server call and no new route. Targets: kcal and protein from the plan
-(`summary.targets.eatKcal`, `summary.protein.targetG`), carbs/fat/fibre from `macroTargets(eatKcal, 70)` exactly as the
+(`summary.targets.eatKcal`, `summary.protein.targetG`), carbs/fat/fibre from `summary.macros` (the server's personal
+targets, see `docs/energy-model.md`), exactly as the
 Makan summary bars. Pregnancy plans draw no kcal target.
 
 - **Cutouts**: per meal, the whole-plate cutout of each scan when it has one (the scan's component cutouts are then not

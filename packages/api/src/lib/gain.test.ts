@@ -29,7 +29,7 @@ import {
   suggestedDays,
 } from "./gain";
 import { gainMealIdeas } from "./ideas";
-import { buildPlan, proteinGoalG } from "./plan";
+import { buildPlan, macroGoals, proteinGoalG } from "./plan";
 import type { ProfileRow } from "./plan";
 import { buildWeekRecap, dayStatus } from "./recap";
 
@@ -264,6 +264,17 @@ describe("computeTargets in gain mode", () => {
     const t = computeTargets(lean, { today: TODAY });
     expect(proteinGoalG({ targets: t, weightNowKg: 60 }, 170, true)).toBe(108);
     expect(proteinGoalG({ targets: t, weightNowKg: 60 }, 170, false)).toBe(108);
+  });
+
+  test("macroGoals: carbs and fat use the gain protein and the same capped basis weight", () => {
+    const heavy = computeTargets({ ...lean, weightKg: 90, targetWeightKg: 95 }, { today: TODAY });
+    // basis 72 kg (healthy max at 170 cm), protein 130 g: fat 25 % of 3000 = 750 kcal (83 g), carbs (3000 - 520 - 750) / 4
+    expect(macroGoals({ targets: heavy, weightNowKg: 90 }, 170, false, 3000)).toEqual({
+      proteinG: 130,
+      carbsG: 433,
+      fatG: 83,
+      fiberG: 42,
+    });
   });
 
   test("reaching the target weight holds: no surplus, no gain info", () => {

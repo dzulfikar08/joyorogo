@@ -372,6 +372,7 @@ function MakanPage() {
                 eatKcal={daySummary.data.targets?.eatKcal ?? null}
                 eatenKcal={totals.kcal}
                 proteinTargetG={daySummary.data.protein?.targetG ?? null}
+                macros={daySummary.data.macros ?? null}
                 proteinGuide={proteinGuide}
                 totals={totals}
                 neutral={(daySummary.data.targets?.maternal ?? null) !== null}
@@ -387,6 +388,7 @@ function MakanPage() {
                 eatenKcal={totals.kcal}
                 eatKcal={daySummary.data?.targets?.eatKcal ?? null}
                 proteinTargetG={daySummary.data?.protein?.targetG ?? null}
+                macros={daySummary.data?.macros ?? null}
                 maternal={(daySummary.data?.targets?.maternal ?? null) !== null}
                 gain={(daySummary.data?.targets?.maternal ?? null) === null && (daySummary.data?.targets?.gain ?? null) !== null}
                 slots={slots}

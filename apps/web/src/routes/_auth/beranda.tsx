@@ -362,7 +362,7 @@ function MacroRow({ summary }: { summary: Summary }) {
       <div className="min-w-0">
         <dt className="truncate text-xs font-semibold text-muted-foreground">{t("tile.protein")}</dt>
         <dd className="mt-0.5 truncate text-sm font-extrabold tabular-nums">
-          {t("macros.proteinOf", { eaten: fmtInt(eaten), target: fmtInt(target) })}
+          {t("macros.ofTarget", { eaten: fmtInt(eaten), target: fmtInt(target) })}
         </dd>
         <ProgressBar value={eaten} max={target} ariaLabel={t("tile.protein")} className="mt-1.5 h-1" />
       </div>

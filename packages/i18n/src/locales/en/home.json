@@ -304,7 +304,7 @@
   "macros": {
     "carbs": "Carbs",
     "fat": "Fat",
-    "proteinOf": "{{eaten}} / {{target}} g",
+    "ofTarget": "{{eaten}} / {{target}} g",
     "grams": "{{g}} g"
   },
   "cards": {

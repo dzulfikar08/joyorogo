@@ -53,10 +53,9 @@ describe("get_day", () => {
     expect(json.fasting).toEqual({ pattern: "16:8", state: "jendela_makan", windowOpen: "12:00", windowClose: "20:00" });
   });
 
-  test("macro targets come from the diary's own formula over the app's eat budget", async () => {
+  test("macro targets are the server's personal ones from day.summary", async () => {
     const { json } = await run("get_day", {});
-    // macroTargets(2000, 70): carbs, fat, fiber floors as Makan and the web card show them.
-    expect(json.targets).toEqual({ kcal: 2000, protein: 100, carbs: 270, fat: 56, fiber: 28 });
+    expect(json.targets).toEqual({ kcal: 2000, protein: 100, carbs: 215, fat: 56, fiber: 28 });
   });
 
   test("a day with no rows has null macro totals (not 0) and says nothing was logged", async () => {
@@ -175,7 +174,7 @@ describe("get_targets", () => {
       person: { ageYears: 36, sex: "female", heightCm: 165, goal: "lose" },
       activityLevel: "light",
       tdeeKcal: 2300,
-      today: { date: TODAY, eatKcal: 2000, proteinG: 100, carbsG: 270, fatG: 56, fiberG: 28 },
+      today: { date: TODAY, eatKcal: 2000, proteinG: 100, carbsG: 215, fatG: 56, fiberG: 28 },
       targetWeightKg: 65,
       targetDate: "2027-02-01",
       latestWeightKg: 69.4,

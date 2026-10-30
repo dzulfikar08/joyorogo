@@ -21,8 +21,6 @@ import { TKPI_2019 } from "./tkpi2019-data";
 import { effectiveTier, paywallEnabled } from "./tiers";
 import type { PaywallConfig, Tier } from "./tiers";
 
-/** The diary's carb bar uses macroTargets(eatKcal, 70); guidance reads the same bar. */
-export const DIARY_MACRO_REFERENCE_KG = 70;
 /** Share of the carb target added on a hard day (strain >= 14), and on a very hard one (>= 18). */
 export const CARB_BOOST_HARD = 0.1;
 export const CARB_BOOST_VERY_HARD = 0.2;

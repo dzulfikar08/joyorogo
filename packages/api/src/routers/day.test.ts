@@ -91,6 +91,8 @@ describe("day.readinessGuidance premium gate", () => {
     const summary = await call(dayRouter.summary, { date: today }, as("paid"));
     expect(guidance.numbers?.eatKcal).toBe(summary.targets?.eatKcal);
     expect(guidance.numbers?.protein.targetG).toBe(summary.protein?.targetG);
+    expect(guidance.numbers?.carbs.targetG).toBe(summary.macros?.carbsTargetG);
+    expect(summary.macros?.fatTargetG).toBeGreaterThan(0);
     expect(guidance.numbers?.eatenKcal).toBe(300);
     expect(guidance.numbers?.protein.eatenG).toBe(24);
     expect(guidance.numbers?.carbs.boostG).toBeGreaterThan(0);

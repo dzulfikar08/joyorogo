@@ -34,6 +34,8 @@ const locale = arg("locale", "id") as "id" | "en" | "ms";
 const mode = arg("mode", "dark") as "dark" | "light";
 const kcalTarget = Number(arg("kcal", "1850"));
 const proteinTarget = Number(arg("protein", "110"));
+/** No profile here: the weight carb/fat targets are scaled by (the lesser of body weight and the healthy range's top). */
+const EXAMPLE_BASIS_KG = Number(arg("basis-kg", "70"));
 const plateFixture = args.includes("--plate-fixture");
 
 type D1 = Array<{ results: Array<Record<string, unknown>> }>;
@@ -66,7 +68,7 @@ const rows: DayShareRow[] = rowsRaw.map((r) => {
 const plateNames: Record<string, string> = {};
 for (const p of await d1(platesFile)) plateNames[String(p.id)] = String(p.name);
 
-const budgets = macroTargets(kcalTarget, 70);
+const budgets = macroTargets(kcalTarget, proteinTarget, EXAMPLE_BASIS_KG);
 const eaten = rows.reduce((total, row) => total + row.kcal, 0);
 const spec = buildDayShare({
   date,

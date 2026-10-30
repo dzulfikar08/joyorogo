@@ -226,6 +226,23 @@ batch; the calibration preference rows are its sixth query), and `prefs` is a re
 that ignores the switch.** The recap builds one plan for the week (no per-day plan, no N+1); the group detail loads the
 members' windows and preferences in the batch it already runs.
 
+## Protein, carb, fat and fibre targets (`macroGoals` in `lib/plan.ts`)
+
+All four are personal and computed on the server from the day's budget (`targets.eatKcal`, counted exercise included, the
+same number as Sisa), served by `day.summary` (`protein.targetG`, `macros: { carbsTargetG, fatTargetG, fiberTargetG }`),
+and read from there by Beranda, Makan, the web card, the share stickers and the Joyo AI `get_day` tool. Clients never
+recompute them. Readiness guidance (`readinessGuidance`) uses the same helper.
+
+- **Basis weight** = `min(current weight, top of the healthy range at the person's height)`, the weight protein is scaled
+  by (also the gain plan's protein basis). No fixed 70 kg reference.
+- **Protein** = `proteinGoalG`: 1.5 g/kg of the basis (1.6 on strength days), the gain-mode ISSN target, or the maternal
+  AKG figure.
+- **Fat** = the larger of 25 % of the budget and 0.5 g/kg of the basis weight x 9 kcal, divided by 9.
+- **Carbs** = what is left of the budget after protein x 4 kcal and the fat kcal, divided by 4; never below 0.
+- **Fibre** = 14 g per 1000 kcal, at least 25 g.
+
+Hamil / Menyusui get no new macro targets: the maternal plan keeps its own nutrient targets (Beranda hides the macro row).
+
 The ring and number "Terbakar" on the Olahraga screens (web and native) is `activeKcal` of `day.summary`'s credit
 (`dayActiveKcal`), not the sum of the listed rows. Without the summary the ring falls back to the sum of the rows.
 

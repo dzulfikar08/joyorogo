@@ -4,7 +4,7 @@
 // the name, email, photo and scan ids and places that these procedures carry can never reach a tool result or the digest.
 
 import type { AppRouterClient } from "../../routers";
-import { daysBetween, macroTargets, shiftDate } from "../engine";
+import { daysBetween, shiftDate } from "../engine";
 import { flat } from "./digest";
 import { lookupFood, normalize } from "./foods";
 import type { Nutrient, Remaining } from "./foods";
@@ -188,9 +188,6 @@ function isNotFound(error: unknown): boolean {
   return e.code === "NOT_FOUND" || e.status === 404;
 }
 
-/** The diary's own macro reference weight (`day.ts` DIARY_MACRO_REFERENCE_KG; Makan and the web card use the same number). */
-const MACRO_REFERENCE_KG = 70;
-
 function dayItem(raw: unknown): DayItem {
   const r = rec(raw);
   return {
@@ -287,10 +284,17 @@ export function createToolData(rpc: RogoRpc, opts: { today: () => string; engine
     // told apart from the budget, so there is no target rather than one that may carry the credit.
     const eatKcal = byok ? (num(t.eatKcal) === null || exerciseKcal === null ? null : num(t.eatKcal)! - exerciseKcal) : num(t.eatKcal);
     const proteinTarget = num(rec(s.protein).targetG);
+    // Carb / fat / fibre targets are the server's personal ones (day.summary `macros`, the budget with counted exercise).
+    const m = rec(s.macros);
     let targets: DayTargets | null = null;
     if (eatKcal !== null) {
-      const macros = macroTargets(eatKcal, MACRO_REFERENCE_KG);
-      targets = { kcal: Math.round(eatKcal), protein: proteinTarget, carbs: macros.carbsG, fat: macros.fatG, fiber: macros.fiberG };
+      targets = {
+        kcal: Math.round(eatKcal),
+        protein: proteinTarget,
+        carbs: num(m.carbsTargetG),
+        fat: num(m.fatTargetG),
+        fiber: num(m.fiberTargetG),
+      };
     }
 
     let remaining: Remaining | null = null;

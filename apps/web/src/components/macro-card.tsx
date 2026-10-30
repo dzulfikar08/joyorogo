@@ -1,4 +1,4 @@
-import { eatTone, macroTargets } from "@joyorogo/api/lib/engine";
+import { eatTone } from "@joyorogo/api/lib/engine";
 import type { ProteinPerKg } from "@joyorogo/api/lib/safety";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useTranslation } from "react-i18next";
@@ -74,15 +74,15 @@ const BAR_TONE = { ok: "bg-makan", near: "bg-amber-400", over: "bg-destructive" 
 /**
  * Day summary card for the diary: eaten kcal as the big number, the target on
  * its right, a thin progress bar in the eat tone, then the macro bars. Protein
- * target is the server's `day.summary.protein.targetG` (1,5 g/kg capped at the
- * healthy range); carb/fat floors come from the engine, so the reference stays
- * one place. Without a target there is nothing to measure against: the number
+ * target and the carb/fat/fiber targets are the server's `day.summary`
+ * numbers (personal, from the person's own weight). Without a target there is nothing to measure against: the number
  * and the macro grams only.
  */
 export function MakanSummaryCard({
   eatKcal,
   eatenKcal,
   proteinTargetG,
+  macros,
   proteinGuide,
   totals,
   neutral: neutralProp = false,
@@ -90,6 +90,8 @@ export function MakanSummaryCard({
   eatKcal: number | null;
   eatenKcal: number;
   proteinTargetG: number | null;
+  /** The server's personal carb / fat / fibre targets (`day.summary.macros`); null before they load. */
+  macros: { carbsTargetG: number; fatTargetG: number; fiberTargetG: number } | null;
   /** Eaten protein per kg of the latest weigh-in against the guide range; null when it cannot be said honestly. */
   proteinGuide: ProteinPerKg | null;
   totals: MacroTotals;
@@ -106,8 +108,8 @@ export function MakanSummaryCard({
   const over = !neutral && eatKcal !== null && eatenKcal > eatKcal;
   const tone = gaining ? intake.tone : neutral ? "ok" : eatTone(eatenKcal, target);
   const pct = target > 0 ? Math.min(100, (eatenKcal / target) * 100) : 0;
-  // carb/fat/fiber floors from the engine; protein target comes from the server
-  const budgets = eatKcal !== null ? macroTargets(eatKcal, 70) : null;
+  // carb/fat/fiber targets and the protein target both come from the server's day.summary
+  const budgets = macros ? { carbsG: macros.carbsTargetG, fatG: macros.fatTargetG, fiberG: macros.fiberTargetG } : null;
 
   return (
     <Card className="p-5" aria-label={t("misc:macro.summaryTitle")}>
