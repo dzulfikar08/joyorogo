@@ -4,8 +4,7 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { AndroidMark } from "@/components/android-mark";
 import { AppLink } from "@/components/app-link";
 import { AppleMark } from "@/components/apple-mark";
-import { TESTER_GROUP_URL, TESTER_OPTIN_URL } from "@/lib/app-config";
-import { APP_STORE_URL } from "@/lib/store-urls";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/store-urls";
 import { ANDROID_STEPS, IOS_STEPS } from "@/lib/landing-sg";
 import { openIosInstall } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
@@ -38,9 +37,8 @@ function Steps({ steps, tone }: { steps: readonly string[]; tone: "soft" | "card
 }
 
 /**
- * Install steps for both phones, in the state the other landings describe: Android is a Google Play closed test (join
- * the group, then opt in), iPhone is the App Store listing, with the web app on the Home Screen as the
- * alternative. The visitor's own phone is listed first.
+ * Install steps for both phones: Android is the Google Play listing, iPhone is the App Store listing, with the web
+ * app on the Home Screen as the alternative. The visitor's own phone is listed first.
  */
 export function InstallSg() {
   const { os } = usePlatform();
@@ -54,50 +52,34 @@ export function InstallSg() {
         Install JoyoRogo on your phone
       </h2>
       <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Both versions are still in testing, so JoyoRogo is not yet available to everyone on Google Play or the App
-        Store. The web app at joyorogo.com already works in a phone or computer browser.
+        JoyoRogo is on Google Play and the App Store. The web app at joyorogo.com also works in a phone or computer
+        browser.
       </p>
       <div className="mt-10 grid gap-4 md:grid-cols-2">
         <div
-          id="tester"
-          data-section="tester"
+          id="android"
+          data-section="android"
           className={cn("scroll-mt-20 rounded-[1.75rem] bg-makan-soft p-6 md:p-8", os === "ios" && "md:order-last")}
         >
-          <h3 className="text-2xl font-extrabold tracking-tight text-makan-ink">Android: join as a tester</h3>
+          <h3 className="text-2xl font-extrabold tracking-tight text-makan-ink">Android: Google Play</h3>
           <p className="mt-3 text-[0.9375rem] leading-relaxed text-makan-ink/85">
-            The Android version on the Play Store is still a closed test. Google only allows a release to everyone
-            after 12 testers have used it for 14 days, so every tester helps. Free, needs Android 8 or newer.
+            JoyoRogo is on Google Play. Free to download, needs Android 8 or newer.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Button
               size="lg"
               render={
                 <a
-                  href={TESTER_GROUP_URL}
+                  href={PLAY_STORE_URL}
                   target="_blank"
                   rel="noopener"
-                  data-revklik-goal="tester_group_click"
-                  data-revklik-goal-location="sg-tester"
+                  data-revklik-goal="android_play_click"
+                  data-revklik-goal-location="sg-pasang"
                 />
               }
             >
               <AndroidMark />
-              1. Join the Google group
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              render={
-                <a
-                  href={TESTER_OPTIN_URL}
-                  target="_blank"
-                  rel="noopener"
-                  data-revklik-goal="tester_optin_click"
-                  data-revklik-goal-location="sg-tester"
-                />
-              }
-            >
-              2. Become a tester on Play
+              Get it on Google Play
             </Button>
           </div>
           <div className="mt-8">
@@ -123,7 +105,7 @@ export function InstallSg() {
                   target="_blank"
                   rel="noopener"
                   data-revklik-goal="ios_app_store_click"
-                  data-revklik-goal-location="sg-tester"
+                  data-revklik-goal-location="sg-pasang"
                 />
               }
             >
@@ -134,8 +116,8 @@ export function InstallSg() {
               size="lg"
               variant="outline"
               data-revklik-goal="ios_cta_click"
-              data-revklik-goal-location="sg-tester"
-              onClick={() => openIosInstall("sg-tester")}
+              data-revklik-goal-location="sg-pasang"
+              onClick={() => openIosInstall("sg-pasang")}
             >
               Add the web app to your Home Screen
             </Button>

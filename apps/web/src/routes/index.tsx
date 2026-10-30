@@ -51,8 +51,6 @@ import {
   fmtRupiah,
   fmtUsd,
   founderScans,
-  TESTER_GROUP_URL,
-  TESTER_OPTIN_URL,
   useAppConfig,
 } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
@@ -61,7 +59,7 @@ import { landingSkipsForSignedIn } from "@/lib/hosts";
 import { sessionQuery } from "@/lib/auth-client";
 import { openIosInstall } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
-import { APP_STORE_URL } from "@/lib/store-urls";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/store-urls";
 import { TESTIMONIALS } from "@/lib/testimonials";
 import { FAQ, IPHONE_FAQ_Q, pageHead } from "@/lib/seo";
 import { CACHE_OWNER_KEY } from "@/utils/orpc";
@@ -94,9 +92,9 @@ const FACTS = [
 ] as const;
 
 const ANDROID_STEPS = [
-  "Gabung grup Google joyorogo-testers dengan akun Google yang kamu pakai di Play Store. Grup inilah yang membuka akses ke tes tertutup.",
-  "Buka halaman tes di Play lalu ketuk Become a tester. Kalau halamannya belum bisa dibuka, tunggu beberapa menit lalu coba lagi.",
-  "Pasang JoyoRogo dari Play Store dan masuk dengan akun Google yang sama seperti di web. Diary-mu ikut pindah.",
+  "Buka JoyoRogo di Google Play dari HP Android-mu (Android 8 ke atas).",
+  "Ketuk Pasang. Gratis diunduh.",
+  "Buka JoyoRogo, lalu masuk dengan akun yang sama seperti di web. Diary-mu ikut pindah.",
 ] as const;
 
 const IOS_STEPS = [
@@ -123,10 +121,10 @@ function InstallSteps({ steps }: { steps: readonly string[] }) {
 }
 
 /**
- * Android (Google Play closed test) and iPhone (App Store) install
+Android (Google Play) and iPhone (App Store) install
  * steps behind a segmented switch. Both panels are always in the HTML (the
  * inactive one is `hidden`) so the prerender carries both; the visitor's phone
- * decides which tab opens first. AppDownload links here (`/#tester`).
+ * decides which tab opens first. AppDownload buttons go to the stores directly.
  */
 function InstallApp() {
   const { os } = usePlatform();
@@ -136,7 +134,7 @@ function InstallApp() {
   useEffect(() => {
     const fromHash = () => {
       const id = window.location.hash.slice(1);
-      if (id !== "iphone-beta" && id !== "tester") return;
+      if (id !== "iphone-beta" && id !== "android-pasang") return;
       setPicked(id === "iphone-beta" ? "ios" : "android");
       // The panel was hidden when the browser tried to scroll to it.
       requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView());
@@ -166,7 +164,7 @@ function InstallApp() {
               role="tab"
               id={`install-tab-${id}`}
               aria-selected={tab === id}
-              aria-controls={`${id === "android" ? "tester" : "iphone-beta"}`}
+              aria-controls={`${id === "android" ? "android-pasang" : "iphone-beta"}`}
               onClick={() => setPicked(id)}
               className={cn(
                 "inline-flex min-h-11 items-center rounded-full px-5 text-sm font-bold transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
@@ -180,53 +178,36 @@ function InstallApp() {
         </div>
 
         <div
-          id="tester"
+          id="android-pasang"
           role="tabpanel"
           aria-labelledby="install-tab-android"
-          data-section="tester"
+          data-section="android-pasang"
           hidden={tab !== "android"}
           className="mt-6 scroll-mt-20"
         >
           <div className="grid gap-8 md:grid-cols-[1fr_1.1fr] md:items-start">
             <div>
               <h2 className="text-2xl font-extrabold tracking-tight text-makan-ink md:text-3xl">
-                JoyoRogo di Android: gabung tester
+                JoyoRogo di Android: Google Play
               </h2>
               <p className="mt-3 max-w-md text-[0.9375rem] leading-relaxed text-makan-ink/85">
-                Versi Android di Play Store masih tes tertutup. Google baru mengizinkan rilis untuk
-                semua orang setelah 12 tester memakainya selama 14 hari, jadi tiap tester sangat
-                membantu. Gratis, butuh Android 8 ke atas.
+                JoyoRogo ada di Google Play. Gratis diunduh, butuh Android 8 ke atas.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Button
                   size="lg"
                   render={
                     <a
-                      href={TESTER_GROUP_URL}
+                      href={PLAY_STORE_URL}
                       target="_blank"
                       rel="noopener"
-                      data-revklik-goal="tester_group_click"
-                      data-revklik-goal-location="tester"
+                      data-revklik-goal="android_play_click"
+                      data-revklik-goal-location="pasang"
                     />
                   }
                 >
                   <AndroidMark />
-                  1. Gabung grup Google
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  render={
-                    <a
-                      href={TESTER_OPTIN_URL}
-                      target="_blank"
-                      rel="noopener"
-                      data-revklik-goal="tester_optin_click"
-                      data-revklik-goal-location="tester"
-                    />
-                  }
-                >
-                  2. Become a tester di Play
+                  Unduh di Google Play
                 </Button>
               </div>
             </div>
@@ -259,7 +240,7 @@ function InstallApp() {
                       target="_blank"
                       rel="noopener"
                       data-revklik-goal="ios_app_store_click"
-                      data-revklik-goal-location="tester"
+                      data-revklik-goal-location="pasang"
                     />
                   }
                 >
@@ -272,8 +253,8 @@ function InstallApp() {
                 <button
                   type="button"
                   data-revklik-goal="ios_cta_click"
-                  data-revklik-goal-location="tester"
-                  onClick={() => openIosInstall("tester")}
+                  data-revklik-goal-location="pasang"
+                  onClick={() => openIosInstall("pasang")}
                   className="font-semibold underline underline-offset-4"
                 >
                   Pasang web app ke Layar Utama
@@ -327,7 +308,7 @@ const NUMBERS: Array<{
   },
 ];
 
-/** Features testers already have; add a card only once it is in a store build. */
+/** Features already in a store build; add a card only once it is in a store build. */
 const NEW_FEATURES = [
   {
     icon: Mic,
@@ -919,7 +900,7 @@ function Landing() {
               Baru di JoyoRogo
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-              Fitur terbaru yang sudah bisa dipakai hari ini di iPhone (App Store), di web, dan di Android (tes tertutup).
+              Fitur terbaru yang sudah bisa dipakai hari ini di iPhone (App Store), di web, dan di Android (Google Play).
             </p>
           </div>
           <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

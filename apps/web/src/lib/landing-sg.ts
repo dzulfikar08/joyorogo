@@ -33,7 +33,7 @@ export const FAQ_SG = [
   },
   {
     q: "Which phones work?",
-    a: "Android 8 and above through the Google Play closed test: join the Google testers group first, then install from the Play Store. iPhone with iOS 16.4 and above through the App Store. Or open joyorogo.com in your browser and choose Add to Home Screen: JoyoRogo appears as an icon and opens full screen, with the same account and data.",
+    a: "Android 8 and above through Google Play. iPhone with iOS 16.4 and above through the App Store. Or open joyorogo.com in your browser and choose Add to Home Screen: JoyoRogo appears as an icon and opens full screen, with the same account and data.",
   },
   {
     q: "Is the app in English?",
@@ -165,9 +165,9 @@ export const PROMISES = [
 ] as const;
 
 export const ANDROID_STEPS = [
-  "Join the Google group joyorogo-testers with the Google account you use on the Play Store. The group is what opens access to the closed test.",
-  "Open the test page on Play, then tap Become a tester. If the page does not open yet, wait a few minutes and try again.",
-  "Install JoyoRogo from the Play Store and sign in with the same Google account as on the web. Your diary comes with you.",
+  "Open JoyoRogo on Google Play on your Android phone (Android 8 or newer).",
+  "Tap Install. It is free to download.",
+  "Open JoyoRogo and sign in with the same account as on the web. Your diary comes with you.",
 ] as const;
 
 export const IOS_STEPS = [

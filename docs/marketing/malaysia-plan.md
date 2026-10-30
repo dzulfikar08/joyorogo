@@ -245,7 +245,7 @@ Calorie Mama, Lose It, "MyCalorie", "KKM Kalori" and "Kalori Kita" could not be 
 
 ## 8. Stores
 
-- Availability: the closed-testing track is already set to 131 countries and the `pro` subscription has 128 priced regions (`docs/pricing.md`). Nothing Malaysia-specific was found that blocks the app. Whether Malaysia is among the 128 priced regions was not confirmed `[UNVERIFIED]`. Production is not released.
+- Availability: the closed-testing track is already set to 131 countries and the `pro` subscription has 128 priced regions (`docs/pricing.md`). Nothing Malaysia-specific was found that blocks the app. Whether Malaysia is among the 128 priced regions was not confirmed `[UNVERIFIED]`. JoyoRogo Android is in Play production (178 countries, verified in Play Console 2026-10-30).
 - Listing translations: Play Console supports Malay (`ms` and `ms-MY`) and App Store Connect lists Malay [57][58]. Write a `ms-MY` listing (name, 80-character short description, full description) from the claims in section 6; keep the English "Made in Malang, Indonesia" seller line and the Health apps declaration disclaimer ("not a medical device and does not diagnose, treat, cure, or prevent any medical condition") in Malay [59]. Data safety must match the Malay privacy policy. Target audience stays 18+.
 - Store prices: set Apple and Play MYR prices by section 3 after the owner picks.
 - Apple's medical-device declaration and age-rating answers: text not read `[UNVERIFIED]`.

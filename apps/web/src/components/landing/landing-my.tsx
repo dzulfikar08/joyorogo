@@ -27,7 +27,7 @@ const HPB_TERMS_URL = "https://file.go.gov.sg/termsofuse-hpbsgfoodid.pdf";
 /**
  * /my: the landing for Malaysian visitors, in Bahasa Melayu as written in Malaysia. Same brand, tokens and mascot as
  * the Indonesian landing; the content is rebuilt around what a Malaysian plate needs (kedai mamak units, cited kcal
- * rows, ringgit pricing from /api/config). Availability wording follows the Indonesian landing: Android is a closed test,
+ * rows, ringgit pricing from /api/config). Availability wording follows the Indonesian landing: Android is on Google Play,
  * iPhone is on the App Store.
  */
 export function LandingMy() {
@@ -64,10 +64,9 @@ export function LandingMy() {
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <AppDownload
                 location="my-hero"
-                androidLabel="Sertai penguji Android"
+                androidLabel="Muat turun di Google Play"
                 iphoneLabel="Muat turun di App Store"
                 webAppLabel="Atau pasang web app ke Skrin Utama iPhone"
-                testerHref="#tester"
               />
             </div>
             <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
@@ -409,10 +408,9 @@ export function LandingMy() {
                 </Button>
                 <AppDownload
                   location="my-penutup"
-                  androidLabel="Sertai penguji Android"
+                  androidLabel="Muat turun di Google Play"
                   iphoneLabel="Muat turun di App Store"
                   webAppLabel="Atau pasang web app ke Skrin Utama iPhone"
-                  testerHref="#tester"
                 />
               </div>
             </div>

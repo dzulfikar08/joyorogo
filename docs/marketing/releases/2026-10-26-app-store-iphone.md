@@ -16,7 +16,7 @@ footer, blog, panduan pasang di iPhone) sekarang langsung ke App Store, bukan Te
 **Angle post:** "JoyoRogo sudah di App Store. Foto piringmu, kalorinya langsung tercatat, gratis diunduh."
 
 **Bukti visual:** screenshot halaman App Store (https://apps.apple.com/id/app/id6823222101) dan tombol "Unduh di App
-Store" di joyorogo.com/#tester tab iPhone.
+Store" di joyorogo.com/#pasang tab iPhone.
 
-**Jangan klaim:** Android masih tes tertutup Google Play, belum rilis produksi. JoyoFit untuk iPhone masih TestFlight.
+**Jangan klaim:** Entri ini hanya soal iPhone; Android punya halaman Google Play sendiri. JoyoFit untuk iPhone masih TestFlight.
 Butuh iOS 16.4 ke atas.

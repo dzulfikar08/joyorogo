@@ -33,7 +33,7 @@ export const FAQ_MS = [
   },
   {
     q: "Telefon apa yang boleh digunakan?",
-    a: "Android 8 ke atas melalui ujian tertutup Google Play: sertai kumpulan Google penguji dahulu, kemudian pasang dari Play Store. iPhone dengan iOS 16.4 ke atas melalui App Store. Atau buka joyorogo.com di pelayar dan pilih Tambah ke Skrin Utama: JoyoRogo muncul sebagai ikon dan dibuka skrin penuh, dengan akaun dan data yang sama.",
+    a: "Android 8 ke atas melalui Google Play. iPhone dengan iOS 16.4 ke atas melalui App Store. Atau buka joyorogo.com di pelayar dan pilih Tambah ke Skrin Utama: JoyoRogo muncul sebagai ikon dan dibuka skrin penuh, dengan akaun dan data yang sama.",
   },
   {
     q: "Adakah aplikasinya dalam Bahasa Melayu?",
@@ -161,9 +161,9 @@ export const JANJI = [
 ] as const;
 
 export const ANDROID_LANGKAH = [
-  "Sertai kumpulan Google joyorogo-testers dengan akaun Google yang anda guna di Play Store. Kumpulan inilah yang membuka akses kepada ujian tertutup.",
-  "Buka halaman ujian di Play, kemudian ketik Become a tester. Jika halamannya belum boleh dibuka, tunggu beberapa minit dan cuba lagi.",
-  "Pasang JoyoRogo dari Play Store dan log masuk dengan akaun Google yang sama seperti di web. Diari anda turut berpindah.",
+  "Buka JoyoRogo di Google Play pada telefon Android anda (Android 8 ke atas).",
+  "Ketik Pasang. Percuma dimuat turun.",
+  "Buka JoyoRogo dan log masuk dengan akaun yang sama seperti di web. Diari anda turut berpindah.",
 ] as const;
 
 export const IOS_LANGKAH = [

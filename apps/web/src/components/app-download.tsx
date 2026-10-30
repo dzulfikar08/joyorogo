@@ -4,8 +4,7 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { AndroidMark } from "@/components/android-mark";
 import { AppleMark } from "@/components/apple-mark";
 
-import { TESTER_SECTION_HREF } from "@/lib/app-config";
-import { APP_STORE_URL } from "@/lib/store-urls";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/store-urls";
 import { openIosInstall } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
 
@@ -17,7 +16,7 @@ const ON_PRIMARY =
  * prerendered HTML carries both; the visitor's platform only reorders them and
  * gives theirs the stronger style.
  *
- * - Android: the Google Play closed test (the landing's tester section).
+ * - Android: the public Google Play listing.
  * - iPhone: the App Store, with the web app on the Home Screen as a small
  *   secondary link.
  *
@@ -26,9 +25,8 @@ const ON_PRIMARY =
 export function AppDownload({
   location,
   iphoneLabel = "Unduh di App Store",
-  androidLabel = "Gabung tester Android",
+  androidLabel = "Unduh di Google Play",
   webAppLabel = "Atau pasang web app ke Layar Utama iPhone",
-  testerHref = TESTER_SECTION_HREF,
   onPrimary = false,
   align = "start",
 }: {
@@ -38,8 +36,6 @@ export function AppDownload({
   androidLabel?: string;
   /** Small link under the buttons that opens the iPhone Home Screen sheet. */
   webAppLabel?: string;
-  /** Where the Android button goes; defaults to the Indonesian landing's tester section. */
-  testerHref?: string;
   /** Rendered on the brand-green closing card. */
   onPrimary?: boolean;
   align?: "start" | "center";
@@ -60,8 +56,10 @@ export function AppDownload({
       className={cn(buttonClass, os === "ios" && "order-last")}
       render={
         <a
-          href={testerHref}
-          data-revklik-goal="tester_cta_click"
+          href={PLAY_STORE_URL}
+          target="_blank"
+          rel="noopener"
+          data-revklik-goal="android_cta_click"
           data-revklik-goal-location={location}
         />
       }
