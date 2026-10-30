@@ -63,6 +63,7 @@ import {
   sendTestflightNotice,
   testflightNoticeConfig,
 } from "./testflight-notice";
+import { lifecycleConfig, runLifecycleEmails } from "./lifecycle-email";
 import { registerUnsubscribeRoutes } from "./unsubscribe";
 import { registerFitProxy } from "./fit-proxy";
 import { registerWatchWorkoutRoutes } from "./watch-workout";
@@ -123,6 +124,9 @@ const broadcastDeps = (): BroadcastDeps | undefined =>
 
 // One mail per TestFlight (Sandbox) buyer; TESTFLIGHT_PURCHASE_EMAIL=on enables it (docs/pricing.md).
 const testflightNotice = testflightNoticeConfig(env);
+
+// Activation and win-back mail; LIFECYCLE_EMAIL=on enables it (docs/lifecycle-email.md).
+const lifecycle = lifecycleConfig(env);
 
 // Public config, Founder checkout (DOKU/Pakasir) + webhooks, personal AI usage.
 // After CORS so web can read errors.
@@ -919,6 +923,11 @@ export default {
       ctx.waitUntil(
         runTestflightNoticeSweep(broadcast, testflightNotice).catch((error: unknown) =>
           console.error("[testflight-notice] sweep failed", error),
+        ),
+      );
+      ctx.waitUntil(
+        runLifecycleEmails(broadcast, lifecycle).catch((error: unknown) =>
+          console.error("[lifecycle-email] sweep failed", error),
         ),
       );
     }

@@ -88,6 +88,8 @@ declare module "cloudflare:workers" {
       APPLE_SIWA_PRIVATE_KEY?: string;
       APPLE_SANDBOX_EMAILS?: string;
       TESTFLIGHT_PURCHASE_EMAIL?: string;
+      // "on" = activation + win-back mail (docs/lifecycle-email.md).
+      LIFECYCLE_EMAIL?: string;
       // MCP tool calls per account per rolling 24 hours; empty = 1000.
       MCP_DAILY_CAP?: string;
       GOOGLE_PLAY_SERVICE_ACCOUNT_JSON?: string;

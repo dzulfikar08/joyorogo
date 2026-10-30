@@ -60,6 +60,8 @@ export const payment = sqliteTable(
  * `broadcast:<campaignId>` (ref = userId) is one announcement mail per user;
  * `broadcast_test:<campaignId>` (ref = "<userId>:<sentMs>-<random>") is an admin test send;
  * `testflight_notice` (ref = userId) is the once-per-user mail after a TestFlight (Sandbox) purchase.
+ * `lifecycle_activate_1` / `lifecycle_activate_2` (ref = userId) nudge accounts that never logged a meal;
+ * `lifecycle_winback` (ref = "<userId>:<lastActiveMs>") is one mail per lapse (apps/server/src/lifecycle-email.ts).
  */
 export type EmailLogKind =
   | "receipt"
@@ -68,6 +70,9 @@ export type EmailLogKind =
   | "founder_expired"
   | "accuracy_digest"
   | "testflight_notice"
+  | "lifecycle_activate_1"
+  | "lifecycle_activate_2"
+  | "lifecycle_winback"
   | `broadcast:${string}`
   | `broadcast_test:${string}`;
 

@@ -82,10 +82,12 @@ export async function claimEmail(
   userId: string,
   kind: (typeof emailLog.$inferInsert)["kind"],
   ref: string,
+  /** When the claim is recorded; defaults to the database clock. */
+  at?: Date,
 ): Promise<boolean> {
   const claimed = await db
     .insert(emailLog)
-    .values({ userId, kind, ref })
+    .values({ userId, kind, ref, ...(at ? { createdAt: at } : {}) })
     .onConflictDoNothing()
     .returning({ id: emailLog.id });
   return claimed.length === 1;
