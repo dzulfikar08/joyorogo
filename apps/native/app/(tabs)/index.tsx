@@ -85,6 +85,7 @@ import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { pushDaySnapshot, pushSignedOutSnapshot } from "@/src/lib/widgets/push";
 import { useJakartaClock } from "@/src/lib/use-jakarta-clock";
+import { useSelectedDay } from "@/src/lib/selected-day";
 import { useHealthAutoSync } from "@/src/lib/use-health-sync";
 import { TargetPaceNotice } from "@/components/target-pace-notice";
 import { errorMessage, fmtDateMedium, fmtInt, fmtKg, kcalUnit, weeklyRateLabel } from "@/utils/format";
@@ -212,9 +213,7 @@ export default function Dashboard() {
   const { t } = useTranslation(["home", "common", "berat", "maternal", "gain", "scan", "badges"]);
   const gate = useSessionGate();
   const { today, now } = useJakartaClock();
-  // null = follow the live day; a past day is pinned only once the person picks it.
-  const [pickedDate, setPickedDate] = useState<string | null>(null);
-  const date = pickedDate ?? today;
+  const [date, setDate] = useSelectedDay(today);
   const isToday = date === today;
   const badges = useBadges();
   const badgesEarned = badges.data?.enabled ? badges.data.badges.filter((b) => b.tier > 0).length : null;
@@ -1077,7 +1076,7 @@ export default function Dashboard() {
       </View>
 
       {/* Day switcher */}
-      <DaySwitcher date={date} today={today} onChange={(next) => setPickedDate(next >= today ? null : next)} />
+      <DaySwitcher date={date} today={today} onChange={setDate} />
 
       {/* Free account that just hit a streak milestone: one Pro card, once per milestone */}
       {maternal ? null : <StreakNudge userId={sessionData?.user.id ?? null} streakDays={data.streakDays} />}

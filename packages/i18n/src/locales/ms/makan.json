@@ -358,7 +358,8 @@
     "label": "Pilih hari",
     "prev": "Hari sebelumnya",
     "next": "Hari seterusnya",
-    "backToToday": "Kembali ke hari ini"
+    "backToToday": "Kembali ke hari ini",
+    "today": "Hari ini"
   },
   "sheetActions": {
     "removeFavorite": "Buang daripada Kegemaran",

@@ -366,7 +366,8 @@
     "label": "Choose a day",
     "prev": "Previous day",
     "next": "Next day",
-    "backToToday": "Back to today"
+    "backToToday": "Back to today",
+    "today": "Today"
   },
   "sheetActions": {
     "removeFavorite": "Remove from Favorites",

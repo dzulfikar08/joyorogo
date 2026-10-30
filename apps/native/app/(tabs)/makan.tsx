@@ -80,6 +80,8 @@ import { PlacesView } from "@/components/places/places-view";
 import { SaveLocationToggle } from "@/components/places/location-toggle";
 import { loadMakanPrefs, saveMakanKind, saveMakanView } from "@/src/lib/makan-prefs";
 import { usePlaceLocation } from "@/src/lib/location";
+import { useSelectedDay } from "@/src/lib/selected-day";
+import { useJakartaClock } from "@/src/lib/use-jakarta-clock";
 
 const ALL_MEAL_KEYS = Object.keys(MEAL_LABELS) as Meal[];
 
@@ -87,8 +89,8 @@ export default function Makan() {
   const { t } = useTranslation(["makan", "common", "scan"]);
   const { theme } = useUnistyles();
   const gate = useSessionGate();
-  const today = jakartaToday();
-  const [date, setDate] = useState(today);
+  const { today } = useJakartaClock();
+  const [date, setDate] = useSelectedDay(today);
   const isToday = date === today;
 
   const profile = useQuery(orpc.profile.myProfile.queryOptions());
@@ -803,7 +805,7 @@ export default function Makan() {
 
       {view === "daftar" ? (
         <>
-          <DaySwitcher date={date} onChange={setDate} />
+          <DaySwitcher date={date} today={today} onChange={setDate} />
 
           <DaySummary
             eatenKcal={eatenKcal}
