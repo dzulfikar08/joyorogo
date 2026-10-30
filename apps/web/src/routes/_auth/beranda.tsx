@@ -59,13 +59,27 @@ import {
 import { useWater } from "@/components/water-card";
 import { JoyoFitCard } from "@/components/workout/joyofit-card";
 import { pickFact } from "@/lib/facts";
-import { fmtDateLong, fmtDateMedium, fmtFactor, fmtInt, fmtKg, fmtRatio, parseNum } from "@/lib/format";
+import {
+  fmtDateLong,
+  fmtDateMedium,
+  fmtFactor,
+  fmtInt,
+  fmtKg,
+  fmtRatio,
+  parseNum,
+} from "@/lib/format";
 import { useFirstVisit } from "@/lib/motion";
 import { useWaistCheckIn, useWeightCheckIn } from "@/lib/optimistic";
 import { useAppConfig } from "@/lib/app-config";
 import type { DaySummary } from "@/lib/api-types";
 import { DEFAULT_ADD_BACK_SETTINGS } from "@joyorogo/api/lib/exercise-credit";
-import { datePaceExplainKey, jakartaToday, needsBreakdown, relativeDayLabel, remainingKcal } from "@joyorogo/api/lib/engine";
+import {
+  datePaceExplainKey,
+  jakartaToday,
+  needsBreakdown,
+  relativeDayLabel,
+  remainingKcal,
+} from "@joyorogo/api/lib/engine";
 import { visibleHomeCards } from "@joyorogo/api/lib/home-cards";
 import type { HomeCardId } from "@joyorogo/api/lib/home-cards";
 import { trendChange, weightSecondary } from "@joyorogo/api/lib/home-stats";
@@ -169,8 +183,7 @@ const STAT_TONE = {
   makan: "text-makan",
 } as const;
 
-const STAT_ROW =
-  "flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left";
+const STAT_ROW = "flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left";
 
 /** One line of the daily numbers card: icon, label over a one-line note, value with its unit. */
 function StatRow({
@@ -245,7 +258,11 @@ function WaterRow({ date }: { date?: string }) {
           className="mt-1.5 h-1.5"
         />
       }
-      value={<span aria-live="polite">{t("tile.waterValue", { count: water.glasses, goal: water.goal })}</span>}
+      value={
+        <span aria-live="polite">
+          {t("tile.waterValue", { count: water.glasses, goal: water.goal })}
+        </span>
+      }
       action={
         <button
           type="button"
@@ -300,7 +317,9 @@ function StatsCard({ summary, date, today }: { summary: Summary; date: string; t
                 ? t(`tile.activeFrom.${summary.exerciseCredit.allDaySource}`)
                 : summary.exerciseSources.length > 0
                   ? t("tile.burnSub", {
-                      sources: summary.exerciseSources.map((source) => t(`tile.source.${source}`)).join(", "),
+                      sources: summary.exerciseSources
+                        .map((source) => t(`tile.source.${source}`))
+                        .join(", "),
                     })
                   : t("tile.burnNone")
             }
@@ -352,32 +371,41 @@ function StatsCard({ summary, date, today }: { summary: Summary; date: string; t
   );
 }
 
-/** Protein with its target, carbs and fat as eaten grams: the macros of the calorie card. */
+/** The three macros of the calorie card against the server's personal targets; a macro without a target shows grams only. */
 function MacroRow({ summary }: { summary: Summary }) {
   const { t } = useTranslation("home");
-  const eaten = summary.protein?.eatenG ?? 0;
-  const target = summary.protein?.targetG ?? 0;
+  const items = [
+    {
+      label: t("tile.protein"),
+      eaten: summary.protein?.eatenG ?? 0,
+      target: summary.protein?.targetG ?? null,
+    },
+    {
+      label: t("macros.carbs"),
+      eaten: summary.carbsEatenG,
+      target: summary.macros?.carbsTargetG ?? null,
+    },
+    {
+      label: t("macros.fat"),
+      eaten: summary.fatEatenG,
+      target: summary.macros?.fatTargetG ?? null,
+    },
+  ];
   return (
-    <dl className="mt-3 grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)] gap-x-4 border-t border-border pt-3">
-      <div className="min-w-0">
-        <dt className="truncate text-xs font-semibold text-muted-foreground">{t("tile.protein")}</dt>
-        <dd className="mt-0.5 truncate text-sm font-extrabold tabular-nums">
-          {t("macros.ofTarget", { eaten: fmtInt(eaten), target: fmtInt(target) })}
-        </dd>
-        <ProgressBar value={eaten} max={target} ariaLabel={t("tile.protein")} className="mt-1.5 h-1" />
-      </div>
-      <div className="min-w-0">
-        <dt className="truncate text-xs font-semibold text-muted-foreground">{t("macros.carbs")}</dt>
-        <dd className="mt-0.5 truncate text-sm font-extrabold tabular-nums">
-          {t("macros.grams", { g: fmtInt(summary.carbsEatenG) })}
-        </dd>
-      </div>
-      <div className="min-w-0">
-        <dt className="truncate text-xs font-semibold text-muted-foreground">{t("macros.fat")}</dt>
-        <dd className="mt-0.5 truncate text-sm font-extrabold tabular-nums">
-          {t("macros.grams", { g: fmtInt(summary.fatEatenG) })}
-        </dd>
-      </div>
+    <dl className="mt-3 grid grid-cols-3 gap-x-4 border-t border-border pt-3">
+      {items.map(({ label, eaten, target }) => (
+        <div key={label} className="min-w-0">
+          <dt className="truncate text-xs font-semibold text-muted-foreground">{label}</dt>
+          <dd className="mt-0.5 truncate text-sm font-extrabold tabular-nums">
+            {target
+              ? t("macros.ofTarget", { eaten: fmtInt(eaten), target: fmtInt(target) })
+              : t("macros.grams", { g: fmtInt(eaten) })}
+          </dd>
+          {target ? (
+            <ProgressBar value={eaten} max={target} ariaLabel={label} className="mt-1.5 h-1" />
+          ) : null}
+        </div>
+      ))}
     </dl>
   );
 }
@@ -393,14 +421,19 @@ function IdeasCard({ summary }: { summary: Summary }) {
         <Sparkles className="size-4 text-makan" aria-hidden />
         {gaining ? t("gain:today.ideasTitle") : t("ideas.title")}
       </p>
-      {gaining && <p className="mt-0.5 text-xs text-muted-foreground">{t("gain:today.ideasHint")}</p>}
+      {gaining && (
+        <p className="mt-0.5 text-xs text-muted-foreground">{t("gain:today.ideasHint")}</p>
+      )}
       <ul className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 scrollbar-none">
         {summary.ideas.map((idea) => (
           <li key={idea.name} className="w-40 shrink-0 rounded-2xl bg-makan-soft px-3 py-2.5">
             <p className="line-clamp-2 text-sm leading-snug font-semibold">{idea.name}</p>
             <p className="mt-1 text-xs font-semibold text-makan-ink tabular-nums">
               <MetaLine
-                items={[`${fmtInt(idea.kcal)} ${kcalUnit()}`, t("ideas.protein", { g: fmtInt(idea.proteinG) })]}
+                items={[
+                  `${fmtInt(idea.kcal)} ${kcalUnit()}`,
+                  t("ideas.protein", { g: fmtInt(idea.proteinG) }),
+                ]}
               />
             </p>
           </li>
@@ -478,7 +511,10 @@ function Dashboard({
                 <SectionTitle className="mb-1">{t("plates.title")}</SectionTitle>
                 <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 scrollbar-none lg:mx-0 lg:px-0">
                   {stickers.map((item) => (
-                    <figure key={item.id} className="w-28 shrink-0 rounded-2xl bg-card p-3 text-center">
+                    <figure
+                      key={item.id}
+                      className="w-28 shrink-0 rounded-2xl bg-card p-3 text-center"
+                    >
                       <Sticker
                         scanId={item.scanId}
                         photoId={item.photoId}
@@ -487,7 +523,9 @@ function Dashboard({
                         {...stickerTarget(item, foods.data?.items ?? [])}
                         className="mx-auto block size-20"
                       />
-                      <figcaption className="mt-2 truncate text-xs font-semibold">{item.name}</figcaption>
+                      <figcaption className="mt-2 truncate text-xs font-semibold">
+                        {item.name}
+                      </figcaption>
                       <p className="text-xs text-muted-foreground tabular-nums">
                         {fmtInt(item.kcal)} {kcalUnit()}
                       </p>
@@ -548,7 +586,10 @@ function Dashboard({
         <div className="min-w-0">
           <p className="text-sm font-medium text-muted-foreground">
             {firstName
-              ? t("greeting.named", { greeting: t(`greeting.${greetingKey(now)}`), name: firstName })
+              ? t("greeting.named", {
+                  greeting: t(`greeting.${greetingKey(now)}`),
+                  name: firstName,
+                })
               : t(`greeting.${greetingKey(now)}`)}
           </p>
           <h1 className="mt-0.5 text-xl leading-tight font-extrabold tracking-tight min-[420px]:text-2xl">
@@ -743,12 +784,13 @@ function EatHero({ summary }: { summary: Summary }) {
         <GainIntakeNote targetKcal={targets.eatKcal} eatenKcal={summary.eatenKcal} />
       ) : (
         over && (
-          <p className="mt-2 text-sm leading-snug font-semibold text-bakar-ink">{t("eat.overNote")}</p>
+          <p className="mt-2 text-sm leading-snug font-semibold text-bakar-ink">
+            {t("eat.overNote")}
+          </p>
         )
       )}
 
       <MacroRow summary={summary} />
-
 
       <Sheet open={explainOpen} onOpenChange={setExplainOpen} title={t("explain.title")}>
         <div className="space-y-4">
@@ -849,7 +891,8 @@ function EatHero({ summary }: { summary: Summary }) {
                 {credit.allDaySource === "joyofit" && (
                   <p>{t("explain.addBack.watch", { kcal: fmtInt(credit.allDayKcal ?? 0) })}</p>
                 )}
-                {(credit.allDaySource === "health_connect" || credit.allDaySource === "apple_health") && (
+                {(credit.allDaySource === "health_connect" ||
+                  credit.allDaySource === "apple_health") && (
                   <p>
                     {t("explain.addBack.healthStore", {
                       source: t(`tile.source.${credit.allDaySource}`),
@@ -888,28 +931,48 @@ function EatHero({ summary }: { summary: Summary }) {
           </Link>
         </div>
       </Sheet>
-
     </Card>
   );
 }
 
 /** "Hitungan hari ini": the day's budget in the user's own numbers, from needsBreakdown (no formulas of our own). */
-function BudgetSum({ summary, leftKcal, over }: { summary: Summary; leftKcal: number; over: boolean }) {
+function BudgetSum({
+  summary,
+  leftKcal,
+  over,
+}: {
+  summary: Summary;
+  leftKcal: number;
+  over: boolean;
+}) {
   const { t } = useTranslation(["home", "maternal"]);
   const targets = summary.targets;
   const needs = needsBreakdown(targets);
   const credit = summary.exerciseCredit;
   const maternal = targets.maternal !== null;
-  const rows: Array<{ key: string; label: string; value?: string; sub?: string; strong?: boolean }> = [
+  const rows: Array<{
+    key: string;
+    label: string;
+    value?: string;
+    sub?: string;
+    strong?: boolean;
+  }> = [
     {
       key: "tdee",
       label: t("explain.sum.tdee", { bmr: fmtInt(needs.bmrKcal), factor: fmtFactor(needs.factor) }),
       value: fmtInt(needs.tdeeKcal),
     },
   ];
-  if (needs.cutKcal > 0) rows.push({ key: "cut", label: t("explain.sum.cut"), value: `−${fmtInt(needs.cutKcal)}` });
-  if (targets.gain) rows.push({ key: "surplus", label: t("explain.sum.surplus"), value: `+${fmtInt(needs.surplusKcal)}` });
-  if (maternal) rows.push({ key: "add", label: t("explain.sum.add"), value: `+${fmtInt(needs.addKcal)}` });
+  if (needs.cutKcal > 0)
+    rows.push({ key: "cut", label: t("explain.sum.cut"), value: `−${fmtInt(needs.cutKcal)}` });
+  if (targets.gain)
+    rows.push({
+      key: "surplus",
+      label: t("explain.sum.surplus"),
+      value: `+${fmtInt(needs.surplusKcal)}`,
+    });
+  if (maternal)
+    rows.push({ key: "add", label: t("explain.sum.add"), value: `+${fmtInt(needs.addKcal)}` });
   if (targets.notes.includes("PLAN_CLAMPED") && needs.cutKcal < needs.deficitKcal) {
     rows.push({ key: "floor", label: t("explain.sum.floor") });
   }
@@ -926,7 +989,12 @@ function BudgetSum({ summary, leftKcal, over }: { summary: Summary; leftKcal: nu
   rows.push(
     { key: "target", label: t("explain.sum.target"), value: fmtInt(targets.eatKcal), strong: true },
     { key: "eaten", label: t("explain.sum.eaten"), value: fmtInt(summary.eatenKcal) },
-    { key: "left", label: t("explain.sum.left"), value: `${over ? "−" : ""}${fmtInt(leftKcal)}`, strong: true },
+    {
+      key: "left",
+      label: t("explain.sum.left"),
+      value: `${over ? "−" : ""}${fmtInt(leftKcal)}`,
+      strong: true,
+    },
   );
 
   return (
@@ -936,13 +1004,25 @@ function BudgetSum({ summary, leftKcal, over }: { summary: Summary; leftKcal: nu
         {rows.map((row) => (
           <li key={row.key} className="flex items-baseline justify-between gap-3 py-2 text-sm">
             <div className="min-w-0">
-              <p className={cn(row.strong ? "font-bold" : "font-medium", row.value === undefined && "text-muted-foreground")}>
+              <p
+                className={cn(
+                  row.strong ? "font-bold" : "font-medium",
+                  row.value === undefined && "text-muted-foreground",
+                )}
+              >
                 {row.label}
               </p>
               {row.sub && <p className="text-xs text-muted-foreground tabular-nums">{row.sub}</p>}
             </div>
             {row.value !== undefined && (
-              <p className={cn("shrink-0 tabular-nums", row.strong ? "font-extrabold" : "font-semibold")}>{row.value}</p>
+              <p
+                className={cn(
+                  "shrink-0 tabular-nums",
+                  row.strong ? "font-extrabold" : "font-semibold",
+                )}
+              >
+                {row.value}
+              </p>
             )}
           </li>
         ))}
@@ -1002,7 +1082,9 @@ function TodayMeals({ summary, isToday }: { summary: Summary; isToday: boolean }
                 {kcal > 0 ? (
                   <span className="text-[0.9375rem] font-bold tabular-nums">
                     <CountUp value={kcal} />{" "}
-                    <span className="text-xs font-semibold text-muted-foreground">{kcalUnit()}</span>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {kcalUnit()}
+                    </span>
                   </span>
                 ) : (
                   <span className="flex items-center gap-1 text-sm font-semibold text-primary">
