@@ -6,11 +6,14 @@ export function ProgressBar({
   max,
   className,
   ariaLabel,
+  barClassName,
 }: {
   value: number;
   max: number;
   className?: string;
   ariaLabel?: string;
+  /** Overrides the fill colour (e.g. `bg-bakar`); the default is the green accent. */
+  barClassName?: string;
 }) {
   const pct = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
   return (
@@ -23,7 +26,10 @@ export function ProgressBar({
       className={cn("h-2 w-full overflow-hidden rounded-full bg-muted", className)}
     >
       <div
-        className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out motion-reduce:transition-none"
+        className={cn(
+          "h-full rounded-full bg-primary transition-[width] duration-500 ease-out motion-reduce:transition-none",
+          barClassName,
+        )}
         style={{ width: `${pct}%` }}
       />
     </div>

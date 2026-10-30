@@ -286,6 +286,17 @@
       "body": "Defisit itu selisih antara kalori yang tubuhmu butuhkan dan yang kamu makan. Selisih inilah yang menurunkan berat. Kamu tidak perlu menghitungnya, cukup makan sekitar target. Rencanamu sekitar {{kcal}} kkal per hari.",
       "bodyMaintenance": "Rencanamu sekarang menjaga berat, jadi tidak ada defisit. Makan sekitar target saja."
     },
+    "macros": {
+      "title": "Target makro",
+      "intro": "Protein dihitung dari berat badanmu, lalu lemak dan karbo dibagi dari target makan hari ini. Semua angka perkiraan, bukan resep medis.",
+      "protein": "Protein {{g}} g: 1,5 g per kg berat badan, 1,6 g di hari latihan. Berat yang dipakai paling tinggi batas atas berat sehat untuk tinggimu.",
+      "proteinGain": "Protein {{g}} g: 1,8 g per kg berat badan untuk Naikin BB. Berat yang dipakai paling tinggi batas atas berat sehat untuk tinggimu.",
+      "fat": "Lemak {{g}} g: 25% dari target makan, minimal 0,5 g per kg berat badan.",
+      "carbs": "Karbo {{g}} g: sisa kalori setelah protein dan lemak (4 kkal per gram).",
+      "fiber": "Serat {{g}} g: 14 g per 1.000 kkal, minimal 25 g.",
+      "over": "Kalau sudah lewat target, bar dan angkanya berubah merah bata. Itu tanda, bukan larangan.",
+      "overGain": "Di Naikin BB, makan lewat angka ini bukan masalah, jadi bar tidak berubah warna."
+    },
     "needs": "Lihat rincian kebutuhan harianmu"
   },
   "macros": {

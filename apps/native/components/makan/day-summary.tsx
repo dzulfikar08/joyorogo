@@ -1,3 +1,5 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -5,11 +7,11 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { eatTone } from "@joyorogo/api/lib/engine";
 import { gainEatTone, gainRemaining } from "@joyorogo/api/lib/gain";
 
-import type { ProteinPerKg } from "@joyorogo/api/lib/safety";
-
 import { gainRemainingLabel } from "@/components/gain/gain-today";
-import { Card, CountNum, MacroBar, Text } from "@/components/ui";
-import { fmtDecimal, fmtInt } from "@/utils/format";
+import { MacroTargetsExplain } from "@/components/macro-targets-explain";
+import { PressableScale } from "@/components/motion";
+import { Card, CountNum, MacroBar, Sheet, Text } from "@/components/ui";
+import { fmtInt } from "@/utils/format";
 
 type MacroTotals = { protein: number; carbs: number; fat: number; fiber: number };
 type MacroBudgets = {
@@ -23,7 +25,7 @@ type MacroBudgets = {
  * The day at a glance, compact: eaten kcal against the target, a thin progress
  * bar in the tone of the day, and the four macros against their budgets. The
  * ring stays on Beranda. Hamil/Menyusui never read "over"; Naikin BB reads
- * "still to eat" instead.
+ * "still to eat" instead. The (i) beside the macros explains how each target is set.
  */
 export function DaySummary({
   eatenKcal,
@@ -31,7 +33,6 @@ export function DaySummary({
   maternal,
   gainPlan,
   totals,
-  proteinGuide,
   budgets,
 }: {
   eatenKcal: number;
@@ -40,12 +41,11 @@ export function DaySummary({
   maternal: boolean;
   gainPlan: boolean;
   totals: MacroTotals;
-  /** Eaten protein per kg of the latest weigh-in against the guide range; null when it cannot be said honestly. */
-  proteinGuide: ProteinPerKg | null;
   budgets: MacroBudgets;
 }) {
   const { t } = useTranslation("makan");
   const { theme } = useUnistyles();
+  const [infoOpen, setInfoOpen] = useState(false);
   const targetKcal = targetInput !== null && targetInput > 0 ? targetInput : null;
   const hasTarget = targetKcal !== null;
   const tone = maternal
@@ -68,19 +68,32 @@ export function DaySummary({
           <CountNum value={eatenKcal} style={styles.kcal} numberOfLines={1} />
           <Text style={styles.unit}>{t("diary.summary.unit")}</Text>
         </View>
-        {hasTarget ? (
-          <Text style={[styles.target, over && { color: theme.colors.bakarText }]}>
-            {over
-              ? t("diary.summary.over", { kcal: fmtInt(eatenKcal - targetKcal) })
-              : t("diary.summary.ofTarget", { kcal: fmtInt(targetKcal) })}
-          </Text>
-        ) : null}
+        <View style={styles.side}>
+          {hasTarget ? (
+            <Text style={[styles.target, over && { color: theme.colors.bakarText }]}>
+              {over
+                ? t("diary.summary.over", { kcal: fmtInt(eatenKcal - targetKcal) })
+                : t("diary.summary.ofTarget", { kcal: fmtInt(targetKcal) })}
+            </Text>
+          ) : null}
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel={t("daySummary.info")}
+            onPress={() => setInfoOpen(true)}
+            hitSlop={12}
+            scaleTo={0.9}
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={20}
+              color={theme.colors.mutedForeground}
+            />
+          </PressableScale>
+        </View>
       </View>
       {hasTarget ? (
         <View style={styles.track}>
-          <View
-            style={[styles.fill, { width: `${fill * 100}%`, backgroundColor: barColor }]}
-          />
+          <View style={[styles.fill, { width: `${fill * 100}%`, backgroundColor: barColor }]} />
         </View>
       ) : null}
       {gainPlan && hasTarget ? (
@@ -96,15 +109,6 @@ export function DaySummary({
           budget={budgets.proteinG}
           neutral={gainPlan}
         />
-        {proteinGuide ? (
-          <Text style={styles.proteinGuide}>
-            {t("daySummary.proteinPerKg", {
-              perKg: fmtDecimal(proteinGuide.gPerKg, 1),
-              min: fmtDecimal(proteinGuide.guide.min, 1),
-              max: fmtDecimal(proteinGuide.guide.max, 1),
-            })}
-          </Text>
-        ) : null}
         <MacroBar
           macro="carbs"
           label={t("diary.macro.carbs")}
@@ -127,6 +131,9 @@ export function DaySummary({
           neutral={gainPlan}
         />
       </View>
+      <Sheet visible={infoOpen} onClose={() => setInfoOpen(false)} title={t("daySummary.info")}>
+        <MacroTargetsExplain targets={budgets} gain={gainPlan} />
+      </Sheet>
     </Card>
   );
 }
@@ -181,10 +188,9 @@ const styles = StyleSheet.create((theme) => ({
   macros: {
     gap: theme.spacing.sm,
   },
-  proteinGuide: {
-    fontSize: theme.fontSize.xs,
-    lineHeight: 17,
-    color: theme.colors.mutedForeground,
-    fontVariant: ["tabular-nums"],
+  side: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.xs,
   },
 }));

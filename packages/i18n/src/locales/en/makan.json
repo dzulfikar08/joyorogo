@@ -831,7 +831,7 @@
     "hint": "Used for your fasting window and sleep patterns. Logging later? Set the time you actually ate."
   },
   "daySummary": {
-    "proteinPerKg": "Protein {{perKg}} g/kg · guide {{min}}-{{max}} g/kg"
+    "info": "How the macro targets are set"
   },
   "safety": {
     "fastLoss": {

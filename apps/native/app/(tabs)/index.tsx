@@ -42,6 +42,7 @@ import {
   gainTipLabel,
 } from "@/components/gain/gain-today";
 import { DaySwitcher } from "@/components/day-switcher";
+import { MacroTargetsExplain } from "@/components/macro-targets-explain";
 import { RecapCard } from "@/components/recap-card";
 import { MaternalCard } from "@/components/maternal/maternal-card";
 import { StravaRetentionNotice } from "@/components/strava-retention-notice";
@@ -176,18 +177,25 @@ function TrendSpark({ points }: { points: TrendPoint[] }) {
   );
 }
 
-/** One macro in the calorie card: icon and label, the day's value with its unit inline, and a thin bar when it has a target. */
+/**
+ * One macro in the calorie card: icon and label, the day's value with its unit inline, and a thin bar when it has a
+ * target. Past the target the bar and value turn terracotta (bakar), like Makan's MacroBar; Naikin BB never does.
+ */
 function MacroStat({
   macro,
   label,
   value,
   progress,
+  neutral = false,
 }: {
   macro: MacroKey;
   label: string;
   value: string;
   progress?: number;
+  neutral?: boolean;
 }) {
+  const { theme } = useUnistyles();
+  const over = !neutral && progress !== undefined && progress > 1;
   return (
     <View style={styles.macroStat} accessible accessibilityLabel={`${label}, ${value}`}>
       <View style={styles.macroStatLabel}>
@@ -196,12 +204,23 @@ function MacroStat({
           {label}
         </Text>
       </View>
-      <Num style={styles.macroStatValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+      <Num
+        style={[styles.macroStatValue, over && { color: theme.colors.bakarText }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+      >
         {value}
       </Num>
       {progress !== undefined ? (
         <View style={styles.macroStatTrack}>
-          <View style={[styles.macroStatFill, { width: `${Math.round(Math.min(1, Math.max(0, progress)) * 100)}%` }]} />
+          <View
+            style={[
+              styles.macroStatFill,
+              { width: `${Math.round(Math.min(1, Math.max(0, progress)) * 100)}%` },
+              over && { backgroundColor: theme.colors.bakar },
+            ]}
+          />
         </View>
       ) : null}
     </View>
@@ -625,18 +644,21 @@ export default function Dashboard() {
                 label={gain ? t("gain:today.protein") : MACRO_META.protein.label}
                 value={data.protein ? t("macros.ofTarget", { eaten: fmtInt(data.protein.eatenG), target: fmtInt(data.protein.targetG) }) : "–"}
                 progress={data.protein && data.protein.targetG > 0 ? data.protein.eatenG / data.protein.targetG : 0}
+                neutral={gain !== null}
               />
               <MacroStat
                 macro="carbs"
                 label={MACRO_META.carbs.label}
                 value={macroValue(carbsG, data.macros?.carbsTargetG)}
                 progress={data.macros?.carbsTargetG && carbsG !== null ? carbsG / data.macros.carbsTargetG : undefined}
+                neutral={gain !== null}
               />
               <MacroStat
                 macro="fat"
                 label={MACRO_META.fat.label}
                 value={macroValue(fatG, data.macros?.fatTargetG)}
                 progress={data.macros?.fatTargetG && fatG !== null ? fatG / data.macros.fatTargetG : undefined}
+                neutral={gain !== null}
               />
             </View>
           )}
@@ -1203,6 +1225,15 @@ export default function Dashboard() {
               ) : null}
             </View>
           ))}
+          <MacroTargetsExplain
+            gain={gain !== null}
+            targets={{
+              proteinG: data.protein?.targetG ?? null,
+              carbsG: data.macros?.carbsTargetG ?? null,
+              fatG: data.macros?.fatTargetG ?? null,
+              fiberG: data.macros?.fiberTargetG ?? null,
+            }}
+          />
           <View style={styles.explainItem}>
             <Text style={styles.explainTitle}>{t("explain.burn.title")}</Text>
             <Text style={styles.mutedNote}>{t("explain.burn.body", { pct: credit?.pct ?? DEFAULT_ADD_BACK_SETTINGS.pct })}</Text>

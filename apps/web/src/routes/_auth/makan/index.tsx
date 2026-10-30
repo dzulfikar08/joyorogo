@@ -8,7 +8,6 @@ import {
 } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
-import { proteinPerKg } from "@joyorogo/api/lib/safety";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
 import { Sheet } from "@joyorogo/ui/components/sheet";
@@ -338,14 +337,6 @@ function MakanPage() {
 
   const items = list.data?.items ?? [];
   const totals = list.data?.totals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
-  // Protein per kg against the guide: only from rows that carry a protein figure (unknown is not zero) and a weigh-in.
-  const proteinGuide = proteinPerKg({
-    proteinG: totals.protein,
-    proteinKnown: items.some((item) => item.protein != null),
-    weightKg: daySummary.data?.latestWeightKg ?? null,
-    gaining: (daySummary.data?.targets?.gain ?? null) !== null,
-    maternal: (daySummary.data?.targets?.maternal ?? null) !== null,
-  });
 
   return (
     <Page className="md:max-w-3xl">
@@ -373,7 +364,6 @@ function MakanPage() {
                 eatenKcal={totals.kcal}
                 proteinTargetG={daySummary.data.protein?.targetG ?? null}
                 macros={daySummary.data.macros ?? null}
-                proteinGuide={proteinGuide}
                 totals={totals}
                 neutral={(daySummary.data.targets?.maternal ?? null) !== null}
               />

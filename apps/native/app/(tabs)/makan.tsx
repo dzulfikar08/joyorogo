@@ -62,7 +62,6 @@ import type { QueryKey } from "@tanstack/react-query";
 import { FavoritChips, FavoritManageSheet, useFavorites } from "@/components/favorit";
 import type { SummaryDelta } from "@joyorogo/api/lib/optimistic";
 import { foodKind, matchesKind } from "@joyorogo/api/lib/food-kind";
-import { proteinPerKg } from "@joyorogo/api/lib/safety";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
 import type { MakanView } from "@joyorogo/api/lib/diary-view";
 import { DaySummary } from "@/components/makan/day-summary";
@@ -528,14 +527,6 @@ export default function Makan() {
   // Naikin BB: under-eating is the problem, so never an "over" tone, and the day reads "still to eat".
   const gainPlan = !maternal && targets?.gain != null;
   const eatenKcal = summaryQuery.data?.eatenKcal ?? totals.kcal;
-  // Protein per kg against the guide: only from rows that carry a protein figure (unknown is not zero) and a weigh-in.
-  const proteinGuide = proteinPerKg({
-    proteinG: totals.protein,
-    proteinKnown: items.some((item) => item.protein != null),
-    weightKg: summaryQuery.data?.latestWeightKg ?? null,
-    gaining: gainPlan,
-    maternal,
-  });
   // Carb/fat/fiber targets are the server's personal ones (day.summary `macros`).
   const serverMacros = summaryQuery.data?.macros;
   const macroBudgets = serverMacros
@@ -815,7 +806,6 @@ export default function Makan() {
             maternal={maternal}
             gainPlan={gainPlan}
             totals={totals}
-            proteinGuide={proteinGuide}
             budgets={{
               proteinG: summaryQuery.data?.protein?.targetG ?? null,
               carbsG: macroBudgets?.carbsG ?? null,

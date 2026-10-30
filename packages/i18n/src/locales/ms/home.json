@@ -286,6 +286,17 @@
       "body": "Defisit ialah beza antara kalori yang diperlukan tubuh anda dengan yang anda makan. Beza inilah yang menurunkan berat. Anda tidak perlu mengiranya, cukup makan sekitar sasaran. Pelan anda kira-kira {{kcal}} kcal sehari.",
       "bodyMaintenance": "Pelan anda sekarang mengekalkan berat, jadi tiada defisit. Makan sekitar sasaran sahaja."
     },
+    "macros": {
+      "title": "Sasaran makro",
+      "intro": "Protein dikira daripada berat badan anda, kemudian lemak dan karbo dibahagi daripada sasaran makan hari ini. Semua angka anggaran, bukan preskripsi perubatan.",
+      "protein": "Protein {{g}} g: 1.5 g bagi setiap kg berat badan, 1.6 g pada hari latihan. Berat yang digunakan paling tinggi had atas berat sihat untuk ketinggian anda.",
+      "proteinGain": "Protein {{g}} g: 1.8 g bagi setiap kg berat badan untuk naik berat. Berat yang digunakan paling tinggi had atas berat sihat untuk ketinggian anda.",
+      "fat": "Lemak {{g}} g: 25% daripada sasaran makan, sekurang-kurangnya 0.5 g bagi setiap kg berat badan.",
+      "carbs": "Karbo {{g}} g: baki kalori selepas protein dan lemak (4 kcal setiap gram).",
+      "fiber": "Serat {{g}} g: 14 g bagi setiap 1,000 kcal, sekurang-kurangnya 25 g.",
+      "over": "Jika sudah melebihi sasaran, bar dan angkanya bertukar merah bata. Itu tanda, bukan larangan.",
+      "overGain": "Semasa naik berat, makan melebihi angka ini tidak menjadi masalah, jadi bar tidak bertukar warna."
+    },
     "needs": "Lihat butiran keperluan harian anda"
   },
   "macros": {

@@ -1,6 +1,8 @@
 import { eatTone } from "@joyorogo/api/lib/engine";
-import type { ProteinPerKg } from "@joyorogo/api/lib/safety";
+import { Sheet } from "@joyorogo/ui/components/sheet";
 import { cn } from "@joyorogo/ui/lib/utils";
+import { Info } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useGainIntake } from "@/components/gain/gain-today";
@@ -8,7 +10,8 @@ import { useGain } from "@/components/gain/use-gain";
 import { CountUp } from "@/components/kit/count-up";
 import { Card } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
-import { fmtDecimal, fmtInt } from "@/lib/format";
+import { MacroTargetsExplain } from "@/components/macro-targets-explain";
+import { fmtInt } from "@/lib/format";
 import { MACRO_META, type MacroKey } from "@/lib/macro-icons";
 
 export type MacroTotals = {
@@ -83,7 +86,6 @@ export function MakanSummaryCard({
   eatenKcal,
   proteinTargetG,
   macros,
-  proteinGuide,
   totals,
   neutral: neutralProp = false,
 }: {
@@ -92,8 +94,6 @@ export function MakanSummaryCard({
   proteinTargetG: number | null;
   /** The server's personal carb / fat / fibre targets (`day.summary.macros`); null before they load. */
   macros: { carbsTargetG: number; fatTargetG: number; fiberTargetG: number } | null;
-  /** Eaten protein per kg of the latest weigh-in against the guide range; null when it cannot be said honestly. */
-  proteinGuide: ProteinPerKg | null;
   totals: MacroTotals;
   /** Hamil / Menyusui: progress toward a need, never an over-target tone. */
   neutral?: boolean;
@@ -108,6 +108,7 @@ export function MakanSummaryCard({
   const over = !neutral && eatKcal !== null && eatenKcal > eatKcal;
   const tone = gaining ? intake.tone : neutral ? "ok" : eatTone(eatenKcal, target);
   const pct = target > 0 ? Math.min(100, (eatenKcal / target) * 100) : 0;
+  const [infoOpen, setInfoOpen] = useState(false);
   // carb/fat/fiber targets and the protein target both come from the server's day.summary
   const budgets = macros ? { carbsG: macros.carbsTargetG, fatG: macros.fatTargetG, fiberG: macros.fiberTargetG } : null;
 
@@ -122,18 +123,47 @@ export function MakanSummaryCard({
             {t("makan:diary.summary.unit")}
           </span>
         </p>
-        {eatKcal !== null && (
-          <p
-            className={cn(
-              "text-sm font-semibold tabular-nums",
-              over ? "text-bakar-ink" : "text-muted-foreground",
-            )}
-          >
-            {over
-              ? t("makan:diary.summary.over", { kcal: fmtInt(eatenKcal - eatKcal) })
-              : t("makan:diary.summary.ofTarget", { kcal: fmtInt(eatKcal) })}
-          </p>
-        )}
+        <div className="flex items-center gap-1.5">
+          {eatKcal !== null && (
+            <p
+              className={cn(
+                "text-sm font-semibold tabular-nums",
+                over ? "text-bakar-ink" : "text-muted-foreground",
+              )}
+            >
+              {over
+                ? t("makan:diary.summary.over", { kcal: fmtInt(eatenKcal - eatKcal) })
+                : t("makan:diary.summary.ofTarget", { kcal: fmtInt(eatKcal) })}
+            </p>
+          )}
+          {budgets && proteinTargetG !== null && (
+            <Sheet
+              open={infoOpen}
+              onOpenChange={setInfoOpen}
+              title={t("makan:daySummary.info")}
+              trigger={
+                <button
+                  type="button"
+                  aria-label={t("makan:daySummary.info")}
+                  title={t("makan:daySummary.info")}
+                  className="-m-2 flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+                >
+                  <Info className="size-[1.125rem]" aria-hidden />
+                </button>
+              }
+            >
+              <MacroTargetsExplain
+                gain={gaining}
+                targets={{
+                  proteinG: proteinTargetG,
+                  carbsG: budgets.carbsG,
+                  fatG: budgets.fatG,
+                  fiberG: budgets.fiberG,
+                }}
+              />
+            </Sheet>
+          )}
+        </div>
       </div>
       {eatKcal !== null && (
         <span
@@ -155,18 +185,7 @@ export function MakanSummaryCard({
       )}
       {budgets && proteinTargetG !== null ? (
         <div className="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-2">
-          <div>
-            <MacroBar macro="protein" eaten={totals.protein} budget={proteinTargetG} neutral={neutral} />
-            {proteinGuide && (
-              <p className="mt-1 text-xs leading-snug text-muted-foreground tabular-nums">
-                {t("makan:daySummary.proteinPerKg", {
-                  perKg: fmtDecimal(proteinGuide.gPerKg, 1),
-                  min: fmtDecimal(proteinGuide.guide.min, 1),
-                  max: fmtDecimal(proteinGuide.guide.max, 1),
-                })}
-              </p>
-            )}
-          </div>
+          <MacroBar macro="protein" eaten={totals.protein} budget={proteinTargetG} neutral={neutral} />
           <MacroBar macro="carbs" eaten={totals.carbs} budget={budgets.carbsG} neutral={neutral} />
           <MacroBar macro="fat" eaten={totals.fat} budget={budgets.fatG} neutral={neutral} />
           <MacroBar macro="fiber" eaten={totals.fiber} budget={budgets.fiberG} neutral={neutral} />

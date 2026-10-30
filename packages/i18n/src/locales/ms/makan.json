@@ -809,7 +809,7 @@
     "hint": "Digunakan untuk tetingkap puasa dan corak tidur anda. Mencatat kemudian? Tetapkan waktu anda sebenarnya makan."
   },
   "daySummary": {
-    "proteinPerKg": "Protein {{perKg}} g/kg · panduan {{min}}-{{max}} g/kg"
+    "info": "Cara sasaran makro dikira"
   },
   "safety": {
     "fastLoss": {

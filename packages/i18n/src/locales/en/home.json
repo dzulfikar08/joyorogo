@@ -299,6 +299,17 @@
       "body": "A deficit is the gap between the calories your body needs and the calories you eat. That gap is what lowers your weight. You don't have to calculate it, just eat around your target. Your plan is about {{kcal}} kcal a day.",
       "bodyMaintenance": "Your plan is to hold your weight right now, so there is no deficit. Just eat around your target."
     },
+    "macros": {
+      "title": "Macro targets",
+      "intro": "Protein comes from your body weight, then fat and carbs are split from today's eating target. Every number is an estimate, not a medical prescription.",
+      "protein": "Protein {{g}} g: 1.5 g per kg of body weight, 1.6 g on workout days. The weight used is capped at the top of the healthy range for your height.",
+      "proteinGain": "Protein {{g}} g: 1.8 g per kg of body weight for weight gain. The weight used is capped at the top of the healthy range for your height.",
+      "fat": "Fat {{g}} g: 25% of the eating target, at least 0.5 g per kg of body weight.",
+      "carbs": "Carbs {{g}} g: the calories left after protein and fat (4 kcal per gram).",
+      "fiber": "Fibre {{g}} g: 14 g per 1,000 kcal, at least 25 g.",
+      "over": "Once you pass a target, its bar and number turn terracotta. It's a signal, not a ban.",
+      "overGain": "When gaining weight, eating past these numbers is fine, so the bars don't change colour."
+    },
     "needs": "See your daily needs in detail"
   },
   "macros": {

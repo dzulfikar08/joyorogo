@@ -25,6 +25,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { useHomeCards } from "@/lib/home-cards-store";
+import { MacroTargetsExplain } from "@/components/macro-targets-explain";
 import { ProgressBar } from "@/components/progress-bar";
 import { CountUp } from "@/components/kit/count-up";
 import { Ring } from "@/components/kit/ring";
@@ -391,21 +392,37 @@ function MacroRow({ summary }: { summary: Summary }) {
       target: summary.macros?.fatTargetG ?? null,
     },
   ];
+  // Over a target reads terracotta (never alarm red); under Naikin BB nothing is "over".
+  const gaining = summary.targets.gain != null;
   return (
     <dl className="mt-3 grid grid-cols-3 gap-x-4 border-t border-border pt-3">
-      {items.map(({ label, eaten, target }) => (
-        <div key={label} className="min-w-0">
-          <dt className="truncate text-xs font-semibold text-muted-foreground">{label}</dt>
-          <dd className="mt-0.5 truncate text-sm font-extrabold tabular-nums">
-            {target
-              ? t("macros.ofTarget", { eaten: fmtInt(eaten), target: fmtInt(target) })
-              : t("macros.grams", { g: fmtInt(eaten) })}
-          </dd>
-          {target ? (
-            <ProgressBar value={eaten} max={target} ariaLabel={label} className="mt-1.5 h-1" />
-          ) : null}
-        </div>
-      ))}
+      {items.map(({ label, eaten, target }) => {
+        const over = !gaining && target !== null && target > 0 && eaten > target;
+        return (
+          <div key={label} className="min-w-0">
+            <dt className="truncate text-xs font-semibold text-muted-foreground">{label}</dt>
+            <dd
+              className={cn(
+                "mt-0.5 truncate text-sm font-extrabold tabular-nums",
+                over && "text-bakar-ink",
+              )}
+            >
+              {target
+                ? t("macros.ofTarget", { eaten: fmtInt(eaten), target: fmtInt(target) })
+                : t("macros.grams", { g: fmtInt(eaten) })}
+            </dd>
+            {target ? (
+              <ProgressBar
+                value={eaten}
+                max={target}
+                ariaLabel={label}
+                barClassName={over ? "bg-bakar" : undefined}
+                className="mt-1.5 h-1"
+              />
+            ) : null}
+          </div>
+        );
+      })}
     </dl>
   );
 }
@@ -863,6 +880,15 @@ function EatHero({ summary }: { summary: Summary }) {
               </div>
             ))}
           </dl>
+          <MacroTargetsExplain
+            gain={gaining}
+            targets={{
+              proteinG: summary.protein?.targetG ?? null,
+              carbsG: summary.macros?.carbsTargetG ?? null,
+              fatG: summary.macros?.fatTargetG ?? null,
+              fiberG: summary.macros?.fiberTargetG ?? null,
+            }}
+          />
           {credit && (
             <div className="rounded-2xl bg-bakar-soft p-4 text-sm leading-relaxed">
               <p className="font-bold text-bakar-ink">{t("explain.addBack.title")}</p>
