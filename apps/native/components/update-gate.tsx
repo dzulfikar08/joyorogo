@@ -28,7 +28,7 @@ export function UpdateGate() {
       />
     );
   }
-  if (gate.showBanner) return <NewVersionBanner links={gate.links.primary} dismiss={gate.dismissBanner} />;
+  if (gate.showBanner) return <NewVersionBanner links={gate.links} dismiss={gate.dismissBanner} />;
   return null;
 }
 
@@ -50,7 +50,7 @@ function BlockScreen({
   recheck,
 }: {
   message: string | undefined;
-  links: { primary: string[]; testing?: string };
+  links: string[];
   checking: boolean;
   recheck: () => Promise<void>;
 }) {
@@ -92,15 +92,8 @@ function BlockScreen({
           <Button
             label={t("update.gate.block.update")}
             icon="open-outline"
-            onPress={() => void openStore(links.primary).then((ok) => setOpenFailed(!ok))}
+            onPress={() => void openStore(links).then((ok) => setOpenFailed(!ok))}
           />
-          {links.testing ? (
-            <Button
-              variant="secondary"
-              label={t("update.gate.block.testing")}
-              onPress={() => void openStore([links.testing as string])}
-            />
-          ) : null}
           <Button
             variant="ghost"
             size="sm"

@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-  ANDROID_TESTING_URL,
   CONFIG_TTL_MS,
   RESUME_THROTTLE_MS,
   decideGate,
@@ -98,16 +97,14 @@ describe("shouldRefetch", () => {
 });
 
 describe("storeLinks", () => {
-  test("android: market first, https fallback, testing opt-in", () => {
-    expect(storeLinks("android", "https://play.google.com/x")).toEqual({
-      primary: ["market://details?id=com.joyodigitama.joyorogo", "https://play.google.com/x"],
-      testing: ANDROID_TESTING_URL,
-    });
+  test("android: market first, https fallback", () => {
+    expect(storeLinks("android", "https://play.google.com/x")).toEqual([
+      "market://details?id=com.joyodigitama.joyorogo",
+      "https://play.google.com/x",
+    ]);
   });
 
   test("ios: the App Store url as is", () => {
-    expect(storeLinks("ios", "https://apps.apple.com/app/id1")).toEqual({
-      primary: ["https://apps.apple.com/app/id1"],
-    });
+    expect(storeLinks("ios", "https://apps.apple.com/app/id1")).toEqual(["https://apps.apple.com/app/id1"]);
   });
 });

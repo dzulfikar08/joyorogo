@@ -745,7 +745,6 @@
           "ios": "Open the App Store, then tap Update."
         },
         "update": "Update now",
-        "testing": "Open the testing page",
         "recheck": "Check again",
         "rechecking": "Checking…",
         "stillOld": "Your version isn't the latest yet. Finish the update first, then tap Check again.",

@@ -14,7 +14,7 @@ Written 2026-10-19. Many reports were about bugs we had already fixed; the repor
    ```
 
    The app compares its `expo-application` `nativeBuildVersion` (Android versionCode, iOS CFBundleVersion) with it, on cold start and on resume (re-fetch at most every 15 min):
-   - build < `minBuild`: full-screen blocking "Update dulu, ya" over everything (Android back is swallowed). "Update sekarang" opens `market://details?id=com.joyodigitama.joyorogo` (https fallback); Android also shows "Buka halaman uji coba" (`https://play.google.com/apps/testing/com.joyodigitama.joyorogo`) for testers not on the track; iOS opens the App Store URL as is. "Cek lagi" re-fetches.
+   - build < `minBuild`: full-screen blocking "Update dulu, ya" over everything (Android back is swallowed). "Update sekarang" opens `market://details?id=com.joyodigitama.joyorogo` (https fallback); iOS opens the App Store URL as is. "Cek lagi" re-fetches.
    - `minBuild` <= build < `latestBuild`: dismissible "Ada versi baru" banner (24 h snooze), **iOS only**; Android already gets Play's own in-app update banner (`docs/in-app-updates.md`).
    - **Fail open:** no network, bad payload, unknown installed build, web: never blocks. The last good answer is cached in SecureStore for 1 h and used if the fetch fails; an older cache is ignored. A server that does not send `app` counts as "gate off".
 3. The gate and the Play/Apple billing paths do not interact; `/api/config` is the same endpoint `useAppConfig()` uses (`appConfigQuery()` in `components/billing.tsx`), so one cache entry serves both.

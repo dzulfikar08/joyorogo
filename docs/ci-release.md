@@ -23,9 +23,8 @@ The workflows call the same scripts as the laptop, so the numbers follow the sam
 Actions tab -> workflow -> **Run workflow**, or:
 
 ```bash
-gh workflow run release-android.yml -R dzulfikar08/joyorogo -f target=both -f play_track=none              # artifacts only
-gh workflow run release-android.yml -R dzulfikar08/joyorogo -f target=play-aab -f play_track=alpha -f play_status=draft
-gh workflow run release-android.yml -R dzulfikar08/joyorogo -f target=site-apk -f publish_site_apk=true   # needs CLOUDFLARE_API_TOKEN
+gh workflow run release-android.yml -R dzulfikar08/joyorogo -f play_track=none                              # artifact only
+gh workflow run release-android.yml -R dzulfikar08/joyorogo -f play_track=internal -f play_status=completed  # test build
 gh workflow run release-ios.yml -R dzulfikar08/joyorogo -f upload_testflight=false
 ```
 
@@ -33,7 +32,7 @@ The job waits for the owner's approval (environment `release`): Actions run page
 
 Results are workflow artifacts (30 days): `joyorogo-android-<run>` (AAB, site APK and `joyorogo-latest.json`, checksums in the run summary) and `joyorogo-ios-<run>` (IPA). Nothing is uploaded to a store unless you choose it:
 
-- **Play**: `play_track` = `internal`, `alpha` (the API name of the closed-testing track the app is on today) or `beta`. `play_status` = `draft` (default, finish the rollout in Play Console) or `completed`. Production is deliberately not offered.
+- **Play**: `play_track` = `none`, `internal`, `alpha` or `beta`. `play_status` = `draft` (default, finish the rollout in Play Console) or `completed`. Production is deliberately not offered: upload to `internal`, then in Play Console create a production release and **Add from library** the same versionCode (as done for 1.1.1 / 1487973 on 2026-10-30). The closed-testing track `alpha` was paused on 2026-10-30 after the app went to production; an upload there reaches nobody until the track is resumed.
 - **TestFlight**: tick `upload_testflight`. The IPA goes to App Store Connect (altool); add it to an internal testing group in App Store Connect.
 - **Site APK** (what the in-app updater downloads): tick `publish_site_apk`. The job uploads `joyorogo-latest.apk` then `joyorogo-latest.json` to the R2 bucket `joyorogo-downloads` (the two `wrangler r2 object put` calls of `scripts/build-release-apk.sh --publish`). It first checks that the APK is signed with the same key as the installed ones (see below).
 

@@ -29,7 +29,6 @@ export const CONFIG_TTL_MS = 60 * 60 * 1000;
 export const RESUME_THROTTLE_MS = 15 * 60 * 1000;
 
 export const ANDROID_PACKAGE = "com.joyodigitama.joyorogo";
-export const ANDROID_TESTING_URL = `https://play.google.com/apps/testing/${ANDROID_PACKAGE}`;
 
 const OFF: PlatformBuild = { minBuild: 0, latestBuild: 0, storeUrl: "" };
 
@@ -112,21 +111,9 @@ export function shouldRefetch(lastFetchedAt: number | null, now: number): boolea
   return now - lastFetchedAt >= RESUME_THROTTLE_MS;
 }
 
-export interface StoreLinks {
-  /** Tried in order until one opens. */
-  primary: string[];
-  /** Android only: the closed-testing opt-in page, for testers who are not on the track yet. */
-  testing?: string;
-}
-
-/** Where the "Update" button goes. */
-export function storeLinks(platform: string, storeUrl: string): StoreLinks {
+/** Where the "Update" button goes, tried in order until one opens. */
+export function storeLinks(platform: string, storeUrl: string): string[] {
   const https = storeUrl.startsWith("https://") ? [storeUrl] : [];
-  if (platform === "android") {
-    return {
-      primary: [`market://details?id=${ANDROID_PACKAGE}`, ...https],
-      testing: ANDROID_TESTING_URL,
-    };
-  }
-  return { primary: https };
+  if (platform === "android") return [`market://details?id=${ANDROID_PACKAGE}`, ...https];
+  return https;
 }
