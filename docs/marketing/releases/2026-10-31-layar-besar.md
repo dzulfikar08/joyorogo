@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Pas di layar besar: Galaxy Z Fold, iPad, layar luar Z Flip
 shipped: 2026-10-31
-available: code
+available: test-build
 tier: free
 post: todo
 atur: JRG-473
