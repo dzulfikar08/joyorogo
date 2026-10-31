@@ -198,9 +198,11 @@ export function useFavorites(): Favorites {
     mutationFn: ({ saved, date, meal, eatenAt }) =>
       client.savedFood.relog({ id: saved.id, date, meal, ...(eatenAt !== undefined ? { eatenAt } : {}) }),
     patch: ({ saved, date, meal, eatenAt }, cache) => {
-      for (const item of saved.items) {
+      const stamp = Date.now();
+      saved.items.forEach((item, index) => {
         const row: DiaryRow = {
-          id: `temp-${crypto.randomUUID()}`,
+          // Hermes has no global `crypto`; a temp id only has to be unique within this cache patch.
+          id: `temp-${stamp}-${index}`,
           userId: "",
           date,
           meal,
@@ -244,7 +246,7 @@ export function useFavorites(): Favorites {
           ...(item.fat ? { fat: item.fat } : {}),
           meals: 1,
         });
-      }
+      });
     },
     invalidate: () => [orpc.food.key(), orpc.plate.key(), orpc.day.key(), orpc.savedFood.key(), orpc.fasting.key()],
     success: ({ saved, meal }, result) => ({
