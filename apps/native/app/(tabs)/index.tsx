@@ -29,6 +29,7 @@ import { useBadges } from "@/components/badges/use-badges";
 import { CalibrationChip } from "@/components/calibration-chip";
 import { AskJoyoHeaderButton } from "@/components/joyo/ask-button";
 import { CalibrationNotice } from "@/components/calibration-notice";
+import { NotificationBanner } from "@/components/push/notification-banner";
 import { SetupChecklist, useSetupChecklist } from "@/components/setup-checklist";
 import { ManualTdeeSuggestionCard } from "@/components/manual-tdee";
 import { EnergyNotice } from "@/components/energy-notice";
@@ -1120,6 +1121,9 @@ export default function Dashboard() {
           onWeigh={() => setWeighOpen(true)}
         />
       ) : null}
+
+      {/* Notifications off: one dismissible card. */}
+      <NotificationBanner surface="home" />
 
       {/* The cards, in the order this person arranged them (daily report first by default) */}
       {visibleHomeCards(cardPrefs).map((id) => (

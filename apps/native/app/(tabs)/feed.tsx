@@ -18,6 +18,7 @@ import {
 import { IconTabs } from "@/components/makan/view-switcher";
 import { FeedComposer } from "@/components/feed/composer";
 import { HandlePrompt } from "@/components/feed/handle-prompt";
+import { NotificationBanner } from "@/components/push/notification-banner";
 import { PostCard, openAuthor } from "@/components/feed/post-card";
 import { TipCard } from "@/components/tips/tip-card";
 import { useSessionGate } from "@/lib/use-session-gate";
@@ -135,6 +136,7 @@ export default function Feed() {
       />
 
       <HandlePrompt />
+      <NotificationBanner surface="feed" />
 
       <IconTabs<Tab>
         label={t("tab.label")}

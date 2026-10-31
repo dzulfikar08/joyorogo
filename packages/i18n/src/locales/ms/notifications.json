@@ -77,6 +77,18 @@
     "openSettings": "Buka tetapan",
     "reminderNote": "Peringatan daripada pelayan (belum catat makan, timbang mingguan) ditetapkan di Pemberitahuan. Jika peringatan makan atau timbang di sini aktif, yang daripada pelayan dilangkau supaya tidak berganda.",
     "reminderNoteAction": "Buka Pemberitahuan",
+    "ask": {
+      "mealTitle": "Mahu diingatkan makan & dapat berita daripada rakan?",
+      "mealMessage": "Bagus, makan pertama anda sudah dicatat! Hidupkan pemberitahuan supaya JoyoRogo boleh mengingatkan catat makan dan memberitahu bila rakan memberi kudos. Hanya yang berguna, tiada iklan. Selepas ini sistem akan meminta kebenaran sekali.",
+      "socialTitle": "Supaya tahu bila ada yang membalas atau mencuit anda",
+      "socialMessage": "Hidupkan pemberitahuan supaya anda tahu bila ada yang membalas, memberi kudos, mengikuti atau mencuit anda. Hanya yang berguna, tiada iklan. Selepas ini sistem akan meminta kebenaran sekali."
+    },
+    "banner": {
+      "text": "Pemberitahuan dimatikan. Hidupkan untuk peringatan makan dan berita daripada rakan.",
+      "enable": "Hidupkan",
+      "openSettings": "Buka tetapan",
+      "dismiss": "Tutup"
+    },
     "channel": {
       "social": { "name": "Sosial", "description": "Kudos, komen, dan pengikut baharu" },
       "group": { "name": "Kumpulan", "description": "Cuit, catatan, dan cabaran kumpulan" },

@@ -77,6 +77,18 @@
     "openSettings": "Buka pengaturan",
     "reminderNote": "Pengingat dari server (belum catat makan, timbang mingguan) diatur di Notifikasi. Kalau pengingat makan atau timbang di sini aktif, yang dari server dilewati supaya tidak dobel.",
     "reminderNoteAction": "Buka Notifikasi",
+    "ask": {
+      "mealTitle": "Mau diingatkan makan & dapat kabar dari teman?",
+      "mealMessage": "Mantap, makan pertamamu sudah tercatat! Nyalakan notifikasi supaya JoyoRogo bisa mengingatkan catat makan dan memberi tahu kalau teman memberi kudos. Hanya yang berguna, tidak ada iklan. Setelah ini sistem akan meminta izin sekali.",
+      "socialTitle": "Biar tahu kalau ada yang balas atau colek kamu",
+      "socialMessage": "Nyalakan notifikasi supaya kamu tahu kalau ada yang membalas, memberi kudos, mengikuti, atau mencolek kamu. Hanya yang berguna, tidak ada iklan. Setelah ini sistem akan meminta izin sekali."
+    },
+    "banner": {
+      "text": "Notifikasi mati. Nyalakan untuk pengingat makan dan kabar dari teman.",
+      "enable": "Nyalakan",
+      "openSettings": "Buka pengaturan",
+      "dismiss": "Tutup"
+    },
     "channel": {
       "social": { "name": "Sosial", "description": "Kudos, komentar, dan pengikut baru" },
       "group": { "name": "Grup", "description": "Colek, catatan, dan tantangan grup" },

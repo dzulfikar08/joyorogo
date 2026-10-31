@@ -8,6 +8,7 @@ import { AppState, Platform } from "react-native";
 
 import { authClient } from "@/lib/auth-client";
 import { mirrorFoodCall } from "@/src/lib/health-nutrition";
+import { emitPushAsk, triggerForCall } from "@/src/lib/push-ask";
 import { APP_QUERY_DEFAULTS, bindAppStateFocus } from "@/src/lib/query-focus";
 
 // Must stay named `ENV`: varlock's babel plugin only inlines `ENV.X` reads;
@@ -57,6 +58,8 @@ export const link = new RPCLink({
     async (options) => {
       const output = await options.next();
       mirrorFoodCall(options.path, options.input, output);
+      const ask = triggerForCall(options.path, options.input, output);
+      if (ask) emitPushAsk(ask);
       return output;
     },
   ],

@@ -77,6 +77,18 @@
     "openSettings": "Open settings",
     "reminderNote": "Server reminders (no meal logged, weekly weigh-in) are managed in Notifications. If the meal or weigh-in reminder here is on, the server one is skipped so you do not get both.",
     "reminderNoteAction": "Open Notifications",
+    "ask": {
+      "mealTitle": "Get meal reminders and news from friends?",
+      "mealMessage": "Nice, your first meal is logged! Turn on notifications so JoyoRogo can remind you to log meals and tell you when friends cheer you on. Only useful things, no ads. After this, your system will ask for permission once.",
+      "socialTitle": "Know when someone replies?",
+      "socialMessage": "Turn on notifications so you know when someone replies, gives you kudos, follows you or pokes you. Only useful things, no ads. After this, your system will ask for permission once."
+    },
+    "banner": {
+      "text": "Notifications are off. Turn them on for meal reminders and news from friends.",
+      "enable": "Turn on",
+      "openSettings": "Open settings",
+      "dismiss": "Dismiss"
+    },
     "channel": {
       "social": { "name": "Social", "description": "Kudos, comments and new followers" },
       "group": { "name": "Groups", "description": "Pokes, notes and group challenges" },

@@ -13,6 +13,9 @@ import {
 
 type Mode = "ask" | "blocked";
 
+/** Which feature asks; picks the pre-prompt wording. Default: the reminder copy. */
+export type GateReason = "meal" | "social";
+
 /**
  * Notification permission behind a styled pre-prompt. Android 13+ and iOS show
  * the system dialog once, so it only appears after the user agrees here
@@ -24,7 +27,9 @@ type Mode = "ask" | "blocked";
  */
 export function useNotificationGate() {
   const { t } = useTranslation("settings");
+  const { t: tn } = useTranslation("notifications");
   const [mode, setMode] = useState<Mode | null>(null);
+  const [reason, setReason] = useState<GateReason | null>(null);
   const [busy, setBusy] = useState(false);
   const pending = useRef<PromiseWithResolvers<boolean> | null>(null);
 
@@ -35,12 +40,13 @@ export function useNotificationGate() {
     pending.current = null;
   };
 
-  const ensure = async (): Promise<boolean> => {
+  const ensure = async (why?: GateReason): Promise<boolean> => {
     const permission = await getNotificationPermission();
     if (permission === "granted") return true;
     pending.current?.resolve(false);
     pending.current = Promise.withResolvers<boolean>();
     const decision = pending.current.promise;
+    setReason(why ?? null);
     setMode(permission === "blocked" ? "blocked" : "ask");
     return decision;
   };
@@ -62,7 +68,9 @@ export function useNotificationGate() {
       title={
         mode === "blocked"
           ? t("reminders.permission.blockedTitle")
-          : t("reminders.permission.askTitle")
+          : reason
+            ? tn(`native.ask.${reason}Title`)
+            : t("reminders.permission.askTitle")
       }
       footer={
         <View style={styles.footer}>
@@ -92,7 +100,9 @@ export function useNotificationGate() {
       <Text style={styles.message}>
         {mode === "blocked"
           ? t("reminders.permission.blockedMessage")
-          : t("reminders.permission.askMessage")}
+          : reason
+            ? tn(`native.ask.${reason}Message`)
+            : t("reminders.permission.askMessage")}
       </Text>
     </Sheet>
   );

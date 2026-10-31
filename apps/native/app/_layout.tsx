@@ -32,6 +32,7 @@ import { DayZoneSync } from "@/components/day-zone-sync";
 import { LocaleSync } from "@/components/locale-sync";
 import { PrefsSync } from "@/components/prefs-sync";
 import { ReminderSync } from "@/components/reminders/reminder-sync";
+import { PushAskHost } from "@/components/push/push-ask-host";
 import { PushSync } from "@/components/push/push-sync";
 import { PushTapHandler } from "@/components/push/push-tap-handler";
 import { ToastProvider } from "@/components/toast";
@@ -131,6 +132,7 @@ export default function RootLayout() {
           <PrefsSync />
           <ReminderSync />
           <PushSync />
+          <PushAskHost />
           <PushTapHandler />
           {/* Android only: Play in-app update or sideload APK update. */}
           <UpdateBanner />
