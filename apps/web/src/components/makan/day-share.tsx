@@ -42,10 +42,10 @@ async function failedCutouts(ids: readonly string[]): Promise<Set<string>> {
 }
 
 /**
- * "Bagikan makanku sehari": one quiet control under the day summary that shares the whole diary day (a story or a
- * carousel, drawn by the sticker engine). Every cutout the share would draw is checked first, so a plate cutout that is
- * still being cut falls back to its foods' cutouts (or to text only) instead of a broken image. The control shows a
- * busy state meanwhile and opens the share sheet once the check is done.
+ * "Bagikan makanku sehari": a round share icon beside the day switcher (its `trailing` slot) that shares the whole
+ * diary day (a story or a carousel, drawn by the sticker engine). Every cutout the share would draw is checked first,
+ * so a plate cutout that is still being cut falls back to its foods' cutouts (or to text only) instead of a broken
+ * image. The icon turns into a spinner meanwhile and opens the share sheet once the check is done.
  */
 export function DayShareButton({
   date,
@@ -121,8 +121,10 @@ export function DayShareButton({
       renderTrigger={(open) => (
         <Button
           variant="ghost"
-          size="sm"
-          className="h-11 px-4 text-muted-foreground"
+          size="icon-lg"
+          className="rounded-full bg-muted text-muted-foreground hover:bg-card hover:text-foreground"
+          aria-label={t("story.share.shareDay")}
+          title={t("story.share.shareDay")}
           aria-busy={busy || undefined}
           onClick={() => void begin(open)}
         >
@@ -131,7 +133,6 @@ export function DayShareButton({
           ) : (
             <Share2 aria-hidden />
           )}
-          {t("story.share.shareDay")}
         </Button>
       )}
     />

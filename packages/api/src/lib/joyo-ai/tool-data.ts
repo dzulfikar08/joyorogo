@@ -99,7 +99,7 @@ export interface DayData {
   date: string;
   items: DayItem[];
   totals: { kcal: number; protein: MacroSum; carbs: MacroSum; fat: MacroSum; fiber: MacroSum; rows: number };
-  /** The app's own targets: the eat budget includes counted exercise (day.summary), the macros use the diary's own formula. */
+  /** The app's own targets: the eat budget includes counted exercise (day.summary), the macros are `day.summary.macros` (lib/plan macroGoals). */
   targets: DayTargets | null;
   /** Target minus eaten (known rows); null where there is no target or no row has the macro. */
   remaining: Remaining | null;

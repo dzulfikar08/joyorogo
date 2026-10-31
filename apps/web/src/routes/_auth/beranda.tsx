@@ -88,6 +88,7 @@ import type { Meal } from "@joyorogo/api/lib/engine";
 import { orpc } from "@/utils/orpc";
 
 import { DaySwitcher } from "@/components/day-switcher";
+import { useShareSelectedDay } from "@/lib/selected-day";
 import { useJakartaClock } from "@/lib/use-jakarta-clock";
 
 const summaryOptions = (date: string) => orpc.day.summary.queryOptions({ input: { date } });
@@ -112,6 +113,7 @@ function BerandaPage() {
   const navigate = Route.useNavigate();
   const { today, now } = useJakartaClock();
   const date = paramDate ?? today;
+  useShareSelectedDay(date, today);
   const summary = useQuery(summaryOptions(date));
   if (summary.isPending) return <BerandaSkeleton />;
   if (summary.error) {
@@ -1068,6 +1070,8 @@ function TodayMeals({ summary, isToday }: { summary: Summary; isToday: boolean }
   const title = isToday
     ? t("meals.title")
     : t("meals.titleDay", { day: relativeDayLabel(summary.date, jakartaToday()) });
+  // Carry the shown day to Makan; today is a clean URL.
+  const daySearch = isToday ? {} : { date: summary.date };
   return (
     <section aria-label={title}>
       <SectionTitle
@@ -1076,7 +1080,7 @@ function TodayMeals({ summary, isToday }: { summary: Summary; isToday: boolean }
           <span className="flex items-center gap-3">
             <Link
               to="/makan"
-              search={{ cerita: true }}
+              search={{ ...daySearch, cerita: true }}
               className="inline-flex min-h-11 items-center gap-1 px-1 text-sm font-semibold text-primary hover:underline"
             >
               <Mic className="size-4" aria-hidden />
@@ -1084,6 +1088,7 @@ function TodayMeals({ summary, isToday }: { summary: Summary; isToday: boolean }
             </Link>
             <Link
               to="/makan"
+              search={daySearch}
               className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-muted-foreground hover:underline"
             >
               {t("meals.all")}
@@ -1100,6 +1105,7 @@ function TodayMeals({ summary, isToday }: { summary: Summary; isToday: boolean }
             <li key={slot} className={cn("relative", index > 0 && "border-t border-border/70")}>
               <Link
                 to="/makan"
+                search={daySearch}
                 className="flex min-h-11 items-center gap-3 px-5 py-2 transition-colors hover:bg-muted/60 active:bg-muted focus-visible:bg-muted focus-visible:outline-none"
               >
                 <span className="flex-1 text-[0.9375rem] font-semibold">

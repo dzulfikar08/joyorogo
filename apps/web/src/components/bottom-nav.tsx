@@ -4,7 +4,9 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Camera, Ellipsis, House, MessagesSquare, Newspaper, Utensils } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { jakartaToday } from "@joyorogo/api/lib/engine";
 import { orpc } from "@/utils/orpc";
+import { useDaySearch } from "@/lib/selected-day";
 
 const TABS = [
   { to: "/beranda", label: "nav.home", Icon: House },
@@ -23,6 +25,11 @@ function inTabGroup(pathname: string, to: string): boolean {
   return TAB_GROUPS[to]?.some((p) => pathname === p || pathname.startsWith(`${p}/`)) ?? false;
 }
 
+/** Beranda and Makan share the selected day, so their links carry it (`?date=`, absent on today). */
+function isDayTab(to: string): boolean {
+  return to === "/beranda" || to === "/makan";
+}
+
 /** Unread nudge pill; sits on the icon's top-right corner. */
 function UnreadBadge({ count }: { count: number }) {
   return (
@@ -36,9 +43,11 @@ function Tab({ to, label, Icon, badge }: (typeof TABS)[number] & { badge?: numbe
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const groupedActive = inTabGroup(pathname, to);
+  const daySearch = useDaySearch(jakartaToday());
   return (
     <Link
       to={to}
+      search={isDayTab(to) ? daySearch : undefined}
       activeOptions={{ exact: true, includeSearch: false }}
       className={cn(
         "group flex min-h-14 flex-col items-center justify-center gap-1 text-[0.6875rem] font-semibold transition-colors focus-visible:outline-none",
@@ -121,6 +130,7 @@ export function DesktopBar() {
   const count = unread.data?.count ?? 0;
   const feedCount = socialUnread.data?.count ?? 0;
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const daySearch = useDaySearch(jakartaToday());
   return (
     <header className="sticky top-0 z-40 hidden border-b border-border/70 bg-background/90 backdrop-blur-sm md:block">
       <div className="mx-auto flex h-16 max-w-5xl items-center gap-6 px-6">
@@ -136,6 +146,7 @@ export function DesktopBar() {
                 <li key={to}>
                   <Link
                     to={to}
+                    search={isDayTab(to) ? daySearch : undefined}
                     activeOptions={{ exact: true, includeSearch: false }}
                     className={cn(
                       "inline-flex h-10 items-center rounded-full px-4 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",

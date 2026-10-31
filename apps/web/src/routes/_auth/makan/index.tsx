@@ -45,6 +45,7 @@ import { MealPlanEntry } from "@/components/meal-plan/entry-card";
 import type { FoodAddInput, FoodItem, FoodRecentItem } from "@/lib/api-types";
 import { fmtDateLong, fmtInt, parseNum } from "@/lib/format";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
+import { useShareSelectedDay } from "@/lib/selected-day";
 import { usePresence } from "@/lib/use-presence";
 import { upsertById, removeById } from "@joyorogo/api/lib/optimistic";
 import { client, orpc } from "@/utils/orpc";
@@ -115,8 +116,10 @@ function MakanPage() {
     paramView ?? (paramDate || ceritaOpen ? "daftar" : (storedMakanView() ?? "daftar"));
   const kind: FoodKindFilter = paramKind ?? storedKind() ?? "semua";
   const navigate = Route.useNavigate();
-  const date = paramDate ?? jakartaToday();
-  const isToday = date === jakartaToday();
+  const today = jakartaToday();
+  const date = paramDate ?? today;
+  const isToday = date === today;
+  useShareSelectedDay(date, today);
   const list = useQuery(listOptions(date));
   // Single adds and deletes animate; day, filter and view swaps don't.
   const presence = usePresence(
@@ -344,7 +347,27 @@ function MakanPage() {
         title={t("common:nav.food")}
         action={
           <div className="flex items-center gap-2">
-            {view === "daftar" && <DaySwitcher date={date} onChange={showDate} />}
+            {view === "daftar" && (
+              <DaySwitcher
+                date={date}
+                onChange={showDate}
+                trailing={
+                  items.length > 0 ? (
+                    <DayShareButton
+                      date={date}
+                      rows={items}
+                      eatenKcal={totals.kcal}
+                      eatKcal={daySummary.data?.targets?.eatKcal ?? null}
+                      proteinTargetG={daySummary.data?.protein?.targetG ?? null}
+                      macros={daySummary.data?.macros ?? null}
+                      maternal={(daySummary.data?.targets?.maternal ?? null) !== null}
+                      gain={(daySummary.data?.targets?.maternal ?? null) === null && (daySummary.data?.targets?.gain ?? null) !== null}
+                      slots={slots}
+                    />
+                  ) : null
+                }
+              />
+            )}
             <JoyoHeaderButton />
           </div>
         }
@@ -366,22 +389,6 @@ function MakanPage() {
                 macros={daySummary.data.macros ?? null}
                 totals={totals}
                 neutral={(daySummary.data.targets?.maternal ?? null) !== null}
-              />
-            </div>
-          )}
-
-          {items.length > 0 && (
-            <div className="mt-1 flex justify-end">
-              <DayShareButton
-                date={date}
-                rows={items}
-                eatenKcal={totals.kcal}
-                eatKcal={daySummary.data?.targets?.eatKcal ?? null}
-                proteinTargetG={daySummary.data?.protein?.targetG ?? null}
-                macros={daySummary.data?.macros ?? null}
-                maternal={(daySummary.data?.targets?.maternal ?? null) !== null}
-                gain={(daySummary.data?.targets?.maternal ?? null) === null && (daySummary.data?.targets?.gain ?? null) !== null}
-                slots={slots}
               />
             </div>
           )}
