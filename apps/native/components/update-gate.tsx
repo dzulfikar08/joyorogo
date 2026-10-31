@@ -6,6 +6,7 @@ import Animated, { SlideInUp, SlideOutUp, useReducedMotion } from "react-native-
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { Button, Text } from "@/components/ui";
+import { SHEET_MAX_WIDTH } from "@/src/lib/layout";
 import { openStore, useForceUpdate } from "@/src/lib/use-force-update";
 
 /**
@@ -167,6 +168,9 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     paddingHorizontal: theme.spacing.lg,
     gap: theme.spacing.md,
+    width: "100%",
+    maxWidth: SHEET_MAX_WIDTH,
+    alignSelf: "center",
   },
   chip: {
     width: 72,
@@ -205,8 +209,11 @@ const styles = StyleSheet.create((theme) => ({
     zIndex: 90,
     elevation: 90,
     paddingHorizontal: theme.spacing.lg,
+    alignItems: "center",
   },
   card: {
+    width: "100%",
+    maxWidth: SHEET_MAX_WIDTH,
     borderRadius: theme.radius.tile,
     borderWidth: 1,
     backgroundColor: theme.colors.card,

@@ -48,6 +48,7 @@ import {
   type PhotoAccessLevel,
 } from "@/components/story/share";
 import { authClient } from "@/lib/auth-client";
+import { SHEET_MAX_WIDTH } from "@/src/lib/layout";
 import { orpc } from "@/utils/orpc";
 import {
   availableTemplates,
@@ -193,8 +194,8 @@ function CarouselPager({
   hint: string;
 }) {
   const { theme } = useUnistyles();
-  const screen = useWindowDimensions();
-  const [stageW, setStageW] = useState(screen.width - theme.spacing.lg * 2);
+  const { width: windowW } = useWindowDimensions();
+  const [stageW, setStageW] = useState(Math.min(windowW, SHEET_MAX_WIDTH) - theme.spacing.lg * 2);
   const [page, setPage] = useState(0);
   const gap = theme.spacing.md;
   const step = frameW + gap;
@@ -473,7 +474,8 @@ export function StoryShareSheet({
   const sceneH = scene ? designToDp(scene.height) : designToDp(1920);
   const maxFrameH = Math.min(Math.max(screen.height * 0.36, 220), 400);
   const stagePad = theme.spacing.md;
-  const maxFrameW = screen.width - theme.spacing.lg * 4;
+  // The sheet is centred at SHEET_MAX_WIDTH on wide windows, so the preview sizes from that, not the window.
+  const maxFrameW = Math.min(screen.width, SHEET_MAX_WIDTH) - theme.spacing.lg * 4;
   const frameScale = Math.min(maxFrameH / sceneH, maxFrameW / sceneW);
   const frameW = Math.round(sceneW * frameScale);
   const frameH = Math.round(sceneH * frameScale);

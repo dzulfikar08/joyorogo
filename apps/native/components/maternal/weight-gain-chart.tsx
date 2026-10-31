@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { View, useWindowDimensions } from "react-native";
+import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { Circle, G, Line, Polygon, Polyline, Svg, Text as SvgText } from "react-native-svg";
@@ -8,6 +8,7 @@ import type { WeightGainChart as GainChart } from "@joyorogo/api/lib/maternal";
 import { fmtDecimal } from "@joyorogo/i18n";
 
 import { Button, Card, Num, Text } from "@/components/ui";
+import { useLayout } from "@/src/lib/layout";
 import { fmtInt, fmtKg } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
@@ -45,9 +46,9 @@ export function useGainLine(current: GainChart["current"] | undefined): string |
 function GainSvg({ chart }: { chart: GainChart }) {
   const { t } = useTranslation("maternal");
   const { theme } = useUnistyles();
-  const { width: winW } = useWindowDimensions();
+  const { contentWidth } = useLayout();
   // Screen (20) + Card (20) padding on each side, same as the weight chart.
-  const w = Math.min(winW - 80, 400);
+  const w = contentWidth - 80;
   const h = 220;
   const innerW = w - PAD.left - PAD.right;
   const innerH = h - PAD.top - PAD.bottom;

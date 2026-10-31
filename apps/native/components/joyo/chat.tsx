@@ -336,6 +336,7 @@ const styles = StyleSheet.create((theme) => ({
     paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.sm,
     paddingBottom: theme.spacing.xs,
+    "@sm": { maxWidth: 640, width: "100%", alignSelf: "center" },
   },
   titleBox: { flex: 1, minHeight: 44, justifyContent: "center" },
   title: { fontSize: theme.fontSize.lg, fontWeight: "700" },
@@ -353,13 +354,13 @@ const styles = StyleSheet.create((theme) => ({
     justifyContent: "flex-end",
     paddingHorizontal: theme.spacing.lg,
     paddingBottom: theme.spacing.sm,
-    "@md": { maxWidth: 640, width: "100%", alignSelf: "center" },
+    "@sm": { maxWidth: 640, width: "100%", alignSelf: "center" },
   },
   footer: {
     backgroundColor: theme.colors.background,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.colors.hairline,
-    "@md": { alignItems: "center" },
+    "@sm": { alignItems: "center" },
   },
   jumpWrap: {
     position: "absolute",

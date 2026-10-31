@@ -29,6 +29,7 @@ import { useToast } from "@/components/toast";
 import { authClient } from "@/lib/auth-client";
 import { useSessionGate } from "@/lib/use-session-gate";
 import type { VarHistory } from "@/src/lib/group";
+import { CONTENT_MAX_WIDTH, useLayout } from "@/src/lib/layout";
 import { useCameraActive } from "@/src/lib/use-camera-active";
 import { errorMessage, fmtDateShort } from "@/utils/format";
 import { client, isPaywallError, orpc } from "@/utils/orpc";
@@ -135,6 +136,11 @@ function Silhouette() {
 export default function VarSaya() {
   const { t } = useTranslation(["varperut", "common"]);
   const { theme } = useUnistyles();
+  const lay = useLayout();
+  // Portrait on wide windows keeps a centred reading column; landscape uses the full width (viewfinder + card side by side).
+  const sidePad = lay.landscape
+    ? theme.spacing.lg
+    : Math.max(theme.spacing.lg, (lay.width - CONTENT_MAX_WIDTH) / 2 + theme.spacing.lg);
   const gate = useSessionGate();
   const router = useRouter();
   const toast = useToast();
@@ -351,10 +357,10 @@ export default function VarSaya() {
   return (
     <>
       <StatusBar style="dark" />
-      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <SafeAreaView style={[styles.safe, { paddingHorizontal: sidePad }]} edges={["top", "bottom"]}>
         <PageHeader title={t("title")} />
         {view === "capture" ? (
-          <>
+          <View style={[styles.captureBody, lay.landscape && styles.captureRow]}>
             {/* --- Viewfinder terpandu --- */}
             <View style={styles.finderWrap}>
               {cameraReady ? (
@@ -397,7 +403,7 @@ export default function VarSaya() {
             </View>
 
             {/* --- Tips + kontrol jepret --- */}
-            <Card style={styles.tipsCard}>
+            <Card style={lay.landscape ? [styles.tipsCard, styles.tipsCardSide] : styles.tipsCard}>
               <View style={styles.shutterRow}>
                 <Pressable
                   accessibilityRole="button"
@@ -453,7 +459,7 @@ export default function VarSaya() {
               </Disclosure>
               {flowError ? <Text style={styles.flowError}>{flowError}</Text> : null}
             </Card>
-          </>
+          </View>
         ) : (
           <>
             {/* --- Hasil: verdict + perbandingan --- */}
@@ -734,8 +740,19 @@ const styles = StyleSheet.create((theme) => ({
   safe: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.lg,
     gap: theme.spacing.md,
+  },
+  captureBody: {
+    flex: 1,
+    gap: theme.spacing.md,
+  },
+  captureRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  tipsCardSide: {
+    width: 300,
+    flexShrink: 0,
   },
   finderWrap: {
     flexGrow: 1,

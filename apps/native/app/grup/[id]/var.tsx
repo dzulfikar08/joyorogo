@@ -11,6 +11,7 @@ import {
   Easing,
   Image,
   Pressable,
+  ScrollView,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,6 +26,7 @@ import { BootLoader, Button, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { useSessionGate } from "@/lib/use-session-gate";
 import type { VarScan } from "@/src/lib/group";
+import { CONTENT_MAX_WIDTH, useLayout } from "@/src/lib/layout";
 import { useCameraActive } from "@/src/lib/use-camera-active";
 import { errorMessage, fmtDateShort, fmtInt, kcalUnit } from "@/utils/format";
 import { client, orpc } from "@/utils/orpc";
@@ -140,6 +142,9 @@ function FoodFloat({
 export default function VarPerut() {
   const { t } = useTranslation(["varperut", "common"]);
   const { theme } = useUnistyles();
+  const lay = useLayout();
+  // The panel below the viewfinder keeps a centred reading column on wide windows.
+  const sidePad = Math.max(theme.spacing.lg, (lay.width - CONTENT_MAX_WIDTH) / 2 + theme.spacing.lg);
   const gate = useSessionGate();
   const router = useRouter();
   const { id, userId, name = "", shareFood = "1" } = useLocalSearchParams<{
@@ -392,7 +397,12 @@ export default function VarPerut() {
         </View>
 
         {/* --- Bottom panel: verdict / scan button --- */}
-        <View style={styles.bottom}>
+        <ScrollView
+          style={[styles.bottomScroll, lay.short && { maxHeight: lay.height * 0.65 }]}
+          contentContainerStyle={[styles.bottom, { paddingHorizontal: sidePad }]}
+          bounces={false}
+          showsVerticalScrollIndicator={false}
+        >
           {hidden ? (
             <>
               <View style={[styles.verdictCard, { borderColor: "#C9C4BA" }]}>
@@ -512,7 +522,7 @@ export default function VarPerut() {
               ) : null}
             </>
           )}
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </>
   );
@@ -701,8 +711,11 @@ const styles = StyleSheet.create((theme) => ({
   pressed: {
     opacity: 0.7,
   },
+  bottomScroll: {
+    flexGrow: 0,
+    backgroundColor: PANEL,
+  },
   bottom: {
-    paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.md,
     paddingBottom: theme.spacing.md,
     gap: theme.spacing.md,

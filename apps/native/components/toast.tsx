@@ -11,6 +11,7 @@ import Animated, {
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Text } from "@/components/ui";
+import { SHEET_MAX_WIDTH } from "@/src/lib/layout";
 import { UNDO_TOAST_MS } from "@joyorogo/api/lib/optimistic";
 
 type ToastKind = "success" | "error" | "info";
@@ -84,7 +85,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <ToastView toast={toast} topInset={insets.top} onDismiss={dismiss} />
+      <ToastView toast={toast} topInset={insets.top} leftInset={insets.left} rightInset={insets.right} onDismiss={dismiss} />
     </ToastContext.Provider>
   );
 }
@@ -101,10 +102,14 @@ export function useToast(): ToastApi {
 function ToastView({
   toast,
   topInset,
+  leftInset,
+  rightInset,
   onDismiss,
 }: {
   toast: ToastState | null;
   topInset: number;
+  leftInset: number;
+  rightInset: number;
   onDismiss: () => void;
 }) {
   const { theme } = useUnistyles();
@@ -113,7 +118,10 @@ function ToastView({
   const tone = KIND_TONES[toast.kind];
 
   return (
-    <View pointerEvents="box-none" style={[styles.overlay, { paddingTop: topInset + 8 }]}>
+    <View
+      pointerEvents="box-none"
+      style={[styles.overlay, { paddingTop: topInset + 8, marginLeft: leftInset, marginRight: rightInset }]}
+    >
       <Animated.View
         key={toast.id}
         entering={reduceMotion ? undefined : SlideInUp.duration(220)}
@@ -174,8 +182,11 @@ const styles = StyleSheet.create((theme) => ({
     zIndex: 100,
     elevation: 100,
     paddingHorizontal: theme.spacing.lg,
+    alignItems: "center",
   },
   card: {
+    width: "100%",
+    maxWidth: SHEET_MAX_WIDTH,
     borderRadius: theme.radius.tile,
     borderWidth: 1,
     backgroundColor: theme.colors.card,

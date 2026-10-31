@@ -21,6 +21,7 @@ import { paceOrSpeed, sportKindFromName } from "@joyorogo/api/lib/feed-route";
 import { Avatar, Card, Text } from "@/components/ui";
 import { RouteMapPreview } from "@/components/feed/route-map-preview";
 import { authClient } from "@/lib/auth-client";
+import { useLayout } from "@/src/lib/layout";
 import { client } from "@/utils/orpc";
 import { useOptimisticMutation } from "@/lib/optimistic";
 import {
@@ -141,8 +142,18 @@ function PhotoViewer({
 }) {
   const { t } = useTranslation("feed");
   const [index, setIndex] = useState(initialIndex);
+  const { width, height } = useLayout();
+  const { theme } = useUnistyles();
+  // 3:4 photo that fits the window: unchanged on a phone (full page width), narrower on landscape / wide windows.
+  const photoWidth = Math.min(width - theme.spacing.md * 2, ((height - 96) * 3) / 4);
   return (
-    <Modal transparent animationType="fade" onRequestClose={onClose} accessibilityLabel={t("photo.viewerNative")}>
+    <Modal
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+      supportedOrientations={["portrait", "portrait-upside-down", "landscape-left", "landscape-right"]}
+      accessibilityLabel={t("photo.viewerNative")}
+    >
       <Pressable
         style={styles.viewerBackdrop}
         accessibilityRole="button"
@@ -164,7 +175,11 @@ function PhotoViewer({
           >
             {Array.from({ length: count }, (_, i) => (
               <View key={i} style={styles.viewerPage}>
-                <PostPhoto postId={postId} index={i} style={styles.viewerPhoto} />
+                <PostPhoto
+                  postId={postId}
+                  index={i}
+                  style={[styles.viewerPhoto, { width: photoWidth, alignSelf: "center" }]}
+                />
               </View>
             ))}
           </ScrollView>

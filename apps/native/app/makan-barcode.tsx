@@ -34,6 +34,7 @@ import {
 } from "@/components/ui";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { useCameraActive } from "@/src/lib/use-camera-active";
+import { CONTENT_MAX_WIDTH, useLayout } from "@/src/lib/layout";
 import { errorMessage, fmtInt, fmtKcalLabel, parseNum } from "@/utils/format";
 import { FoodSafetyNotes } from "@/components/maternal/flag-notes";
 import { KindPicker, SnackAdviceSection } from "@/components/makan/snack-advice";
@@ -63,6 +64,9 @@ export default function MakanBarcode() {
 
   const [code, setCode] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
+  const lay = useLayout();
+  // Measured height of the bottom panel: on a short window the viewfinder sits above it, not behind it.
+  const [panelH, setPanelH] = useState(0);
   const [typed, setTyped] = useState("");
   const [scanError, setScanError] = useState<string | null>(null);
   // The camera fires many callbacks per second for one barcode; take the first.
@@ -676,13 +680,25 @@ export default function MakanBarcode() {
       >
         <Ionicons name="close" size={24} color="#FFFFFF" />
       </Pressable>
-      <View style={styles.finderWrap} pointerEvents="none">
+      <View
+        style={[styles.finderWrap, lay.short && { paddingBottom: panelH }]}
+        pointerEvents="none"
+      >
         <View style={styles.finder} />
       </View>
       {/* The panel is absolutely positioned at the bottom of the full-screen camera: it rides on top of
           the keyboard. A KeyboardAwareScrollView here (auto-height, not reaching under the keyboard)
           padded and scrolled its content out of view, leaving a blank panel. */}
-      <KeyboardStickyView style={styles.bottomPanel} offset={{ closed: 0, opened: 24 }}>
+      <KeyboardStickyView
+        style={[
+          styles.bottomPanel,
+          // Wide windows: the panel is a centred card, not a full-width bar.
+          { width: lay.contentWidth, alignSelf: "center" },
+          lay.short && { paddingBottom: theme.spacing.lg },
+        ]}
+        offset={{ closed: 0, opened: 24 }}
+        onLayout={(event) => setPanelH(event.nativeEvent.layout.height)}
+      >
         {typing ? (
           typedPanel
         ) : (
@@ -712,6 +728,11 @@ const styles = StyleSheet.create((theme) => ({
     paddingVertical: theme.spacing.md,
     gap: theme.spacing.md,
     paddingBottom: theme.spacing.xxl,
+    "@sm": {
+      maxWidth: CONTENT_MAX_WIDTH,
+      alignSelf: "center",
+      width: "100%",
+    },
   },
   topRow: {
     flexDirection: "row",
@@ -844,6 +865,7 @@ const styles = StyleSheet.create((theme) => ({
   },
   finder: {
     width: "78%",
+    maxWidth: 420,
     height: 150,
     borderRadius: theme.radius.card,
     borderWidth: 3,
@@ -852,8 +874,6 @@ const styles = StyleSheet.create((theme) => ({
   bottomPanel: {
     position: "absolute",
     bottom: 0,
-    left: 0,
-    right: 0,
     maxHeight: "60%",
     gap: theme.spacing.md,
     padding: theme.spacing.lg,

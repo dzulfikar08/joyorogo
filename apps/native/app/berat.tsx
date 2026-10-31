@@ -1,7 +1,7 @@
 import "@/unistyles";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
-import { Animated, PanResponder, Pressable, useWindowDimensions, View } from "react-native";
+import { Animated, PanResponder, Pressable, View } from "react-native";
 import { Redirect } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
@@ -53,6 +53,7 @@ import { useMaternal } from "@/components/maternal/use-maternal";
 import { GainNotes } from "@/components/gain/gain-notes";
 import { useGain } from "@/components/gain/use-gain";
 import { Disclosure } from "@/components/disclosure";
+import { useLayout } from "@/src/lib/layout";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { fmtDate, fmtDecimal, fmtNumber } from "@joyorogo/i18n";
 import {
@@ -137,9 +138,9 @@ function WeightChart({
 }) {
   const { t } = useTranslation(["berat", "gain"]);
   const { theme } = useUnistyles();
-  const { width: winW } = useWindowDimensions();
+  const { contentWidth } = useLayout();
   // Screen (20) + Card (20) padding on each side.
-  const w = Math.min(winW - 80, 400);
+  const w = contentWidth - 80;
   const h = 210;
   const [scrubDate, setScrubDate] = useState<string | null>(null);
 
@@ -555,9 +556,9 @@ function KcalChart({
 }) {
   const { t } = useTranslation(["berat", "common"]);
   const { theme } = useUnistyles();
-  const { width: winW } = useWindowDimensions();
+  const { contentWidth } = useLayout();
   const [selectedFrom, setSelectedFrom] = useState<string | null>(null);
-  const w = Math.min(winW - 80, 400);
+  const w = contentWidth - 80;
   const h = 140;
   const innerW = w - PAD.left - PAD.right;
   const innerH = h - PAD.top - PAD.bottom;

@@ -11,6 +11,7 @@ import { Button, ErrorState, Skeleton, Text } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { extractInviteCode } from "@/src/lib/group";
+import { CONTENT_MAX_WIDTH } from "@/src/lib/layout";
 import { errorMessage } from "@/utils/format";
 import { orpc, queryClient } from "@/utils/orpc";
 
@@ -134,6 +135,9 @@ const styles = StyleSheet.create((theme) => ({
   },
   center: {
     flex: 1,
+    width: "100%",
+    maxWidth: CONTENT_MAX_WIDTH,
+    alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
     gap: theme.spacing.sm,

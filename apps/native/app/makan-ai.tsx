@@ -22,7 +22,7 @@ import {
 } from "react-native";
 import type { StyleProp, TextStyle, ViewStyle } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -31,6 +31,7 @@ import ConfettiCannon from "react-native-confetti-cannon";
 import { AskJoyoAction, useAskT } from "@/components/joyo/ask-button";
 import { scanQuestion } from "@/src/lib/joyo-ai/ask";
 import { useCameraActive } from "@/src/lib/use-camera-active";
+import { CONTENT_MAX_WIDTH, useLayout } from "@/src/lib/layout";
 import { PlateNote, type ScanReferences } from "@/components/dishware/plate-note";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
@@ -532,8 +533,15 @@ function AnalyzingOverlay({
   );
 }
 
+/** Width of the controls column beside the viewfinder when the camera runs in landscape. */
+const CAMERA_CONTROLS_W = 260;
+/** Controls stay out of the way of a portrait viewfinder on big windows: this much is left under it. */
+const CAMERA_CONTROLS_RESERVE = 220;
+
 export default function MakanAi() {
   const { theme } = useUnistyles();
+  const lay = useLayout();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation(["scan", "makan", "common"]);
   const askT = useAskT();
   // Naikin BB: no "too much" jokes or sweet/fried warnings, the plan asks for more food.
@@ -1626,17 +1634,56 @@ export default function MakanAi() {
         </SafeAreaView>
       );
     }
+    // Phones in portrait keep the fixed layout (full-width 4:3, controls over its lower part). Foldables,
+    // iPad, landscape and the Flip cover screen size the viewfinder to the window instead: still the
+    // sensor's 4:3 (3:4 upright, 4:3 sideways), and in landscape the controls move to a column on the right.
+    const adapt = lay.large || lay.short || lay.landscape;
+    const sideControls = adapt && lay.landscape;
+    const areaW = sideControls ? lay.width - CAMERA_CONTROLS_W : lay.width;
+    const camTop = lay.short ? Math.max(insets.top, 12) + 8 : 108;
+    let camW = lay.width;
+    let camH = (lay.width * 4) / 3;
+    if (adapt) {
+      if (sideControls) {
+        camH = Math.max(lay.height - camTop - Math.max(insets.bottom, 12) - 8, 120);
+        camW = (camH * 4) / 3;
+        if (camW > areaW - 24) {
+          camW = areaW - 24;
+          camH = (camW * 3) / 4;
+        }
+      } else {
+        const room = lay.height - camTop - (lay.short ? 0 : CAMERA_CONTROLS_RESERVE);
+        camH = Math.max(Math.min((lay.width * 4) / 3, room), 120);
+        camW = (camH * 3) / 4;
+      }
+    }
+    const cameraFrame = adapt
+      ? {
+          width: camW,
+          aspectRatio: camW / camH,
+          marginTop: sideControls ? Math.max((lay.height - camH) / 2, 0) : camTop,
+          marginLeft: (areaW - camW) / 2,
+        }
+      : null;
+    const errorW = Math.min(areaW - theme.spacing.lg * 2, 560);
+    // The compact hint and tip are dropped when there is no height to spare.
+    const showHints = !(adapt && lay.short);
     return (
       <View style={styles.cameraWrap}>
         {/* 4:3 portrait, the sensor's native shape: what you frame is what gets sent. */}
         {cameraActive ? (
-          <CameraView ref={cameraRef} style={styles.camera} facing="back" ratio="4:3" />
+          <CameraView
+            ref={cameraRef}
+            style={[styles.camera, cameraFrame]}
+            facing="back"
+            ratio="4:3"
+          />
         ) : null}
         <PressableScale
           accessibilityRole="button"
           accessibilityLabel={t("camera.close")}
           onPress={() => router.back()}
-          style={styles.closeButton}
+          style={[styles.closeButton, adapt && { top: Math.max(insets.top, 12) + 8 }]}
         >
           <Ionicons name="close" size={24} color="#FFFFFF" />
         </PressableScale>
@@ -1664,9 +1711,21 @@ export default function MakanAi() {
           />
         ) : (
           <>
-            <View style={styles.shutterRow}>
-              <Text style={styles.shutterHint}>{t("camera.hint")}</Text>
-              <Text style={styles.shutterTip}>{t("idle.tip")}</Text>
+            <View
+              style={[
+                styles.shutterRow,
+                sideControls && {
+                  left: lay.width - CAMERA_CONTROLS_W,
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  justifyContent: "center",
+                  paddingHorizontal: theme.spacing.md,
+                },
+              ]}
+            >
+              {showHints ? <Text style={styles.shutterHint}>{t("camera.hint")}</Text> : null}
+              {showHints ? <Text style={styles.shutterTip}>{t("idle.tip")}</Text> : null}
               <ReferenceHint />
               <ScanAllowance />
               <PressableScale
@@ -1712,7 +1771,16 @@ export default function MakanAi() {
               </View>
             </View>
             {flowErrorMessage ? (
-              <View style={styles.cameraError}>
+              <View
+                style={[
+                  styles.cameraError,
+                  adapt && {
+                    bottom: sideControls ? 16 : lay.short ? 200 : 160,
+                    left: (areaW - errorW) / 2,
+                    right: lay.width - (areaW - errorW) / 2 - errorW,
+                  },
+                ]}
+              >
                 {flowErrorTitle ? (
                   <Text style={styles.cameraErrorTitle}>{flowErrorTitle}</Text>
                 ) : null}
@@ -2466,6 +2534,9 @@ const styles = StyleSheet.create((theme) => ({
   },
   permissionBody: {
     flex: 1,
+    width: "100%",
+    maxWidth: 560,
+    alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
     gap: theme.spacing.md,
@@ -2638,7 +2709,9 @@ const styles = StyleSheet.create((theme) => ({
     gap: theme.spacing.md,
   },
   analyzingMic: {
-    alignSelf: "stretch",
+    alignSelf: "center",
+    width: "100%",
+    maxWidth: 560,
     paddingHorizontal: theme.spacing.lg,
   },
   contextStatus: {
@@ -2709,6 +2782,11 @@ const styles = StyleSheet.create((theme) => ({
     paddingVertical: theme.spacing.md,
     gap: theme.spacing.sm,
     paddingBottom: theme.spacing.xxl,
+    "@sm": {
+      maxWidth: CONTENT_MAX_WIDTH,
+      alignSelf: "center",
+      width: "100%",
+    },
   },
   totalBlock: {
     alignItems: "center",
@@ -2990,6 +3068,9 @@ const styles = StyleSheet.create((theme) => ({
   },
   doneBody: {
     flex: 1,
+    width: "100%",
+    maxWidth: CONTENT_MAX_WIDTH,
+    alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
     gap: theme.spacing.md,

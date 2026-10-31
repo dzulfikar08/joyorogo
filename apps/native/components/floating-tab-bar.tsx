@@ -10,6 +10,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { EASE_OUT, PressableScale } from "@/components/motion";
@@ -33,6 +34,8 @@ import {
 /** Route that is the centre camera button instead of a tab; its screen only forwards to the scan modal. */
 const CAMERA_ROUTE = "kamera";
 const INDICATOR_MS = 140;
+/** Widest the pill gets: on a foldable or tablet it stays a centred bar instead of stretching edge to edge. */
+const TAB_BAR_MAX_WIDTH = 480;
 
 /** True while the Android keyboard is up. The window resizes with it, so a visible bar would ride above the keyboard; iOS keeps it. */
 function useAndroidKeyboardOpen(): boolean {
@@ -126,6 +129,7 @@ export function FloatingTabBar({
 }: BottomTabBarProps & { camera: { label: string; onPress: () => void } }) {
   const { theme } = useUnistyles();
   const { fontScale } = useWindowDimensions();
+  const sides = useSafeAreaInsets();
   const keyboardOpen = useAndroidKeyboardOpen();
   if (keyboardOpen) return null;
 
@@ -134,8 +138,17 @@ export function FloatingTabBar({
   return (
     <View
       pointerEvents="box-none"
-      style={[styles.strip, { paddingBottom: tabBarBottomOffset(insets.bottom, Platform.OS) }]}
+      style={[
+        styles.strip,
+        {
+          paddingBottom: tabBarBottomOffset(insets.bottom, Platform.OS),
+          // Landscape / folded hinge sides: keep the pill clear of the cutout and system bars.
+          paddingLeft: TAB_BAR_MARGIN_X + sides.left,
+          paddingRight: TAB_BAR_MARGIN_X + sides.right,
+        },
+      ]}
     >
+      <View pointerEvents="box-none" style={styles.column}>
       <View accessibilityRole="tablist" style={[styles.pill, { height: tabBarPillHeight(fontScale) }]}>
         {state.routes.map((route, index) => {
           if (route.name === CAMERA_ROUTE) return <View key={route.key} style={styles.cameraSlot} />;
@@ -176,6 +189,7 @@ export function FloatingTabBar({
           <Ionicons name="camera" size={26} color={theme.colors.primaryForeground} />
         </PressableScale>
       </View>
+      </View>
     </View>
   );
 }
@@ -188,8 +202,12 @@ const styles = StyleSheet.create((theme) => ({
     left: 0,
     right: 0,
     bottom: 0,
+    alignItems: "center",
+  },
+  column: {
+    width: "100%",
+    maxWidth: TAB_BAR_MAX_WIDTH,
     paddingTop: CAMERA_RAISE,
-    paddingHorizontal: TAB_BAR_MARGIN_X,
   },
   pill: {
     flexDirection: "row",
@@ -253,12 +271,12 @@ const styles = StyleSheet.create((theme) => ({
   cameraSlot: {
     width: CAMERA_SLOT,
   },
-  // Overlays the strip's top, centred on the pill's centre slot; its raised part is inside the strip's bounds.
+  // Overlays the column's top, centred on the pill's centre slot; its raised part is inside the column's bounds.
   cameraRow: {
     position: "absolute",
     top: 0,
-    left: TAB_BAR_MARGIN_X,
-    right: TAB_BAR_MARGIN_X,
+    left: 0,
+    right: 0,
     alignItems: "center",
   },
   camera: {

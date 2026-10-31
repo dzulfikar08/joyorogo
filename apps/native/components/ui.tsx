@@ -45,6 +45,7 @@ import { Mascot, type MascotPose } from "@/components/mascot";
 import { EASE_OUT, PressableScale, useCountUp } from "@/components/motion";
 import { HeaderArt } from "@/components/header-art";
 import { useInTabs, useTabContentInset } from "@/components/tab-bar-inset";
+import { CONTENT_MAX_WIDTH, SHEET_MAX_WIDTH, useLayout } from "@/src/lib/layout";
 
 const AnimatedCircle = Reanimated.createAnimatedComponent(Circle);
 
@@ -177,7 +178,9 @@ export function Screen({
       {footer ? (
         <KeyboardAvoidingView behavior="padding" style={styles.screenScroll}>
           {scroll}
-          <View style={[styles.screenFooter, tabInset > 0 ? { paddingBottom: tabInset } : null]}>{footer}</View>
+          <View style={[styles.screenFooter, tabInset > 0 ? { paddingBottom: tabInset } : null]}>
+            <View style={styles.screenFooterInner}>{footer}</View>
+          </View>
         </KeyboardAvoidingView>
       ) : (
         scroll
@@ -662,6 +665,8 @@ export function ListRow({
   );
 }
 
+const SHEET_ORIENTATIONS: ("portrait" | "landscape")[] = ["portrait", "landscape"];
+
 // --- Sheet -----------------------------------------------------------------
 
 type SheetScrollApi = {
@@ -693,6 +698,7 @@ export function Sheet({
   footer?: React.ReactNode;
 }) {
   const insets = useSafeAreaInsets();
+  const { short } = useLayout();
   const scrollRef = useRef<ScrollView>(null);
   const scrollY = useRef(0);
   const focused = useRef<TextInput | null>(null);
@@ -744,6 +750,8 @@ export function Sheet({
       onRequestClose={onClose}
       statusBarTranslucent
       accessibilityViewIsModal
+      // iOS Modals default to portrait only: let them follow the window on iPad and landscape.
+      supportedOrientations={SHEET_ORIENTATIONS}
     >
       <View style={styles.sheetRoot}>
         <Pressable
@@ -757,8 +765,23 @@ export function Sheet({
         {/* keyboard-controller's KAV pads on both platforms, including Android
             edge-to-edge and inside this Modal. box-none lets taps on the empty
             area above the panel reach the backdrop. */}
-        <KeyboardAvoidingView behavior="padding" pointerEvents="box-none" style={styles.sheetAvoid}>
-          <View style={[styles.sheetPanel, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <KeyboardAvoidingView
+          behavior="padding"
+          pointerEvents="box-none"
+          style={[
+            styles.sheetAvoid,
+            { paddingLeft: insets.left, paddingRight: insets.right },
+            // Short windows (Flip cover screen, landscape): the panel may use the whole height under the status bar and scrolls inside.
+            short ? { paddingTop: insets.top + 8 } : null,
+          ]}
+        >
+          <View
+            style={[
+              styles.sheetPanel,
+              short ? styles.sheetPanelShort : null,
+              { paddingBottom: Math.max(insets.bottom, 16) },
+            ]}
+          >
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>{title}</Text>
               <PressableScale
@@ -1165,8 +1188,8 @@ const styles = StyleSheet.create((theme) => ({
     paddingHorizontal: theme.spacing.lg,
     paddingBottom: 120,
     gap: theme.spacing.md,
-    "@md": {
-      maxWidth: 640,
+    "@sm": {
+      maxWidth: CONTENT_MAX_WIDTH,
       alignSelf: "center",
       width: "100%",
     },
@@ -1181,9 +1204,11 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.background,
     borderTopWidth: RNStyleSheet.hairlineWidth,
     borderTopColor: theme.colors.hairline,
-    "@md": {
-      alignItems: "center",
-    },
+  },
+  screenFooterInner: {
+    width: "100%",
+    maxWidth: CONTENT_MAX_WIDTH,
+    alignSelf: "center",
   },
   pressedSoft: {
     opacity: 0.7,
@@ -1393,6 +1418,9 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.overlay,
   },
   sheetPanel: {
+    width: "100%",
+    maxWidth: SHEET_MAX_WIDTH,
+    alignSelf: "center",
     backgroundColor: theme.colors.card,
     borderTopLeftRadius: theme.radius.card,
     borderTopRightRadius: theme.radius.card,
@@ -1404,6 +1432,9 @@ const styles = StyleSheet.create((theme) => ({
     shadowRadius: 24,
     shadowOffset: { width: 0, height: -8 },
     elevation: 16,
+  },
+  sheetPanelShort: {
+    maxHeight: "100%",
   },
   sheetHeader: {
     flexDirection: "row",

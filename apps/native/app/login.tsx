@@ -10,6 +10,7 @@ import { Platform, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
+import { CONTENT_MAX_WIDTH } from "@/src/lib/layout";
 import { Container } from "@/components/container";
 import { Mascot } from "@/components/mascot";
 import { BootLoader, Button, Field, Input, Text } from "@/components/ui";
@@ -292,6 +293,12 @@ const styles = StyleSheet.create((theme) => ({
     gap: theme.spacing.xxl,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.xxl,
+    // Centred column on foldables and iPad; phones are narrower than the cap.
+    "@sm": {
+      maxWidth: CONTENT_MAX_WIDTH,
+      width: "100%",
+      alignSelf: "center",
+    },
   },
   hero: {
     alignItems: "center",

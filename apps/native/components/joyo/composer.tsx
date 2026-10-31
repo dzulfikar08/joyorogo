@@ -100,7 +100,7 @@ const styles = StyleSheet.create((theme) => ({
     paddingTop: theme.spacing.sm,
     paddingBottom: theme.spacing.sm,
     gap: theme.spacing.xs,
-    "@md": { width: "100%", maxWidth: 640 },
+    "@sm": { width: "100%", maxWidth: 640 },
   },
   editing: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
   editingText: { flex: 1, fontSize: theme.fontSize.sm, color: theme.colors.mutedForeground },

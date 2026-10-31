@@ -17,6 +17,7 @@ import { Text } from "@/components/ui";
 import { MetaLine } from "@/components/meta-line";
 import { ShareStoryButton } from "@/components/story/share-story-button";
 import { authClient } from "@/lib/auth-client";
+import { SHEET_MAX_WIDTH } from "@/src/lib/layout";
 // Must stay named `ENV`: varlock's babel plugin only inlines `ENV.X` reads;
 // anything else hits the runtime proxy, which throws in release builds.
 import { ENV } from "../src/env";
@@ -298,8 +299,11 @@ export function StickerViewer({
   }, [viewer]);
   const uri = mainFailed && viewer?.fallbackUri ? viewer.fallbackUri : (viewer?.uri ?? "");
 
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const { theme } = useUnistyles();
+  // Caption row and share button take about 200dp below the image: a short window (Flip cover,
+  // landscape) shrinks the image instead of pushing them off screen. Phones keep the full 360.
+  const imageSize = Math.min(360, Math.max(height - 200, 140));
 
   return (
     <Modal
@@ -307,16 +311,17 @@ export function StickerViewer({
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      supportedOrientations={["portrait", "portrait-upside-down", "landscape-left", "landscape-right"]}
       accessibilityViewIsModal
     >
       <Pressable style={styles.viewerBackdrop} onPress={onClose}>
         <View style={styles.viewerBody}>
           {viewer && showPhoto && viewer.photoId ? (
-            <AuthedPhoto photoId={viewer.photoId} name={viewer.name} />
+            <AuthedPhoto photoId={viewer.photoId} name={viewer.name} size={imageSize} />
           ) : (
             <StickerImage
               uri={uri}
-              size={Math.min(width - theme.spacing.xl * 2, 360)}
+              size={Math.min(width - theme.spacing.xl * 2, imageSize)}
               name={viewer?.name ?? ""}
               variant="diecut"
               onError={() => setMainFailed(true)}
@@ -363,7 +368,7 @@ export function StickerViewer({
 }
 
 /** Downloads the private original photo with the session cookie, then shows it. */
-function AuthedPhoto({ photoId, name }: { photoId: string; name: string }) {
+function AuthedPhoto({ photoId, name, size }: { photoId: string; name: string; size: number }) {
   const { t } = useTranslation("feed");
   const { theme } = useUnistyles();
   const [uri, setUri] = useState<string | null>(null);
@@ -400,7 +405,7 @@ function AuthedPhoto({ photoId, name }: { photoId: string; name: string }) {
   }
   if (!uri) {
     return (
-      <View style={styles.viewerLoading}>
+      <View style={[styles.viewerLoading, { height: size }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
@@ -408,7 +413,7 @@ function AuthedPhoto({ photoId, name }: { photoId: string; name: string }) {
   return (
     <Image
       source={{ uri }}
-      style={styles.viewerImage}
+      style={[styles.viewerImage, { height: size }]}
       resizeMode="contain"
       accessibilityLabel={t("sticker.photo", { name })}
     />
@@ -452,6 +457,7 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     gap: theme.spacing.md,
     width: "100%",
+    maxWidth: SHEET_MAX_WIDTH,
   },
   viewerImage: {
     width: "100%",

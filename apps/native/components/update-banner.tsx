@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Button, Text } from "@/components/ui";
+import { SHEET_MAX_WIDTH } from "@/src/lib/layout";
 import { useAppUpdate } from "@/src/lib/use-app-update";
 
 /**
@@ -107,8 +108,11 @@ const styles = StyleSheet.create((theme) => ({
     zIndex: 90,
     elevation: 90,
     paddingHorizontal: theme.spacing.lg,
+    alignItems: "center",
   },
   card: {
+    width: "100%",
+    maxWidth: SHEET_MAX_WIDTH,
     borderRadius: theme.radius.tile,
     borderWidth: 1,
     backgroundColor: theme.colors.card,

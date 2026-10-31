@@ -8,7 +8,7 @@
     "scheme": "joyorogo",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.joyodigitama.joyorogo",
       "buildNumber": "2",
       "appleTeamId": "F6Q6UFUK69",
@@ -16,6 +16,12 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
+        "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
+        ],
         "NSHealthShareUsageDescription": "Izinkan JoyoRogo membaca langkah, jarak, kalori aktif, olahraga, dan tidur dari Apple Health untuk menghitung kalori yang kamu bakar.",
         "NSHealthUpdateUsageDescription": "JoyoRogo hanya membaca data dari Apple Health dan tidak menulis apa pun ke sana."
       },

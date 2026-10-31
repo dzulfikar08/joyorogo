@@ -189,6 +189,7 @@ export function PlacesView({ onOpenDate }: { onOpenDate?: (date: string) => void
         animationType="slide"
         onRequestClose={() => setFullscreen(false)}
         statusBarTranslucent
+        supportedOrientations={["portrait", "portrait-upside-down", "landscape-left", "landscape-right"]}
         accessibilityViewIsModal
       >
         <View style={styles.full}>
