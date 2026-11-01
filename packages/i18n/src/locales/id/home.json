@@ -228,7 +228,7 @@
   },
   "explain": {
     "title": "Cara baca angka hari ini",
-    "formula": "Sisa = TDEE − defisit + gerak di atas pengali − sudah dimakan",
+    "formula": "Sisa = TDEE − defisit + gerak ekstra hari ini − sudah dimakan",
     "exampleAdd": "Hari ini: {{target}} + {{exercise}} aktivitas − {{eaten}} = {{left}} kkal sisa",
     "exampleAddOver": "Hari ini: {{target}} + {{exercise}} aktivitas − {{eaten}} = lewat {{over}} kkal",
     "added": "+{{kcal}} kkal dari olahraga ({{pct}}%)",
@@ -236,7 +236,7 @@
     "exampleOver": "Hari ini: {{target}} − {{eaten}} = lewat {{over}} kkal",
     "target": {
       "title": "Target makan",
-      "body": "Jatah kalori makanmu sehari: TDEE (BMR dikali pengali level aktivitasmu, sudah termasuk gerak harian dan efek makan) dikurangi defisit untuk target beratmu. Gerak terukur yang melebihi pengalimu ditambahkan terpisah."
+      "body": "Jatah kalori makanmu sehari: TDEE dikurangi defisit untuk target beratmu. TDEE sudah termasuk gerak harian biasa sesuai level aktivitasmu, jadi hanya gerak ekstra (di luar itu) yang ditambahkan terpisah."
     },
     "clamped": {
       "lose": "Target makan ini dihitung dengan defisit maksimal 1.000 kkal per hari. Tanggal targetmu menuntut lebih dari itu, jadi targetmu baru tercapai sekitar {{date}}.",
@@ -254,7 +254,7 @@
     },
     "burn": {
       "title": "Aktivitas hari ini",
-      "body": "Gerak yang benar-benar terukur hari ini: energi aktif dari jam-mu (atau Health Connect / Apple Health) ditambah latihan tercatat yang tidak ada di jam. Hanya bagian yang melebihi gerak yang sudah ada di pengalimu yang dihitung, {{pct}}% dari kelebihannya ditambahkan ke sisa makanmu."
+      "body": "Gerak yang terukur hari ini: energi aktif dari jam-mu (atau Health Connect / Apple Health) ditambah latihan tercatat yang tidak ada di jam. Sebagian gerak ini sudah dihitung di TDEE-mu, jadi hanya kelebihannya yang dihitung, dan {{pct}}% dari kelebihan itu ditambahkan ke sisa makanmu."
     },
     "sum": {
       "title": "Hitungan hari ini",
@@ -262,9 +262,9 @@
       "cut": "Defisit",
       "surplus": "Surplus naik berat",
       "add": "Tambahan Hamil / Menyusui",
-      "floor": "Batas minimal makan",
+      "floor": "Defisit dikecilkan supaya makan tidak di bawah batas aman",
       "activity": "Aktivitas hari ini",
-      "activityOf": "{{pct}}% dari {{kcal}} kkal di atas pengali",
+      "activityOf": "{{pct}}% dari {{kcal}} kkal gerak ekstra",
       "activityOfAllDay": "{{active}} kkal hari ini − {{included}} sudah ada di TDEE = {{extra}} kkal tambahan, {{pct}}% dihitung",
       "target": "Target makan hari ini",
       "eaten": "Sudah dimakan",
@@ -272,7 +272,7 @@
     },
     "addBack": {
       "title": "Aktivitas yang dihitung",
-      "body": "Gerak terukur hari ini {{active}} kkal; {{included}} kkal sudah ada di pengali levelmu, kelebihannya {{extra}} kkal. {{pct}}% ({{kcal}} kkal) ditambahkan ke jatah makanmu.",
+      "body": "Gerak terukur hari ini {{active}} kkal. {{included}} kkal di antaranya sudah dihitung di TDEE-mu, jadi gerak ekstranya {{extra}} kkal. {{pct}}% ({{kcal}} kkal) ditambahkan ke jatah makanmu.",
       "watch": "Energi aktif dari jam-mu {{kcal}} kkal; latihan jam sudah termasuk di dalamnya, tidak dihitung dua kali.",
       "healthStore": "Energi aktif dari {{source}} {{kcal}} kkal; latihan di sana sudah termasuk.",
       "other": "Latihan di luar jam (manual, Strava) menambah {{kcal}} kkal.",
@@ -280,7 +280,7 @@
       "off": "Fitur ini mati di Profil, jadi aktivitas tidak menambah sisa. Sisa hanya dari target dasar.",
       "none": "Belum ada gerak terukur hari ini. Targetmu sudah memuat gerak harian rata-rata levelmu.",
       "setting": "Atur di Profil > Target & tubuh",
-      "below": "Gerak terukur hari ini ({{active}} kkal) belum melewati {{included}} kkal yang sudah ada di pengali levelmu, jadi tidak ada yang ditambahkan. Gerak yang rendah tidak pernah mengurangi targetmu."
+      "below": "Gerak terukur hari ini ({{active}} kkal) masih di bawah {{included}} kkal yang sudah dihitung di TDEE-mu, jadi tidak ada tambahan. Gerak yang sedikit tidak pernah mengurangi targetmu."
     },
     "deficit": {
       "title": "Kok ada kata defisit?",

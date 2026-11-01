@@ -304,7 +304,7 @@
       "cutNone": {
         "label": "No cut",
         "name": "Holding weight",
-        "body": "You're already at your target weight, so you eat as much as your TDEE to hold it. Movement beyond your factor is added on top."
+        "body": "You are at your target weight, so you eat your TDEE to hold it. Extra movement beyond your usual day is added on top."
       },
       "target": {
         "label": "Eating target",

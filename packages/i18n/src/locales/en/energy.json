@@ -126,15 +126,15 @@
     "formula": "BMR {{bmr}} × {{factor}} = TDEE {{tdee}}",
     "included": "The {{factor}} factor already contains about {{kcal}} kcal of daily movement outside the effect of eating. Only measured movement above that raises your target.",
     "extra": {
-      "label": "Movement above the factor",
+      "label": "Extra movement today",
       "name": "Added today",
-      "body": "Today's movement went beyond what your factor already contains. {{pct}}% of the extra is added to your eating allowance.",
+      "body": "Today you moved more than the everyday movement already counted in your TDEE. {{pct}}% of the extra is added to your allowance.",
       "labelCalibrated": "Movement above measured TDEE",
       "bodyCalibrated": "Today's movement went beyond what is already measured in your TDEE. {{pct}}% of the extra is added to your eating allowance.",
       "labelManual": "Movement above your TDEE",
       "bodyManual": "Today's movement went beyond what your entered TDEE already holds. {{pct}}% of the excess is added to your food budget."
     },
-    "none": "No movement above the factor today, so nothing has been added.",
+    "none": "No extra movement today yet (beyond what your TDEE already counts), so nothing is added.",
     "noneCalibrated": "No movement above your measured TDEE today, so nothing has been added.",
     "calibrated": "Automatic calibration: formula {{formula}}, measured {{measured}}, used {{used}} kcal",
     "formulaCalibrated": "BMR {{bmr}} + measured daily movement {{move}} = TDEE {{tdee}}",

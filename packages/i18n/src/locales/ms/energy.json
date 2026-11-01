@@ -126,15 +126,15 @@
     "formula": "BMR {{bmr}} × {{factor}} = TDEE {{tdee}}",
     "included": "Pengali {{factor}} sudah merangkumi kira-kira {{kcal}} kcal pergerakan harian di luar kesan makanan. Hanya pergerakan terukur melebihi angka itu yang menambah sasaran anda.",
     "extra": {
-      "label": "Pergerakan melebihi pengali",
+      "label": "Pergerakan tambahan hari ini",
       "name": "Tambahan hari ini",
-      "body": "Hari ini pergerakan anda melebihi yang sudah ada dalam pengali anda. {{pct}}% daripada lebihannya ditambah pada jatah makan anda.",
+      "body": "Hari ini anda bergerak lebih daripada pergerakan harian yang sudah dikira dalam TDEE anda. {{pct}}% daripada lebihannya ditambah ke catuan makanan anda.",
       "labelCalibrated": "Pergerakan melebihi TDEE terukur",
       "bodyCalibrated": "Hari ini pergerakan anda melebihi yang sudah terukur dalam TDEE anda. {{pct}}% daripada lebihannya ditambah pada jatah makan anda.",
       "labelManual": "Pergerakan melebihi TDEE anda",
       "bodyManual": "Hari ini pergerakan anda melebihi yang sudah ada dalam TDEE yang anda isi. {{pct}}% daripada lebihannya ditambah pada jatah makan anda."
     },
-    "none": "Belum ada pergerakan melebihi pengali hari ini, jadi belum ada yang ditambah.",
+    "none": "Belum ada pergerakan tambahan hari ini (selain yang sudah dikira dalam TDEE), jadi belum ada tambahan.",
     "noneCalibrated": "Belum ada pergerakan melebihi TDEE terukur hari ini, jadi belum ada yang ditambah.",
     "calibrated": "Penentukuran automatik: formula {{formula}}, terukur {{measured}}, digunakan {{used}} kcal",
     "formulaCalibrated": "BMR {{bmr}} + pergerakan harian terukur {{move}} = TDEE {{tdee}}",

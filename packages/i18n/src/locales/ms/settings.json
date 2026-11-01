@@ -334,7 +334,7 @@
       "cutNone": {
         "label": "Tiada potongan",
         "name": "Menjaga berat",
-        "body": "Berat anda sudah mencapai sasaran, jadi anda makan sebanyak TDEE untuk menjaganya. Pergerakan melebihi pengganda anda ditambah di atasnya."
+        "body": "Berat anda sudah mencapai sasaran, jadi anda makan sebanyak TDEE untuk mengekalkannya. Pergerakan tambahan selain hari biasa anda ditambah di atasnya."
       },
       "target": {
         "label": "Sasaran makan",

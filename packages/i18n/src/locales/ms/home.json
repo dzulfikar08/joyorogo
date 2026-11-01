@@ -228,7 +228,7 @@
   },
   "explain": {
     "title": "Cara baca angka hari ini",
-    "formula": "Baki = TDEE − defisit + pergerakan melebihi pengganda − sudah dimakan",
+    "formula": "Baki = TDEE − defisit + pergerakan tambahan hari ini − sudah dimakan",
     "exampleAdd": "Hari ini: {{target}} + {{exercise}} aktiviti − {{eaten}} = baki {{left}} kcal",
     "exampleAddOver": "Hari ini: {{target}} + {{exercise}} aktiviti − {{eaten}} = lebih {{over}} kcal",
     "added": "+{{kcal}} kcal daripada senaman ({{pct}}%)",
@@ -236,7 +236,7 @@
     "exampleOver": "Hari ini: {{target}} − {{eaten}} = lebih {{over}} kcal",
     "target": {
       "title": "Sasaran makan",
-      "body": "Catuan kalori makanan anda sehari: TDEE (BMR didarab pengganda tahap aktiviti anda, termasuk pergerakan harian dan kesan makanan) ditolak defisit untuk sasaran berat anda. Pergerakan yang diukur dan melebihi pengganda anda ditambah secara berasingan."
+      "body": "Catuan kalori makanan anda sehari: TDEE ditolak defisit untuk sasaran berat anda. TDEE sudah termasuk pergerakan harian biasa mengikut tahap aktiviti anda, jadi hanya pergerakan tambahan (selain itu) ditambah secara berasingan."
     },
     "clamped": {
       "lose": "Sasaran makan ini dikira dengan defisit maksimum 1,000 kcal sehari. Tarikh sasaran anda menuntut lebih daripada itu, jadi sasaran anda baru tercapai kira-kira {{date}}.",
@@ -254,7 +254,7 @@
     },
     "burn": {
       "title": "Aktiviti hari ini",
-      "body": "Pergerakan yang benar-benar diukur hari ini: tenaga aktif daripada jam anda (atau Health Connect / Apple Health) ditambah latihan dicatat yang tiada pada jam. Hanya bahagian yang melebihi pergerakan yang sudah ada dalam pengganda anda dikira, {{pct}}% daripada lebihannya ditambah ke baki makanan anda."
+      "body": "Pergerakan yang diukur hari ini: tenaga aktif daripada jam anda (atau Health Connect / Apple Health) ditambah latihan dicatat yang tiada pada jam. Sebahagiannya sudah dikira dalam TDEE anda, jadi hanya lebihannya dikira, dan {{pct}}% daripada lebihan itu ditambah ke baki makanan anda."
     },
     "sum": {
       "title": "Pengiraan hari ini",
@@ -262,9 +262,9 @@
       "cut": "Defisit",
       "surplus": "Lebihan untuk naik berat",
       "add": "Tambahan Mengandung / Menyusu",
-      "floor": "Had minimum makan",
+      "floor": "Defisit dikecilkan supaya makan tidak di bawah had selamat",
       "activity": "Aktiviti hari ini",
-      "activityOf": "{{pct}}% daripada {{kcal}} kcal melebihi pengganda",
+      "activityOf": "{{pct}}% daripada {{kcal}} kcal pergerakan tambahan",
       "activityOfAllDay": "{{active}} kcal hari ini − {{included}} sudah ada dalam TDEE = {{extra}} kcal tambahan, {{pct}}% dikira",
       "target": "Sasaran makan hari ini",
       "eaten": "Sudah dimakan",
@@ -272,7 +272,7 @@
     },
     "addBack": {
       "title": "Aktiviti yang dikira",
-      "body": "Pergerakan diukur hari ini {{active}} kcal; {{included}} kcal sudah ada dalam pengganda tahap anda, lebihannya {{extra}} kcal. {{pct}}% ({{kcal}} kcal) ditambah ke catuan makanan anda.",
+      "body": "Pergerakan diukur hari ini {{active}} kcal. {{included}} kcal daripadanya sudah dikira dalam TDEE anda, jadi pergerakan tambahannya {{extra}} kcal. {{pct}}% ({{kcal}} kcal) ditambah ke catuan makanan anda.",
       "watch": "Tenaga aktif daripada jam anda {{kcal}} kcal; latihan jam sudah termasuk di dalamnya, tidak dikira dua kali.",
       "healthStore": "Tenaga aktif daripada {{source}} {{kcal}} kcal; latihan di sana sudah termasuk.",
       "other": "Latihan di luar jam (manual, Strava) menambah {{kcal}} kcal.",
@@ -280,7 +280,7 @@
       "off": "Ciri ini dimatikan di Profil, jadi aktiviti tidak menambah baki. Baki hanya daripada sasaran asas.",
       "none": "Belum ada pergerakan diukur hari ini. Sasaran anda sudah merangkumi purata pergerakan harian tahap anda.",
       "setting": "Tetapkan di Profil > Sasaran & tubuh",
-      "below": "Pergerakan diukur hari ini ({{active}} kcal) belum melepasi {{included}} kcal yang sudah ada dalam pengganda tahap anda, jadi tiada yang ditambah. Pergerakan yang rendah tidak pernah mengurangkan sasaran anda."
+      "below": "Pergerakan diukur hari ini ({{active}} kcal) masih di bawah {{included}} kcal yang sudah dikira dalam TDEE anda, jadi tiada tambahan. Pergerakan yang sedikit tidak pernah mengurangkan sasaran anda."
     },
     "deficit": {
       "title": "Mengapa ada perkataan defisit?",

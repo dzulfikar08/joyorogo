@@ -294,7 +294,7 @@
       "cutNone": {
         "label": "Tidak ada potongan",
         "name": "Menjaga berat",
-        "body": "Beratmu sudah di target, jadi kamu makan sebanyak TDEE untuk menjaga. Gerak di atas pengalimu ditambahkan di atasnya."
+        "body": "Beratmu sudah di target, jadi kamu makan sebanyak TDEE untuk menjaga. Gerak ekstra di luar gerak harian biasamu ditambahkan di atasnya."
       },
       "target": {
         "label": "Target makan",

@@ -241,7 +241,7 @@
   },
   "explain": {
     "title": "How to read today's numbers",
-    "formula": "Left = TDEE − deficit + movement above the factor − eaten so far",
+    "formula": "Left = TDEE − deficit + extra movement today − eaten so far",
     "exampleAdd": "Today: {{target}} + {{exercise}} activity − {{eaten}} = {{left}} kcal left",
     "exampleAddOver": "Today: {{target}} + {{exercise}} activity − {{eaten}} = {{over}} kcal over",
     "added": "+{{kcal}} kcal from exercise ({{pct}}%)",
@@ -249,7 +249,7 @@
     "exampleOver": "Today: {{target}} − {{eaten}} = {{over}} kcal over",
     "target": {
       "title": "Eating target",
-      "body": "Your calorie allowance for the day: your TDEE (BMR times the factor of your activity level, which already includes daily movement and the effect of eating) less the deficit for your target weight. Measured movement beyond your factor is added separately."
+      "body": "Your calorie allowance for the day: your TDEE less the deficit for your target weight. Your TDEE already includes the everyday movement of your activity level, so only extra movement beyond that is added separately."
     },
     "clamped": {
       "lose": "This target is worked out with a deficit of at most 1,000 kcal a day. Your target date asks for more than that, so you get there around {{date}}.",
@@ -267,7 +267,7 @@
     },
     "burn": {
       "title": "Activity today",
-      "body": "The movement that was really measured today: active energy from your watch (or Health Connect / Apple Health) plus logged workouts that are not on the watch. Only the part beyond the movement already in your factor counts, and {{pct}}% of that extra is added to what you can still eat."
+      "body": "Movement measured today: active energy from your watch (or Health Connect / Apple Health) plus logged workouts that are not on the watch. Part of it is already counted in your TDEE, so only the extra counts, and {{pct}}% of that extra is added to what you can still eat."
     },
     "sum": {
       "title": "Today's maths",
@@ -275,9 +275,9 @@
       "cut": "Deficit",
       "surplus": "Weight-gain surplus",
       "add": "Pregnancy / breastfeeding addition",
-      "floor": "Minimum eating floor",
+      "floor": "Deficit reduced so you never eat below the safe minimum",
       "activity": "Activity today",
-      "activityOf": "{{pct}}% of {{kcal}} kcal above the factor",
+      "activityOf": "{{pct}}% of {{kcal}} kcal extra movement",
       "activityOfAllDay": "{{active}} kcal today − {{included}} already in your TDEE = {{extra}} kcal extra, {{pct}}% counted",
       "target": "Eating target today",
       "eaten": "Eaten so far",
@@ -285,7 +285,7 @@
     },
     "addBack": {
       "title": "Counted activity",
-      "body": "Measured movement today is {{active}} kcal; {{included}} kcal is already in your level's factor, so the extra is {{extra}} kcal. {{pct}}% ({{kcal}} kcal) is added to your allowance.",
+      "body": "Measured movement today is {{active}} kcal. {{included}} kcal of it is already counted in your TDEE, so the extra is {{extra}} kcal. {{pct}}% ({{kcal}} kcal) is added to your allowance.",
       "watch": "Active energy from your watch is {{kcal}} kcal; the watch's workouts are inside it and are not counted twice.",
       "healthStore": "Active energy from {{source}} is {{kcal}} kcal; workouts there are included.",
       "other": "Workouts outside the watch (manual, Strava) add {{kcal}} kcal.",
@@ -293,7 +293,7 @@
       "off": "This is turned off in Profile, so activity does not add to what is left. What is left comes from the base target only.",
       "none": "No measured movement today. Your target already contains the average daily movement of your level.",
       "setting": "Change it in Profile > Target & body",
-      "below": "Measured movement today ({{active}} kcal) has not passed the {{included}} kcal already in your level's factor, so nothing is added. Low movement never lowers your target."
+      "below": "Measured movement today ({{active}} kcal) is still under the {{included}} kcal already counted in your TDEE, so nothing is added. Little movement never lowers your target."
     },
     "deficit": {
       "title": "What does deficit mean?",
