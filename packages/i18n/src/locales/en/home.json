@@ -278,6 +278,7 @@
       "floor": "Minimum eating floor",
       "activity": "Activity today",
       "activityOf": "{{pct}}% of {{kcal}} kcal above the factor",
+      "activityOfAllDay": "{{active}} kcal today − {{included}} already in your TDEE = {{extra}} kcal extra, {{pct}}% counted",
       "target": "Eating target today",
       "eaten": "Eaten so far",
       "left": "Left"

@@ -265,6 +265,7 @@
       "floor": "Had minimum makan",
       "activity": "Aktiviti hari ini",
       "activityOf": "{{pct}}% daripada {{kcal}} kcal melebihi pengganda",
+      "activityOfAllDay": "{{active}} kcal hari ini − {{included}} sudah ada dalam TDEE = {{extra}} kcal tambahan, {{pct}}% dikira",
       "target": "Sasaran makan hari ini",
       "eaten": "Sudah dimakan",
       "left": "Baki"

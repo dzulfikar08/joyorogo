@@ -391,7 +391,16 @@ export default function Dashboard() {
           {
             key: "activity",
             label: t("explain.sum.activity"),
-            sub: credit ? t("explain.sum.activityOf", { pct: credit.pct, kcal: fmtInt(credit.extraKcal) }) : undefined,
+            sub: credit
+              ? credit.allDayKcal !== null && credit.allDayKcal >= credit.includedKcal
+                ? t("explain.sum.activityOfAllDay", {
+                    active: fmtInt(credit.activeKcal),
+                    included: fmtInt(credit.includedKcal),
+                    extra: fmtInt(credit.extraKcal),
+                    pct: credit.pct,
+                  })
+                : t("explain.sum.activityOf", { pct: credit.pct, kcal: fmtInt(credit.extraKcal) })
+              : undefined,
             value: `+${fmtInt(needs.exerciseKcal)}`,
           },
         ]

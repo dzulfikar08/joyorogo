@@ -265,6 +265,7 @@
       "floor": "Batas minimal makan",
       "activity": "Aktivitas hari ini",
       "activityOf": "{{pct}}% dari {{kcal}} kkal di atas pengali",
+      "activityOfAllDay": "{{active}} kkal hari ini − {{included}} sudah ada di TDEE = {{extra}} kkal tambahan, {{pct}}% dihitung",
       "target": "Target makan hari ini",
       "eaten": "Sudah dimakan",
       "left": "Sisa"

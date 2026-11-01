@@ -1010,7 +1010,14 @@ function BudgetSum({
       label: t("explain.sum.activity"),
       value: `+${fmtInt(needs.exerciseKcal)}`,
       sub: credit
-        ? t("explain.sum.activityOf", { pct: credit.pct, kcal: fmtInt(credit.extraKcal) })
+        ? credit.allDayKcal !== null && credit.allDayKcal >= credit.includedKcal
+          ? t("explain.sum.activityOfAllDay", {
+              active: fmtInt(credit.activeKcal),
+              included: fmtInt(credit.includedKcal),
+              extra: fmtInt(credit.extraKcal),
+              pct: credit.pct,
+            })
+          : t("explain.sum.activityOf", { pct: credit.pct, kcal: fmtInt(credit.extraKcal) })
         : undefined,
     });
   }
