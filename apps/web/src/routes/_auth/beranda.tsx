@@ -1014,7 +1014,7 @@ function BudgetSum({
           ? t("explain.sum.activityOfAllDay", {
               active: fmtInt(credit.activeKcal),
               included: fmtInt(credit.includedKcal),
-              extra: fmtInt(credit.extraKcal),
+              extra: fmtInt(credit.activeKcal - credit.includedKcal),
               pct: credit.pct,
             })
           : t("explain.sum.activityOf", { pct: credit.pct, kcal: fmtInt(credit.extraKcal) })
