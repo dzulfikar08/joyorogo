@@ -25,6 +25,11 @@ on:
         description: "Xcode version (semver range for maxim-lobanov/setup-xcode, e.g. 26.x or latest-stable)"
         type: string
         default: latest-stable
+      runner:
+        description: "Runner image: macos-latest (Xcode 26), or xcode-27 for the iOS 27 SDK (iPhone Duo resizing)"
+        type: choice
+        options: [macos-latest, xcode-27]
+        default: macos-latest
   # To also build on version tags, uncomment. The `release` environment approval still applies.
   # push:
   #   tags: ["v*"]
@@ -38,7 +43,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ${{ inputs.runner || 'macos-latest' }}
     timeout-minutes: 120
     environment: release
     env:
