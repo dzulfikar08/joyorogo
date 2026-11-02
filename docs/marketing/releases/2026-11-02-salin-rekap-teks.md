@@ -5,7 +5,7 @@ shipped: 2026-11-02
 available: web
 tier: free
 post: todo
-atur:
+atur: JRG-480
 ---
 
 **Apa:** Di layar Rekap ada tombol "Salin rekap minggu sebagai teks" dan "Salin Oktober 2026 sebagai teks" (bulan lalu).
@@ -20,4 +20,4 @@ protein, streak, olahraga dan hari terbaik.
 composer Threads, screenshot.
 
 **Jangan klaim:** Bulanan hanya untuk bulan kalender yang sudah lewat. Baris berat muncul setelah minimal 2 timbangan.
-Tidak tampil di mode kehamilan/menyusui.
+Tidak tampil di mode kehamilan/menyusui. Di web sudah live; di aplikasi HP ikut versi 1.1.4 yang sedang direview App Store dan Google Play (dikirim 2026-11-02), jangan tulis tersedia di HP sebelum lolos.
