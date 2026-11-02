@@ -86,7 +86,7 @@ Play Console -> your app -> **Monetize with Play -> Products -> Subscriptions ->
 3. **Activate** both base plans (Activate button on each). Only active base plans are sold.
 4. Do not add promotional offers yet. The app picks each plan's plain base-plan offer and ignores offers with extra pricing phases.
 
-The IDs `pro`, `monthly` and `yearly` are what the server accepts (`GOOGLE_PRO_PRODUCT_ID`, `GOOGLE_BASE_PLANS` in `packages/api/src/lib/google-play.ts`). Anything else is rejected as "wrong product".
+The IDs `pro`, `monthly` and `yearly` are what the server accepts for this app (`GOOGLE_PLAY_PRODUCTS` in `packages/api/src/lib/google-play.ts`, keyed by package, then product, then base plan). Anything else is rejected as "wrong product". JoyoFit's products are in section 4.
 
 ### 1.4 Google Cloud project and service account
 
@@ -120,7 +120,7 @@ bunx wrangler secret put GOOGLE_PLAY_TEST_EMAILS --config wrangler.jsonc        
 bunx wrangler secret put GOOGLE_PLAY_RTDN_PUSH_EMAIL --config wrangler.jsonc       # see 1.7 (push subscription service account)
 ```
 
-Use secrets, not `wrangler.jsonc` vars: `scripts/deploy.sh` rewrites the vars block, and secrets persist across deploys. Optional: `GOOGLE_PLAY_PACKAGE_NAME` (defaults to `com.joyodigitama.joyorogo`), `GOOGLE_PLAY_RTDN_TOKEN` (shared-token alternative to the JWT). The server needs no redeploy after setting secrets; the next request picks them up. Without `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` the feature stays "unavailable".
+Use secrets, not `wrangler.jsonc` vars: `scripts/deploy.sh` rewrites the vars block, and secrets persist across deploys. Optional: `GOOGLE_PLAY_PACKAGE_NAMES` (comma separated enabled Play packages; defaults to `com.joyodigitama.joyorogo,com.joyodigitama.joyofit`; it replaces the old single `GOOGLE_PLAY_PACKAGE_NAME`, which is no longer read), `GOOGLE_PLAY_RTDN_TOKEN` (shared-token alternative to the JWT). The server needs no redeploy after setting secrets; the next request picks them up. Without `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` the feature stays "unavailable".
 
 Check: `curl https://api.joyorogo.com/api/config` shows `"googlePlayBilling": true`.
 
@@ -177,3 +177,24 @@ Play Console -> **Settings -> License testing** (all-apps settings, left menu) -
 - Pro periods credited from Play stack on web and App Store periods. A buyer who has web time left and then buys on Play pays Play and gets the months on top.
 - Grace period and account hold: the server grants only for charged orders. A renewal that fails goes to grace, then hold, and no further months are credited until Play charges it successfully.
 - If you change a base plan price in Play Console, existing subscribers keep their old recurring price until they accept the change; the ledger records the price Play reports per subscriber (`autoRenewingPlan.recurringPrice`, IDR), falling back to the configured plan price for non-IDR billing.
+
+## 4. JoyoFit's Play app (`com.joyodigitama.joyofit`)
+
+JoyoFit sells JoyoRogo Pro itself on Android, mirroring its iOS purchase (`docs/billing-status.md`). The same server credits it: same `founder_until` stacking, same ledger (`google:<Play order id>`), same acknowledge-after-credit, same test-purchase rules (`GOOGLE_PLAY_TEST_EMAILS`).
+
+| | JoyoRogo app | JoyoFit app |
+| --- | --- | --- |
+| Package | `com.joyodigitama.joyorogo` | `com.joyodigitama.joyofit` |
+| Subscription (product id) | `pro` | `com.joyodigitama.joyofit.pro.monthly` and `com.joyodigitama.joyofit.pro.yearly` (two subscriptions) |
+| Base plan | `monthly`, `yearly` | `monthly` (in the monthly product), `yearly` (in the yearly product) |
+| Credit | +1 / +12 months | +1 / +12 months |
+
+A purchase is valid only if its product and base plan belong to the package it was verified under: a JoyoFit product sent as a JoyoRogo purchase, or the reverse, is rejected as "wrong product" (400, `code: invalidReceipt`).
+
+- **Client request:** `POST /api/billing/google` with `{ purchaseToken, packageName? }`. `packageName` omitted means `com.joyodigitama.joyorogo` (the deployed JoyoRogo apps send none). A package that is not enabled is a 400. Every error response also carries a stable `code` next to the localized `error`: `signIn` (401), `invalidReceipt` (400), `otherAccount` (409, token linked to another account), `processing` (409), `unreachable` (502), `unavailable` (404, billing off), `userNotFound` (404).
+- **Env:** `GOOGLE_PLAY_PACKAGE_NAMES` lists the enabled packages (see 1.6). Names that have no entry in `GOOGLE_PLAY_PRODUCTS` are ignored; blank means both. Set it to the JoyoRogo package alone to switch JoyoFit off. The server keeps one Android Publisher client per enabled package.
+- **Database:** `google_purchase.package_name` (migration `0073_google_purchase_package`, default `com.joyodigitama.joyorogo`) records the package the token was verified under, so notifications re-read the token under it (the notification's own `packageName` is only a fallback).
+- **Play Console, JoyoFit app:** create the two subscriptions above with one active auto-renewing base plan each (IDR prices as in `docs/pricing.md`), exactly as in 1.3.
+- **Service account:** invite the same service account (1.5) with access to the JoyoFit app too (App permissions), with the same three permissions. Without it verification of JoyoFit tokens answers 502.
+- **RTDN:** in the JoyoFit app, **Monetize with Play -> Monetization setup -> Real-time developer notifications**, enter the same topic `projects/<project-id>/topics/play-rtdn` (1.7) and send a test notification. The topic, push subscription and auth are shared; the endpoint accepts notifications of every enabled package. The Pub/Sub publisher grant on the topic already covers it.
+- **License testers:** add them in Play Console -> Settings -> License testing (account level, so they apply to JoyoFit too), and put the owner's Gmail in `GOOGLE_PLAY_TEST_EMAILS`. Testers install JoyoFit from a closed or internal track.

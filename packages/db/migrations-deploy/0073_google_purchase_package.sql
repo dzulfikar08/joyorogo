@@ -1,0 +1,1 @@
+ALTER TABLE `google_purchase` ADD `package_name` text DEFAULT 'com.joyodigitama.joyorogo' NOT NULL;

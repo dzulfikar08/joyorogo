@@ -93,7 +93,7 @@ declare module "cloudflare:workers" {
       // MCP tool calls per account per rolling 24 hours; empty = 1000.
       MCP_DAILY_CAP?: string;
       GOOGLE_PLAY_SERVICE_ACCOUNT_JSON?: string;
-      GOOGLE_PLAY_PACKAGE_NAME?: string;
+      GOOGLE_PLAY_PACKAGE_NAMES?: string;
       GOOGLE_PLAY_TEST_EMAILS?: string;
       GOOGLE_PLAY_RTDN_PUSH_EMAIL?: string;
       GOOGLE_PLAY_RTDN_TOKEN?: string;

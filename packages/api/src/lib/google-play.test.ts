@@ -5,6 +5,7 @@ import {
   createGoogleKeySource,
   createGooglePlayClient,
   googleFounderGrant,
+  googlePlanFor,
   googlePlayConfig,
   parsePushNotification,
   tokenMatches,
@@ -74,20 +75,20 @@ describe("googlePlayConfig", () => {
       clientEmail: "svc@p.iam.gserviceaccount.com",
       privateKeyPem: "k",
       tokenUri: "https://oauth2.googleapis.com/token",
-      packageName: "com.joyodigitama.joyorogo",
+      packageNames: ["com.joyodigitama.joyorogo", "com.joyodigitama.joyofit"],
       testEmails: [],
       pushEmail: null,
       pushToken: null,
     });
     const full = googlePlayConfig({
       GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: account,
-      GOOGLE_PLAY_PACKAGE_NAME: "id.example.app",
+      GOOGLE_PLAY_PACKAGE_NAMES: " com.joyodigitama.joyofit, id.example.app, com.joyodigitama.joyofit",
       GOOGLE_PLAY_TEST_EMAILS: " A@x.id, b@x.id ,",
       GOOGLE_PLAY_RTDN_PUSH_EMAIL: "push@p.iam.gserviceaccount.com",
       GOOGLE_PLAY_RTDN_TOKEN: "s3cret",
     });
     expect(full).toMatchObject({
-      packageName: "id.example.app",
+      packageNames: ["com.joyodigitama.joyofit"],
       testEmails: ["a@x.id", "b@x.id"],
       pushEmail: "push@p.iam.gserviceaccount.com",
       pushToken: "s3cret",
@@ -279,6 +280,73 @@ describe("createGooglePlayClient", () => {
       (async () => new Response("{}", { status: 400 })) as unknown as typeof fetch,
     );
     await expect(client.getSubscription("token-aaaaaaaa")).rejects.toThrow("google oauth 400");
+  });
+});
+
+describe("googlePlanFor", () => {
+  const ROGO = "com.joyodigitama.joyorogo";
+  const FIT = "com.joyodigitama.joyofit";
+
+  test("each package sells only its own products and base plans", () => {
+    expect(googlePlanFor(ROGO, "pro", "monthly")).toBe("monthly");
+    expect(googlePlanFor(ROGO, "pro", "yearly")).toBe("yearly");
+    expect(googlePlanFor(FIT, `${FIT}.pro.monthly`, "monthly")).toBe("monthly");
+    expect(googlePlanFor(FIT, `${FIT}.pro.yearly`, "yearly")).toBe("yearly");
+
+    expect(googlePlanFor(FIT, "pro", "monthly")).toBeNull();
+    expect(googlePlanFor(ROGO, `${FIT}.pro.monthly`, "monthly")).toBeNull();
+    expect(googlePlanFor(FIT, `${FIT}.pro.monthly`, "yearly")).toBeNull();
+    expect(googlePlanFor("com.example.other", "pro", "monthly")).toBeNull();
+    expect(googlePlanFor(ROGO, "constructor", "monthly")).toBeNull();
+    expect(googlePlanFor("__proto__", "pro", "monthly")).toBeNull();
+  });
+
+  test("names without products fall back to every package", () => {
+    const account = JSON.stringify({ client_email: "svc@p", private_key: "k" });
+    expect(
+      googlePlayConfig({
+        GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: account,
+        GOOGLE_PLAY_PACKAGE_NAMES: "id.example.app",
+      })?.packageNames,
+    ).toEqual([ROGO, FIT]);
+  });
+});
+
+describe("createGooglePlayClient per package", () => {
+  test("queries its own package and picks that package's product line", async () => {
+    const { pem } = await rsaKey();
+    const urls: string[] = [];
+    const fetchImpl = (async (url: string) => {
+      if (url.includes("oauth2")) return Response.json({ access_token: "at", expires_in: 3600 });
+      urls.push(url);
+      return Response.json({
+        subscriptionState: "SUBSCRIPTION_STATE_ACTIVE",
+        latestOrderId: "GPA.1",
+        lineItems: [
+          { productId: "pro", expiryTime: "2026-11-16T03:00:00Z" },
+          {
+            productId: "com.joyodigitama.joyofit.pro.yearly",
+            expiryTime: "2027-10-16T03:00:00Z",
+            offerDetails: { basePlanId: "yearly" },
+          },
+        ],
+      });
+    }) as unknown as typeof fetch;
+    const client = createGooglePlayClient(
+      {
+        clientEmail: "svc@p",
+        privateKeyPem: pem,
+        tokenUri: "https://oauth2.googleapis.com/token",
+        packageName: "com.joyodigitama.joyofit",
+      },
+      fetchImpl,
+    );
+    const sub = await client.getSubscription("tok-aaaaaaaa");
+    expect(urls[0]).toContain("/applications/com.joyodigitama.joyofit/purchases/subscriptionsv2/");
+    expect(sub).toMatchObject({
+      productId: "com.joyodigitama.joyofit.pro.yearly",
+      basePlanId: "yearly",
+    });
   });
 });
 
