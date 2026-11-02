@@ -8,7 +8,7 @@ import type { WeightGainChart as GainChart } from "@joyorogo/api/lib/maternal";
 import { fmtDecimal } from "@joyorogo/i18n";
 
 import { Button, Card, Num, Text } from "@/components/ui";
-import { useLayout } from "@/src/lib/layout";
+import { useFillWidth, useLayout } from "@/src/lib/layout";
 import { fmtInt, fmtKg } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
@@ -48,7 +48,7 @@ function GainSvg({ chart }: { chart: GainChart }) {
   const { theme } = useUnistyles();
   const { contentWidth } = useLayout();
   // Screen (20) + Card (20) padding on each side, same as the weight chart.
-  const w = contentWidth - 80;
+  const [w, onFillLayout] = useFillWidth(contentWidth - 80);
   const h = 220;
   const innerW = w - PAD.left - PAD.right;
   const innerH = h - PAD.top - PAD.bottom;
@@ -70,73 +70,75 @@ function GainSvg({ chart }: { chart: GainChart }) {
   const last = chart.points.length - 1;
 
   return (
-    <Svg width={w} height={h} accessibilityLabel={t("gain.chartLabel")}>
-      {yTicks.map((kg) => (
-        <G key={kg}>
-          <Line
-            x1={PAD.left}
-            x2={w - PAD.right}
-            y1={y(kg)}
-            y2={y(kg)}
-            stroke={theme.colors.hairline}
-            strokeWidth={1}
-          />
-          <SvgText x={PAD.left - 6} y={y(kg) + 3} textAnchor="end" fontSize={10} fill={labelColor}>
-            {step < 1 ? fmtDecimal(kg, 1) : fmtInt(kg)}
-          </SvgText>
-        </G>
-      ))}
-      <Polygon points={[...upper, ...lower].join(" ")} fill={theme.colors.makan} fillOpacity={0.16} />
-      <Polyline
-        points={upper.join(" ")}
-        stroke={theme.colors.makan}
-        strokeOpacity={0.45}
-        strokeWidth={1}
-        fill="none"
-      />
-      <Polyline
-        points={lower.join(" ")}
-        stroke={theme.colors.makan}
-        strokeOpacity={0.45}
-        strokeWidth={1}
-        fill="none"
-      />
-      {chart.points.length > 1 ? (
+    <View onLayout={onFillLayout}>
+      <Svg width={w} height={h} accessibilityLabel={t("gain.chartLabel")}>
+        {yTicks.map((kg) => (
+          <G key={kg}>
+            <Line
+              x1={PAD.left}
+              x2={w - PAD.right}
+              y1={y(kg)}
+              y2={y(kg)}
+              stroke={theme.colors.hairline}
+              strokeWidth={1}
+            />
+            <SvgText x={PAD.left - 6} y={y(kg) + 3} textAnchor="end" fontSize={10} fill={labelColor}>
+              {step < 1 ? fmtDecimal(kg, 1) : fmtInt(kg)}
+            </SvgText>
+          </G>
+        ))}
+        <Polygon points={[...upper, ...lower].join(" ")} fill={theme.colors.makan} fillOpacity={0.16} />
         <Polyline
-          points={chart.points.map((p) => `${x(p.week)},${y(p.gainKg)}`).join(" ")}
-          stroke={theme.colors.tidur}
-          strokeWidth={2.5}
-          strokeLinejoin="round"
-          strokeLinecap="round"
+          points={upper.join(" ")}
+          stroke={theme.colors.makan}
+          strokeOpacity={0.45}
+          strokeWidth={1}
           fill="none"
         />
-      ) : null}
-      {chart.points.map((p, i) => (
-        <Circle
-          key={p.date}
-          cx={x(p.week)}
-          cy={y(p.gainKg)}
-          r={i === last ? 4.5 : 3}
-          fill={theme.colors.tidur}
-          fillOpacity={i === last ? 1 : 0.6}
+        <Polyline
+          points={lower.join(" ")}
+          stroke={theme.colors.makan}
+          strokeOpacity={0.45}
+          strokeWidth={1}
+          fill="none"
         />
-      ))}
-      {xTicks.map((week, i) => (
-        <SvgText
-          key={week}
-          x={x(week)}
-          y={h - 22}
-          textAnchor={i === 0 ? "start" : i === xTicks.length - 1 ? "end" : "middle"}
-          fontSize={10}
-          fill={labelColor}
-        >
-          {week}
+        {chart.points.length > 1 ? (
+          <Polyline
+            points={chart.points.map((p) => `${x(p.week)},${y(p.gainKg)}`).join(" ")}
+            stroke={theme.colors.tidur}
+            strokeWidth={2.5}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            fill="none"
+          />
+        ) : null}
+        {chart.points.map((p, i) => (
+          <Circle
+            key={p.date}
+            cx={x(p.week)}
+            cy={y(p.gainKg)}
+            r={i === last ? 4.5 : 3}
+            fill={theme.colors.tidur}
+            fillOpacity={i === last ? 1 : 0.6}
+          />
+        ))}
+        {xTicks.map((week, i) => (
+          <SvgText
+            key={week}
+            x={x(week)}
+            y={h - 22}
+            textAnchor={i === 0 ? "start" : i === xTicks.length - 1 ? "end" : "middle"}
+            fontSize={10}
+            fill={labelColor}
+          >
+            {week}
+          </SvgText>
+        ))}
+        <SvgText x={PAD.left + innerW / 2} y={h - 6} textAnchor="middle" fontSize={10} fill={labelColor}>
+          {t("gain.axis.week")}
         </SvgText>
-      ))}
-      <SvgText x={PAD.left + innerW / 2} y={h - 6} textAnchor="middle" fontSize={10} fill={labelColor}>
-        {t("gain.axis.week")}
-      </SvgText>
-    </Svg>
+      </Svg>
+    </View>
   );
 }
 

@@ -1484,6 +1484,8 @@ const styles = StyleSheet.create((theme) => ({
   heroStats: {
     flex: 1,
     minWidth: 0,
+    // Wide screens (iPhone Duo inner, iPad): keep each label next to its number instead of a screen apart.
+    maxWidth: 360,
     gap: theme.spacing.sm,
   },
   heroStat: {

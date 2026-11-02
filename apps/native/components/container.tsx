@@ -9,7 +9,14 @@ import { useHeaderHeight } from "expo-router/build/react-navigation/elements";
 
 import { useInTabs } from "@/components/tab-bar-inset";
 
-export const Container = ({ children }: { children: React.ReactNode }) => {
+export const Container = ({
+  children,
+  bottomInset = true,
+}: {
+  children: React.ReactNode;
+  /** False when the child scrolls through the bottom inset itself (Screen pads its scroll content with it). */
+  bottomInset?: boolean;
+}) => {
   // A native stack header already clears the status bar; adding the top
   // edge again leaves an empty band between header and content. Only pad
   // the top on headerless screens (tabs, login, modals).
@@ -20,7 +27,7 @@ export const Container = ({ children }: { children: React.ReactNode }) => {
   const inTabs = useInTabs();
   return (
     <SafeAreaView
-      style={[styles.container, !inTabs && styles.bottomInset]}
+      style={[styles.container, !inTabs && bottomInset && styles.bottomInset]}
       edges={headerHeight > 0 ? ["left", "right"] : ["top", "left", "right"]}
     >
       {children}

@@ -124,6 +124,10 @@ export function CountNum({
 
 // --- Layout ----------------------------------------------------------------
 
+/** Space under the last item of a Screen's scroll content (with a pinned footer, the gap above it). */
+const SCREEN_PADDING_BOTTOM = 120;
+const SCREEN_PADDING_FOOTER = 20;
+
 /**
  * Scrollable page on paper: 20px gutters, 12px between related cards. Passing
  * `onRefresh` turns on pull-to-refresh. `footer` pins a bar (a comment composer) under the
@@ -149,6 +153,12 @@ export function Screen({
   footer?: React.ReactNode;
 }) {
   const tabInset = useTabContentInset();
+  // Pushed screens have no tab bar over them: the home indicator / gesture area is the bottom inset. It pads the end of the
+  // scroll content (the scroll view itself runs to the screen's edge), so content scrolls through that band instead of being
+  // cut off above it.
+  const inTabs = useInTabs();
+  const edgeInset = useSafeAreaInsets().bottom;
+  const pushedInset = inTabs ? 0 : edgeInset;
   const scroll = (
     // Keyboard-aware on both platforms: the focused input always scrolls
     // above the keyboard (Android edge-to-edge never resizes the window).
@@ -158,6 +168,7 @@ export function Screen({
         footer ? styles.screenContentWithFooter : null,
         // In the tabs the floating bar covers the screen's bottom: end the content above it.
         tabInset > 0 ? { paddingBottom: tabInset } : null,
+        pushedInset > 0 && !footer ? { paddingBottom: SCREEN_PADDING_BOTTOM + pushedInset } : null,
         style,
       ]}
       style={footer ? styles.screenScroll : undefined}
@@ -174,11 +185,17 @@ export function Screen({
     </KeyboardAwareScrollView>
   );
   return (
-    <Container>
+    <Container bottomInset={false}>
       {footer ? (
         <KeyboardAvoidingView behavior="padding" style={styles.screenScroll}>
           {scroll}
-          <View style={[styles.screenFooter, tabInset > 0 ? { paddingBottom: tabInset } : null]}>
+          <View
+            style={[
+              styles.screenFooter,
+              tabInset > 0 ? { paddingBottom: tabInset } : null,
+              pushedInset > 0 ? { paddingBottom: pushedInset } : null,
+            ]}
+          >
             <View style={styles.screenFooterInner}>{footer}</View>
           </View>
         </KeyboardAvoidingView>
@@ -883,6 +900,9 @@ export function Segmented<T extends string>({
             <Text
               style={[styles.segmentLabel, selected && styles.segmentLabelActive]}
               numberOfLines={1}
+              // Five short labels in a ~300px card (iPhone Duo's outer display): shrink a hair instead of ellipsizing.
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
             >
               {option.label}
             </Text>
@@ -1186,7 +1206,7 @@ export function EmptyState({
 const styles = StyleSheet.create((theme) => ({
   screenContent: {
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: 120,
+    paddingBottom: SCREEN_PADDING_BOTTOM,
     gap: theme.spacing.md,
     "@sm": {
       maxWidth: CONTENT_MAX_WIDTH,
@@ -1195,7 +1215,7 @@ const styles = StyleSheet.create((theme) => ({
     },
   },
   screenContentWithFooter: {
-    paddingBottom: theme.spacing.lg,
+    paddingBottom: SCREEN_PADDING_FOOTER,
   },
   screenScroll: {
     flex: 1,
@@ -1480,7 +1500,7 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: theme.radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
   },
   segmentOptionCompact: {
     minHeight: 32,

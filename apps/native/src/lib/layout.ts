@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useWindowDimensions } from "react-native";
+import type { LayoutChangeEvent } from "react-native";
 
 /** Widest a reading column gets on big screens (foldables unfolded, iPad); content centres inside the window. */
 export const CONTENT_MAX_WIDTH = 640;
@@ -36,4 +38,18 @@ export function layoutFor(width: number, height: number): Layout {
 export function useLayout(): Layout {
   const { width, height } = useWindowDimensions();
   return layoutFor(width, height);
+}
+
+/**
+ * Width of the box the caller attaches `onLayout` to, for drawings (charts) sized in pixels. The window width is no
+ * guide where the app's scene is narrower than the window (iPhone Duo's outer display keeps a system column beside it),
+ * so the chart follows the box it sits in. `fallback` is used until the first layout.
+ */
+export function useFillWidth(fallback: number): [number, (e: LayoutChangeEvent) => void] {
+  const [measured, setMeasured] = useState<number | null>(null);
+  const onLayout = (e: LayoutChangeEvent) => {
+    const next = Math.floor(e.nativeEvent.layout.width);
+    if (next > 0) setMeasured((prev) => (prev === next ? prev : next));
+  };
+  return [measured ?? fallback, onLayout];
 }

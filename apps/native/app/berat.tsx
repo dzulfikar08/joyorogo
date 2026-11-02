@@ -53,7 +53,7 @@ import { useMaternal } from "@/components/maternal/use-maternal";
 import { GainNotes } from "@/components/gain/gain-notes";
 import { useGain } from "@/components/gain/use-gain";
 import { Disclosure } from "@/components/disclosure";
-import { useLayout } from "@/src/lib/layout";
+import { useFillWidth, useLayout } from "@/src/lib/layout";
 import { useSessionGate } from "@/lib/use-session-gate";
 import { fmtDate, fmtDecimal, fmtNumber } from "@joyorogo/i18n";
 import {
@@ -139,8 +139,8 @@ function WeightChart({
   const { t } = useTranslation(["berat", "gain"]);
   const { theme } = useUnistyles();
   const { contentWidth } = useLayout();
-  // Screen (20) + Card (20) padding on each side.
-  const w = contentWidth - 80;
+  // Screen (20) + Card (20) padding on each side, until the card's real width is measured.
+  const [w, onFillLayout] = useFillWidth(contentWidth - 80);
   const h = 210;
   const [scrubDate, setScrubDate] = useState<string | null>(null);
 
@@ -299,231 +299,233 @@ function WeightChart({
     : undefined;
   const lastIdx = entries.length - 1;
   return (
-    <Animated.View
-      style={{
-        width: w,
-        height: h,
-        opacity: fade,
-        transform: [{ translateY: fade.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }],
-      }}
-    >
-      <View style={{ width: w, height: h }} {...panResponder.panHandlers}>
-        <Svg
-          width={w}
-          height={h}
-          accessibilityLabel={t("chart.a11yTouch", { range: rangeLabel })}
-        >
-          {yTicks.map((t) => (
-            <Line
-              key={t}
-              x1={PAD.left}
-              x2={w - PAD.right}
-              y1={y(t)}
-              y2={y(t)}
-              stroke={theme.colors.hairline}
-              strokeWidth={1}
-            />
-          ))}
-          {yTicks.map((t) => (
-            <SvgText
-              key={t}
-              x={PAD.left - 8}
-              y={y(t) + 4}
-              textAnchor="end"
-              fontSize={10}
-              fontWeight="600"
-              fill={labelColor}
-            >
-              {tickFmt(t)}
-            </SvgText>
-          ))}
-
-          {target !== null ? (
-            <Line
-              x1={PAD.left}
-              x2={w - PAD.right}
-              y1={y(target)}
-              y2={y(target)}
-              stroke={theme.colors.makan}
-              strokeOpacity={0.45}
-              strokeWidth={1.5}
-              strokeDasharray="4 5"
-            />
-          ) : null}
-          {target !== null ? (
-            <SvgText
-              x={w - PAD.right}
-              y={y(target) - 6}
-              textAnchor="end"
-              fontSize={10}
-              fontWeight="600"
-              fill={theme.colors.makanText}
-            >
-              {t("chart.target", { kg: fmtKg(target) })}
-            </SvgText>
-          ) : null}
-          {gainPlan && planLine ? (
-            <>
-              {planFan ? (
-                <Polygon
-                  points={planFan.map(([date, kg]) => `${x(date)},${y(kg)}`).join(" ")}
-                  fill={theme.colors.makan}
-                  fillOpacity={0.15}
-                />
-              ) : null}
+    <View onLayout={onFillLayout}>
+      <Animated.View
+        style={{
+          width: w,
+          height: h,
+          opacity: fade,
+          transform: [{ translateY: fade.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }],
+        }}
+      >
+        <View style={{ width: w, height: h }} {...panResponder.panHandlers}>
+          <Svg
+            width={w}
+            height={h}
+            accessibilityLabel={t("chart.a11yTouch", { range: rangeLabel })}
+          >
+            {yTicks.map((t) => (
               <Line
-                x1={x(planLine[0].date)}
-                y1={y(planLine[0].kg)}
-                x2={x(planLine[1].date)}
-                y2={y(planLine[1].kg)}
-                stroke={theme.colors.makan}
-                strokeOpacity={0.6}
-                strokeWidth={1.75}
-                strokeDasharray="4 5"
-              />
-              {planLine[0].date === gainPlan.startDate ? (
-                <SvgText
-                  x={x(planLine[0].date)}
-                  y={y(planLine[0].kg) + 15}
-                  fontSize={10}
-                  fontWeight="600"
-                  fill={labelColor}
-                >
-                  {`${t("gain:chart.start")} ${fmtKg(gainPlan.startKg)}`}
-                </SvgText>
-              ) : null}
-              {planLine[1].date === gainPlan.targetDate ? (
-                <SvgText
-                  x={x(planLine[1].date)}
-                  y={y(planLine[1].kg) - 6}
-                  textAnchor="end"
-                  fontSize={10}
-                  fontWeight="600"
-                  fill={theme.colors.makanText}
-                >
-                  {`${t("gain:chart.target")} ${fmtKg(gainPlan.targetKg)}`}
-                </SvgText>
-              ) : null}
-            </>
-          ) : null}
-
-          <Polyline
-            points={trendPts.map((p) => `${p.x},${p.y}`).join(" ")}
-            stroke={theme.colors.makan}
-            strokeWidth={2.5}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            fill="none"
-          />
-          {entries.map((e, i) => (
-            <Circle
-              key={e.date}
-              cx={x(e.date)}
-              cy={y(e.weightKg)}
-              r={i === lastIdx ? 4 : 2.5}
-              fill={theme.colors.makan}
-              fillOpacity={i === lastIdx ? 1 : 0.35}
-            />
-          ))}
-
-          {scrubEntry ? (
-            <>
-              <Line
-                x1={x(scrubEntry.date)}
-                x2={x(scrubEntry.date)}
-                y1={PAD.top}
-                y2={PAD.top + innerH}
-                stroke={labelColor}
-                strokeOpacity={0.4}
+                key={t}
+                x1={PAD.left}
+                x2={w - PAD.right}
+                y1={y(t)}
+                y2={y(t)}
+                stroke={theme.colors.hairline}
                 strokeWidth={1}
               />
-              <Circle
-                cx={x(scrubEntry.date)}
-                cy={y(scrubEntry.weightKg)}
-                r={6}
-                fill={theme.colors.makan}
-                fillOpacity={0.2}
-              />
-              <Circle
-                cx={x(scrubEntry.date)}
-                cy={y(scrubEntry.weightKg)}
-                r={3.5}
-                fill={theme.colors.makan}
-                stroke={theme.colors.card}
+            ))}
+            {yTicks.map((t) => (
+              <SvgText
+                key={t}
+                x={PAD.left - 8}
+                y={y(t) + 4}
+                textAnchor="end"
+                fontSize={10}
+                fontWeight="600"
+                fill={labelColor}
+              >
+                {tickFmt(t)}
+              </SvgText>
+            ))}
+
+            {target !== null ? (
+              <Line
+                x1={PAD.left}
+                x2={w - PAD.right}
+                y1={y(target)}
+                y2={y(target)}
+                stroke={theme.colors.makan}
+                strokeOpacity={0.45}
                 strokeWidth={1.5}
+                strokeDasharray="4 5"
               />
-              {scrubTrend ? (
-                <Circle
-                  cx={x(scrubTrend.date)}
-                  cy={y(scrubTrend.trendKg)}
-                  r={3.5}
-                  fill={theme.colors.card}
+            ) : null}
+            {target !== null ? (
+              <SvgText
+                x={w - PAD.right}
+                y={y(target) - 6}
+                textAnchor="end"
+                fontSize={10}
+                fontWeight="600"
+                fill={theme.colors.makanText}
+              >
+                {t("chart.target", { kg: fmtKg(target) })}
+              </SvgText>
+            ) : null}
+            {gainPlan && planLine ? (
+              <>
+                {planFan ? (
+                  <Polygon
+                    points={planFan.map(([date, kg]) => `${x(date)},${y(kg)}`).join(" ")}
+                    fill={theme.colors.makan}
+                    fillOpacity={0.15}
+                  />
+                ) : null}
+                <Line
+                  x1={x(planLine[0].date)}
+                  y1={y(planLine[0].kg)}
+                  x2={x(planLine[1].date)}
+                  y2={y(planLine[1].kg)}
                   stroke={theme.colors.makan}
-                  strokeWidth={2}
+                  strokeOpacity={0.6}
+                  strokeWidth={1.75}
+                  strokeDasharray="4 5"
                 />
+                {planLine[0].date === gainPlan.startDate ? (
+                  <SvgText
+                    x={x(planLine[0].date)}
+                    y={y(planLine[0].kg) + 15}
+                    fontSize={10}
+                    fontWeight="600"
+                    fill={labelColor}
+                  >
+                    {`${t("gain:chart.start")} ${fmtKg(gainPlan.startKg)}`}
+                  </SvgText>
+                ) : null}
+                {planLine[1].date === gainPlan.targetDate ? (
+                  <SvgText
+                    x={x(planLine[1].date)}
+                    y={y(planLine[1].kg) - 6}
+                    textAnchor="end"
+                    fontSize={10}
+                    fontWeight="600"
+                    fill={theme.colors.makanText}
+                  >
+                    {`${t("gain:chart.target")} ${fmtKg(gainPlan.targetKg)}`}
+                  </SvgText>
+                ) : null}
+              </>
+            ) : null}
+
+            <Polyline
+              points={trendPts.map((p) => `${p.x},${p.y}`).join(" ")}
+              stroke={theme.colors.makan}
+              strokeWidth={2.5}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              fill="none"
+            />
+            {entries.map((e, i) => (
+              <Circle
+                key={e.date}
+                cx={x(e.date)}
+                cy={y(e.weightKg)}
+                r={i === lastIdx ? 4 : 2.5}
+                fill={theme.colors.makan}
+                fillOpacity={i === lastIdx ? 1 : 0.35}
+              />
+            ))}
+
+            {scrubEntry ? (
+              <>
+                <Line
+                  x1={x(scrubEntry.date)}
+                  x2={x(scrubEntry.date)}
+                  y1={PAD.top}
+                  y2={PAD.top + innerH}
+                  stroke={labelColor}
+                  strokeOpacity={0.4}
+                  strokeWidth={1}
+                />
+                <Circle
+                  cx={x(scrubEntry.date)}
+                  cy={y(scrubEntry.weightKg)}
+                  r={6}
+                  fill={theme.colors.makan}
+                  fillOpacity={0.2}
+                />
+                <Circle
+                  cx={x(scrubEntry.date)}
+                  cy={y(scrubEntry.weightKg)}
+                  r={3.5}
+                  fill={theme.colors.makan}
+                  stroke={theme.colors.card}
+                  strokeWidth={1.5}
+                />
+                {scrubTrend ? (
+                  <Circle
+                    cx={x(scrubTrend.date)}
+                    cy={y(scrubTrend.trendKg)}
+                    r={3.5}
+                    fill={theme.colors.card}
+                    stroke={theme.colors.makan}
+                    strokeWidth={2}
+                  />
+                ) : null}
+              </>
+            ) : null}
+
+            {xTickDates.map((t, i) => (
+              <SvgText
+                key={t}
+                x={x(t)}
+                y={h - 6}
+                textAnchor={i === 0 ? "start" : i === xTickDates.length - 1 ? "end" : "middle"}
+                fontSize={10}
+                fontWeight="500"
+                fill={labelColor}
+              >
+                {fmtDateShort(t)}
+              </SvgText>
+            ))}
+          </Svg>
+
+          {scrubEntry ? (
+            <View pointerEvents="none" style={[styles.chartTip, { left: tipLeft, top: tipTop }]}>
+              <Text style={styles.chartTipDate}>{fmtDateMedium(scrubEntry.date)}</Text>
+              <View style={styles.chartTipRow}>
+                <Text style={styles.chartTipLabel}>{t("tip.scale")}</Text>
+                <Num style={styles.chartTipValue}>{fmtKg(scrubEntry.weightKg)} kg</Num>
+              </View>
+              {scrubTrend ? (
+                <View style={styles.chartTipRow}>
+                  <Text style={styles.chartTipLabel}>{t("tip.trend")}</Text>
+                  <Num style={styles.chartTipValue}>{fmtKg(scrubTrend.trendKg)} kg</Num>
+                </View>
               ) : null}
-            </>
-          ) : null}
-
-          {xTickDates.map((t, i) => (
-            <SvgText
-              key={t}
-              x={x(t)}
-              y={h - 6}
-              textAnchor={i === 0 ? "start" : i === xTickDates.length - 1 ? "end" : "middle"}
-              fontSize={10}
-              fontWeight="500"
-              fill={labelColor}
-            >
-              {fmtDateShort(t)}
-            </SvgText>
-          ))}
-        </Svg>
-
-        {scrubEntry ? (
-          <View pointerEvents="none" style={[styles.chartTip, { left: tipLeft, top: tipTop }]}>
-            <Text style={styles.chartTipDate}>{fmtDateMedium(scrubEntry.date)}</Text>
-            <View style={styles.chartTipRow}>
-              <Text style={styles.chartTipLabel}>{t("tip.scale")}</Text>
-              <Num style={styles.chartTipValue}>{fmtKg(scrubEntry.weightKg)} kg</Num>
-            </View>
-            {scrubTrend ? (
+              {scrubBar ? (
+                <View style={styles.chartTipRow}>
+                  <Text style={styles.chartTipLabel}>
+                    {weekly ? t("tip.kcalPerDay") : t("tip.kcal")}
+                  </Text>
+                  <Num style={styles.chartTipValue}>
+                    {scrubBar.avgKcal === null
+                      ? t("tip.notLogged")
+                      : weekly && scrubBar.untrackedDays > 0
+                        ? t("tip.kcalValueGaps", {
+                            kcal: fmtKcalLabel(scrubBar.avgKcal),
+                            count: scrubBar.untrackedDays,
+                          })
+                        : fmtKcalLabel(scrubBar.avgKcal)}
+                  </Num>
+                </View>
+              ) : null}
               <View style={styles.chartTipRow}>
-                <Text style={styles.chartTipLabel}>{t("tip.trend")}</Text>
-                <Num style={styles.chartTipValue}>{fmtKg(scrubTrend.trendKg)} kg</Num>
-              </View>
-            ) : null}
-            {scrubBar ? (
-              <View style={styles.chartTipRow}>
-                <Text style={styles.chartTipLabel}>
-                  {weekly ? t("tip.kcalPerDay") : t("tip.kcal")}
+                <Text style={styles.chartTipLabel}>{t("tip.vsPrev")}</Text>
+                <Text style={[styles.chartTipValue, { color: deltaColor }]}>
+                  {scrubDelta === null
+                    ? t("tip.first")
+                    : scrubDelta === 0
+                      ? t("tip.same")
+                      : `${scrubDelta < 0 ? "−" : "+"}${fmtKg(Math.abs(scrubDelta))} kg`}
                 </Text>
-                <Num style={styles.chartTipValue}>
-                  {scrubBar.avgKcal === null
-                    ? t("tip.notLogged")
-                    : weekly && scrubBar.untrackedDays > 0
-                      ? t("tip.kcalValueGaps", {
-                          kcal: fmtKcalLabel(scrubBar.avgKcal),
-                          count: scrubBar.untrackedDays,
-                        })
-                      : fmtKcalLabel(scrubBar.avgKcal)}
-                </Num>
               </View>
-            ) : null}
-            <View style={styles.chartTipRow}>
-              <Text style={styles.chartTipLabel}>{t("tip.vsPrev")}</Text>
-              <Text style={[styles.chartTipValue, { color: deltaColor }]}>
-                {scrubDelta === null
-                  ? t("tip.first")
-                  : scrubDelta === 0
-                    ? t("tip.same")
-                    : `${scrubDelta < 0 ? "−" : "+"}${fmtKg(Math.abs(scrubDelta))} kg`}
-              </Text>
             </View>
-          </View>
-        ) : null}
-      </View>
-    </Animated.View>
+          ) : null}
+        </View>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -558,7 +560,7 @@ function KcalChart({
   const { theme } = useUnistyles();
   const { contentWidth } = useLayout();
   const [selectedFrom, setSelectedFrom] = useState<string | null>(null);
-  const w = contentWidth - 80;
+  const [w, onFillLayout] = useFillWidth(contentWidth - 80);
   const h = 140;
   const innerW = w - PAD.left - PAD.right;
   const innerH = h - PAD.top - PAD.bottom;
@@ -597,7 +599,7 @@ function KcalChart({
         ? t("kcal.readoutWeek", { range: shortDateRange(picked.from, picked.to), kcal: fmtKcalLabel(picked.avgKcal) })
         : t("kcal.readoutDay", { date: fmtDateShort(picked.from), kcal: fmtKcalLabel(picked.avgKcal) });
   return (
-    <View>
+    <View onLayout={onFillLayout}>
       <View style={styles.kcalReadoutRow}>
         <Text style={[styles.kcalReadout, picked && { color: theme.colors.foreground }]} numberOfLines={1}>
           {readout}
@@ -1091,42 +1093,46 @@ export default function Berat() {
                     <Text style={styles.note}>{t("period.needMore")}</Text>
                   ) : (
                     <View style={styles.periodGrid}>
-                      <View style={styles.periodCell}>
-                        <Text style={styles.chartStatLabel}>{t("period.start")}</Text>
-                        <Num style={styles.chartStatValue}>{`${fmtKg(period.startKg)} kg`}</Num>
-                        <Text style={styles.chartStatSub}>
-                          {t("period.trendOn", { date: fmtDateShort(period.startDate) })}
-                        </Text>
+                      <View style={styles.periodRow}>
+                        <View style={styles.periodCell}>
+                          <Text style={styles.chartStatLabel}>{t("period.start")}</Text>
+                          <Num style={styles.chartStatValue}>{`${fmtKg(period.startKg)} kg`}</Num>
+                          <Text style={styles.chartStatSub}>
+                            {t("period.trendOn", { date: fmtDateShort(period.startDate) })}
+                          </Text>
+                        </View>
+                        <View style={styles.periodCell}>
+                          <Text style={styles.chartStatLabel}>{t("period.now")}</Text>
+                          <Num style={styles.chartStatValue}>{`${fmtKg(period.endKg)} kg`}</Num>
+                          <Text style={styles.chartStatSub}>
+                            {t("period.trendOn", {
+                              date:
+                                period.endDate === today
+                                  ? t("common:date.today")
+                                  : fmtDateShort(period.endDate),
+                            })}
+                          </Text>
+                        </View>
                       </View>
-                      <View style={styles.periodCell}>
-                        <Text style={styles.chartStatLabel}>{t("period.now")}</Text>
-                        <Num style={styles.chartStatValue}>{`${fmtKg(period.endKg)} kg`}</Num>
-                        <Text style={styles.chartStatSub}>
-                          {t("period.trendOn", {
-                            date:
-                              period.endDate === today
-                                ? t("common:date.today")
-                                : fmtDateShort(period.endDate),
-                          })}
-                        </Text>
-                      </View>
-                      <View style={styles.periodCell}>
-                        <Text style={styles.chartStatLabel}>{t("stats.change")}</Text>
-                        <Num style={[styles.chartStatValue, toneColor(period.changeKg)]}>
-                          {`${signed(period.changeKg)} kg`}
-                        </Num>
-                        <Text style={styles.chartStatSub}>
-                          {t("period.changePct", { pct: signed(period.changePct) })}
-                        </Text>
-                      </View>
-                      <View style={styles.periodCell}>
-                        <Text style={styles.chartStatLabel}>{t("stats.pace")}</Text>
-                        <Num style={[styles.chartStatValue, toneColor(period.weeklyRateKg)]}>
-                          {period.weeklyRateKg === null ? "-" : `${signed(period.weeklyRateKg)} kg`}
-                        </Num>
-                        <Text style={styles.chartStatSub}>
-                          {period.weeklyRateKg === null ? t("period.paceNeeds") : t("period.perWeek")}
-                        </Text>
+                      <View style={styles.periodRow}>
+                        <View style={styles.periodCell}>
+                          <Text style={styles.chartStatLabel}>{t("stats.change")}</Text>
+                          <Num style={[styles.chartStatValue, toneColor(period.changeKg)]}>
+                            {`${signed(period.changeKg)} kg`}
+                          </Num>
+                          <Text style={styles.chartStatSub}>
+                            {t("period.changePct", { pct: signed(period.changePct) })}
+                          </Text>
+                        </View>
+                        <View style={styles.periodCell}>
+                          <Text style={styles.chartStatLabel}>{t("stats.pace")}</Text>
+                          <Num style={[styles.chartStatValue, toneColor(period.weeklyRateKg)]}>
+                            {period.weeklyRateKg === null ? "-" : `${signed(period.weeklyRateKg)} kg`}
+                          </Num>
+                          <Text style={styles.chartStatSub}>
+                            {period.weeklyRateKg === null ? t("period.paceNeeds") : t("period.perWeek")}
+                          </Text>
+                        </View>
                       </View>
                       {summary.targetKg !== null && !gain ? (
                         <View style={styles.periodCellWide}>
@@ -1441,16 +1447,18 @@ const styles = StyleSheet.create((theme) => ({
     fontWeight: "700",
     color: theme.colors.foreground,
   },
-  // Two columns, each wide enough for "-0,5 kg" and its sub line at 360dp; the projection spans both.
+  // Two columns, each wide enough for "-0,5 kg" and its sub line at 360dp; the projection spans both. Rows of flex:1
+  // cells, not a wrapping row of percent bases: after a fold/unfold the percent bases stacked into one column.
   periodGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
     gap: theme.spacing.sm,
     marginTop: theme.spacing.md,
   },
+  periodRow: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+  },
   periodCell: {
-    flexBasis: "47%",
-    flexGrow: 1,
+    flex: 1,
     backgroundColor: theme.colors.muted,
     borderRadius: theme.radius.tile,
     paddingHorizontal: 12,
@@ -1458,7 +1466,6 @@ const styles = StyleSheet.create((theme) => ({
     gap: 2,
   },
   periodCellWide: {
-    flexBasis: "100%",
     backgroundColor: theme.colors.muted,
     borderRadius: theme.radius.tile,
     paddingHorizontal: 12,
