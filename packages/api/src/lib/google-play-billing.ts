@@ -8,11 +8,10 @@ import { notifyLedger } from "./revklik";
 import type { LedgerHook } from "./revklik";
 
 import {
-  GOOGLE_BASE_PLANS,
-  GOOGLE_PRO_PRODUCT_ID,
   NOTIFICATION_SUBSCRIPTION_REVOKED,
   VOIDED_PRODUCT_TYPE_SUBSCRIPTION,
   googleFounderGrant,
+  googlePlanFor,
 } from "./google-play";
 import type {
   GoogleNotification,
@@ -33,7 +32,8 @@ const CREDIT_ATTEMPTS = 3;
 
 export type GoogleBillingDeps = {
   db: Database;
-  client: GooglePlayClient;
+  /** The Android Publisher client of an enabled package; null for any other package. */
+  clientFor: (packageName: string) => GooglePlayClient | null;
   config: Pick<GooglePlayConfig, "testEmails">;
   /** Plan prices in IDR for orders Play does not bill in IDR. */
   fallbackPriceIdr: Record<FounderPlan, number>;
@@ -160,6 +160,7 @@ async function founderUntilOf(db: Database, userId: string): Promise<Date | null
 async function applySubscription(
   deps: GoogleBillingDeps,
   link: { purchaseToken: string; userId: string },
+  client: GooglePlayClient,
   sub: GoogleSubscription,
   plan: FounderPlan,
 ): Promise<GoogleVerifyResult> {
@@ -207,7 +208,7 @@ async function applySubscription(
 
   // Acknowledge only after the credit is stored, so a buyer is never charged
   // without Founder; Play refunds a purchase left unacknowledged for 3 days.
-  if (!sub.acknowledged) await deps.client.acknowledge(sub.productId, link.purchaseToken);
+  if (!sub.acknowledged) await client.acknowledge(sub.productId, link.purchaseToken);
 
   if (credit.outcome === "granted") {
     return {
@@ -226,9 +227,10 @@ async function applySubscription(
   };
 }
 
-function planOf(sub: GoogleSubscription): FounderPlan | null {
-  if (sub.productId !== GOOGLE_PRO_PRODUCT_ID || !sub.basePlanId) return null;
-  return GOOGLE_BASE_PLANS[sub.basePlanId] ?? null;
+/** The plan a subscription sells, only when its product + base plan belong to `packageName`. */
+function planOf(packageName: string, sub: GoogleSubscription): FounderPlan | null {
+  if (!sub.basePlanId) return null;
+  return googlePlanFor(packageName, sub.productId, sub.basePlanId);
 }
 
 /**
@@ -239,9 +241,11 @@ function planOf(sub: GoogleSubscription): FounderPlan | null {
  */
 export async function verifyGooglePurchase(
   deps: GoogleBillingDeps,
-  input: { purchaseToken: string; userId: string },
+  input: { purchaseToken: string; userId: string; packageName: string },
 ): Promise<GoogleVerifyResult> {
   const { db } = deps;
+  const client = deps.clientFor(input.packageName);
+  if (!client) return { ok: false, error: "invalid-token" };
   const [existing] = await db
     .select({ userId: googlePurchase.userId })
     .from(googlePurchase)
@@ -249,9 +253,9 @@ export async function verifyGooglePurchase(
     .limit(1);
   if (existing && existing.userId !== input.userId) return { ok: false, error: "other-account" };
 
-  const sub = await deps.client.getSubscription(input.purchaseToken);
+  const sub = await client.getSubscription(input.purchaseToken);
   if (!sub) return { ok: false, error: "invalid-token" };
-  const plan = planOf(sub);
+  const plan = planOf(input.packageName, sub);
   if (!plan || !sub.basePlanId) return { ok: false, error: "wrong-product" };
   if (sub.accountId && sub.accountId !== input.userId) return { ok: false, error: "other-account" };
 
@@ -262,6 +266,7 @@ export async function verifyGooglePurchase(
     .values({
       purchaseToken: input.purchaseToken,
       userId: input.userId,
+      packageName: input.packageName,
       productId: sub.productId,
       basePlanId: sub.basePlanId,
       state: sub.state,
@@ -280,6 +285,7 @@ export async function verifyGooglePurchase(
   return applySubscription(
     deps,
     { purchaseToken: input.purchaseToken, userId: input.userId },
+    client,
     sub,
     plan,
   );
@@ -375,22 +381,30 @@ export async function handleGoogleNotification(
   if (!event) return ignored;
 
   const [link] = await deps.db
-    .select({ purchaseToken: googlePurchase.purchaseToken, userId: googlePurchase.userId })
+    .select({
+      purchaseToken: googlePurchase.purchaseToken,
+      userId: googlePurchase.userId,
+      packageName: googlePurchase.packageName,
+    })
     .from(googlePurchase)
     .where(eq(googlePurchase.purchaseToken, event.purchaseToken))
     .limit(1);
   if (!link) return ignored;
 
-  const sub = await deps.client.getSubscription(event.purchaseToken);
+  // The package the purchase was verified under; the notification's own is only a fallback.
+  const packageName = link.packageName || notification.packageName;
+  const client = deps.clientFor(packageName);
+  if (!client) return ignored;
+  const sub = await client.getSubscription(event.purchaseToken);
   if (!sub) return ignored;
-  const plan = planOf(sub);
+  const plan = planOf(packageName, sub);
   if (!plan) return ignored;
 
   if (event.notificationType === NOTIFICATION_SUBSCRIPTION_REVOKED && sub.orderId) {
     await revokeGoogleOrder(deps, sub.orderId);
     return { kind: "revoked", granted: null };
   }
-  const result = await applySubscription(deps, link, sub, plan);
+  const result = await applySubscription(deps, link, client, sub, plan);
   // A concurrent credit still settling: let Pub/Sub redeliver.
   if (!result.ok && result.error === "busy") throw new Error("google credit busy");
   const granted =

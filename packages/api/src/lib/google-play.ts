@@ -6,16 +6,40 @@ import type { FounderPlan } from "./tiers";
 // Google Play Billing, server side: service-account auth, the Android
 // Publisher API calls we need (purchases.subscriptionsv2.get, subscriptions
 // acknowledge) and Pub/Sub push authentication. WebCrypto + fetch only, so it
-// runs on Cloudflare Workers. The Play Console products are the subscription
-// `pro` with base plans `monthly` and `yearly`.
+// runs on Cloudflare Workers. Two Play apps sell JoyoRogo Pro: JoyoRogo (one
+// subscription `pro`, base plans `monthly` / `yearly`) and JoyoFit (two
+// subscriptions, `pro.monthly` / `pro.yearly`, one base plan each).
 
 export const DEFAULT_GOOGLE_PLAY_PACKAGE = "com.joyodigitama.joyorogo";
-export const GOOGLE_PRO_PRODUCT_ID = "pro";
-/** Base plan id -> Founder plan it sells. */
-export const GOOGLE_BASE_PLANS: Record<string, FounderPlan> = {
-  monthly: "monthly",
-  yearly: "yearly",
+export const JOYOFIT_GOOGLE_PLAY_PACKAGE = "com.joyodigitama.joyofit";
+
+/** Play package -> subscription product id -> base plan id -> Founder plan it sells. */
+export const GOOGLE_PLAY_PRODUCTS: Record<string, Record<string, Record<string, FounderPlan>>> = {
+  [DEFAULT_GOOGLE_PLAY_PACKAGE]: {
+    pro: { monthly: "monthly", yearly: "yearly" },
+  },
+  [JOYOFIT_GOOGLE_PLAY_PACKAGE]: {
+    "com.joyodigitama.joyofit.pro.monthly": { monthly: "monthly" },
+    "com.joyodigitama.joyofit.pro.yearly": { yearly: "yearly" },
+  },
 };
+
+/** Packages enabled when GOOGLE_PLAY_PACKAGE_NAMES is unset. */
+export const DEFAULT_GOOGLE_PLAY_PACKAGES = Object.keys(GOOGLE_PLAY_PRODUCTS);
+
+/** The plan a product + base plan sells under `packageName`; null when it does not belong to that package. */
+export function googlePlanFor(
+  packageName: string,
+  productId: string,
+  basePlanId: string,
+): FounderPlan | null {
+  const products = Object.hasOwn(GOOGLE_PLAY_PRODUCTS, packageName)
+    ? GOOGLE_PLAY_PRODUCTS[packageName]
+    : undefined;
+  const plans =
+    products && Object.hasOwn(products, productId) ? products[productId] : undefined;
+  return plans && Object.hasOwn(plans, basePlanId) ? plans[basePlanId]! : null;
+}
 
 const DEFAULT_TOKEN_URI = "https://oauth2.googleapis.com/token";
 const PUBLISHER_BASE = "https://androidpublisher.googleapis.com/androidpublisher/v3/applications";
@@ -27,8 +51,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export type GooglePlayEnv = {
   /** Service account key JSON (Play Console API access). Unset = Play billing off. */
   GOOGLE_PLAY_SERVICE_ACCOUNT_JSON?: string;
-  /** Defaults to com.joyodigitama.joyorogo. */
-  GOOGLE_PLAY_PACKAGE_NAME?: string;
+  /** Enabled Play packages, comma separated. Defaults to com.joyodigitama.joyorogo,com.joyodigitama.joyofit. */
+  GOOGLE_PLAY_PACKAGE_NAMES?: string;
   /** Emails (comma separated) whose Play test purchases credit full periods. */
   GOOGLE_PLAY_TEST_EMAILS?: string;
   /** Pub/Sub push service account email; enables Google-signed JWT auth on the RTDN endpoint. */
@@ -41,7 +65,8 @@ export type GooglePlayConfig = {
   clientEmail: string;
   privateKeyPem: string;
   tokenUri: string;
-  packageName: string;
+  /** Enabled packages; only these are queried, and only their products credit. */
+  packageNames: string[];
   testEmails: string[];
   pushEmail: string | null;
   pushToken: string | null;
@@ -52,6 +77,15 @@ const serviceAccountSchema = z.object({
   private_key: z.string().min(1),
   token_uri: z.string().url().optional(),
 });
+
+/** Parses GOOGLE_PLAY_PACKAGE_NAMES; blank = every package we sell for. Names without products are dropped. */
+function enabledPackages(raw: string | undefined): string[] {
+  const names = (raw ?? "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter((name) => Object.hasOwn(GOOGLE_PLAY_PRODUCTS, name));
+  return names.length > 0 ? [...new Set(names)] : DEFAULT_GOOGLE_PLAY_PACKAGES;
+}
 
 /** null when the service account is unset or unusable: Play billing reports unavailable. */
 export function googlePlayConfig(env: GooglePlayEnv): GooglePlayConfig | null {
@@ -71,7 +105,7 @@ export function googlePlayConfig(env: GooglePlayEnv): GooglePlayConfig | null {
     clientEmail: account.data.client_email,
     privateKeyPem: account.data.private_key,
     tokenUri,
-    packageName: env.GOOGLE_PLAY_PACKAGE_NAME?.trim() || DEFAULT_GOOGLE_PLAY_PACKAGE,
+    packageNames: enabledPackages(env.GOOGLE_PLAY_PACKAGE_NAMES),
     testEmails: (env.GOOGLE_PLAY_TEST_EMAILS ?? "")
       .split(",")
       .map((email) => email.trim().toLowerCase())
@@ -202,12 +236,13 @@ const subscriptionSchema = z.object({
     .default([]),
 });
 
-function parseSubscription(json: unknown): GoogleSubscription | null {
+function parseSubscription(json: unknown, packageName: string): GoogleSubscription | null {
   const parsed = subscriptionSchema.safeParse(json);
   if (!parsed.success) return null;
   const data = parsed.data;
+  const products = GOOGLE_PLAY_PRODUCTS[packageName] ?? {};
   const item =
-    data.lineItems.find((line) => line.productId === GOOGLE_PRO_PRODUCT_ID) ?? data.lineItems[0];
+    data.lineItems.find((line) => Object.hasOwn(products, line.productId)) ?? data.lineItems[0];
   if (!item) return null;
   const price = item.autoRenewingPlan?.recurringPrice;
   const priceIdr =
@@ -240,7 +275,10 @@ export type GooglePlayClient = {
  * token in memory until a minute before it expires.
  */
 export function createGooglePlayClient(
-  config: Pick<GooglePlayConfig, "clientEmail" | "privateKeyPem" | "tokenUri" | "packageName">,
+  config: Pick<GooglePlayConfig, "clientEmail" | "privateKeyPem" | "tokenUri"> & {
+    /** The one Play app this client queries. */
+    packageName: string;
+  },
   fetchImpl: typeof fetch = fetch,
   now: () => number = Date.now,
 ): GooglePlayClient {
@@ -285,7 +323,7 @@ export function createGooglePlayClient(
       // 400 = malformed or other-app token, 404 = unknown, 410 = purchase gone.
       if (res.status === 400 || res.status === 404 || res.status === 410) return null;
       if (!res.ok) throw new Error(`google subscriptionsv2.get ${res.status}`);
-      return parseSubscription(await res.json().catch(() => null));
+      return parseSubscription(await res.json().catch(() => null), config.packageName);
     },
     async acknowledge(productId, purchaseToken) {
       const res = await call(

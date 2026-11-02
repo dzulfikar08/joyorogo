@@ -113,6 +113,8 @@ export const googlePurchase = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    // Play app the token was verified under; notifications re-read it under this package.
+    packageName: text("package_name").notNull().default("com.joyodigitama.joyorogo"),
     productId: text("product_id").notNull(),
     basePlanId: text("base_plan_id").notNull(),
     // Last subscriptionsv2 state we saw (pending, active, canceled, grace, hold, paused, expired).

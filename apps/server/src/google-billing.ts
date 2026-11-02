@@ -2,6 +2,7 @@ import type { JoyoAuth } from "@joyorogo/auth";
 import type { Context, Hono } from "hono";
 
 import {
+  DEFAULT_GOOGLE_PLAY_PACKAGE,
   createGoogleKeySource,
   createGooglePlayClient,
   googlePlayConfig,
@@ -49,15 +50,28 @@ const PURCHASE_TOKEN = /^[A-Za-z0-9._-]{10,2048}$/;
 /** User-facing text of a billing response, in the language the request asks for. */
 const t = (c: Context) => serverT(requestLocale(c), "errors");
 
+/** Stable machine-readable `code` of every error response, next to the localized `error` text. */
+type ErrorCode =
+  | "signIn"
+  | "invalidReceipt"
+  | "otherAccount"
+  | "processing"
+  | "unreachable"
+  | "unavailable"
+  | "userNotFound";
+
 /**
- * Google Play Billing for the Play build's JoyoRogo Pro subscription (`pro`,
- * base plans `monthly` / `yearly`). Trust comes from the Android Publisher API
+ * Google Play Billing for JoyoRogo Pro sold in the JoyoRogo Play app (`pro`,
+ * base plans `monthly` / `yearly`) and the JoyoFit Play app (`pro.monthly` /
+ * `pro.yearly`); the product table is GOOGLE_PLAY_PRODUCTS and the enabled
+ * apps are GOOGLE_PLAY_PACKAGE_NAMES. Trust comes from the Android Publisher API
  * (service account), never from the client. Everything stays off, answering
  * "tidak tersedia", until the paywall is on AND GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
  * is set, so self-hosts and the iOS/sideload builds are unaffected.
  *
- * - POST /api/billing/google  { purchaseToken }: signed-in user redeems a
- *   purchase (new, restore, or replay). Idempotent per Play order.
+ * - POST /api/billing/google  { purchaseToken, packageName? }: signed-in user redeems a
+ *   purchase (new, restore, or replay) of the given enabled package (default JoyoRogo's).
+ *   Idempotent per Play order.
  * - POST /api/billing/google/rtdn: Pub/Sub push of Play real-time developer
  *   notifications (renewals, pending-purchase completion, refunds). Authenticated by the
  *   Google-signed push JWT (GOOGLE_PLAY_RTDN_PUSH_EMAIL) or a shared token
@@ -67,17 +81,25 @@ export function registerGooglePlayRoutes(app: Hono, deps: Deps) {
   const { env } = deps;
   const paywall = paywallConfig(env);
   const config = paywallEnabled(paywall) ? googlePlayConfig(env) : null;
-  const client = config ? createGooglePlayClient(config) : null;
+  const clients = new Map(
+    (config?.packageNames ?? []).map((packageName) => [
+      packageName,
+      createGooglePlayClient({ ...config!, packageName }),
+    ]),
+  );
   const signingKey = createGoogleKeySource();
   const apiUrl = env.BETTER_AUTH_URL.replace(/\/$/, "");
 
-  const unavailable = (c: Context) => ({ error: t(c)("billing.googleUnavailable") });
+  const fail = (c: Context, message: string, code: ErrorCode, status: 400 | 401 | 404 | 409 | 502) =>
+    c.json({ error: message, code }, status);
+  const unavailable = (c: Context) =>
+    fail(c, t(c)("billing.googleUnavailable"), "unavailable", 404);
 
   const billingDeps = () =>
-    config && client
+    config
       ? {
           db: deps.getDb(),
-          client,
+          clientFor: (packageName: string) => clients.get(packageName) ?? null,
           config,
           onLedger: deps.revklik ? (orderId: string, kind: LedgerKind) => (deps.revklik as Revklik).onLedger(orderId, kind) : undefined,
           fallbackPriceIdr: {
@@ -89,36 +111,43 @@ export function registerGooglePlayRoutes(app: Hono, deps: Deps) {
 
   app.post(GOOGLE_VERIFY_PATH, async (c) => {
     const billing = billingDeps();
-    if (!billing) return c.json(unavailable(c), 404);
+    if (!billing) return unavailable(c);
     const session = await (await deps.createAuth()).api.getSession({ headers: c.req.raw.headers });
     const me = session?.user ?? null;
-    if (!me) return c.json({ error: t(c)("billing.signInToSubscribe") }, 401);
-    const body = (await c.req.json().catch(() => null)) as { purchaseToken?: unknown } | null;
+    if (!me) return fail(c, t(c)("billing.signInToSubscribe"), "signIn", 401);
+    const body = (await c.req.json().catch(() => null)) as {
+      purchaseToken?: unknown;
+      packageName?: unknown;
+    } | null;
     const purchaseToken = body?.purchaseToken;
     if (typeof purchaseToken !== "string" || !PURCHASE_TOKEN.test(purchaseToken)) {
-      return c.json({ error: t(c)("billing.receiptMissing") }, 400);
+      return fail(c, t(c)("billing.receiptMissing"), "invalidReceipt", 400);
+    }
+    // Omitted = JoyoRogo's app: the deployed apps send no package name.
+    const packageName = body?.packageName ?? DEFAULT_GOOGLE_PLAY_PACKAGE;
+    if (typeof packageName !== "string" || !clients.has(packageName)) {
+      return fail(c, t(c)("billing.receiptInvalid"), "invalidReceipt", 400);
     }
 
     let result: GoogleVerifyResult;
     try {
-      result = await verifyGooglePurchase(billing, { purchaseToken, userId: me.id });
+      result = await verifyGooglePurchase(billing, { purchaseToken, userId: me.id, packageName });
     } catch (error) {
       console.error("google billing verify failed:", error);
-      return c.json({ error: t(c)("billing.googleUnreachable") }, 502);
+      return fail(c, t(c)("billing.googleUnreachable"), "unreachable", 502);
     }
 
     if (!result.ok) {
       if (result.error === "other-account") {
-        return c.json(
-          { error: t(c)("billing.googleLinkedOtherAccount") },
-          409,
-        );
+        return fail(c, t(c)("billing.googleLinkedOtherAccount"), "otherAccount", 409);
       }
       if (result.error === "busy") {
-        return c.json({ error: t(c)("billing.processing") }, 409);
+        return fail(c, t(c)("billing.processing"), "processing", 409);
       }
-      if (result.error === "no-user") return c.json({ error: t(c)("billing.userNotFound") }, 404);
-      return c.json({ error: t(c)("billing.receiptInvalid") }, 400);
+      if (result.error === "no-user") {
+        return fail(c, t(c)("billing.userNotFound"), "userNotFound", 404);
+      }
+      return fail(c, t(c)("billing.receiptInvalid"), "invalidReceipt", 400);
     }
     if (result.status === "pending" || result.status === "inactive") {
       return c.json({ status: result.status });
@@ -142,7 +171,7 @@ export function registerGooglePlayRoutes(app: Hono, deps: Deps) {
 
   app.post(GOOGLE_RTDN_PATH, async (c) => {
     const billing = billingDeps();
-    if (!billing || !config) return c.json(unavailable(c), 404);
+    if (!billing || !config) return unavailable(c);
 
     const queryToken = c.req.query("token");
     const bearer = c.req.header("Authorization")?.match(/^Bearer (.+)$/i)?.[1];
@@ -160,8 +189,8 @@ export function registerGooglePlayRoutes(app: Hono, deps: Deps) {
     if (!authorized) return c.json({ error: "unauthorized" }, 401);
 
     const notification = parsePushNotification(await c.req.json().catch(() => null));
-    // Not ours (other app, test ping, malformed): acknowledge so Pub/Sub stops retrying.
-    if (!notification || notification.test || notification.packageName !== config.packageName) {
+    // Not ours (app that is not enabled, test ping, malformed): acknowledge so Pub/Sub stops retrying.
+    if (!notification || notification.test || !clients.has(notification.packageName)) {
       return c.body(null, 204);
     }
     try {

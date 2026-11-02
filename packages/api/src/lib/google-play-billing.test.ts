@@ -15,6 +15,8 @@ import type { GoogleBillingDeps } from "./google-play-billing";
 
 const NOW = new Date(Date.UTC(2026, 9, 16, 3, 0, 0));
 const TOKEN = "purchase-token-aaaaaaaa";
+const ROGO = "com.joyodigitama.joyorogo";
+const FIT = "com.joyodigitama.joyofit";
 
 const { client, db } = await d1TestDb();
 
@@ -56,6 +58,7 @@ function fakeClient(): FakePlay {
 }
 
 let fake: FakePlay;
+let fit: FakePlay;
 let deps: GoogleBillingDeps;
 
 beforeEach(async () => {
@@ -64,9 +67,11 @@ beforeEach(async () => {
     INSERT INTO "user" (id, name, email) VALUES ('u1', 'U1', 'u1@test.id'), ('u2', 'U2', 'u2@test.id');
   `);
   fake = fakeClient();
+  fit = fakeClient();
   deps = {
     db,
-    client: fake.play,
+    clientFor: (packageName) =>
+      ({ [ROGO]: fake.play, [FIT]: fit.play })[packageName] ?? null,
     config: { testEmails: ["tester@test.id"] },
     fallbackPriceIdr: { monthly: 15000, yearly: 199000 },
     now: () => NOW,
@@ -81,7 +86,7 @@ const links = () => db.select().from(googlePurchase);
 describe("verifyGooglePurchase", () => {
   test("credits a monthly purchase, links the token, acknowledges after the credit", async () => {
     fake.subs.set(TOKEN, sub());
-    const result = await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" });
+    const result = await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO });
     expect(result).toMatchObject({ ok: true, status: "granted", amountIdr: 15000 });
     expect((await until("u1"))?.toISOString()).toBe("2026-11-16T03:00:00.000Z");
     expect(fake.acks).toEqual([`pro:${TOKEN}`]);
@@ -98,6 +103,7 @@ describe("verifyGooglePurchase", () => {
       purchaseToken: TOKEN,
       userId: "u1",
       basePlanId: "monthly",
+      packageName: ROGO,
       state: "active",
       latestOrderId: "GPA.1111-2222-3333-44444",
     });
@@ -108,7 +114,7 @@ describe("verifyGooglePurchase", () => {
       `UPDATE "user" SET founder_until = ${Date.UTC(2026, 11, 1)} WHERE id = 'u1'`,
     );
     fake.subs.set(TOKEN, sub({ basePlanId: "yearly", priceIdr: 199000 }));
-    const result = await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" });
+    const result = await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO });
     expect(result).toMatchObject({ ok: true, status: "granted", amountIdr: 199000 });
     expect((await until("u1"))?.toISOString()).toBe("2027-12-01T00:00:00.000Z");
     expect((await ledger())[0]?.months).toBe(12);
@@ -116,9 +122,9 @@ describe("verifyGooglePurchase", () => {
 
   test("replaying the same token credits once and does not re-acknowledge an acknowledged purchase", async () => {
     fake.subs.set(TOKEN, sub());
-    await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" });
+    await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO });
     fake.subs.set(TOKEN, sub({ acknowledged: true }));
-    const again = await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" });
+    const again = await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO });
     expect(again).toMatchObject({ ok: true, status: "already" });
     expect((await ledger()).length).toBe(1);
     expect((await until("u1"))?.toISOString()).toBe("2026-11-16T03:00:00.000Z");
@@ -134,11 +140,11 @@ describe("verifyGooglePurchase", () => {
       },
     };
     await expect(
-      verifyGooglePurchase({ ...deps, client: failing }, { purchaseToken: TOKEN, userId: "u1" }),
+      verifyGooglePurchase({ ...deps, clientFor: () => failing }, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO }),
     ).rejects.toThrow("acknowledge");
     expect((await until("u1"))?.toISOString()).toBe("2026-11-16T03:00:00.000Z");
 
-    const retry = await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" });
+    const retry = await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO });
     expect(retry).toMatchObject({ ok: true, status: "already" });
     expect(fake.acks).toEqual([`pro:${TOKEN}`]);
     expect((await ledger()).length).toBe(1);
@@ -146,8 +152,8 @@ describe("verifyGooglePurchase", () => {
 
   test("a token linked to one account is refused for another, and grants nothing", async () => {
     fake.subs.set(TOKEN, sub());
-    await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" });
-    const stolen = await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u2" });
+    await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO });
+    const stolen = await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u2", packageName: ROGO });
     expect(stolen).toEqual({ ok: false, error: "other-account" });
     expect(await until("u2")).toBeNull();
     expect((await links()).map((l) => l.userId)).toEqual(["u1"]);
@@ -155,12 +161,12 @@ describe("verifyGooglePurchase", () => {
 
   test("a purchase the app made for another account (obfuscatedAccountId) is refused before linking", async () => {
     fake.subs.set(TOKEN, sub({ accountId: "u1" }));
-    expect(await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u2" })).toEqual({
+    expect(await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u2", packageName: ROGO })).toEqual({
       ok: false,
       error: "other-account",
     });
     expect(await links()).toHaveLength(0);
-    expect(await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" })).toMatchObject({
+    expect(await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO })).toMatchObject({
       ok: true,
       status: "granted",
     });
@@ -169,7 +175,7 @@ describe("verifyGooglePurchase", () => {
   test("unknown tokens and wrong products or plans grant nothing", async () => {
     fake.subs.set("unknown-token-aaaa", null);
     expect(
-      await verifyGooglePurchase(deps, { purchaseToken: "unknown-token-aaaa", userId: "u1" }),
+      await verifyGooglePurchase(deps, { purchaseToken: "unknown-token-aaaa", userId: "u1", packageName: ROGO }),
     ).toEqual({
       ok: false,
       error: "invalid-token",
@@ -178,7 +184,7 @@ describe("verifyGooglePurchase", () => {
     fake.subs.set("other-plan-aaaaaaa", sub({ basePlanId: "weekly" }));
     fake.subs.set("no-plan-aaaaaaaaaa", sub({ basePlanId: null }));
     for (const token of ["other-product-aaaa", "other-plan-aaaaaaa", "no-plan-aaaaaaaaaa"]) {
-      expect(await verifyGooglePurchase(deps, { purchaseToken: token, userId: "u1" })).toEqual({
+      expect(await verifyGooglePurchase(deps, { purchaseToken: token, userId: "u1", packageName: ROGO })).toEqual({
         ok: false,
         error: "wrong-product",
       });
@@ -190,7 +196,7 @@ describe("verifyGooglePurchase", () => {
 
   test("a pending purchase is linked but neither credited nor acknowledged", async () => {
     fake.subs.set(TOKEN, sub({ state: "pending", orderId: null, expiresAt: null }));
-    expect(await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" })).toEqual({
+    expect(await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO })).toEqual({
       ok: true,
       status: "pending",
     });
@@ -200,7 +206,7 @@ describe("verifyGooglePurchase", () => {
 
     // The buyer pays later: the same token now verifies as a purchase.
     fake.subs.set(TOKEN, sub());
-    expect(await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" })).toMatchObject({
+    expect(await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO })).toMatchObject({
       ok: true,
       status: "granted",
     });
@@ -215,7 +221,7 @@ describe("verifyGooglePurchase", () => {
     ].entries()) {
       const token = `lapsed-token-${i}-aaaa`;
       fake.subs.set(token, sub(override));
-      expect(await verifyGooglePurchase(deps, { purchaseToken: token, userId: "u1" })).toEqual({
+      expect(await verifyGooglePurchase(deps, { purchaseToken: token, userId: "u1", packageName: ROGO })).toEqual({
         ok: true,
         status: "inactive",
       });
@@ -229,7 +235,7 @@ describe("verifyGooglePurchase", () => {
     fake.subs.set("grace-token-aaaaaaa", sub({ state: "grace", orderId: "GPA.G" }));
     for (const token of ["canceled-token-aaaa", "grace-token-aaaaaaa"]) {
       expect(
-        await verifyGooglePurchase(deps, { purchaseToken: token, userId: "u1" }),
+        await verifyGooglePurchase(deps, { purchaseToken: token, userId: "u1", packageName: ROGO }),
       ).toMatchObject({
         ok: true,
         status: "granted",
@@ -239,7 +245,7 @@ describe("verifyGooglePurchase", () => {
 
   test("license-tester purchase: 24h at Rp0 unless the buyer is allowlisted", async () => {
     fake.subs.set(TOKEN, sub({ test: true }));
-    const trial = await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" });
+    const trial = await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO });
     expect(trial).toMatchObject({ ok: true, status: "granted", amountIdr: 0 });
     expect((await until("u1"))?.toISOString()).toBe("2026-10-17T03:00:00.000Z");
 
@@ -248,6 +254,7 @@ describe("verifyGooglePurchase", () => {
     const full = await verifyGooglePurchase(deps, {
       purchaseToken: "tester-token-aaaaaa",
       userId: "u2",
+      packageName: ROGO,
     });
     expect(full).toMatchObject({ ok: true, status: "granted", amountIdr: 15000 });
     expect((await until("u2"))?.toISOString()).toBe("2026-11-16T03:00:00.000Z");
@@ -255,7 +262,7 @@ describe("verifyGooglePurchase", () => {
 
   test("uses the configured plan price when Play does not bill in IDR", async () => {
     fake.subs.set(TOKEN, sub({ priceIdr: null, basePlanId: "yearly" }));
-    expect(await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" })).toMatchObject({
+    expect(await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO })).toMatchObject({
       status: "granted",
       amountIdr: 199000,
     });
@@ -264,8 +271,8 @@ describe("verifyGooglePurchase", () => {
   test("two concurrent submissions of one token credit exactly once", async () => {
     fake.subs.set(TOKEN, sub());
     const results = await Promise.all([
-      verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" }),
-      verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" }),
+      verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO }),
+      verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO }),
     ]);
     expect(results.filter((r) => r.ok && r.status === "granted")).toHaveLength(1);
     expect((await ledger()).filter((p) => p.status === "paid")).toHaveLength(1);
@@ -274,7 +281,7 @@ describe("verifyGooglePurchase", () => {
 
   test("a Play outage surfaces as a throw and credits nothing", async () => {
     await expect(
-      verifyGooglePurchase(deps, { purchaseToken: "never-seen-token-a", userId: "u1" }),
+      verifyGooglePurchase(deps, { purchaseToken: "never-seen-token-a", userId: "u1", packageName: ROGO }),
     ).rejects.toThrow("500");
     expect(await ledger()).toHaveLength(0);
   });
@@ -289,7 +296,7 @@ describe("handleGoogleNotification", () => {
 
   async function purchased() {
     fake.subs.set(TOKEN, sub({ orderId: "GPA.1111-2222-3333-44444" }));
-    await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" });
+    await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO });
     fake.subs.set(TOKEN, sub({ acknowledged: true, orderId: "GPA.1111-2222-3333-44444" }));
   }
 
@@ -320,7 +327,7 @@ describe("handleGoogleNotification", () => {
 
   test("a pending purchase that completes is credited from its notification", async () => {
     fake.subs.set(TOKEN, sub({ state: "pending", orderId: null, expiresAt: null }));
-    await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" });
+    await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO });
     fake.subs.set(TOKEN, sub());
     const result = await handleGoogleNotification(deps, renewal(4));
     expect(result.granted).toMatchObject({ userId: "u1", amountIdr: 15000 });
@@ -424,11 +431,136 @@ describe("handleGoogleNotification", () => {
   });
 });
 
+describe("JoyoFit's Play package", () => {
+  const FIT_MONTHLY = "com.joyodigitama.joyofit.pro.monthly";
+  const FIT_YEARLY = "com.joyodigitama.joyofit.pro.yearly";
+
+  test("monthly credits 1 month and stores the package, asking JoyoFit's client", async () => {
+    fit.subs.set(TOKEN, sub({ productId: FIT_MONTHLY, basePlanId: "monthly" }));
+    const result = await verifyGooglePurchase(deps, {
+      purchaseToken: TOKEN,
+      userId: "u1",
+      packageName: FIT,
+    });
+    expect(result).toMatchObject({ ok: true, status: "granted", amountIdr: 15000 });
+    expect((await until("u1"))?.toISOString()).toBe("2026-11-16T03:00:00.000Z");
+    expect(fit.acks).toEqual([`${FIT_MONTHLY}:${TOKEN}`]);
+    expect(fake.acks).toEqual([]);
+    expect((await ledger())[0]?.months).toBe(1);
+    expect((await links())[0]).toMatchObject({ packageName: FIT, productId: FIT_MONTHLY });
+  });
+
+  test("yearly credits 12 months", async () => {
+    fit.subs.set(TOKEN, sub({ productId: FIT_YEARLY, basePlanId: "yearly", priceIdr: 199000 }));
+    const result = await verifyGooglePurchase(deps, {
+      purchaseToken: TOKEN,
+      userId: "u1",
+      packageName: FIT,
+    });
+    expect(result).toMatchObject({ ok: true, status: "granted", amountIdr: 199000 });
+    expect((await until("u1"))?.toISOString()).toBe("2027-10-16T03:00:00.000Z");
+    expect((await ledger())[0]?.months).toBe(12);
+  });
+
+  test("products of the other package, or mismatched base plans, are wrong-product both ways", async () => {
+    fit.subs.set(TOKEN, sub({ productId: "pro", basePlanId: "monthly" }));
+    expect(
+      await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: FIT }),
+    ).toEqual({ ok: false, error: "wrong-product" });
+    fake.subs.set("other-token-aaaaaa", sub({ productId: FIT_MONTHLY, basePlanId: "monthly" }));
+    expect(
+      await verifyGooglePurchase(deps, {
+        purchaseToken: "other-token-aaaaaa",
+        userId: "u1",
+        packageName: ROGO,
+      }),
+    ).toEqual({ ok: false, error: "wrong-product" });
+    fit.subs.set("third-token-aaaaaaa", sub({ productId: FIT_MONTHLY, basePlanId: "yearly" }));
+    expect(
+      await verifyGooglePurchase(deps, {
+        purchaseToken: "third-token-aaaaaaa",
+        userId: "u1",
+        packageName: FIT,
+      }),
+    ).toEqual({ ok: false, error: "wrong-product" });
+    expect(await ledger()).toHaveLength(0);
+    expect(await links()).toHaveLength(0);
+  });
+
+  test("a package without a client is rejected before Play is asked", async () => {
+    expect(
+      await verifyGooglePurchase(deps, {
+        purchaseToken: TOKEN,
+        userId: "u1",
+        packageName: "com.example.other",
+      }),
+    ).toEqual({ ok: false, error: "invalid-token" });
+  });
+
+  test("a notification re-reads the token under the stored package, not the payload's", async () => {
+    fit.subs.set(TOKEN, sub({ productId: FIT_MONTHLY, basePlanId: "monthly" }));
+    await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: FIT });
+    fit.subs.set(
+      TOKEN,
+      sub({
+        productId: FIT_MONTHLY,
+        basePlanId: "monthly",
+        acknowledged: true,
+        orderId: "GPA.1111-2222-3333-44444..0",
+        expiresAt: new Date(NOW.getTime() + 60 * 86_400_000),
+      }),
+    );
+    const result = await handleGoogleNotification(deps, {
+      packageName: FIT,
+      subscription: { notificationType: 2, purchaseToken: TOKEN, subscriptionId: FIT_MONTHLY },
+      test: false,
+    });
+    expect(result).toMatchObject({ kind: "synced", granted: { userId: "u1" } });
+    expect((await until("u1"))?.toISOString()).toBe("2026-12-16T03:00:00.000Z");
+
+    // A payload naming the wrong package still goes to the stored package's client.
+    fit.subs.set(
+      TOKEN,
+      sub({
+        productId: FIT_MONTHLY,
+        basePlanId: "monthly",
+        acknowledged: true,
+        orderId: "GPA.1111-2222-3333-44444..1",
+        expiresAt: new Date(NOW.getTime() + 90 * 86_400_000),
+      }),
+    );
+    const wrong = await handleGoogleNotification(deps, {
+      packageName: ROGO,
+      subscription: { notificationType: 2, purchaseToken: TOKEN, subscriptionId: FIT_MONTHLY },
+      test: false,
+    });
+    expect(wrong).toMatchObject({ kind: "synced", granted: { userId: "u1" } });
+    expect((await ledger()).map((row) => row.orderId).sort()).toEqual([
+      "google:GPA.1111-2222-3333-44444",
+      "google:GPA.1111-2222-3333-44444..0",
+      "google:GPA.1111-2222-3333-44444..1",
+    ]);
+  });
+
+  test("a stored row without a client for its package is ignored", async () => {
+    await client.execute(
+      `INSERT INTO google_purchase (purchase_token, user_id, package_name, product_id, base_plan_id, state) VALUES ('${TOKEN}', 'u1', 'com.example.gone', 'pro', 'monthly', 'active')`,
+    );
+    expect(
+      await handleGoogleNotification(deps, {
+        packageName: ROGO,
+        subscription: { notificationType: 2, purchaseToken: TOKEN, subscriptionId: "pro" },
+        test: false,
+      }),
+    ).toEqual({ kind: "ignored", granted: null });
+  });
+});
+
 describe("revokeGoogleOrder", () => {
   test("unknown orders and zero-revenue tester trials are left alone", async () => {
     expect(await revokeGoogleOrder(deps, "GPA.nope")).toBe("none");
     fake.subs.set(TOKEN, sub({ test: true }));
-    await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1" });
+    await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO });
     expect(await revokeGoogleOrder(deps, "GPA.1111-2222-3333-44444")).toBe("none");
     expect((await until("u1"))?.toISOString()).toBe("2026-10-17T03:00:00.000Z");
   });
