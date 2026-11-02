@@ -1,6 +1,7 @@
 import "@/unistyles";
+import * as Clipboard from "expo-clipboard";
 import { useMaternal } from "@/components/maternal/use-maternal";
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,11 +10,13 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
 import { recentDayLabel, shortDateRange, shortDayLabel } from "@joyorogo/api/lib/format";
-import { instantIn } from "@joyorogo/i18n";
+import { fmtDate, instantIn } from "@joyorogo/i18n";
 import type { WeekRecap } from "@joyorogo/api/lib/recap";
 import {
   defaultRecapWeek,
+  lastFullMonth,
   recapShare,
+  recapText,
   weekdayName,
   weekdayShort,
   weekStartOf,
@@ -31,7 +34,10 @@ import {
   Skeleton,
   StatTile,
   Text,
+  Button,
 } from "@/components/ui";
+import { useToast } from "@/components/toast";
+import { shareUrl } from "@/src/lib/share-links";
 import { BarChart, type BarChartDatum } from "@/components/bar-chart";
 import { DayList, type DayListRow } from "@/components/day-list";
 import { RangeNav } from "@/components/range-nav";
@@ -226,6 +232,7 @@ function PeriodView({ period, today, maternal }: { period: PeriodRecap; today: s
 
 export default function Rekap() {
   const { t } = useTranslation(["misc", "common", "gain"]);
+  const toast = useToast();
   const gate = useSessionGate();
   const params = useLocalSearchParams<{ week?: string }>();
   const today = jakartaToday();
@@ -249,6 +256,8 @@ export default function Rekap() {
       placeholderData: single ? (prev: WeekRecap | null | undefined) => prev : undefined,
     })),
   });
+  const month = lastFullMonth(today);
+  const monthQuery = useQuery(orpc.stats.monthRecap.queryOptions({ input: { month } }));
 
   const maternal = useMaternal().mode !== "none";
 
@@ -282,6 +291,13 @@ export default function Rekap() {
   const period = combineRecaps(recaps);
 
   const share = recapShare(recap);
+  const text = recapText(recap, shareUrl("/", "recap"));
+  const monthText = monthQuery.data ? recapText(monthQuery.data, shareUrl("/", "recap")) : null;
+  const copy = (value: string) =>
+    Clipboard.setStringAsync(value).then(
+      () => toast.success(t("recap.copy.copied")),
+      () => toast.error(t("recap.copy.copyFailed")),
+    );
   const change = recap.weight?.changeKg ?? null;
   const gainWeightLine =
     change === null
@@ -466,6 +482,23 @@ export default function Rekap() {
                   ...share,
                   date: new Date(instantIn(recap.weekEnd, 12, 0)),
                 }}
+              />
+            ) : null}
+
+            {text && !maternal ? (
+              <Button
+                variant="secondary"
+                icon="copy-outline"
+                label={t("recap.copy.button")}
+                onPress={() => void copy(text)}
+              />
+            ) : null}
+            {monthText && !maternal ? (
+              <Button
+                variant="secondary"
+                icon="calendar-outline"
+                label={t("recap.copy.monthButton", { month: fmtDate(`${month}-01`, "month") })}
+                onPress={() => void copy(monthText)}
               />
             ) : null}
 

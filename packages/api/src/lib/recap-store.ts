@@ -48,9 +48,36 @@ export async function loadWeekRecap(
   const thisWeek = weekStartOf(today);
   const requested = weekStartOf(requestedWeek ?? today);
   const weekStart = requested > thisWeek ? thisWeek : requested;
-  const weekEnd = shiftDate(weekStart, 6);
-  const refDay = weekEnd < today ? weekEnd : today;
+  return loadRecap(db, userId, weekStart, shiftDate(weekStart, 6), today, opts);
+}
 
+/**
+ * Recap of the calendar month `requestedMonth` ('YYYY-MM', in the person's zone), default the current month; a future
+ * month resolves to this one. Same judging as the week: only days before today count. Null without a profile.
+ */
+export async function loadMonthRecap(
+  db: Database,
+  userId: string,
+  requestedMonth: string | undefined,
+  zone: DayZone,
+): Promise<LoadedWeekRecap | null> {
+  const today = jakartaToday(undefined, zone);
+  const thisMonth = today.slice(0, 7);
+  const month = requestedMonth && requestedMonth < thisMonth ? requestedMonth : thisMonth;
+  const start = `${month}-01`;
+  const end = shiftDate(`${shiftDate(start, 31).slice(0, 7)}-01`, -1);
+  return loadRecap(db, userId, start, end, today);
+}
+
+async function loadRecap(
+  db: Database,
+  userId: string,
+  weekStart: string,
+  weekEnd: string,
+  today: string,
+  opts: { excludeStrava?: boolean } = {},
+): Promise<LoadedWeekRecap | null> {
+  const refDay = weekEnd < today ? weekEnd : today;
   const [
     profileRows,
     latestRows,
@@ -108,9 +135,8 @@ export async function loadWeekRecap(
   );
 
   // Each judged day gets the budget Beranda showed for it: the base plus that day's counted activity above the factor.
-  const judgedDates = Array.from({ length: 7 }, (_, i) => shiftDate(weekStart, i)).filter(
-    (date) => date < today,
-  );
+  const judgedDates: string[] = [];
+  for (let date = weekStart; date <= weekEnd && date < today; date = shiftDate(date, 1)) judgedDates.push(date);
   const [prefRows, ...dayRows] = (await db.batch([
     addBackPrefQuery(db, userId),
     ...judgedDates.flatMap((date) => creditDayQueries(db, userId, date)),
@@ -138,6 +164,7 @@ export async function loadWeekRecap(
 
   const recap = buildWeekRecap({
     weekStart,
+    endDate: weekEnd,
     today,
     targetKcal: plan.targets.eatKcal,
     proteinTargetG: proteinGoalG(plan, prof.heightCm),

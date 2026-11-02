@@ -61,3 +61,28 @@ test("the week a person is shown starts on their own Monday: Sunday 23:30 in Jak
   expect(indonesian!.weekEnd).toBe("2026-10-18");
   expect(malaysian!.weekEnd).toBe("2026-10-25");
 });
+
+test("a month recap covers the whole calendar month, judges every past day and reads the month's weight change", async () => {
+  setSystemTime(new Date("2026-11-02T05:00:00Z"));
+  for (const [date, kg] of [["2026-10-01", 100], ["2026-10-15", 99], ["2026-10-31", 98]] as const) {
+    await client.execute({ sql: `INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES (?, 'u', ?, ?)`, args: [crypto.randomUUID(), date, kg] });
+  }
+  await client.execute({
+    sql: `INSERT INTO food_log (id, user_id, date, meal, name, kcal, protein, created_at) VALUES (?, 'u', '2026-10-31', 'sarapan', 'Nasi', 1800, 90, 0), (?, 'u', '2026-11-01', 'sarapan', 'Nasi', 1800, 90, 0)`,
+    args: [crypto.randomUUID(), crypto.randomUUID()],
+  });
+
+  const october = await call(statsRouter.monthRecap, { month: "2026-10" }, as);
+  expect(october!.weekStart).toBe("2026-10-01");
+  expect(october!.weekEnd).toBe("2026-10-31");
+  expect(october!.days).toHaveLength(31);
+  expect(october!.evaluatedDays).toBe(31);
+  expect(october!.loggedDays).toBe(1);
+  expect(october!.weight!.changeKg).toBeLessThan(0);
+
+  // A future month resolves to this one, judged up to yesterday only.
+  const later = await call(statsRouter.monthRecap, { month: "2027-02" }, as);
+  expect(later!.weekStart).toBe("2026-11-01");
+  expect(later!.days).toHaveLength(30);
+  expect(later!.evaluatedDays).toBe(1);
+});

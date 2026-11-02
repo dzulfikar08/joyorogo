@@ -153,6 +153,26 @@
       }
     },
     "share": "Kongsi rumusan ke Story",
+    "copy": {
+      "button": "Salin rumusan minggu sebagai teks",
+      "monthButton": "Salin {{month}} sebagai teks",
+      "copied": "Rumusan disalin",
+      "copyFailed": "Rumusan gagal disalin",
+      "headline": "Minggu saya di JoyoRogo · {{range}}",
+      "headlineMonth": "Bulan saya di JoyoRogo · {{range}}",
+      "headlineLost": "Saya turun {{kg}} kg pada {{range}}",
+      "headlineGained": "Saya naik {{kg}} kg pada {{range}}",
+      "avg": "🍽️ Purata harian — {{kcal}} kkal (sasaran {{target}})",
+      "onTarget_other": "🎯 Capai sasaran — {{on}} daripada {{count}} hari",
+      "protein": "🥩 Protein — {{g}} g/hari (sasaran {{target}} g)",
+      "streak_other": "🔥 Streak — {{count}} hari",
+      "weightLost": "⚖️ Berat — turun {{kg}} kg ({{from}} → {{to}} kg)",
+      "weightGained": "⚖️ Berat — naik {{kg}} kg ({{from}} → {{to}} kg)",
+      "weightSteady": "⚖️ Berat — stabil ({{from}} → {{to}} kg)",
+      "exercise_other": "🏋️ Senaman — {{kcal}} kkal · {{count}} sesi, {{minutes}} minit",
+      "bestDay": "🏆 Hari terbaik — {{day}} · {{kcal}} kkal",
+      "madeWith": "Dibuat dengan JoyoRogo: {{url}}"
+    },
     "note": {
       "title": "Cara mengira",
       "body": "Kiraan daripada catatan anda sendiri, bukan penilaian perubatan. Menepati sasaran bermaksud pengambilan sehari berada antara separuh sasaran dan 5% melebihi sasaran. Berat menggunakan trend (purata bergerak), jadi tidak terikut turun naik timbangan harian.",

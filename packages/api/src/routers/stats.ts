@@ -5,11 +5,12 @@ import { protectedProcedure } from "../index";
 import { serverT } from "../lib/messages";
 import { generateWeekReflection, getWeekReflection, ReflectionLockedError } from "../lib/recap-reflection";
 import { loadPeriodProgress } from "../lib/period-store";
-import { loadWeekRecap } from "../lib/recap-store";
+import { loadMonthRecap, loadWeekRecap } from "../lib/recap-store";
 import { dateSchema } from "../lib/schemas";
 import { userZone } from "../lib/user-zone";
 
 const weekInput = z.object({ weekStart: dateSchema.optional() });
+const monthInput = z.object({ month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional() });
 const periodInput = z
   .object({ from: dateSchema.optional(), to: dateSchema.optional() })
   .refine((v) => v.from === undefined || v.to === undefined || v.from <= v.to, "from must not be after to");
@@ -22,6 +23,12 @@ export const statsRouter = {
    */
   weekRecap: protectedProcedure.input(weekInput).handler(async ({ context, input }) => {
     const loaded = await loadWeekRecap(context.db, context.session.user.id, input.weekStart, await userZone(context));
+    return loaded?.recap ?? null;
+  }),
+
+  /** Same recap over the calendar month `month` ('YYYY-MM'), default this month; feeds the monthly copy-as-text. */
+  monthRecap: protectedProcedure.input(monthInput).handler(async ({ context, input }) => {
+    const loaded = await loadMonthRecap(context.db, context.session.user.id, input.month, await userZone(context));
     return loaded?.recap ?? null;
   }),
 

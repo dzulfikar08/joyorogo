@@ -1,4 +1,4 @@
-import { instantIn, kcalUnit } from "@joyorogo/i18n";
+import { fmtDate, instantIn, kcalUnit } from "@joyorogo/i18n";
 import { Button } from "@joyorogo/ui/components/button";
 import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
@@ -7,17 +7,21 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleCheck,
+  Copy,
   Dumbbell,
   Flame,
   Scale,
   Trophy,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 import { jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
 import {
   defaultRecapWeek,
+  lastFullMonth,
   recapShare,
+  recapText,
   weekdayName,
   weekRangeLabel,
   weekStartOf,
@@ -30,6 +34,7 @@ import { RecapReflection } from "@/components/recap-reflection";
 import { GainRecapNote } from "@/components/gain/gain-today";
 import { EmptyHint, ScreenError } from "@/components/screen-state";
 import { ShareStoryButton } from "@/components/story/share-story-button";
+import { shareUrl } from "@/lib/share-links";
 import { fmtInt, fmtKg } from "@/lib/format";
 import { MACRO_META } from "@/lib/macro-icons";
 import { orpc } from "@/utils/orpc";
@@ -59,6 +64,8 @@ function RekapPage() {
   const thisWeek = weekStartOf(today);
   const weekStart = week && week <= thisWeek ? week : defaultRecapWeek(today);
   const query = useQuery(recapOptions(weekStart));
+  const month = lastFullMonth(today);
+  const monthQuery = useQuery(orpc.stats.monthRecap.queryOptions({ input: { month } }));
 
   if (query.isPending) return <RekapSkeleton />;
   if (query.error) {
@@ -69,6 +76,8 @@ function RekapPage() {
 
   const go = (target: string) => navigate({ search: { week: target } });
   const share = recapShare(recap);
+  const text = recapText(recap, shareUrl("/", "recap"));
+  const monthText = monthQuery.data ? recapText(monthQuery.data, shareUrl("/", "recap")) : null;
   const change = recap.weight?.changeKg ?? null;
 
   return (
@@ -225,6 +234,14 @@ function RekapPage() {
             />
           ) : null}
 
+          {text ? <CopyTextButton text={text} label={t("recap.copy.button")} /> : null}
+          {monthText ? (
+            <CopyTextButton
+              text={monthText}
+              label={t("recap.copy.monthButton", { month: fmtDate(`${month}-01`, "month") })}
+            />
+          ) : null}
+
           <details className="group px-1 pt-1 text-xs text-muted-foreground">
             <summary className="flex cursor-pointer list-none items-center gap-1.5 font-semibold select-none [&::-webkit-details-marker]:hidden">
               <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" aria-hidden />
@@ -238,6 +255,26 @@ function RekapPage() {
         </div>
       )}
     </Page>
+  );
+}
+
+/** Copies a recap post to the clipboard, with a toast either way. */
+function CopyTextButton({ text, label }: { text: string; label: string }) {
+  const { t } = useTranslation("misc");
+  return (
+    <Button
+      className="w-full"
+      variant="outline"
+      onClick={() => {
+        navigator.clipboard.writeText(text).then(
+          () => toast.success(t("recap.copy.copied")),
+          () => toast.error(t("recap.copy.copyFailed")),
+        );
+      }}
+    >
+      <Copy aria-hidden />
+      {label}
+    </Button>
   );
 }
 

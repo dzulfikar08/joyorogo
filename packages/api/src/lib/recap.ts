@@ -2,7 +2,7 @@
 // router reads. Pure and tiny on purpose; the web app imports the label
 // helpers into route modules.
 
-import { getActiveLocale } from "@joyorogo/i18n";
+import { fmtDate, fmtInt, fmtKg, getActiveLocale, getT } from "@joyorogo/i18n";
 import type { Locale } from "@joyorogo/i18n";
 
 import type { TrendPoint } from "./engine";
@@ -83,6 +83,8 @@ export type WeekRecap = {
 
 export type WeekRecapInput = {
   weekStart: string;
+  /** Last day of the period (inclusive), default the week's Sunday. A month recap passes the month's last day. */
+  endDate?: string;
   today: string;
   targetKcal: number;
   /** Each day's budget (base plus that day's activity, lib/exercise-credit). A missing day falls back to `targetKcal`. */
@@ -110,13 +112,12 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
 
 export function buildWeekRecap(input: WeekRecapInput): WeekRecap {
   const { weekStart, today } = input;
-  const weekEnd = shiftDate(weekStart, 6);
+  const weekEnd = input.endDate ?? shiftDate(weekStart, 6);
   const foodByDate = new Map(input.food.map((row) => [row.date, row]));
   const exerciseByDate = new Map(input.exercise.map((row) => [row.date, row]));
 
   const days: RecapDay[] = [];
-  for (let i = 0; i < 7; i += 1) {
-    const date = shiftDate(weekStart, i);
+  for (let date = weekStart; date <= weekEnd; date = shiftDate(date, 1)) {
     const eatenKcal = Math.round(foodByDate.get(date)?.kcal ?? 0);
     const dayTarget = Math.round(input.dayTargets?.[date] ?? input.targetKcal);
     days.push({
@@ -279,4 +280,70 @@ export function recapShare(recap: WeekRecap): RecapShare | null {
     weekEnd: recap.weekEnd,
     days: recap.days.map((day) => ({ date: day.date, kcal: day.eatenKcal })),
   };
+}
+
+/** Below this the trend change reads as steady, matching the recap screens. */
+const STEADY_KG = 0.05;
+
+/** 'YYYY-MM' of the calendar month before `today`'s: the month a monthly recap copies by default. */
+export function lastFullMonth(today: string): string {
+  return shiftDate(`${today.slice(0, 7)}-01`, -1).slice(0, 7);
+}
+
+/**
+ * The recap as one plain-text post, emoji per line ("I lost 0.6 kg in October 2026" then calories, protein,
+ * streak, weight, exercise, best day). Works for a week and for a month (longer than 7 days: month label, best day
+ * as a date). Lines without data are left out. Null when no food was logged.
+ */
+export function recapText(recap: WeekRecap, url: string, locale: Locale = getActiveLocale()): string | null {
+  if (recap.avgKcal === null) return null;
+  const t = getT(locale, "misc");
+  const month = recap.days.length > 7;
+  const range = month ? fmtDate(recap.weekStart, "month", locale) : weekRangeLabel(recap.weekStart, locale);
+  const change = recap.weight?.changeKg ?? null;
+  const kg = change === null ? "" : fmtKg(Math.abs(change), locale);
+  const headline =
+    change !== null && !recap.gain && change < -STEADY_KG
+      ? t("recap.copy.headlineLost", { kg, range })
+      : change !== null && recap.gain && change > STEADY_KG
+        ? t("recap.copy.headlineGained", { kg, range })
+        : t(month ? "recap.copy.headlineMonth" : "recap.copy.headline", { range });
+  const lines = [
+    t("recap.copy.avg", { kcal: fmtInt(recap.avgKcal, locale), target: fmtInt(recap.targetKcal, locale) }),
+    t("recap.copy.onTarget", { on: recap.daysOnTarget, count: recap.loggedDays }),
+  ];
+  if (recap.protein) {
+    lines.push(
+      t("recap.copy.protein", {
+        g: fmtInt(recap.protein.avgG, locale),
+        target: fmtInt(recap.protein.targetG, locale),
+      }),
+    );
+  }
+  if (recap.streakDays > 0) lines.push(t("recap.copy.streak", { count: recap.streakDays }));
+  if (recap.weight && change !== null) {
+    const from = fmtKg(recap.weight.startKg, locale);
+    const to = fmtKg(recap.weight.endKg, locale);
+    const key =
+      change < -STEADY_KG ? "recap.copy.weightLost" : change > STEADY_KG ? "recap.copy.weightGained" : "recap.copy.weightSteady";
+    lines.push(t(key, { kg, from, to }));
+  }
+  if (recap.exercise.sessions > 0) {
+    lines.push(
+      t("recap.copy.exercise", {
+        kcal: fmtInt(recap.exercise.kcal, locale),
+        minutes: fmtInt(recap.exercise.minutes, locale),
+        count: recap.exercise.sessions,
+      }),
+    );
+  }
+  if (recap.bestDay) {
+    lines.push(
+      t("recap.copy.bestDay", {
+        day: month ? fmtDate(recap.bestDay.date, "weekday", locale) : weekdayName(recap.bestDay.date, locale),
+        kcal: fmtInt(recap.bestDay.eatenKcal, locale),
+      }),
+    );
+  }
+  return [headline, "", ...lines, "", t("recap.copy.madeWith", { url })].join("\n");
 }
