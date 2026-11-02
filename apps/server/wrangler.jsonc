@@ -83,13 +83,10 @@
     }
   ],
   "vars": {
-    "CORS_ORIGIN": "http://localhost:3001,http://localhost:3002,http://localhost:3003,https://joyorogo-web-live-dzul-fqqmlyfh7l3bif2g.dzulfikar-at.workers.dev,https://joyorogo.com,https://app.joyorogo.com,https://admin.joyorogo.com,https://app.fit.joyorogo.com",
+    "CORS_ORIGIN": "http://localhost:3001,http://localhost:3002,https://joyorogo-web-live-dzul-fqqmlyfh7l3bif2g.dzulfikar-at.workers.dev,https://joyorogo.com,https://app.joyorogo.com,https://admin.joyorogo.com,http://localhost:3003,https://app.fit.joyorogo.com",
     "BETTER_AUTH_URL": "https://api.joyorogo.com",
-    // COROS MCP OAuth public client, redirect https://api.joyorogo.com/api/coros/callback (docs/coros.md).
     "COROS_CLIENT_ID": "be255c7f-949e-4a44-8638-ba18111f9092",
-    // Allowlist while nothing is verified against a real COROS account: owner and QA. "*" after docs/coros.md items 1-4 are confirmed.
     "COROS_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc,19d6d730903aa680d7ff3f8f564e3daf",
-    // Garmin Personal API keys cover a person's own data only: owner and QA until a business (OAuth) agreement exists (docs/garmin.md).
     "GARMIN_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc,19d6d730903aa680d7ff3f8f564e3daf",
     "GOOGLE_CLIENT_ID": "915036968874-0ne1edkq0laljg6cdlnksor1hqpj9gfr.apps.googleusercontent.com",
     "DEV_LOGIN": "",
@@ -97,34 +94,22 @@
     "DATASET_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
     "DISHWARE_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
     "CORRECTION_MEMORY_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
-    // Everyone since 2026-10-24 (docs/scale-readout.md): ~4.5 neurons per scan, 7 of 7 owner readings real, 0 false in 29.
     "SCALE_READOUT_USER_IDS": "*",
-    // Badges and the weekly leaderboard (docs/badges.md): owner only until the rollout is decided; "*" for everyone.
     "BADGES_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
     "SHADOW_SAMPLE_RATE": "0.2",
     "SHADOW_DAILY_CAP": "60",
-    // The signed-in app (docs/app-subdomain.md); SITE_URL is the landing/marketing site.
     "APP_URL": "https://app.joyorogo.com",
-    // Revenue forwarding to RevKlik (docs/revklik-forwarding.md). REVKLIK_TOKEN is a secret (wrangler secret put); unset = off.
     "REVKLIK_API_URL": "https://app.revklik.com",
     "REVKLIK_SITE_ID": "88069ee9-6eac-4dc9-a23b-f5757a4b948e",
     "SITE_URL": "https://joyorogo.com",
-    // The JoyoFit cloud API that /api/fit/* (the JoyoFit web app) forwards to.
     "JOYOFIT_API_URL": "https://api.fit.joyorogo.com",
     "FREE_DAILY_SCANS": "3",
-    // Threads mention bot (docs/threads-bot.md): off | review | auto. Caps count photo scans per WIB day. Secrets THREADS_APP_ID,
-    // THREADS_APP_SECRET, THREADS_WEBHOOK_VERIFY_TOKEN and optional THREADS_ACCESS_TOKEN are set with wrangler secret put.
     "THREADS_BOT_MODE": "off",
     "THREADS_BOT_USER_DAILY_CAP": "3",
     "THREADS_BOT_DAILY_CAP": "200",
-    // Strava application slots shared with JoyoFit (docs/strava.md "Capacity"): athletes Strava allows; when all are
-    // taken nobody new can connect (plan-neutral, Strava API Policy 5.8).
     "STRAVA_CAPACITY": "10",
-    // Coach chat (docs/coach.md): messages per user per WIB day; "0" turns it off. Optional AI_COACH_MODEL overrides the model.
     "COACH_DAILY_CAP": "20",
-    // Joyo AI hosted chat (Pro; packages/api/src/lib/joyo-ai/server-limit.ts): messages per user per local day; "0" turns it off. Optional AI_JOYO_MODEL overrides the model (unset = AI_COACH_MODEL, AI_CORRECT_MODEL, then the default text model).
     "JOYO_AI_DAILY_CAP": "20",
-    // Weekly reflection AI text (docs/weekly-recap-ai.md): optional AI_RECAP_MODEL overrides the model, unset = AI_VISION_MODEL's default (Gemma 4).
     "FOUNDER_DAILY_CAP": "100",
     "ANON_SCANS": "2",
     "FOUNDER_PRICE_IDR": "15000",
@@ -138,15 +123,12 @@
     "BILLING_PROVIDER": "doku",
     "DOKU_CLIENT_ID": "BRN-0177-1790860845392",
     "DOKU_BASE_URL": "https://api.doku.com",
-    // DOKU notifications skip the zone's Bot Fight Mode by posting to workers.dev (.env.schema DOKU_NOTIFY_BASE_URL).
     "DOKU_NOTIFY_BASE_URL": "https://joyorogo-server-live-dzul-btifrf7qulj3wn55.dzulfikar-at.workers.dev",
     "PAKASIR_SLUG": "joyorogo",
-    // Polar USD checkout (docs/pricing.md). Secrets POLAR_ACCESS_TOKEN and POLAR_WEBHOOK_SECRET are set with wrangler secret put.
     "POLAR_PRODUCT_MONTHLY_ID": "0eccddaa-1f8d-404c-b68c-7bfc99026f0c",
     "POLAR_PRODUCT_YEARLY_ID": "52630e7f-e269-4998-8064-f1b375a200a8",
     "POLAR_PRICE_MONTHLY_USD_CENTS": "999",
     "POLAR_PRICE_YEARLY_USD_CENTS": "5999",
-    // MYR and SGD advertised prices = the Play prices (docs/pricing.md). Deploy only after the same prices exist on both Polar products.
     "POLAR_PRICE_MONTHLY_MYR_SEN": "4399",
     "POLAR_PRICE_YEARLY_MYR_SEN": "26499",
     "POLAR_PRICE_MONTHLY_SGD_CENTS": "1398",
@@ -154,7 +136,6 @@
     "APPLE_BUNDLE_IDS": "com.joyodigitama.joyorogo,com.joyodigitama.joyofit",
     "APPLE_SANDBOX_EMAILS": "",
     "TESTFLIGHT_PURCHASE_EMAIL": "off",
-    // Native update gate (docs/force-update.md). 0 = off. Set after the fixed build is live in Play / the App Store.
     "MIN_BUILD_ANDROID": "1471904",
     "LATEST_BUILD_ANDROID": "1471904",
     "MIN_BUILD_IOS": "0",

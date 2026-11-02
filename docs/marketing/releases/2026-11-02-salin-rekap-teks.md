@@ -2,7 +2,7 @@
 app: joyorogo
 feature: Salin rekap mingguan dan bulanan sebagai teks
 shipped: 2026-11-02
-available: code
+available: web
 tier: free
 post: todo
 atur:
