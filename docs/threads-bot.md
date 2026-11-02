@@ -5,10 +5,16 @@ replies with a calorie estimate. The estimate is the same photo scan the app use
 memory. **No photo is ever stored** (no R2, no dataset); the D1 row keeps only the media id, the author's username, the
 dish names, the kcal range, status and times.
 
-Status: code merged, **off by default** (`THREADS_BOT_MODE=off`). Nothing has run against the real Threads API yet: the
-brand account and Meta app did not exist when this was written. Every Threads call is covered by tests against a stubbed
-Graph API (`packages/api/src/lib/threads-bot/fixtures.ts`); the first live run is the real check. The things to watch on
-that run are listed under [First live run](#first-live-run).
+Status (2026-11-02): deployed with `THREADS_BOT_MODE=review` on the shared Meta app **ThreadsAPI** (Threads app ID
+`985569897159985`, also used by nempel and atur). Secrets `THREADS_APP_ID`, `THREADS_APP_SECRET` and
+`THREADS_WEBHOOK_VERIFY_TOKEN` are set; the redirect URI is registered; the webhook is verified and subscribed to
+`mentions` only (object Interaction). **Not connected yet:** adding `joyorogo_com` as a Threads Tester fails on Meta's
+side (`field_exception`, code 1675030, reported by other developers since 2026-10-30), and without the tester role the
+OAuth code exchange is refused ("requires the threads_basic permission ... must be in the list of Threads testers").
+Once the tester invite works: accept it as `joyorogo_com`, then **Hubungkan Threads** in the admin page. The shared app's
+uninstall/delete callbacks point at nempel, so `/api/threads/deauthorize` and `/api/threads/delete` are not called by
+Meta. Every Threads call is covered by tests against a stubbed Graph API (`packages/api/src/lib/threads-bot/fixtures.ts`);
+the first live run is the real check. The things to watch on that run are listed under [First live run](#first-live-run).
 
 ## How it works
 
