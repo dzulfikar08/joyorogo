@@ -6,7 +6,9 @@
 export const SITE_NAME = "JoyoRogo";
 
 export const OG_IMAGE = {
-  path: "/og.png",
+  // The query is the image's version: Meta (Threads, Facebook, WhatsApp) caches link previews by image URL, so bump it
+  // whenever og.png is regenerated or old shares keep showing the previous card.
+  path: "/og.png?v=20261103",
   width: 1200,
   height: 630,
   alt: "JoyoRogo: diet yang paham porsi warteg. Foto nasi goreng dengan hasil scan: nasi goreng 350 g 550 kcal, kerupuk 200 kcal, total 790 kcal, protein 14 g, karbo 112 g, lemak 28 g.",
@@ -14,7 +16,7 @@ export const OG_IMAGE = {
 
 /** Share card for the Malaysian landing (og/og-my.html, `bun run og:my`). */
 export const OG_IMAGE_MY = {
-  path: "/og-my.png",
+  path: "/og-my.png?v=20261103",
   width: 1200,
   height: 630,
   alt: "JoyoRogo: kira kalori dari nasi lemak sampai teh tarik. Foto nasi lemak dengan hasil imbasan: nasi lemak 450 g 750 kcal, ayam goreng berempah 450 kcal, Milo ais 220 kcal, jumlah 1.685 kcal, protein 71 g, karbohidrat 141 g, lemak 92 g.",
@@ -22,7 +24,7 @@ export const OG_IMAGE_MY = {
 
 /** Share card for the Singapore landing (og/og-sg.html, `bun run og:sg`). */
 export const OG_IMAGE_SG = {
-  path: "/og-sg.png",
+  path: "/og-sg.png?v=20261103",
   width: 1200,
   height: 630,
   alt: "JoyoRogo: count the kcal from chicken rice to kopi. Chicken rice photo with scan results: white rice 200 g 260 kcal, roasted chicken 150 g 330 kcal, total 691 kcal, protein 43 g, carbs 66 g, fat 27 g.",

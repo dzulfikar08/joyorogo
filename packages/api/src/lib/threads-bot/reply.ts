@@ -3,6 +3,8 @@
 // "perkiraan AI, bukan saran medis", and the campaign link. Only what the photo shows: it never says anything about a
 // body, weight or health.
 
+import { fmtNumber } from "@joyorogo/i18n";
+
 export const REPLY_LINK =
   "https://joyorogo.com/?utm_source=threads&utm_medium=reply&utm_campaign=mention-bot";
 export const MAX_REPLY_CHARS = 500;
@@ -19,6 +21,8 @@ export type ReplyItem = {
   carbs?: number;
   fat?: number;
   fiber?: number;
+  /** The scan's kind; "minuman" means the weight is ml, as in the app. */
+  kind?: string;
   confidence?: number;
 };
 /** A dish as stored on the mention row and shown in the admin page. */
@@ -30,6 +34,8 @@ export type ReplyDish = {
   carbs?: number;
   fat?: number;
   fiber?: number;
+  /** A drink: its weight is shown in ml. */
+  drink?: boolean;
 };
 
 export type Macros = { protein: number; carbs: number; fat: number; fiber: number };
@@ -42,6 +48,9 @@ export type Estimate = {
 };
 
 const whole = (n: number | undefined) => (n === undefined ? undefined : Math.round(n));
+
+/** Indonesian separators, as the app shows them: 1.475 kcal. */
+const num = (n: number) => fmtNumber(n, 0, "id");
 
 /** A dish name safe to publish under the brand: one line, no mentions, hashtags or links, at most 40 characters. */
 export function cleanDishName(name: string): string {
@@ -99,6 +108,7 @@ export function formatEstimate(items: readonly ReplyItem[]): Estimate {
       carbs: whole(item.carbs),
       fat: whole(item.fat),
       fiber: whole(item.fiber),
+      ...(item.kind === "minuman" ? { drink: true } : {}),
     }))
     .sort((a, b) => b.kcal - a.kcal);
   const sum = (pick: (dish: ReplyDish) => number | undefined) =>
@@ -111,13 +121,14 @@ export function formatEstimate(items: readonly ReplyItem[]): Estimate {
     fiber: sum((dish) => dish.fiber),
   };
   const totalLines = [
-    `Total: ${totalKcal} kcal`,
-    `Protein ${totals.protein} g · Karbo ${totals.carbs} g · Lemak ${totals.fat} g · Serat ${totals.fiber} g`,
+    `Total: ${num(totalKcal)} kcal`,
+    `Protein ${num(totals.protein)} g · Karbo ${num(totals.carbs)} g · Lemak ${num(totals.fat)} g · Serat ${num(totals.fiber)} g`,
   ];
 
-  // "• Nasi goreng (350 g): 550 kcal", the grams left out when the scan gave none.
+  // "• Nasi goreng (350 g): 550 kcal", "• Es teh (350 ml): 100 kcal"; the weight left out when the scan gave none.
   const lines = dishes.map(
-    (dish) => `• ${dish.name}${dish.grams ? ` (${dish.grams} g)` : ""}: ${dish.kcal} kcal`,
+    (dish) =>
+      `• ${dish.name}${dish.grams ? ` (${num(dish.grams)} ${dish.drink ? "ml" : "g"})` : ""}: ${num(dish.kcal)} kcal`,
   );
   let keep = lines.length;
   let text = compose(lines.slice(0, keep), totalLines, lines.length - keep);

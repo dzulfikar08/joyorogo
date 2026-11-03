@@ -107,7 +107,8 @@ Perkiraan AI, bukan saran medis. Catat makananmu lebih mudah di JoyoRogo: https:
 
 - **Same numbers as the app.** Grams and kcal per dish, and kcal, protein, carbs, fat and fiber for the plate, straight
   from the scan (rounded to whole numbers), the way the app's scan result shows them. No range: the app shows none.
-  A dish without grams is listed without them; a missing macro counts as 0 in the total.
+  Drinks (scan kind `minuman`) show ml instead of g, and numbers use Indonesian separators (`1.475 kcal`). A dish
+  without a weight is listed without one; a missing macro counts as 0 in the total.
 - Dish names are cleaned before they are published: one line, no `@`, `#` or links, at most 40 characters.
 - It never says anything about a body, weight or health.
 - **Not food** (`not_food` from the gate): **no reply**, recorded as `skipped / not_food`. A bot that answers every

@@ -640,7 +640,7 @@ export interface ThreadsMentionItem {
   status: "received" | "scanning" | "skipped" | "pending_review" | "publishing" | "sent" | "rejected" | "failed";
   skipReason: string | null;
   kind: "estimate" | "unclear" | null;
-  dishes: { name: string; kcal: number; grams?: number }[];
+  dishes: { name: string; kcal: number; grams?: number; drink?: boolean }[];
   kcal: number | null;
   replyText: string | null;
   mode: "review" | "auto" | null;

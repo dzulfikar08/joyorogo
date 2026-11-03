@@ -41,6 +41,17 @@ describe("formatEstimate", () => {
     expect(totals).toEqual({ protein: 15, carbs: 0, fat: 0, fiber: 0 });
   });
 
+  test("drinks show ml and numbers use Indonesian thousands separators, as in the app", () => {
+    const { text, dishes } = formatEstimate([
+      { name: "Ayam goreng", kcal: 1200, grams: 1500, protein: 90, carbs: 10, fat: 80, fiber: 0, kind: "makanan" },
+      { name: "Es cokelat", kcal: 250, grams: 300, protein: 6, carbs: 40, fat: 8, fiber: 1, kind: "minuman" },
+    ]);
+    expect(text).toContain("• Ayam goreng (1.500 g): 1.200 kcal");
+    expect(text).toContain("• Es cokelat (300 ml): 250 kcal");
+    expect(text).toContain("Total: 1.450 kcal");
+    expect(dishes.map((d) => d.drink ?? false)).toEqual([false, true]);
+  });
+
   test("never passes 500 characters: ten long dish names fold into '+ N lainnya', the total still counts all", () => {
     const items = Array.from({ length: 10 }, (_, i) => ({
       name: `Hidangan panjang nomor ${i + 1} dengan nama yang sangat panjang sekali ya`,

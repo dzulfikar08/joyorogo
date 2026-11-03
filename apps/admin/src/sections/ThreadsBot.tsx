@@ -241,7 +241,7 @@ function Draft({ item }: { item: ThreadsMentionItem }) {
           <span className="font-semibold">@{item.author || "?"}</span>
           <span className="text-xs text-muted-foreground">{fmtDateTime(item.createdAt)}</span>
           <Badge tone={item.kind === "unclear" ? "amber" : "green"}>
-            {item.kind === "unclear" ? "Foto kurang jelas" : "Perkiraan kalori"}
+            {item.kind === "unclear" ? "Foto kurang jelas" : "Perkiraan gizi"}
           </Badge>
           {item.permalink && (
             <a
@@ -257,9 +257,12 @@ function Draft({ item }: { item: ThreadsMentionItem }) {
         {item.dishes.length > 0 && (
           <p className="text-xs text-muted-foreground">
             {item.dishes
-              .map((dish) => `${dish.name}${dish.grams ? ` ${dish.grams} g` : ""} ${dish.kcal}`)
+              .map(
+                (dish) =>
+                  `${dish.name}${dish.grams ? ` ${fmtNum(dish.grams)} ${dish.drink ? "ml" : "g"}` : ""} ${fmtNum(dish.kcal)}`,
+              )
               .join(" · ")}{" "}
-            kcal, total {item.kcal}
+            kcal, total {item.kcal === null ? "–" : fmtNum(item.kcal)}
           </p>
         )}
         <textarea
