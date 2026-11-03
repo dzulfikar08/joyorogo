@@ -17,7 +17,7 @@ export const OG_IMAGE_MY = {
   path: "/og-my.png",
   width: 1200,
   height: 630,
-  alt: "JoyoRogo: kira kalori dari nasi lemak sampai teh tarik. Foto pinggan anda, kalori dianggar dalam beberapa saat.",
+  alt: "JoyoRogo: kira kalori dari nasi lemak sampai teh tarik. Foto nasi lemak dengan hasil imbasan: nasi lemak 450 g 750 kcal, ayam goreng berempah 450 kcal, Milo ais 220 kcal, jumlah 1.685 kcal, protein 71 g, karbohidrat 141 g, lemak 92 g.",
 } as const;
 
 /** Share card for the Singapore landing (og/og-sg.html, `bun run og:sg`). */
@@ -25,7 +25,7 @@ export const OG_IMAGE_SG = {
   path: "/og-sg.png",
   width: 1200,
   height: 630,
-  alt: "JoyoRogo: count the kcal from chicken rice to kopi. Photo your hawker plate and get the kcal in seconds.",
+  alt: "JoyoRogo: count the kcal from chicken rice to kopi. Chicken rice photo with scan results: white rice 200 g 260 kcal, roasted chicken 150 g 330 kcal, total 691 kcal, protein 43 g, carbs 66 g, fat 27 g.",
 } as const;
 
 export type PublicPath =
