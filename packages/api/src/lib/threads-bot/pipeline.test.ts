@@ -31,8 +31,8 @@ let scans = 0;
 let scanImpl: BotDeps["scan"];
 const plate = () =>
   analysis([
-    { name: "Nasi goreng", kcal: 500, confidence: 0.8 },
-    { name: "Telur mata sapi", kcal: 90, confidence: 0.7 },
+    { name: "Nasi goreng", kcal: 500, grams: 300, protein: 12, carbs: 70, fat: 18, fiber: 3, confidence: 0.8 },
+    { name: "Telur mata sapi", kcal: 90, grams: 50, protein: 6, carbs: 0, fat: 7, fiber: 0, confidence: 0.7 },
   ]);
 
 function config(over: Record<string, string> = {}): BotConfig {
@@ -100,7 +100,7 @@ describe("kill switch", () => {
 });
 
 describe("review mode", () => {
-  test("a mention with a photo is scanned in memory and queued as a draft with kcal ranges", async () => {
+  test("a mention with a photo is scanned in memory and queued as a draft with the app's numbers", async () => {
     const post = imagePost();
     const outcome = await processMention(deps(), post);
     expect(outcome).toEqual({ status: "pending_review", kind: "estimate" });
@@ -113,19 +113,18 @@ describe("review mode", () => {
     expect(row.authorUsername).toBe(post.username!);
     expect(row.sourceMediaId).toBe(post.id);
     expect(row.mode).toBe("review");
-    expect(row.kcalLow).toBe(470);
-    expect(row.kcalHigh).toBe(710);
+    expect(row.kcal).toBe(590);
     expect(JSON.parse(row.dishesJson!)).toEqual([
-      { name: "Nasi goreng", kcal: 500, low: 400, high: 600 },
-      { name: "Telur mata sapi", kcal: 90, low: 70, high: 110 },
+      { name: "Nasi goreng", kcal: 500, grams: 300, protein: 12, carbs: 70, fat: 18, fiber: 3 },
+      { name: "Telur mata sapi", kcal: 90, grams: 50, protein: 6, carbs: 0, fat: 7, fiber: 0 },
     ]);
     expect(row.replyText!.length).toBeLessThanOrEqual(MAX_REPLY_CHARS);
-    expect(row.replyText).toContain("400–600 kcal");
+    expect(row.replyText).toContain("• Nasi goreng (300 g): 500 kcal");
     expect(row.replyText).toContain(REPLY_LINK);
     expect(row.scannedAt).not.toBeNull();
   });
 
-  test("stores no photo and no post text: the row has only ids, names, ranges, status and times", async () => {
+  test("stores no photo and no post text: the row has only ids, names, numbers, status and times", async () => {
     const post = imagePost({ text: "makan siang @joyorogo" });
     await processMention(deps(), post);
     const row = await rowOf(post.id);
@@ -141,8 +140,7 @@ describe("review mode", () => {
         "skipReason",
         "kind",
         "dishesJson",
-        "kcalLow",
-        "kcalHigh",
+        "kcal",
         "replyText",
         "mode",
         "replyMediaId",
@@ -501,7 +499,7 @@ describe("scan outcomes", () => {
     });
     const row = await rowOf(post.id);
     expect(row.replyText).toBe(UNCLEAR_REPLY);
-    expect(row.kcalLow).toBeNull();
+    expect(row.kcal).toBeNull();
   });
 
   test("a model timeout is recorded as failed and nothing is sent", async () => {
@@ -516,14 +514,6 @@ describe("scan outcomes", () => {
     expect(graph.published).toHaveLength(0);
     expect((await rowOf(post.id)).status).toBe("failed");
   });
-
-  test("the kcal band comes from config", async () => {
-    const post = imagePost();
-    await processMention(deps(config({ THREADS_BOT_KCAL_BAND: "0.1" })), post);
-    const row = await rowOf(post.id);
-    expect([row.kcalLow, row.kcalHigh]).toEqual([530, 650]);
-    expect(row.replyText).toContain("(±10%)");
-  });
 });
 
 describe("auto mode", () => {
@@ -533,7 +523,7 @@ describe("auto mode", () => {
     expect(outcome).toEqual({ status: "sent", replyId: "reply-1" });
     expect(graph.published).toHaveLength(1);
     expect(graph.published[0]!.replyTo).toBe(post.id);
-    expect(graph.published[0]!.text).toContain("400–600 kcal");
+    expect(graph.published[0]!.text).toContain("• Nasi goreng (300 g): 500 kcal");
     const row = await rowOf(post.id);
     expect(row.status).toBe("sent");
     expect(row.mode).toBe("auto");

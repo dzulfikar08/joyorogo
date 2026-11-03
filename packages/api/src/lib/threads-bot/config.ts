@@ -4,10 +4,6 @@ export type BotMode = "off" | "review" | "auto";
 
 export const DEFAULT_USER_DAILY_CAP = 3;
 export const DEFAULT_GLOBAL_DAILY_CAP = 200;
-/** No per-scan error band exists in the app (lib/calibration.ts is a per-person energy shift), so the reply uses this. */
-export const DEFAULT_KCAL_BAND = 0.2;
-const MIN_KCAL_BAND = 0.05;
-const MAX_KCAL_BAND = 0.5;
 const MAX_CAP = 100_000;
 
 /** The env keys the bot reads; all optional, an unset one turns its part off. */
@@ -18,8 +14,6 @@ export type BotEnv = {
   THREADS_BOT_USER_DAILY_CAP?: string;
   /** Scans per WIB day over everyone; unset or garbage = 200, "0" = nobody is answered. */
   THREADS_BOT_DAILY_CAP?: string;
-  /** Half-width of the kcal range as a fraction ("0.2" = ±20%); unset or garbage = 0.2, clamped to 0.05 to 0.5. */
-  THREADS_BOT_KCAL_BAND?: string;
   THREADS_APP_ID?: string;
   THREADS_APP_SECRET?: string;
   THREADS_WEBHOOK_VERIFY_TOKEN?: string;
@@ -37,7 +31,6 @@ export type BotConfig = {
   mode: BotMode;
   userCap: number;
   globalCap: number;
-  band: number;
   appId?: string;
   appSecret?: string;
   verifyToken?: string;
@@ -64,21 +57,12 @@ function parseCap(raw: string | undefined, fallback: number): number {
   return Math.min(n, MAX_CAP);
 }
 
-export function parseBand(raw: string | undefined): number {
-  const value = raw?.trim();
-  if (!value) return DEFAULT_KCAL_BAND;
-  const n = Number(value);
-  if (!Number.isFinite(n)) return DEFAULT_KCAL_BAND;
-  return Math.min(MAX_KCAL_BAND, Math.max(MIN_KCAL_BAND, n));
-}
-
 export function botConfig(env: BotEnv): BotConfig {
   const api = (clean(env.BETTER_AUTH_URL) ?? "https://api.joyorogo.com").replace(/\/+$/, "");
   return {
     mode: parseMode(env.THREADS_BOT_MODE),
     userCap: parseCap(env.THREADS_BOT_USER_DAILY_CAP, DEFAULT_USER_DAILY_CAP),
     globalCap: parseCap(env.THREADS_BOT_DAILY_CAP, DEFAULT_GLOBAL_DAILY_CAP),
-    band: parseBand(env.THREADS_BOT_KCAL_BAND),
     appId: clean(env.THREADS_APP_ID),
     appSecret: clean(env.THREADS_APP_SECRET),
     verifyToken: clean(env.THREADS_WEBHOOK_VERIFY_TOKEN),

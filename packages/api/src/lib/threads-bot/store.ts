@@ -189,7 +189,7 @@ export async function expireReceived(db: Database, now: number): Promise<void> {
 }
 
 export function dishesJson(dishes: readonly ReplyDish[]): string {
-  return JSON.stringify(dishes.map(({ name, kcal, low, high }) => ({ name, kcal, low, high })));
+  return JSON.stringify(dishes);
 }
 
 export function parseDishes(raw: string | null): ReplyDish[] {

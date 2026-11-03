@@ -3,7 +3,7 @@
 Someone tags the brand Threads account (`@joyorogo_com`) on a food photo, or replies "@joyorogo_com" under one, and the account
 replies with a calorie estimate. The estimate is the same photo scan the app uses, run server-side on the image held in
 memory. **No photo is ever stored** (no R2, no dataset); the D1 row keeps only the media id, the author's username, the
-dish names, the kcal range, status and times.
+dish names with their grams, kcal and macros, the plate's kcal, status and times.
 
 Status (2026-11-03): live in `THREADS_BOT_MODE=review` on the shared Meta app **ThreadsAPI** (Threads app ID
 `985569897159985`, also used by nempel and atur). Secrets `THREADS_APP_ID`, `THREADS_APP_SECRET` and
@@ -30,7 +30,7 @@ cron poll, every 5 min   ─┘     (idempotent                                 
 | Webhook (GET challenge, POST + `X-Hub-Signature-256`), OAuth redirect, deauthorize/delete callbacks, admin API, cron tick | `apps/server/src/threads-bot.ts` |
 | Graph client (OAuth, refresh, mentions edge, post read, reply publish, image fetch) | `packages/api/src/lib/threads-bot/graph.ts` |
 | Pipeline: filters, scan, draft, approve, poll, sweep | `packages/api/src/lib/threads-bot/pipeline.ts` |
-| Reply text and kcal range | `packages/api/src/lib/threads-bot/reply.ts` |
+| Reply text | `packages/api/src/lib/threads-bot/reply.ts` |
 | Caps, slots, queue queries | `packages/api/src/lib/threads-bot/store.ts` |
 | Token storage and auto-refresh | `packages/api/src/lib/threads-bot/token.ts` |
 | Tables `threads_account`, `threads_mention` (migration `0068_threads_bot`) | `packages/db/src/schema/threads.ts` |
@@ -92,21 +92,22 @@ dishware, correction memory, scale readout or usual portions. The image is fetch
 ### Reply
 
 Indonesian, at most 500 characters (the Threads limit; the formatter folds the smallest dishes into "+ N lainnya" when a
-plate is long, and the total still counts them):
+plate is long, and the totals still count them):
 
 ```
-Perkiraan kalori dari fotomu:
-• Nasi goreng: 400–600 kcal
-• Telur mata sapi: 70–110 kcal
+Perkiraan gizi dari fotomu:
+• Nasi goreng (300 g): 500 kcal
+• Telur mata sapi (50 g): 90 kcal
 
-Total: 470–710 kcal (±20%)
+Total: 590 kcal
+Protein 18 g · Karbo 70 g · Lemak 25 g · Serat 3 g
 
 Perkiraan AI, bukan saran medis. Catat makananmu lebih mudah di JoyoRogo: https://joyorogo.com/?utm_source=threads&utm_medium=reply&utm_campaign=mention-bot
 ```
 
-- **Range.** Each dish and the total are `kcal × (1 ± band)`, rounded to 10 kcal. There is no per-scan error band in the app
-  (`lib/calibration.ts` is a per-person energy shift, not a scan band), so the band is `THREADS_BOT_KCAL_BAND`, default
-  `0.2` (±20%), clamped to 0.05 to 0.5. Replace it with a measured figure when the accuracy report has one.
+- **Same numbers as the app.** Grams and kcal per dish, and kcal, protein, carbs, fat and fiber for the plate, straight
+  from the scan (rounded to whole numbers), the way the app's scan result shows them. No range: the app shows none.
+  A dish without grams is listed without them; a missing macro counts as 0 in the total.
 - Dish names are cleaned before they are published: one line, no `@`, `#` or links, at most 40 characters.
 - It never says anything about a body, weight or health.
 - **Not food** (`not_food` from the gate): **no reply**, recorded as `skipped / not_food`. A bot that answers every
@@ -135,7 +136,7 @@ request. Drafts left in the queue stay approvable after switching `auto` back to
   and last error, the webhook URL and OAuth redirect URI to paste into Meta, **Hubungkan Threads** (OAuth) and **Baca
   mention sekarang** (runs the cron tick on demand).
 - **Antrian:** every draft with the photo (read live from Threads when the page loads, never stored), a link to the post,
-  dish names with ranges, an editable text with a 500-character counter, and **Tolak** / **Simpan edit** /
+  dishes with grams and kcal, an editable text with a 500-character counter, and **Tolak** / **Simpan edit** /
   **Setujui & kirim**. Approving posts the (edited) text; the row moves atomically `pending_review -> publishing -> sent`,
   so a double click or two admins post once. A failed post goes back to the queue with Meta's error.
 - **Terkirim:** the log of every reply sent, with the exact text, auto or approved-by, and time.
@@ -186,7 +187,7 @@ than 24 hours; the failure is harmless and retried.
    | `THREADS_WEBHOOK_SECRET` | optional, only if deliveries come back 401: the Meta app secret (Settings > Basic), accepted as a second signing key |
 
    Vars (`apps/server/wrangler.jsonc`, already present): `THREADS_BOT_MODE` (`off`), `THREADS_BOT_USER_DAILY_CAP` (`3`),
-   `THREADS_BOT_DAILY_CAP` (`200`); optional `THREADS_BOT_KCAL_BAND` (`0.2`).
+   `THREADS_BOT_DAILY_CAP` (`200`).
 7. **Connect:** deploy, open `admin.joyorogo.com/#threads`, **Hubungkan Threads**, log in as the brand account and allow.
 8. **Try it in review mode:** set `THREADS_BOT_MODE=review`, tag the account on a food photo from a tester account, wait
    for the webhook (or press **Baca mention sekarang**), approve the draft, check the reply on Threads.
@@ -213,7 +214,7 @@ tables; the usual D1 migration step applies it.
 | Table | Holds |
 | --- | --- |
 | `threads_account` | the brand token, its expiry and refresh state, the brand user id and username, the mentions cursor, last error |
-| `threads_mention` | media id, author username, id of the post with the photo, status, skip reason, dish names and kcal range (JSON), reply text and its media id, who approved, timestamps |
+| `threads_mention` | media id, author username, id of the post with the photo, status, skip reason, dishes with grams, kcal and macros (JSON), the plate's kcal, reply text and its media id, who approved, timestamps |
 
 Not kept: the photo (memory only), its URL, the text of the mention, the author's profile. The admin photo is requested
 from Threads each time the queue loads.

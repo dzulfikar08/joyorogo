@@ -120,7 +120,16 @@ export function threadsTime(now: number, agoMs = 60_000): string {
 }
 
 export function analysis(
-  items: { name: string; kcal: number; confidence?: number }[],
+  items: {
+    name: string;
+    kcal: number;
+    grams?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+    fiber?: number;
+    confidence?: number;
+  }[],
 ): VisionAnalysis {
   return {
     items: items.map((item) => ({ ...item, kind: "other" })),

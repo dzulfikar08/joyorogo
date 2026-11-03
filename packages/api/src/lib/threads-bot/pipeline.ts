@@ -340,13 +340,12 @@ export async function processMention(
 
   if (isLowConfidence(analysis.items))
     return draft(deps, account, mediaId, { kind: "unclear", text: UNCLEAR_REPLY });
-  const estimate = formatEstimate(analysis.items, config.band);
+  const estimate = formatEstimate(analysis.items);
   return draft(deps, account, mediaId, {
     kind: "estimate",
     text: estimate.text,
     dishes: dishesJson(estimate.dishes),
-    kcalLow: estimate.low,
-    kcalHigh: estimate.high,
+    kcal: estimate.totalKcal,
   });
 }
 
@@ -354,8 +353,7 @@ type Draft = {
   kind: "estimate" | "unclear";
   text: string;
   dishes?: string;
-  kcalLow?: number;
-  kcalHigh?: number;
+  kcal?: number;
 };
 
 /** Stores the reply: queued in review mode, posted straight away in auto mode (and queued if that post fails). */
@@ -370,8 +368,7 @@ async function draft(
     kind: reply.kind,
     replyText: reply.text,
     dishesJson: reply.dishes ?? null,
-    kcalLow: reply.kcalLow ?? null,
-    kcalHigh: reply.kcalHigh ?? null,
+    kcal: reply.kcal ?? null,
     mode: deps.config.mode === "auto" ? ("auto" as const) : ("review" as const),
   };
   if (deps.config.mode !== "auto") {

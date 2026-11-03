@@ -236,7 +236,6 @@ describe("admin review queue", () => {
     expect(body).toMatchObject({
       mode: "review",
       caps: { user: 3, global: 200 },
-      band: 0.2,
       configured: { app: true, webhook: true, seed: true },
       redirectUri: "https://api.test/api/threads/callback",
       webhookUrl: "https://api.test/api/threads/webhook",
@@ -258,11 +257,10 @@ describe("admin review queue", () => {
       kind: "estimate",
       photoUrl: IMAGE_URL,
       permalink: "https://www.threads.com/@queued/post/q1",
-      kcalLow: 400,
-      kcalHigh: 600,
+      kcal: 500,
     });
-    expect(items[0]!.replyText).toContain("400–600 kcal");
-    expect(items[0]!.dishes).toEqual([{ name: "Nasi goreng", kcal: 500, low: 400, high: 600 }]);
+    expect(items[0]!.replyText).toContain("• Nasi goreng: 500 kcal");
+    expect(items[0]!.dishes).toEqual([{ name: "Nasi goreng", kcal: 500 }]);
     const [row] = await db.select().from(threadsMention);
     expect(JSON.stringify(row)).not.toContain(IMAGE_URL);
   });

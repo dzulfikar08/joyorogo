@@ -151,11 +151,7 @@ function StatusCard({ status }: { status: ThreadsBotStatus }) {
         />
         <StatCard label="Balasan terkirim hari ini" value={fmtNum(status.today.sent)} />
         <StatCard label="Menunggu persetujuan" value={fmtNum(status.today.pending)} />
-        <StatCard
-          label="Batas per user"
-          value={`${fmtNum(status.caps.user)}/hari`}
-          hint={`rentang kcal ±${Math.round(status.band * 100)}%`}
-        />
+        <StatCard label="Batas per user" value={`${fmtNum(status.caps.user)}/hari`} />
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         {account ? (
@@ -260,8 +256,10 @@ function Draft({ item }: { item: ThreadsMentionItem }) {
         </div>
         {item.dishes.length > 0 && (
           <p className="text-xs text-muted-foreground">
-            {item.dishes.map((dish) => `${dish.name} ${dish.low}–${dish.high}`).join(" · ")} kcal,
-            total {item.kcalLow}–{item.kcalHigh}
+            {item.dishes
+              .map((dish) => `${dish.name}${dish.grams ? ` ${dish.grams} g` : ""} ${dish.kcal}`)
+              .join(" · ")}{" "}
+            kcal, total {item.kcal}
           </p>
         )}
         <textarea

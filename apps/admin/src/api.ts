@@ -619,7 +619,6 @@ export interface BroadcastSendResult {
 export interface ThreadsBotStatus {
   mode: "off" | "review" | "auto";
   caps: { user: number; global: number };
-  band: number;
   configured: { app: boolean; webhook: boolean; seed: boolean };
   redirectUri: string;
   webhookUrl: string;
@@ -641,9 +640,8 @@ export interface ThreadsMentionItem {
   status: "received" | "scanning" | "skipped" | "pending_review" | "publishing" | "sent" | "rejected" | "failed";
   skipReason: string | null;
   kind: "estimate" | "unclear" | null;
-  dishes: { name: string; kcal: number; low: number; high: number }[];
-  kcalLow: number | null;
-  kcalHigh: number | null;
+  dishes: { name: string; kcal: number; grams?: number }[];
+  kcal: number | null;
   replyText: string | null;
   mode: "review" | "auto" | null;
   replyMediaId: string | null;

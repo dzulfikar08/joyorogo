@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { DEFAULT_GLOBAL_DAILY_CAP, DEFAULT_KCAL_BAND, DEFAULT_USER_DAILY_CAP, botConfig, parseBand, parseMode } from "./config";
+import { DEFAULT_GLOBAL_DAILY_CAP, DEFAULT_USER_DAILY_CAP, botConfig, parseMode } from "./config";
 
 describe("THREADS_BOT_MODE", () => {
   test("only review and auto turn the bot on; unset or anything else is off", () => {
@@ -15,10 +15,10 @@ describe("THREADS_BOT_MODE", () => {
 });
 
 describe("botConfig", () => {
-  test("defaults: off, 3 per user, 200 in total, ±20%", () => {
+  test("defaults: off, 3 per user, 200 in total", () => {
     const config = botConfig({});
-    expect(config).toMatchObject({ mode: "off", userCap: 3, globalCap: 200, band: 0.2, signingSecrets: [] });
-    expect([DEFAULT_USER_DAILY_CAP, DEFAULT_GLOBAL_DAILY_CAP, DEFAULT_KCAL_BAND]).toEqual([3, 200, 0.2]);
+    expect(config).toMatchObject({ mode: "off", userCap: 3, globalCap: 200, signingSecrets: [] });
+    expect([DEFAULT_USER_DAILY_CAP, DEFAULT_GLOBAL_DAILY_CAP]).toEqual([3, 200]);
     expect(config.redirectUri).toBe("https://api.joyorogo.com/api/threads/callback");
     expect(config.siteUrl).toBe("https://joyorogo.com");
   });
@@ -33,14 +33,6 @@ describe("botConfig", () => {
     expect(caps("abc", "-1")).toEqual([3, 200]);
     expect(caps("2.5", "")).toEqual([3, 200]);
     expect(caps("999999999", "999999999")).toEqual([100_000, 100_000]);
-  });
-
-  test("band is clamped to 5% to 50%, garbage = 20%", () => {
-    expect(parseBand("0.15")).toBe(0.15);
-    expect(parseBand("0")).toBe(0.05);
-    expect(parseBand("3")).toBe(0.5);
-    expect(parseBand("x")).toBe(0.2);
-    expect(parseBand(undefined)).toBe(0.2);
   });
 
   test("secrets and urls are trimmed; the redirect follows BETTER_AUTH_URL; signing keys list the Threads secret first", () => {
