@@ -18,7 +18,7 @@ Post 2 (balasan, link di sini)
 
 batasnya: tawarannya muncul sekali per kebiasaan, bukan pengingat berulang. kalori favorit yang lo tambah sendiri pakai angka yang lo ketik. makronya diambil dari tabel TKPI atau perkiraan teks kalau ada, kosong kalau nggak ada.
 
-download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-favorit-catat-cepat
+download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/
 
 ## Instagram
 

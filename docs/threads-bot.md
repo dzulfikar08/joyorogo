@@ -5,10 +5,10 @@ replies with a calorie estimate. The estimate is the same photo scan the app use
 memory. **No photo is ever stored** (no R2, no dataset); the D1 row keeps only the media id, the author's username, the
 dish names, the kcal range, status and times.
 
-Status: code merged, **off by default** (`THREADS_BOT_MODE=off`). Nothing has run against the real Threads API yet: the
-brand account and Meta app did not exist when this was written. Every Threads call is covered by tests against a stubbed
-Graph API (`packages/api/src/lib/threads-bot/fixtures.ts`); the first live run is the real check. The things to watch on
-that run are listed under [First live run](#first-live-run).
+Status: live in `auto` since 2026-11-03 (`THREADS_BOT_MODE=auto` in `apps/server/wrangler.jsonc`; the code default when the
+var is unset is still `off`). Until App Review grants Advanced Access, Meta's mentions edge and webhooks only return
+mentions by **Threads Testers** of the app, so the bot answers testers only. Every Threads call is covered by tests
+against a stubbed Graph API (`packages/api/src/lib/threads-bot/fixtures.ts`).
 
 ## How it works
 
@@ -96,7 +96,7 @@ Perkiraan kalori dari fotomu:
 
 Total: 470–710 kcal (±20%)
 
-Perkiraan AI, bukan saran medis. Catat makananmu lebih mudah di JoyoRogo: https://joyorogo.com/?utm_source=threads&utm_medium=reply&utm_campaign=mention-bot
+Perkiraan AI, bukan saran medis. Catat makananmu lebih mudah di JoyoRogo: https://joyorogo.com/
 ```
 
 - **Range.** Each dish and the total are `kcal × (1 ± band)`, rounded to 10 kcal. There is no per-scan error band in the app
@@ -180,7 +180,7 @@ than 24 hours; the failure is harmless and retried.
    | `THREADS_ACCESS_TOKEN` | optional: a long-lived token to seed instead of using Connect |
    | `THREADS_WEBHOOK_SECRET` | optional, only if deliveries come back 401: the Meta app secret (Settings > Basic), accepted as a second signing key |
 
-   Vars (`apps/server/wrangler.jsonc`, already present): `THREADS_BOT_MODE` (`off`), `THREADS_BOT_USER_DAILY_CAP` (`3`),
+   Vars (`apps/server/wrangler.jsonc`, already present): `THREADS_BOT_MODE` (`auto`), `THREADS_BOT_USER_DAILY_CAP` (`3`),
    `THREADS_BOT_DAILY_CAP` (`200`); optional `THREADS_BOT_KCAL_BAND` (`0.2`).
 7. **Connect:** deploy, open `admin.joyorogo.com/#threads`, **Hubungkan Threads**, log in as the brand account and allow.
 8. **Try it in review mode:** set `THREADS_BOT_MODE=review`, tag the account on a food photo from a tester account, wait

@@ -10,7 +10,7 @@ bakwan 1 potong 140, tempe goreng 101, tahu goreng 46, kerupuk udang 72 kkal. to
 
 lo biasanya ambil berapa biji?
 
-hitungan lengkapnya: joyorogo.com/blog/kalori-gorengan/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-infografis-gorengan
+hitungan lengkapnya: joyorogo.com/blog/kalori-gorengan/
 
 ## Instagram
 

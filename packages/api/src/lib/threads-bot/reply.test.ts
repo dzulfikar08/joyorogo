@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import { findThreadsHiddenWords } from "./hidden-words";
 import {
   LOW_CONFIDENCE,
   MAX_REPLY_CHARS,
@@ -22,7 +23,7 @@ describe("kcalRange", () => {
 });
 
 describe("formatEstimate", () => {
-  test("Indonesian reply: a range per dish, the total range, the disclaimer and the campaign link", () => {
+  test("Indonesian reply: a range per dish, the total range, the disclaimer and the site link", () => {
     const { text, low, high, dishes } = formatEstimate(
       [
         { name: "Telur mata sapi", kcal: 90 },
@@ -36,9 +37,6 @@ describe("formatEstimate", () => {
     expect(text).toContain("Total: 470–710 kcal (±20%)");
     expect(text).toContain("Perkiraan AI, bukan saran medis");
     expect(text).toContain(REPLY_LINK);
-    expect(REPLY_LINK).toBe(
-      "https://joyorogo.com/?utm_source=threads&utm_medium=reply&utm_campaign=mention-bot",
-    );
     expect([low, high]).toEqual([470, 710]);
     expect(dishes.map((d) => [d.name, d.low, d.high])).toEqual([
       ["Nasi goreng", 400, 600],
@@ -94,6 +92,11 @@ describe("formatEstimate", () => {
     const { text } = formatEstimate([{ name: "Bakso", kcal: 400 }], 0.2);
     expect(text).not.toMatch(/berat badan|diet|gemuk|kurus|sehat|obesitas|lemak tubuh/i);
   });
+
+  test("contains nothing Threads users hide, so the reply stays visible under their post", () => {
+    const { text } = formatEstimate([{ name: "Nasi goreng", kcal: 500 }], 0.2);
+    expect(findThreadsHiddenWords(text)).toEqual([]);
+  });
 });
 
 describe("cleanDishName", () => {
@@ -131,10 +134,33 @@ describe("UNCLEAR_REPLY and replyTextProblem", () => {
     expect(UNCLEAR_REPLY).not.toMatch(/\d|kcal|berat|diet/i);
   });
 
+  test("the polite reply contains nothing Threads users hide", () => {
+    expect(findThreadsHiddenWords(UNCLEAR_REPLY)).toEqual([]);
+  });
+
   test("an admin text must be 1 to 500 characters", () => {
     expect(replyTextProblem("")).not.toBeNull();
     expect(replyTextProblem("   ")).not.toBeNull();
     expect(replyTextProblem("a".repeat(501))).not.toBeNull();
     expect(replyTextProblem("a".repeat(500))).toBeNull();
+  });
+});
+
+describe("findThreadsHiddenWords", () => {
+  test("catches tracking parameters inside links", () => {
+    expect(
+      findThreadsHiddenWords("joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=x"),
+    ).toEqual(["utm_source=", "utm_campaign="]);
+    expect(findThreadsHiddenWords("play.google.com/store/apps/details?id=a&referrer=b")).toEqual([
+      "referrer=",
+    ]);
+  });
+
+  test("words match at word edges, case-insensitive, any spacing inside phrases", () => {
+    expect(findThreadsHiddenWords("Jujur, ini enak")).toEqual(["jujur"]);
+    expect(findThreadsHiddenWords("cek  Komen ya")).toEqual(["cek komen"]);
+    expect(findThreadsHiddenWords("lewat Bluetooth, bukan cloud")).toEqual([]);
+    expect(findThreadsHiddenWords("buka joyorogos.id")).toEqual([]);
+    expect(findThreadsHiddenWords("buka https://s.id/abc")).toEqual(["s.id"]);
   });
 });

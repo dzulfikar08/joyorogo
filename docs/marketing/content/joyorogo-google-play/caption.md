@@ -28,7 +28,7 @@ Post 2 (balasan, link di sini)
 > Terhubung ke JoyoFit & smartwatch buat olahraga dan tidur ✅
 
 Yang Android, mari mulai hitung kalori mu 🙌🙌
-play.google.com/store/apps/details?id=com.joyodigitama.joyorogo&referrer=utm_source%3Dthreads%26utm_medium%3Dsocial%26utm_campaign%3D2026-10-google-play
+play.google.com/store/apps/details?id=com.joyodigitama.joyorogo
 
 ## Instagram
 

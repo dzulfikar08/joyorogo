@@ -20,7 +20,7 @@ Post 2 (balasan, link di sini)
 
 batasnya: ini bukan saran medis dan bukan diagnosis. 1% per minggu itu pilihan aplikasi, bukan ambang klinis. 1,2 sampai 1,6 g/kg itu panduan, bukan resep. kartunya cuma ngajak melambat, dan kalau ragu, tanya dokter atau ahli gizi. nggak muncul buat mode Hamil, Menyusui, atau Naikin BB.
 
-download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-pelan-pelan-protein
+download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/
 
 ## Instagram
 

@@ -18,7 +18,7 @@ Post 2 (balasan, link di sini)
 
 batasnya: ini bukan angka yang lebih akurat, cuma seakurat catatan terakhir lo. nama makanannya harus sama persis (nasi putih nggak minjem dari nasi goreng). kalau angka lo beda lebih dari dua kali lipat dari perkiraan AI, yang tampil angka AI. hasil scan tetap perkiraan.
 
-download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-seperti-biasanya
+download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/
 
 ## Instagram
 

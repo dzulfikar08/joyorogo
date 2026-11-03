@@ -14,9 +14,9 @@ update 20 Okt juga ada:
 
 Android tes tertutup, iPhone di App Store, atau langsung di web.
 
-joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-update-fitur
+joyorogo.com/
 
-target makan sekarang ikut level aktivitas yang lo pilih, hitungannya di sini: joyorogo.com/panduan/kalori?utm_source=threads&utm_medium=social&utm_campaign=2026-10-update-fitur
+target makan sekarang ikut level aktivitas yang lo pilih, hitungannya di sini: joyorogo.com/panduan/kalori
 
 ## Instagram
 

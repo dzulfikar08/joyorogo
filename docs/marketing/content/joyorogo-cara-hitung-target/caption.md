@@ -10,7 +10,7 @@ hitungannya: energi tubuh pas diam (BMR, rumus Mifflin-St Jeor) x level aktivita
 
 levelnya: hampir selalu duduk 1,2, ringan bergerak 1,375, cukup aktif 1,55, sangat aktif 1,725, ekstra aktif 1,9. app cuma kasih saran dari langkah dan tren berat, yang mutusin tetap lo.
 
-semua angka perkiraan, bukan saran medis. rumus lengkap + sumbernya: joyorogo.com/panduan/kalori?utm_source=threads&utm_medium=social&utm_campaign=2026-10-cara-hitung-target
+semua angka perkiraan, bukan saran medis. rumus lengkap + sumbernya: joyorogo.com/panduan/kalori
 
 ## Instagram
 

@@ -20,7 +20,7 @@ Post 2 (balasan, link di sini)
 
 batasnya: kalori hasil hitung ulang itu perkiraan (4/4/9 kkal per gram), bukan angka resmi label, cek ke kemasan lo. gambar produk cuma ada kalau Open Food Facts punya foto depannya, dan cuma untuk catatan baru. foto produk dari kontributor Open Food Facts (CC BY-SA).
 
-download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-barcode-teliti
+download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/
 
 ## Instagram
 

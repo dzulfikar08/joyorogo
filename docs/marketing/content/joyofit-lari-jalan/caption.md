@@ -22,7 +22,7 @@ Post 3 (balasan, link di sini)
 
 getar dan petunjuk detak jantung butuh latihan Lari yang jalan di jam dan ngirim detak jantung langsung. Coach butuh JoyoRogo Pro. download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau web. dites di Huawei Watch Fit 4 Pro, jam lain masih eksperimen. tidak berafiliasi dengan Huawei. bukan saran medis.
 
-fit.joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-lari-jalan
+fit.joyorogo.com/
 
 ## Instagram
 
