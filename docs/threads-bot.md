@@ -5,7 +5,7 @@ replies with a calorie estimate. The estimate is the same photo scan the app use
 memory. **No photo is ever stored** (no R2, no dataset); the D1 row keeps only the media id, the author's username, the
 dish names with their grams, kcal and macros, the plate's kcal, status and times.
 
-Status (2026-11-03): live in `THREADS_BOT_MODE=review` on the shared Meta app **ThreadsAPI** (Threads app ID
+Status (2026-11-03): live in `THREADS_BOT_MODE=auto` (switched from `review` after three reviewed test replies) on the shared Meta app **ThreadsAPI** (Threads app ID
 `985569897159985`, also used by nempel and atur). Secrets `THREADS_APP_ID`, `THREADS_APP_SECRET` and
 `THREADS_WEBHOOK_VERIFY_TOKEN` are set; the redirect URI is registered; the webhook is verified and subscribed to
 `mentions` only (object Interaction). `joyorogo_com` is a Threads Tester (the add failed with Meta's `field_exception`
@@ -78,6 +78,7 @@ concurrent mentions cannot all pass a stale count (tests fire 10 and 20 at once 
 | --- | --- | --- |
 | `THREADS_BOT_USER_DAILY_CAP` | `3` | Scans per Threads username per day. `0` = nobody is answered. |
 | `THREADS_BOT_DAILY_CAP` | `200` | Scans per day over everyone. `0` = nobody is answered. |
+| `THREADS_BOT_UNCAPPED_USERS` | `dzulfikar.at` | Comma-separated usernames the per-user cap skips (the owner's testing account). They still count toward the global cap. |
 
 A scan that reaches the model costs a slot even when the photo was not food. A failed image fetch gives the slot back.
 Every scan also writes an `ai_usage` row (`scan_type = 'threads'`, no user) so the cost shows up beside the app's.
@@ -192,7 +193,8 @@ than 24 hours; the failure is harmless and retried.
 7. **Connect:** deploy, open `admin.joyorogo.com/#threads`, **Hubungkan Threads**, log in as the brand account and allow.
 8. **Try it in review mode:** set `THREADS_BOT_MODE=review`, tag the account on a food photo from a tester account, wait
    for the webhook (or press **Baca mention sekarang**), approve the draft, check the reply on Threads.
-9. Go `auto` only after a few dozen reviewed drafts look right.
+9. Go `auto` once the reviewed drafts look right. Before App Review only testers' mentions reach the bot, so `auto` only
+   answers testers until then.
 
 Deploying the migration: `packages/db/src/migrations/0068_threads_bot.sql` (also in `migrations-deploy/`) creates the two
 tables; the usual D1 migration step applies it.

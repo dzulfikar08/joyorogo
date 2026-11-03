@@ -422,6 +422,15 @@ describe("daily caps", () => {
     expect(scans).toBe(2);
   });
 
+  test("an uncapped user skips the per-user cap (any case, with @) but still counts toward the global cap", async () => {
+    const cfg = config({ THREADS_BOT_UNCAPPED_USERS: " @Owner , someone", THREADS_BOT_DAILY_CAP: "5" });
+    const outcomes = [];
+    for (let i = 0; i < 6; i++) outcomes.push(await processMention(deps(cfg), imagePost({ username: "owner" })));
+    expect(outcomes.slice(0, 5).every((o) => o.status === "pending_review")).toBe(true);
+    expect(outcomes[5]).toEqual({ status: "skipped", reason: "global_cap" });
+    expect(scans).toBe(5);
+  });
+
   test("a cap of 0 answers nobody", async () => {
     expect(
       await processMention(deps(config({ THREADS_BOT_USER_DAILY_CAP: "0" })), imagePost()),

@@ -105,6 +105,8 @@ declare module "cloudflare:workers" {
       // Scans per Threads user / in total per WIB day; empty = 3 / 200.
       THREADS_BOT_USER_DAILY_CAP?: string;
       THREADS_BOT_DAILY_CAP?: string;
+      // Comma-separated Threads usernames without the per-user cap (the global cap still applies).
+      THREADS_BOT_UNCAPPED_USERS?: string;
       THREADS_APP_ID?: string;
       THREADS_APP_SECRET?: string;
       THREADS_WEBHOOK_VERIFY_TOKEN?: string;

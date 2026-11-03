@@ -295,7 +295,7 @@ export async function processMention(
     mediaId,
     who,
     photo.sourceId,
-    { user: config.userCap, global: config.globalCap },
+    { user: config.uncappedUsers.includes(who) ? Number.MAX_SAFE_INTEGER : config.userCap, global: config.globalCap },
     now,
   );
   if (slot === "gone") return { status: "duplicate" };

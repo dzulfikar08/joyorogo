@@ -14,6 +14,8 @@ export type BotEnv = {
   THREADS_BOT_USER_DAILY_CAP?: string;
   /** Scans per WIB day over everyone; unset or garbage = 200, "0" = nobody is answered. */
   THREADS_BOT_DAILY_CAP?: string;
+  /** Comma-separated Threads usernames (with or without @) the per-user cap skips; the global cap still counts them. */
+  THREADS_BOT_UNCAPPED_USERS?: string;
   THREADS_APP_ID?: string;
   THREADS_APP_SECRET?: string;
   THREADS_WEBHOOK_VERIFY_TOKEN?: string;
@@ -31,6 +33,8 @@ export type BotConfig = {
   mode: BotMode;
   userCap: number;
   globalCap: number;
+  /** Lower-case usernames without the per-user cap. */
+  uncappedUsers: string[];
   appId?: string;
   appSecret?: string;
   verifyToken?: string;
@@ -63,6 +67,10 @@ export function botConfig(env: BotEnv): BotConfig {
     mode: parseMode(env.THREADS_BOT_MODE),
     userCap: parseCap(env.THREADS_BOT_USER_DAILY_CAP, DEFAULT_USER_DAILY_CAP),
     globalCap: parseCap(env.THREADS_BOT_DAILY_CAP, DEFAULT_GLOBAL_DAILY_CAP),
+    uncappedUsers: (env.THREADS_BOT_UNCAPPED_USERS ?? "")
+      .split(",")
+      .map((name) => name.trim().replace(/^@/, "").toLowerCase())
+      .filter(Boolean),
     appId: clean(env.THREADS_APP_ID),
     appSecret: clean(env.THREADS_APP_SECRET),
     verifyToken: clean(env.THREADS_WEBHOOK_VERIFY_TOKEN),
