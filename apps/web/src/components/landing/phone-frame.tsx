@@ -77,10 +77,14 @@ export function BrowserShot({ alt, className }: { alt: string; className?: strin
   );
 }
 
-/** Hero: Beranda in a phone on a solid stage, real food cutouts peeking from the corners (decorative). */
-export function HeroShot() {
+/**
+ * Hero: the scan result (photo → kcal, grams and macros per item) in a phone on a solid stage, real food cutouts
+ * peeking from the corners (decorative). On phones the shot sits between the headline and the buttons, so it is
+ * cropped to its top (total and first item) and fades out instead of pushing the buttons below the fold.
+ */
+export function HeroShot({ className }: { className?: string }) {
   return (
-    <figure className="reveal-in relative mx-auto w-full max-w-[22rem] md:max-w-[26rem]">
+    <figure className={cn("reveal-in relative mx-auto w-full max-w-[22rem] md:max-w-[26rem]", className)}>
       <div
         aria-hidden
         className="absolute inset-x-4 top-10 bottom-6 rounded-[2.5rem] bg-makan-soft md:inset-x-0"
@@ -91,7 +95,7 @@ export function HeroShot() {
         width={320}
         height={308}
         decoding="async"
-        className="absolute -top-5 right-1 z-10 w-20 rotate-6 md:-right-4 md:top-6 md:w-28"
+        className="absolute -top-3 right-3 z-10 w-16 rotate-6 md:-right-4 md:top-6 md:w-28"
       />
       <img
         src="/food/ayam-bumbu-kuning.webp"
@@ -101,12 +105,14 @@ export function HeroShot() {
         decoding="async"
         className="absolute -right-2 bottom-16 z-10 hidden w-24 -rotate-6 md:-right-14 md:bottom-24 md:block md:w-32 md:animate-drift"
       />
-      <PhoneShot
-        shot="beranda"
-        priority
-        alt="Beranda JoyoRogo: sisa 735 kkal hari ini dari target 1.635, protein, aktivitas, tidur, air, dan berat"
-        className="relative my-8 w-[min(100%,17.5rem)]"
-      />
+      <div className="relative max-h-[22rem] overflow-hidden [mask-image:linear-gradient(to_bottom,black_75%,transparent)] md:max-h-none md:overflow-visible md:[mask-image:none]">
+        <PhoneShot
+          shot="scan"
+          priority
+          alt="Hasil scan foto di JoyoRogo: total 400 kkal, soto daging 350 kkal (1 mangkuk, ±400 g, protein 20 g, karbo 25 g, lemak 18 g) dan bawang goreng 50 kkal"
+          className="mt-4 w-[min(100%,13.5rem)] md:my-8 md:w-[min(100%,17.5rem)]"
+        />
+      </div>
       <figcaption className="relative pb-2 text-center text-xs text-muted-foreground">
         Tampilan asli aplikasi, dengan data contoh.
       </figcaption>

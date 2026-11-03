@@ -9,7 +9,7 @@ export const OG_IMAGE = {
   path: "/og.png",
   width: 1200,
   height: 630,
-  alt: "JoyoRogo: diet yang paham porsi warteg. Tiga angka harian: boleh makan, harus bakar, butuh tidur.",
+  alt: "JoyoRogo: diet yang paham porsi warteg. Foto nasi goreng dengan hasil scan: nasi goreng 350 g 550 kcal, kerupuk 200 kcal, total 790 kcal, protein 14 g, karbo 112 g, lemak 28 g.",
 } as const;
 
 /** Share card for the Malaysian landing (og/og-my.html, `bun run og:my`). */

@@ -439,12 +439,13 @@ function Landing() {
       <PublicHeader />
 
       <main>
-        {/* Hero */}
+        {/* Hero. On phones the buttons stay above the fold and the scan shot follows them; on desktop the shot spans
+            the right column. */}
         <section
           data-section="hero"
-          className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 pt-8 pb-14 md:grid-cols-[1.05fr_1fr] md:gap-8 md:px-6 md:pt-14 md:pb-20"
+          className="mx-auto grid w-full max-w-6xl items-center gap-x-8 gap-y-6 px-4 pt-8 pb-14 md:grid-cols-[1.05fr_1fr] md:grid-rows-[auto_auto] md:px-6 md:pt-14 md:pb-20"
         >
-          <div className="stagger-enter">
+          <div className="stagger-enter md:self-end">
             <h1 className="max-w-xl text-[2.625rem] leading-[1.04] font-extrabold tracking-tight text-balance md:text-[4rem]">
               Diet yang paham porsi warteg
             </h1>
@@ -453,27 +454,25 @@ function Landing() {
               tiga angka: berapa lagi yang boleh kamu makan, berapa yang perlu dibakar, dan butuh
               tidur berapa jam.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Button
-                size="lg"
-                render={
-                  <a
-                    href="#coba"
-                    data-revklik-goal="try_scan_click"
-                    data-revklik-goal-location="hero"
-                  />
-                }
-              >
-                Coba gratis
-              </Button>
-              <AppDownload location="hero" />
-            </div>
-            <p className="mt-4 text-sm text-muted-foreground">
+          </div>
+          <HeroShot className="order-last md:order-none md:col-start-2 md:row-span-2 md:row-start-1" />
+          <div className="-mt-1 md:mt-0 md:self-start">
+            <Button
+              size="lg"
+              render={
+                <a href="#coba" data-revklik-goal="try_scan_click" data-revklik-goal-location="hero" />
+              }
+            >
+              Coba gratis
+            </Button>
+            <p className="mt-3 text-sm text-muted-foreground">
               {config.data?.anonScans ? `${config.data.anonScans} foto pertama tanpa daftar. ` : ""}
               Foto tidak disimpan.
             </p>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <AppDownload location="hero" />
+            </div>
           </div>
-          <HeroShot />
         </section>
 
         {/* Founder intro price, while slots last — after the hero so the
@@ -633,14 +632,14 @@ function Landing() {
               <ScanDemo />
               <figure className="mt-6 flex flex-col items-center gap-5 rounded-[1.75rem] bg-background p-5 sm:flex-row">
                 <PhoneShot
-                  shot="scan"
-                  alt="Layar hasil scan AI: total 400 kkal, soto daging dan bawang goreng dengan kolom kalori yang bisa diubah dan pilihan nama lain"
+                  shot="beranda"
+                  alt="Beranda JoyoRogo: sisa 735 kkal hari ini dari target 1.635, protein, aktivitas, tidur, air, dan berat"
                   className="w-[min(100%,13rem)] shrink-0"
                 />
                 <figcaption className="text-[0.9375rem] leading-relaxed text-muted-foreground">
-                  <span className="block font-bold text-foreground">Hasil scan di aplikasi</span>
-                  Tiap item punya kolom kalori yang bisa kamu ubah sebelum disimpan. Di sini porsi
-                  nasinya dikecilkan dan total kalorinya langsung ikut berubah.
+                  <span className="block font-bold text-foreground">Lalu masuk ke Beranda</span>
+                  Hasil scan yang kamu simpan langsung mengurangi sisa kalori hari ini, lengkap
+                  dengan protein, karbo, dan lemaknya.
                 </figcaption>
               </figure>
             </div>
