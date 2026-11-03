@@ -104,7 +104,7 @@
     "SITE_URL": "https://joyorogo.com",
     "JOYOFIT_API_URL": "https://api.fit.joyorogo.com",
     "FREE_DAILY_SCANS": "3",
-    "THREADS_BOT_MODE": "off",
+    "THREADS_BOT_MODE": "auto",
     "THREADS_BOT_USER_DAILY_CAP": "3",
     "THREADS_BOT_DAILY_CAP": "200",
     "STRAVA_CAPACITY": "10",
