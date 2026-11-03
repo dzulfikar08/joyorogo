@@ -67,6 +67,11 @@ export function cleanDishName(name: string): string {
   );
 }
 
+/** The one reply a person gets per day once they pass the per-user cap (THREADS_BOT_USER_DAILY_CAP). */
+export function capReply(perDay: number): string {
+  return `Kuota hari ini sudah habis (${perDay} foto per hari). Coba lagi besok ya, atau catat di aplikasi JoyoRogo: ${REPLY_LINK}`;
+}
+
 /** True when the scan is too unsure to publish numbers: no items, or confidence reported and low on average. */
 export function isLowConfidence(items: readonly ReplyItem[]): boolean {
   const shown = items.filter((item) => item.kcal > 0);

@@ -240,8 +240,8 @@ function Draft({ item }: { item: ThreadsMentionItem }) {
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="font-semibold">@{item.author || "?"}</span>
           <span className="text-xs text-muted-foreground">{fmtDateTime(item.createdAt)}</span>
-          <Badge tone={item.kind === "unclear" ? "amber" : "green"}>
-            {item.kind === "unclear" ? "Foto kurang jelas" : "Perkiraan gizi"}
+          <Badge tone={item.kind === "estimate" ? "green" : "amber"}>
+            {item.kind === "unclear" ? "Foto kurang jelas" : item.kind === "capped" ? "Kuota habis" : "Perkiraan gizi"}
           </Badge>
           {item.permalink && (
             <a

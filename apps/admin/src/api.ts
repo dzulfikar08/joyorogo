@@ -639,7 +639,7 @@ export interface ThreadsMentionItem {
   author: string;
   status: "received" | "scanning" | "skipped" | "pending_review" | "publishing" | "sent" | "rejected" | "failed";
   skipReason: string | null;
-  kind: "estimate" | "unclear" | null;
+  kind: "estimate" | "unclear" | "capped" | null;
   dishes: { name: string; kcal: number; grams?: number; drink?: boolean }[];
   kcal: number | null;
   replyText: string | null;

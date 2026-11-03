@@ -126,6 +126,25 @@ export async function reserveSlot(
   return (mine?.n ?? 0) >= caps.user ? "user_cap" : "global_cap";
 }
 
+/**
+ * Claims today's one "quota used up" reply for this author: the mention turns `scanning` with kind `capped` (without
+ * `scanned_at`, so it costs no slot) only when no other mention of theirs got that reply today. One statement that
+ * also sets the kind, so a burst of over-cap tags still gets a single notice.
+ */
+export async function claimCapNotice(db: Database, mediaId: string, author: string, now: number): Promise<boolean> {
+  const { startMs, endMs } = capWindow(now);
+  const rows = await db.all<{ media_id: string }>(sql`
+    UPDATE threads_mention SET status = 'scanning', kind = 'capped', updated_at = ${now}
+    WHERE media_id = ${mediaId} AND status = 'received'
+      AND NOT EXISTS (
+        SELECT 1 FROM threads_mention WHERE author_username = ${author.toLowerCase()} AND kind = 'capped'
+          AND created_at >= ${startMs} AND created_at < ${endMs}
+      )
+    RETURNING media_id
+  `);
+  return rows.length === 1;
+}
+
 /** Another mention already answers (or is answering) this same photo: five people tagging us under one post get one reply. */
 export async function photoAlreadyHandled(
   db: Database,

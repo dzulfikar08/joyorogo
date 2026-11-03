@@ -17,7 +17,7 @@ import {
   sweepReceived,
 } from "./pipeline";
 import type { BotDeps } from "./pipeline";
-import { MAX_REPLY_CHARS, REPLY_LINK, UNCLEAR_REPLY } from "./reply";
+import { MAX_REPLY_CHARS, REPLY_LINK, UNCLEAR_REPLY, capReply } from "./reply";
 import { getMention } from "./store";
 
 const { client, db } = await d1TestDb();
@@ -378,19 +378,38 @@ describe("filters run before any model call", () => {
 });
 
 describe("daily caps", () => {
-  test("per Threads user: the 4th photo of the day is skipped before the model (default 3)", async () => {
+  test("per Threads user: the 4th photo gets one short quota reply instead of a scan, the 5th gets silence (default 3)", async () => {
     const outcomes = [];
-    for (let i = 0; i < 4; i++)
+    for (let i = 0; i < 5; i++)
       outcomes.push(await processMention(deps(), imagePost({ username: "greedy" })));
-    expect(outcomes.map((o) => o.status)).toEqual([
-      "pending_review",
-      "pending_review",
-      "pending_review",
-      "skipped",
-    ]);
-    expect(outcomes[3]).toEqual({ status: "skipped", reason: "user_cap" });
+    expect(outcomes.slice(0, 3)).toEqual(
+      Array(3).fill({ status: "pending_review", kind: "estimate" }),
+    );
+    expect(outcomes[3]).toEqual({ status: "pending_review", kind: "capped" });
+    expect(outcomes[4]).toEqual({ status: "skipped", reason: "user_cap" });
     expect(scans).toBe(3);
     expect(graph.imageFetches).toBe(3);
+  });
+
+  test("the quota reply says the cap and links the app, posts as-is in auto mode, and costs no slot", async () => {
+    const cfg = config({ THREADS_BOT_MODE: "auto", THREADS_BOT_DAILY_CAP: "4" });
+    for (let i = 0; i < 3; i++) await processMention(deps(cfg), imagePost({ username: "greedy" }));
+    const capped = imagePost({ username: "greedy" });
+    expect((await processMention(deps(cfg), capped)).status).toBe("sent");
+    expect(graph.published.at(-1)!.text).toBe(capReply(3));
+    expect(graph.published.at(-1)!.replyTo).toBe(capped.id);
+    expect(capReply(3)).toContain("3 foto per hari");
+    expect(capReply(3)).toContain(REPLY_LINK);
+    // The global cap of 4 still has room: the notice did not take a slot.
+    expect((await processMention(deps(cfg), imagePost({ username: "other" }))).status).toBe("sent");
+  });
+
+  test("ten concurrent over-cap mentions from one user get exactly one quota reply", async () => {
+    for (let i = 0; i < 3; i++) await processMention(deps(), imagePost({ username: "burst2" }));
+    const posts = Array.from({ length: 10 }, () => imagePost({ username: "burst2" }));
+    const outcomes = await Promise.all(posts.map((post) => processMention(deps(), post)));
+    expect(outcomes.filter((o) => o.status === "pending_review")).toHaveLength(1);
+    expect(outcomes.filter((o) => o.status === "skipped")).toHaveLength(9);
   });
 
   test("the user cap is per user and case-insensitive; tomorrow (WIB) is a new day", async () => {
@@ -400,8 +419,8 @@ describe("daily caps", () => {
       "pending_review",
     );
     expect(await processMention(deps(), imagePost({ username: "GREEDY" }))).toEqual({
-      status: "skipped",
-      reason: "user_cap",
+      status: "pending_review",
+      kind: "capped",
     });
     clock = NOW + 24 * 3_600_000;
     expect(
@@ -451,8 +470,8 @@ describe("daily caps", () => {
       imagePost({ username: "snap", media_type: "TEXT_POST", media_url: undefined }),
     );
     expect(await processMention(deps(), imagePost({ username: "snap" }))).toEqual({
-      status: "skipped",
-      reason: "user_cap",
+      status: "pending_review",
+      kind: "capped",
     });
     expect(scans).toBe(3);
   });
@@ -460,8 +479,8 @@ describe("daily caps", () => {
   test("ten concurrent mentions from one user with a cap of 3 reach the model exactly 3 times", async () => {
     const posts = Array.from({ length: 10 }, () => imagePost({ username: "burst" }));
     const outcomes = await Promise.all(posts.map((post) => processMention(deps(), post)));
-    expect(outcomes.filter((o) => o.status === "pending_review")).toHaveLength(3);
-    expect(outcomes.filter((o) => o.status === "skipped")).toHaveLength(7);
+    expect(outcomes.filter((o) => o.status === "pending_review")).toHaveLength(4);
+    expect(outcomes.filter((o) => o.status === "skipped")).toHaveLength(6);
     expect(scans).toBe(3);
   });
 

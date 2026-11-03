@@ -14,8 +14,9 @@ import type { VisionAnalysis } from "../vision";
 import type { BotConfig } from "./config";
 import { fetchImage, getMedia, listMentions, publishReply } from "./graph";
 import type { ThreadsMedia } from "./graph";
-import { UNCLEAR_REPLY, formatEstimate, isLowConfidence } from "./reply";
+import { UNCLEAR_REPLY, capReply, formatEstimate, isLowConfidence } from "./reply";
 import {
+  claimCapNotice,
   STALE_MS,
   dishesJson,
   expireReceived,
@@ -50,7 +51,7 @@ export type MentionOutcome =
   | { status: "duplicate" }
   | { status: "queued" }
   | { status: "skipped"; reason: string }
-  | { status: "pending_review"; kind: "estimate" | "unclear" }
+  | { status: "pending_review"; kind: "estimate" | "unclear" | "capped" }
   | { status: "sent"; replyId: string }
   | { status: "failed"; error: string }
   | { status: "retry"; error: string };
@@ -299,6 +300,10 @@ export async function processMention(
     now,
   );
   if (slot === "gone") return { status: "duplicate" };
+  // Over the per-user cap: one short "quota used up" reply per person per day, then silence. The global cap and a cap of
+  // 0 (bot answering nobody) stay silent.
+  if (slot === "user_cap" && config.userCap > 0 && (await claimCapNotice(db, mediaId, who, now)))
+    return draft(deps, account, mediaId, { kind: "capped", text: capReply(config.userCap) });
   if (slot !== "reserved") return skip(slot);
 
   let image: { bytes: ArrayBuffer; mimeType: string };
@@ -350,7 +355,7 @@ export async function processMention(
 }
 
 type Draft = {
-  kind: "estimate" | "unclear";
+  kind: "estimate" | "unclear" | "capped";
   text: string;
   dishes?: string;
   kcal?: number;

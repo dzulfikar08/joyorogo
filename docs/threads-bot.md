@@ -81,6 +81,12 @@ concurrent mentions cannot all pass a stale count (tests fire 10 and 20 at once 
 | `THREADS_BOT_UNCAPPED_USERS` | `dzulfikar.at` | Comma-separated usernames the per-user cap skips (the owner's testing account). They still count toward the global cap. |
 
 A scan that reaches the model costs a slot even when the photo was not food. A failed image fetch gives the slot back.
+
+Past the per-user cap a person gets **one** short reply per WIB day, "Kuota hari ini sudah habis (3 foto per hari). Coba
+lagi besok ya, atau catat di aplikasi JoyoRogo: <link>" (kind `capped`, no scan, no slot), claimed in one statement so a
+burst of tags gets a single notice; further over-cap tags that day are skipped silently (`user_cap`). The global cap and
+a per-user cap of `0` stay silent.
+
 Every scan also writes an `ai_usage` row (`scan_type = 'threads'`, no user) so the cost shows up beside the app's.
 
 ### Scan
