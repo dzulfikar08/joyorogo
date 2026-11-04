@@ -31,8 +31,8 @@ export type AppConfig = {
   /** Founder checkout is available (paywall + a payment gateway configured). */
   billing: boolean;
   /**
-   * Checkout picker options in display order: "qris" (Pakasir) and/or
-   * "transfer" (DOKU). Missing on servers older than the picker.
+   * Checkout picker options in display order: "qris" and/or "transfer"
+   * (both DOKU; QRIS was Pakasir until it sunset). Missing on servers older than the picker.
    */
   paymentMethods?: PaymentMethod[];
   /** Apple in-app purchase is available on iOS (paywall configured). */
@@ -149,7 +149,7 @@ export type CheckoutPlan = "monthly" | "yearly";
 
 /**
  * Start a Founder checkout, opened in the browser. `method` picks QRIS
- * (Pakasir) or bank transfer (DOKU); omitted = server default. UI goes
+ * or bank transfer (both DOKU); omitted = server default. UI goes
  * through useCheckoutPicker, which asks the buyer first.
  */
 export function useFounderCheckout(plan: CheckoutPlan = "monthly") {

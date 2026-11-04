@@ -577,7 +577,7 @@ describe("MCP endpoint", () => {
     const result = await callTool(accessToken, "get_profile");
     expect(result.isError).toBe(true);
     expect(result.text).toContain(`${SITE}/harga`);
-    expect(result.text).toContain("JoyoRogo Pro");
+    expect(result.text).toContain("Joyo Pro");
     const audit = await db.select().from(mcpAudit).where(eq(mcpAudit.userId, "free"));
     expect(audit.map((row) => row.outcome)).toEqual(["not_pro"]);
     for (const name of ["get_plan", "get_sleep_nights", "get_sleep_findings"]) {

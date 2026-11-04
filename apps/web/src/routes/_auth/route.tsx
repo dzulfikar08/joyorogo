@@ -25,8 +25,9 @@ export const Route = createFileRoute("/_auth")({
       revalidateIfStale: true,
     });
     if (!session) {
-      // Deep links (undangan, /grup/...) come back to the same screen after login.
-      throw redirect({ to: "/login", search: { redirect: location.pathname } });
+      // Deep links (undangan, /grup/..., JoyoArto's /pro?from=joyoarto) come back to the same screen, query
+      // included, after login.
+      throw redirect({ to: "/login", search: { redirect: location.href } });
     }
     return { session };
   },
@@ -34,8 +35,9 @@ export const Route = createFileRoute("/_auth")({
 
 function AuthLayout() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const href = useRouterState({ select: (state) => state.location.href });
   const session = useSession();
-  if (session.data === null) return <Navigate to="/login" search={{ redirect: pathname }} replace />;
+  if (session.data === null) return <Navigate to="/login" search={{ redirect: href }} replace />;
   // Onboarding is a guided form; the app chrome starts once the plan exists.
   // VAR is a full-screen camera and keeps the screen to itself.
   const showNav = pathname !== "/onboarding" && !pathname.includes("/var/");

@@ -3,9 +3,9 @@
     "title": "Jadi Pro",
     "loadError": "Harga belum dapat dimuatkan.",
     "loading": "Memuatkan tawaran Pro",
-    "bundle": "Pro merangkumi JoyoRogo + JoyoFit.",
+    "bundle": "Joyo Pro merangkumi JoyoRogo, JoyoFit dan JoyoArto.",
     "buy": "Jadi Pro",
-    "buyStore": "Langgan JoyoRogo Pro",
+    "buyStore": "Langgan Joyo Pro",
     "opening": "Membuka pembayaran...",
     "later": "Lain kali",
     "noAutoRenew": "Tidak diperbaharui secara automatik.",
@@ -21,12 +21,13 @@
       "challenge": "Hanya Pro boleh membuat cabaran kumpulan. Anda tetap boleh menyertai cabaran kawan anda secara percuma.",
       "joyofit": "Sandaran cloud JoyoFit termasuk dalam Pro, satu pakej dengan JoyoRogo.",
       "scanleft": "Imbasan percuma anda hampir habis hari ini. Pro mendapat had jauh lebih besar.",
-      "chip": "Satu langganan untuk JoyoRogo dan JoyoFit. Inilah yang dibuka oleh Pro.",
+      "chip": "Satu langganan untuk JoyoRogo, JoyoFit dan JoyoArto. Inilah yang dibuka oleh Pro.",
       "mealplan": "Menu harian dan mingguan yang sesuai dengan kalori dan protein anda, serta senarai belian dan resipi.",
       "sleep": "Corak tidur yang dikaitkan dengan tabiat makan anda, dikira daripada data jam.",
       "recap": "Refleksi mingguan yang ditulis AI berdasarkan angka anda sendiri.",
       "workout": "Graf, pecahan dan zon latihan yang dikongsi kawan anda.",
-      "streak": "Streak {{days}} hari. Pro memberi had imbasan yang mencukupi untuk terus mencatat setiap hari."
+      "streak": "Streak {{days}} hari. Pro memberi had imbasan yang mencukupi untuk terus mencatat setiap hari.",
+      "joyoarto": "Joyo Pro juga membuka JoyoArto. Satu langganan untuk JoyoRogo, JoyoFit dan JoyoArto."
     }
   },
   "plan": {
@@ -67,6 +68,7 @@
       "cloud": "Sandaran cloud JoyoFit: senaman, tidur, laluan, penderia dan latihan beban",
       "challenge": "Cipta cabaran kumpulan sebagai hos (menyertai cabaran rakan kekal percuma)",
       "workoutDetail": "Butiran senaman rakan dalam suapan: degupan jantung, split, zon dan laluan yang mereka kongsi",
+      "apps": "Satu Joyo Pro untuk JoyoRogo, JoyoFit dan JoyoArto (catatan kewangan keluarga)",
       "reminders": "Peringatan apabila menu mingguan anda siap",
       "badge": "Lencana Pro pada profil anda",
       "support_other": "Sokongan keutamaan melalui DM Threads, dibalas selewat-lewatnya {{count}} hari bekerja"
@@ -82,7 +84,7 @@
   },
   "nudge": {
     "chip": "Pro",
-    "chipLabel": "Lihat pelan JoyoRogo Pro",
+    "chipLabel": "Lihat pelan Joyo Pro",
     "scanLeft": "Baki {{left}} daripada {{total}} imbasan percuma hari ini",
     "scanLeftNone": "Imbasan percuma hari ini sudah habis",
     "scanLeftAction": "Lihat Pro",
@@ -93,7 +95,7 @@
       "dismiss": "Tutup"
     },
     "more": {
-      "title": "JoyoRogo Pro",
+      "title": "Joyo Pro",
       "bodyCapped": "{{pro}} imbasan AI sehari, pelan makan dan sandaran cloud JoyoFit.",
       "bodyUnlimited": "Imbasan AI tanpa had, pelan makan dan sandaran cloud JoyoFit.",
       "cta": "Lihat Pro"
@@ -111,15 +113,15 @@
         "two": "Pilih QRIS atau Pindahan Bank, kemudian bayar."
       },
       "store": {
-        "one": "Pilih Bulanan atau Tahunan, kemudian ketik \"Langgan JoyoRogo Pro\".",
+        "one": "Pilih Bulanan atau Tahunan, kemudian ketik \"Langgan Joyo Pro\".",
         "playTwo": "Bayar melalui Google Play.",
         "appleTwo": "Bayar melalui App Store."
       },
       "done": "Pro aktif secara automatik selepas pembayaran."
     },
     "renewal": {
-      "playMonthly": "JoyoRogo Pro, langganan bulanan melalui Google Play. Diperbaharui secara automatik setiap bulan sehingga anda batalkan di Google Play > Langganan.",
-      "playYearly": "JoyoRogo Pro, langganan tahunan melalui Google Play. Diperbaharui secara automatik setiap tahun sehingga anda batalkan di Google Play > Langganan.",
+      "playMonthly": "Joyo Pro, langganan bulanan melalui Google Play. Diperbaharui secara automatik setiap bulan sehingga anda batalkan di Google Play > Langganan.",
+      "playYearly": "Joyo Pro, langganan tahunan melalui Google Play. Diperbaharui secara automatik setiap tahun sehingga anda batalkan di Google Play > Langganan.",
       "appleMonthly": "{{price}} sebulan, langganan App Store. Urus atau batalkan di Tetapan > Apple ID > Langganan.",
       "appleYearly": "{{price}} setahun, langganan App Store. Urus atau batalkan di Tetapan > Apple ID > Langganan."
     }
@@ -191,7 +193,7 @@
     "proUnlimited": "Pro buka imbasan tanpa had.",
     "proCapped_other": "Pro: {{count}} imbasan AI sehari.",
     "applePrice": "{{price}}/bulan melalui App Store, diperbaharui secara automatik.",
-    "playPrice": "JoyoRogo Pro {{price}}/bulan melalui Google Play.",
+    "playPrice": "Joyo Pro {{price}}/bulan melalui Google Play.",
     "upgrade": "Naik taraf",
     "checkPending": "Sudah bayar? Semak pembayaran",
     "restore": "Pulihkan pembelian",
@@ -211,12 +213,12 @@
     "notPaidBody": "Cuba lagi sebentar.",
     "checkFailed": "Semakan pembayaran gagal",
     "subscribedTitle": "Langganan aktif",
-    "subscribedBody": "JoyoRogo Pro aktif. Terima kasih!",
+    "subscribedBody": "Joyo Pro aktif. Terima kasih!",
     "waitingTitle": "Menunggu pembayaran",
     "waitingPlay": "Pro aktif secara automatik selepas pembayaran di Google Play selesai.",
     "waitingGeneric": "Pro aktif secara automatik selepas pembayaran selesai.",
     "restoredTitle": "Pembelian dipulihkan",
-    "restoredBody": "JoyoRogo Pro aktif.",
+    "restoredBody": "Joyo Pro aktif.",
     "restoreRejectedTitle": "Tidak dapat dipulihkan",
     "restoreRejectedApple": "Langganan ini sudah dipautkan ke akaun JoyoRogo lain.",
     "noSubscriptionTitle": "Tiada langganan",
@@ -287,5 +289,15 @@
   "sandbox": {
     "title": "Pembelian ujian",
     "body": "Ini pembelian ujian daripada Apple (sandbox), jadi tidak dicaj. Pro aktif selama 24 jam."
+  },
+  "joyoarto": {
+    "account": "Gunakan akaun Google yang sama seperti di JoyoArto. Anda log masuk sebagai {{email}}.",
+    "back": "Kembali ke JoyoArto",
+    "openJoyoRogo": "Buka JoyoRogo",
+    "paid": "Joyo Pro juga membuka JoyoArto. Muat semula halaman Tetapan JoyoArto jika belum kelihatan.",
+    "alreadyPro": {
+      "title": "Anda sudah ada Joyo Pro",
+      "body": "Joyo Pro pada {{email}} juga membuka JoyoArto, selagi JoyoArto menggunakan akaun Google yang sama."
+    }
   }
 }

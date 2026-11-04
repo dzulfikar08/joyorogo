@@ -16,7 +16,7 @@ function SyaratPage() {
     <LegalPage
       title="Syarat Layanan"
       intro="Aturan main memakai JoyoRogo, ditulis ringkas."
-      updated="Diperbarui 18 Oktober 2026"
+      updated="Diperbarui 4 November 2026"
     >
       <LegalSection title="Akun dan pemakaian">
         <p>
@@ -43,6 +43,16 @@ function SyaratPage() {
           </Link>
           . Isi dan harga paket bisa berubah; perubahan tidak memengaruhi periode yang sudah kamu
           bayar.
+        </p>
+        <p>
+          Pro (Joyo Pro) adalah satu langganan per akun JoyoRogo dan berlaku untuk JoyoRogo, JoyoFit,
+          dan JoyoArto (catatan keuangan keluarga). Di mana pun kamu membelinya (web, App Store, atau
+          Google Play), Pro aktif di ketiga aplikasi selama kamu memakai akun yang sama. JoyoArto
+          mencocokkan langgananmu lewat akun Google-mu; lihat{" "}
+          <Link to="/privasi" className={linkClass}>
+            Privasi
+          </Link>
+          .
         </p>
       </LegalSection>
 

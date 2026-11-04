@@ -526,6 +526,13 @@
       "when": 1793664045975,
       "tag": "0074_abnormal_colleen_wing",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "6",
+      "when": 1793803079389,
+      "tag": "0075_amused_sinister_six",
+      "breakpoints": true
     }
   ]
 }

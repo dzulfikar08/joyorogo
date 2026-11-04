@@ -11,8 +11,8 @@
     "title": "AI apps (MCP)",
     "subtitle": "Claude or ChatGPT can read your data in JoyoRogo and JoyoFit through a connector. Read only, needs Pro, and you can disconnect any time.",
     "pro": {
-      "required": "The connector is a JoyoRogo Pro feature. You can connect an AI app, but it can only read your data while Pro is active.",
-      "cta": "See JoyoRogo Pro"
+      "required": "The connector is a Joyo Pro feature. You can connect an AI app, but it can only read your data while Pro is active.",
+      "cta": "See Joyo Pro"
     },
     "connector": {
       "title": "Connector address",
@@ -130,7 +130,7 @@
     "limits": {
       "title": "Usage limits",
       "l1": "Read only: nothing can be logged, changed, or deleted through this connection.",
-      "l2": "JoyoRogo Pro only. On a Free account every question is answered with \"Pro is needed\".",
+      "l2": "Joyo Pro only. On a Free account every question is answered with \"Pro is needed\".",
       "l3": "At most 60 calls per minute and 1000 per 24 hours for your account. When you hit one, wait a moment or try again tomorrow.",
       "l4": "Activity is kept for 90 days, then deleted automatically.",
       "l5": "Disconnecting an app cuts its access at once, without waiting for its token to expire."
@@ -181,7 +181,7 @@
       "done": "The conversation was cleared from this tab."
     },
     "error": {
-      "paywall": "The coach is for JoyoRogo Pro, and your Pro is not active right now.",
+      "paywall": "The coach is for Joyo Pro, and your Pro is not active right now.",
       "paywallCta": "See Pro pricing",
       "capReached": "You have used all {{cap}} messages today. They come back tomorrow at 00:00 WIB.",
       "capReachedNoCap": "You have used all of today's messages. They come back tomorrow at 00:00 WIB.",
@@ -196,7 +196,7 @@
     },
     "locked": {
       "title": "The coach is for Pro",
-      "body": "With JoyoRogo Pro you can ask the coach here and in the app.",
+      "body": "With Joyo Pro you can ask the coach here and in the app.",
       "cta": "See Pro pricing"
     },
     "context": {

@@ -29,7 +29,7 @@
     "noKey": "The key is not on this phone, so nothing was sent. Enter the key again.",
     "noConsent": "Permission to share data is missing, so nothing was sent. Agree to it first.",
     "ceiling": "Today's call limit has been reached, so nothing was sent. Raise the limit in Joyo AI settings, or try again tomorrow.",
-    "notPro": "Joyo AI on JoyoRogo needs JoyoRogo Pro. In the phone app you can use your own key for free.",
+    "notPro": "Joyo AI on JoyoRogo needs Joyo Pro. In the phone app you can use your own key for free.",
     "cap": "Today's Joyo AI question limit has been reached. Try again tomorrow.",
     "off": "Joyo AI is unavailable right now. Try again later.",
     "notSignedIn": "Sign in to JoyoRogo to use Joyo AI."

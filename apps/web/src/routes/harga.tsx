@@ -294,7 +294,7 @@ function HargaPage() {
             className="pointer-events-none absolute -right-32 top-10 hidden w-28 -rotate-6 lg:block"
           />
           <header className="mx-auto max-w-md text-center">
-            <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">JoyoRogo Pro</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">Joyo Pro</h1>
             {config.data?.paywall && (
               <>
                 <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
@@ -303,7 +303,7 @@ function HargaPage() {
                   dukungan prioritas.
                 </p>
                 <p className="mt-2 text-[0.9375rem] font-semibold leading-relaxed">
-                  Pro mencakup JoyoRogo + JoyoFit.
+                  Joyo Pro mencakup JoyoRogo, JoyoFit, dan JoyoArto.
                 </p>
               </>
             )}

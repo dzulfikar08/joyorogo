@@ -1022,7 +1022,7 @@ function Landing() {
                 Hanya baca. AI tidak bisa mencatat, mengubah, atau menghapus apa pun di akunmu.
               </li>
               <li className="rounded-2xl bg-card px-4 py-3.5">
-                Fitur JoyoRogo Pro. Tanpa Pro, AI hanya menjawab bahwa Pro dibutuhkan.
+                Fitur Joyo Pro. Tanpa Pro, AI hanya menjawab bahwa Pro dibutuhkan.
               </li>
               <li className="rounded-2xl bg-card px-4 py-3.5">
                 Kamu bisa melihat aktivitasnya dan mencabut sambungan kapan saja dari Profil.

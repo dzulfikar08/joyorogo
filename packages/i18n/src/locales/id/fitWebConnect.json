@@ -11,8 +11,8 @@
     "title": "Aplikasi AI (MCP)",
     "subtitle": "Claude atau ChatGPT bisa membaca datamu di JoyoRogo dan JoyoFit lewat penyambung (connector). Hanya membaca, butuh Pro, dan bisa kamu putuskan kapan saja.",
     "pro": {
-      "required": "Penyambung ini fitur JoyoRogo Pro. Aplikasi AI bisa disambungkan, tapi baru bisa membaca datamu kalau Pro aktif.",
-      "cta": "Lihat JoyoRogo Pro"
+      "required": "Penyambung ini fitur Joyo Pro. Aplikasi AI bisa disambungkan, tapi baru bisa membaca datamu kalau Pro aktif.",
+      "cta": "Lihat Joyo Pro"
     },
     "connector": {
       "title": "Alamat penyambung",
@@ -129,7 +129,7 @@
     "limits": {
       "title": "Batas pemakaian",
       "l1": "Hanya membaca: tidak ada yang bisa dicatat, diubah, atau dihapus lewat koneksi ini.",
-      "l2": "Hanya untuk JoyoRogo Pro. Di akun Free, setiap pertanyaan dijawab bahwa Pro dibutuhkan.",
+      "l2": "Hanya untuk Joyo Pro. Di akun Free, setiap pertanyaan dijawab bahwa Pro dibutuhkan.",
       "l3": "Paling banyak 60 pemanggilan per menit dan 1000 per 24 jam untuk akunmu. Kalau tercapai, tunggu sebentar atau coba lagi besok.",
       "l4": "Aktivitas tercatat 90 hari, lalu dihapus otomatis.",
       "l5": "Memutuskan sebuah aplikasi langsung mematikan aksesnya, tanpa menunggu tokennya habis."
@@ -179,7 +179,7 @@
       "done": "Percakapan dihapus dari tab ini."
     },
     "error": {
-      "paywall": "Coach khusus JoyoRogo Pro, dan Pro-mu sedang tidak aktif.",
+      "paywall": "Coach khusus Joyo Pro, dan Pro-mu sedang tidak aktif.",
       "paywallCta": "Lihat harga Pro",
       "capReached": "Jatah {{cap}} pesan hari ini sudah habis. Jatah kembali besok pukul 00.00 WIB.",
       "capReachedNoCap": "Jatah pesan hari ini sudah habis. Jatah kembali besok pukul 00.00 WIB.",
@@ -194,7 +194,7 @@
     },
     "locked": {
       "title": "Coach khusus Pro",
-      "body": "Dengan JoyoRogo Pro kamu bisa bertanya ke coach di sini dan di aplikasi.",
+      "body": "Dengan Joyo Pro kamu bisa bertanya ke coach di sini dan di aplikasi.",
       "cta": "Lihat harga Pro"
     },
     "context": {

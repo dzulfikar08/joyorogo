@@ -22,7 +22,7 @@ Grandfathering: anyone who paid before keeps their lowest paid monthly-equivalen
 
 ## What Pro unlocks
 
-One paid tier, JoyoRogo Pro, covers JoyoRogo and JoyoFit. The marketing list is `PRO_BENEFIT_GROUPS` in `packages/i18n/src/pro-benefits.ts` (text in the `billing` i18n namespace, `pro.*`): `/harga` (page, comparison table, FAQ), the landing pricing block, `/my` and `/sg` pricing, `/pro`, the web Profil > Langganan screen and the native paywall all read it, so a benefit is added or removed in one place. Add an item only when its gate exists; each row below is the gate behind an item. `cloudUnlocked` (`lib/watch-workout-store.ts`) and `premiumUnlocked` (`lib/readiness-food.ts`) are the same rule: a paid or comped Pro account, or any account on a server without a paywall.
+One paid tier, **Joyo Pro** (called "JoyoRogo Pro" before 2026-11; store product ids and prices unchanged), covers JoyoRogo, JoyoFit and JoyoArto (`docs/joyo-pro.md`). The marketing list is `PRO_BENEFIT_GROUPS` in `packages/i18n/src/pro-benefits.ts` (text in the `billing` i18n namespace, `pro.*`): `/harga` (page, comparison table, FAQ), the landing pricing block, `/my` and `/sg` pricing, `/pro`, the web Profil > Langganan screen and the native paywall all read it, so a benefit is added or removed in one place. Add an item only when its gate exists; each row below is the gate behind an item. `cloudUnlocked` (`lib/watch-workout-store.ts`) and `premiumUnlocked` (`lib/readiness-food.ts`) are the same rule: a paid or comped Pro account, or any account on a server without a paywall.
 
 | Benefit (item id) | Gate (`packages/api/src`) |
 | --- | --- |
@@ -37,6 +37,7 @@ One paid tier, JoyoRogo Pro, covers JoyoRogo and JoyoFit. The marketing list is 
 | JoyoFit cloud backup: workouts, sleep, routes, sensors, strength (`cloud`) | `routers/fitness.ts` `cloudAccess`, `routers/sync.ts` (`fit` namespace writes), `routers/strength.ts`, `routers/fit-web.ts`, `lib/watch-workout-store.ts` (`cloudUnlocked`) |
 | Host group challenges (`challenge`) | `routers/challenge.ts` `create` (`canHostChallenge` in `lib/challenge-host.ts`; refuses with `FORBIDDEN`, `data.paywall`, `reason: "challenge"`). Joining stays free, and a challenge that already exists is not touched when its host stops being Pro. |
 | Friends' workout details in the feed (`workoutDetail`) | `routers/social.ts` post workout detail (`premiumUnlocked`). A free viewer gets `locked: true` with no heart rate, route or analysis; a Pro viewer gets them, but only the route the author chose to share (trimmed and simplified), never the full-resolution track. |
+| JoyoRogo, JoyoFit and JoyoArto in one plan (`apps`) | JoyoFit: the same account rows; JoyoArto: `POST /api/internal/joyo-pro/status` (`apps/server/src/joyo-pro.ts`, `lib/joyo-pro.ts`), same rule as `premiumUnlocked` |
 | Reminder when the weekly menu is ready (`reminders`) | `lib/reminders.ts` `plan` kind (`premiumUnlocked`) |
 | Pro badge (`badge`) | the Pro pill on Profil, by `tier` |
 | Priority support (`support`) | Not a server gate: a person answers. See below. |
@@ -51,7 +52,7 @@ Anyone can DM that account, so the person is asked to name the email of their Jo
 
 ## What follows the step automatically
 
-Web (DOKU/Pakasir) checkout amounts, `/api/config`, `/harga`, the landing page, the paywall and `/pro`. All read `founderYearlyPriceIdr` from `/api/config`, which is the current step's yearly.
+Web (DOKU; Pakasir only while `PAKASIR_ENABLED` is on, see `docs/billing-status.md`) checkout amounts, `/api/config`, `/harga`, the landing page, the paywall and `/pro`. All read `founderYearlyPriceIdr` from `/api/config`, which is the current step's yearly.
 
 ## What does NOT follow: store prices
 

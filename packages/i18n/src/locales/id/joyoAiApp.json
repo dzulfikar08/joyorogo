@@ -103,8 +103,8 @@
     },
     "paywall": {
       "title": "Joyo AI JoyoRogo untuk Pro",
-      "body": "Mesin JoyoRogo menjawab dengan membaca catatan makanmu dan butuh JoyoRogo Pro. Dengan kunci AI milikmu sendiri, Joyo AI gratis di aplikasi ini.",
-      "cta": "Lihat JoyoRogo Pro"
+      "body": "Mesin JoyoRogo menjawab dengan membaca catatan makanmu dan butuh Joyo Pro. Dengan kunci AI milikmu sendiri, Joyo AI gratis di aplikasi ini.",
+      "cta": "Lihat Joyo Pro"
     },
     "unavailable": {
       "title": "Mesin JoyoRogo belum tersedia",
@@ -220,7 +220,7 @@
     "ownName": "Kunci sendiri",
     "hostedReady": "Dijawab oleh server JoyoRogo, dengan batas pesan harian",
     "hostedUsed": "{{used}} dari {{cap}} pesan hari ini",
-    "hostedLocked": "Perlu JoyoRogo Pro",
+    "hostedLocked": "Perlu Joyo Pro",
     "hostedUnavailable": "Belum tersedia di server ini",
     "hostedChecking": "Memeriksa akunmu...",
     "ownNone": "Belum diatur. Gratis untuk semua.",

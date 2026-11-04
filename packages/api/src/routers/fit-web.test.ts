@@ -223,14 +223,14 @@ describe("Pro gate", () => {
     const paywall = {
       code: "FORBIDDEN",
       data: { paywall: true },
-      message: "JoyoFit web is for JoyoRogo Pro.",
+      message: "JoyoFit web is for Joyo Pro.",
     };
     await expect(call(fitWebRouter.recovery, {}, as("free"))).rejects.toMatchObject(paywall);
     await expect(call(fitWebRouter.workouts, {}, as("free"))).rejects.toMatchObject(paywall);
     const id = as("free");
     id.context.locale = "id";
     await expect(call(fitWebRouter.workouts, {}, id)).rejects.toMatchObject({
-      message: "JoyoFit web khusus pengguna JoyoRogo Pro.",
+      message: "JoyoFit web khusus pengguna Joyo Pro.",
     });
   });
 

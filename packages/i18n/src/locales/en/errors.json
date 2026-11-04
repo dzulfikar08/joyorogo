@@ -10,7 +10,7 @@
     "notFound": "This workout isn't in the cloud."
   },
   "fitWeb": {
-    "proRequired": "JoyoFit web is for JoyoRogo Pro.",
+    "proRequired": "JoyoFit web is for Joyo Pro.",
     "badRange": "That date range isn't valid."
   },
   "profile": {

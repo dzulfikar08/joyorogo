@@ -25,6 +25,8 @@ declare module "cloudflare:workers" {
       MCP_LIMITER?: RateLimitBinding;
       // Per-IP budget of dynamic OAuth client registrations; unset = no limit.
       OAUTH_REGISTER_LIMITER?: RateLimitBinding;
+      // Budget of Joyo Pro status calls from JoyoArto (POST /api/internal/joyo-pro/status); unset = no limit.
+      JOYO_INTERNAL_LIMITER?: RateLimitBinding;
       // Optional Cloudflare Email Service binding; unset = email off.
       EMAIL?: SendEmail;
       // Wrangler-deployed vars/secrets (see .env.schema); unset = feature off.
@@ -71,6 +73,10 @@ declare module "cloudflare:workers" {
       PAKASIR_API_KEY?: string;
       PAKASIR_WEBHOOK_SECRET?: string;
       PAKASIR_SANDBOX?: string;
+      // "1"/"on" = new checkouts may still go to Pakasir; default off (Pakasir sunsets November 2026).
+      PAKASIR_ENABLED?: string;
+      // Shared secret JoyoArto sends as x-joyo-internal-key to read Joyo Pro status; unset = the route is off.
+      JOYO_INTERNAL_KEY?: string;
       POLAR_ACCESS_TOKEN?: string;
       POLAR_WEBHOOK_SECRET?: string;
       POLAR_SERVER?: string;

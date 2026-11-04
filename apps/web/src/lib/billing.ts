@@ -8,9 +8,18 @@ import { revklikIds, trackEvent } from "./analytics";
 import { apiUrl } from "./app-config";
 import type { PaymentMethod } from "./app-config";
 import { fmtDateLong } from "./format";
+import type { CheckoutSource } from "./joyoarto";
 
-/** Where the Pro paywall screen was opened from; picks its subhead. */
-export type PaywallFrom = "onboarding" | "quota" | "banner" | "profile" | "fitness" | "challenge" | "joyofit";
+/** Where the Pro paywall screen was opened from; picks its subhead. `joyoarto` = JoyoArto's Upgrade link. */
+export type PaywallFrom =
+  | "onboarding"
+  | "quota"
+  | "banner"
+  | "profile"
+  | "fitness"
+  | "challenge"
+  | "joyofit"
+  | "joyoarto";
 
 export type PaywallSearch = { next?: string; from?: PaywallFrom; polar?: "success" };
 
@@ -23,7 +32,7 @@ export function validatePaywallSearch(search: Record<string, unknown>): PaywallS
       !search.next.startsWith("//")
         ? search.next
         : undefined,
-    from: (["onboarding", "quota", "banner", "profile", "fitness", "challenge", "joyofit"] as const).find(
+    from: (["onboarding", "quota", "banner", "profile", "fitness", "challenge", "joyofit", "joyoarto"] as const).find(
       (value) => search.from === value,
     ),
     polar: search.polar === "success" ? ("success" as const) : undefined,
@@ -46,10 +55,11 @@ export type CheckoutPlan = "monthly" | "yearly";
 
 /**
  * Start a Pro checkout, then leave for the gateway's page. `method`
- * picks QRIS (Pakasir) or bank transfer (DOKU); omitted = server default.
+ * picks QRIS or bank transfer (both DOKU); omitted = server default.
+ * `source` tags an order started from JoyoArto (its return page then links back).
  * UI goes through useCheckoutPicker, which asks the buyer first.
  */
-export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
+export function useFounderCheckout(plan: CheckoutPlan = "monthly", source?: CheckoutSource) {
   const navigate = useNavigate();
   const location = useLocation();
   return useMutation({
@@ -58,12 +68,12 @@ export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...localeHeader() },
-        body: JSON.stringify({ plan, method, ...revklikIds() }),
+        body: JSON.stringify({ plan, method, source, ...revklikIds() }),
       });
       if (res.status === 401) {
         // Signed out (e.g. the /harga visitor): let them sign in first, then
-        // bring them straight back to where they clicked.
-        navigate({ to: "/login", search: { redirect: location.pathname } });
+        // bring them straight back to where they clicked (with its query: ?from=joyoarto).
+        navigate({ to: "/login", search: { redirect: location.href } });
         return null;
       }
       const body = (await res.json().catch(() => null)) as {
@@ -84,7 +94,7 @@ export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
  * Start a Polar (USD, card, auto-renewing) checkout. Same sign-in handling
  * as useFounderCheckout. Messages stay English: the USD flow is English-only.
  */
-export function useUsdCheckout(plan: CheckoutPlan = "monthly") {
+export function useUsdCheckout(plan: CheckoutPlan = "monthly", source?: CheckoutSource) {
   const navigate = useNavigate();
   const location = useLocation();
   return useMutation({
@@ -93,10 +103,10 @@ export function useUsdCheckout(plan: CheckoutPlan = "monthly") {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...localeHeader() },
-        body: JSON.stringify({ plan, ...revklikIds() }),
+        body: JSON.stringify({ plan, source, ...revklikIds() }),
       });
       if (res.status === 401) {
-        navigate({ to: "/login", search: { redirect: location.pathname } });
+        navigate({ to: "/login", search: { redirect: location.href } });
         return null;
       }
       const body = (await res.json().catch(() => null)) as { url?: string; error?: string } | null;

@@ -44,7 +44,7 @@
   },
   "wall": {
     "title": "JoyoFit Web khusus pengguna Pro",
-    "body": "{{email}} belum punya JoyoRogo Pro. Dengan Pro, kamu bisa membuka data JoyoFit-mu di browser untuk dianalisis lebih dalam.",
+    "body": "{{email}} belum punya Joyo Pro. Dengan Pro, kamu bisa membuka data JoyoFit-mu di browser untuk dianalisis lebih dalam.",
     "featureOverview": "Ringkasan beban latihan, pemulihan, HRV, dan detak jantung istirahat",
     "featureWorkouts": "Daftar latihan dengan peta, grafik detak jantung, pace, dan zona",
     "featureSleep": "Tidur tiap malam, kebutuhan tidur, dan seberapa teratur tidurmu",

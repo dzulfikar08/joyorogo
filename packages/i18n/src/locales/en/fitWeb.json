@@ -44,7 +44,7 @@
   },
   "wall": {
     "title": "JoyoFit Web is for Pro members",
-    "body": "{{email}} doesn't have JoyoRogo Pro yet. With Pro you can open your JoyoFit data in the browser and dig deeper.",
+    "body": "{{email}} doesn't have Joyo Pro yet. With Pro you can open your JoyoFit data in the browser and dig deeper.",
     "featureOverview": "Overview of training load, recovery, HRV, and resting heart rate",
     "featureWorkouts": "Workout list with map, heart rate and pace charts, and zones",
     "featureSleep": "Sleep each night, your sleep need, and how regular your sleep is",

@@ -173,8 +173,10 @@ Pemilik server yang menentukan. Tanpa konfigurasi, semua fitur gratis tanpa bata
 | `FOUNDER_PRICE_LADDER`                                   | Tangga harga "pembeli:hargaBulanan[/hargaTahunan]", mis. `10:15000/149000,110:29000/199000,:49000/349000`: 10 pembeli pertama Rp15rb/bulan atau Rp149rb/tahun, pembeli 11-110 Rp29rb / Rp199rb, lalu Rp49rb / Rp349rb. Tanpa `/hargaTahunan` harga tahunan = `FOUNDER_YEARLY_PRICE_IDR` (maks 10x bulanan) atau 10x bulanan. Langkah awal tampil sebagai promo "Harga Founder (terbatas)"; pembeli promo itu mendapat lencana Founder. Pembeli = pengguna unik dengan minimal satu pembayaran. Yang pernah bayar mengunci harga terendahnya. Kosong = harga flat tanpa promo. | kosong |
 | `FOUNDER_YEARLY_PRICE_IDR`                               | Harga Pro per tahun untuk harga flat dan cadangan harga Apple/Play (transaksi bukan IDR). Kosong = 10x harga bulanan. Langkah tangga dengan `/hargaTahunan` eksplisit mengabaikannya. Produksi: `199000`. Harga toko tidak berubah otomatis: lihat `docs/pricing.md`. | kosong |
 | `BILLING_PROVIDER`                                       | Gateway untuk checkout tanpa pilihan metode (versi aplikasi lama): `doku` atau `pakasir`. Kosong = DOKU kalau diisi, kalau tidak Pakasir.                                   | kosong |
-| `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`, `DOKU_BASE_URL`     | DOKU Checkout, tombol **Transfer Bank**. Pembayaran aktif hanya kalau `FREE_DAILY_SCANS` juga diisi.                                                                        | kosong |
-| `PAKASIR_SLUG`, `PAKASIR_API_KEY`, `PAKASIR_WEBHOOK_SECRET` | Pakasir payment link khusus QRIS, tombol **QRIS**. Webhook proyek: `/api/billing/pakasir/webhook`.                                                                      | kosong |
+| `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`, `DOKU_BASE_URL`     | DOKU Checkout, tombol **QRIS** dan **Transfer Bank**. Pembayaran aktif hanya kalau `FREE_DAILY_SCANS` juga diisi.                                                                        | kosong |
+| `PAKASIR_SLUG`, `PAKASIR_API_KEY`, `PAKASIR_WEBHOOK_SECRET` | Pakasir payment link khusus QRIS (hanya untuk pesanan lama, atau pesanan baru kalau `PAKASIR_ENABLED=1`). Webhook proyek: `/api/billing/pakasir/webhook`.                                                                      | kosong |
+| `PAKASIR_ENABLED` | `1` = pesanan QRIS baru tetap lewat Pakasir. Kosong (bawaan) = QRIS lewat DOKU; webhook Pakasir tetap menuntaskan pesanan lama selama kuncinya diisi. Pakasir berhenti November 2026. | kosong |
+| `JOYO_INTERNAL_KEY` | Secret bersama JoyoArto untuk `POST /api/internal/joyo-pro/status` (status Joyo Pro, [docs/joyo-pro.md](docs/joyo-pro.md)). Kosong = rute mati (404). | kosong |
 | `PAKASIR_SANDBOX`                                        | `1` = pembayaran sandbox Pakasir ikut mengaktifkan Pro (uji coba saja).                                                                                                     | kosong |
 | `POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET`, `POLAR_PRODUCT_MONTHLY_ID`, `POLAR_PRODUCT_YEARLY_ID` | Polar (USD, merchant of record), opsi bayar kartu dolar di web untuk pembeli luar Indonesia. Mati sampai keempatnya diisi. Webhook: `/api/billing/polar/webhook`. Detail di `docs/pricing.md`. | kosong |
 | `POLAR_PRICE_MONTHLY_USD_CENTS`, `POLAR_PRICE_YEARLY_USD_CENTS`, `POLAR_SERVER` | Harga yang ditampilkan dalam sen dolar (bawaan 999 / 5999; tagihan sebenarnya mengikuti harga produk di Polar) dan `sandbox` untuk sandbox-api.polar.sh. | kosong |
@@ -187,10 +189,12 @@ Pemilik server yang menentukan. Tanpa konfigurasi, semua fitur gratis tanpa bata
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web Push: pengingat puasa intermiten dan semua notifikasi (sosial, grup, pengingat) di browser, lihat [docs/push.md](docs/push.md) (cron tiap 5 menit). Kosong = notifikasi web mati.                                                                          | kosong |
 | `EXPO_ACCESS_TOKEN` | Opsional: token akses Expo untuk push ke HP (JoyoRogo dan JoyoFit), hanya perlu kalau "enhanced push security" menyala di proyek EAS. | kosong |
 
-Pro bisa dibayar bulanan atau tahunan. Sebelum checkout, pembeli di Indonesia
-memilih **QRIS** (Pakasir) atau **Transfer Bank** (DOKU); tombol hanya muncul
-untuk gateway yang kredensialnya diisi, dan kalau cuma satu yang diisi pilihan
-dilewati. Pembayaran DOKU dan Pakasir sekali bayar (tanpa perpanjangan
+Pro (Joyo Pro: satu langganan untuk JoyoRogo, JoyoFit, dan JoyoArto, lihat
+[docs/joyo-pro.md](docs/joyo-pro.md)) bisa dibayar bulanan atau tahunan. Sebelum
+checkout, pembeli di Indonesia memilih **QRIS** atau **Transfer Bank**, keduanya
+lewat DOKU Checkout (QRIS membuka kanal QRIS DOKU). Pakasir berhenti November 2026:
+pesanan baru lewat Pakasir hanya kalau `PAKASIR_ENABLED=1`, webhooknya tetap
+menuntaskan pesanan lama. Pembayaran rupiah di web sekali bayar (tanpa perpanjangan
 otomatis). Pembeli di luar Indonesia melihat harga USD dan membayar kartu lewat
 Polar, berlangganan dengan perpanjangan otomatis. Notifikasi DOKU masuk ke
 `/api/billing/webhook`, Pakasir ke `/api/billing/pakasir/webhook`, Polar ke
@@ -355,7 +359,7 @@ Catatan desain dan runbook ada di `docs/`:
 
 | Topik | Dokumen |
 | ----- | ------- |
-| Harga, tangga founder, harga toko | [pricing.md](docs/pricing.md), [play-billing.md](docs/play-billing.md), [play-store.md](docs/play-store.md) |
+| Harga, tangga founder, harga toko, Joyo Pro untuk JoyoArto | [pricing.md](docs/pricing.md), [joyo-pro.md](docs/joyo-pro.md), [billing-status.md](docs/billing-status.md), [play-billing.md](docs/play-billing.md), [play-store.md](docs/play-store.md) |
 | Mode Hamil/Menyusui dan Naikin BB | [maternal-mode.md](docs/maternal-mode.md), [gain-mode.md](docs/gain-mode.md) |
 | Konektor AI (Claude, ChatGPT) | [mcp-connector.md](docs/mcp-connector.md) |
 | JoyoFit: coach, latihan beban, sinkron cloud, Strava | [coach.md](docs/coach.md), [strength-moved.md](docs/strength-moved.md), [watch-workout-cloud.md](docs/watch-workout-cloud.md), [strava.md](docs/strava.md) |

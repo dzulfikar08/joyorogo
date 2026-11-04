@@ -12,8 +12,8 @@ export type AppConfig = {
   /** Founder checkout is available (paywall + a payment gateway configured). */
   billing: boolean;
   /**
-   * Checkout picker options in display order: "qris" (Pakasir) and/or
-   * "transfer" (DOKU). Missing on servers older than the picker.
+   * Checkout picker options in display order: "qris" and/or "transfer"
+   * (both DOKU; QRIS was Pakasir until it sunset). Missing on servers older than the picker.
    */
   paymentMethods?: PaymentMethod[];
   /**

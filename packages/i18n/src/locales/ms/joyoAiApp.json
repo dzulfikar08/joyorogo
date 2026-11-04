@@ -103,8 +103,8 @@
     },
     "paywall": {
       "title": "Joyo AI JoyoRogo untuk Pro",
-      "body": "Enjin JoyoRogo menjawab dengan membaca catatan makan anda dan memerlukan JoyoRogo Pro. Dengan kunci AI anda sendiri, Joyo AI percuma dalam aplikasi ini.",
-      "cta": "Lihat JoyoRogo Pro"
+      "body": "Enjin JoyoRogo menjawab dengan membaca catatan makan anda dan memerlukan Joyo Pro. Dengan kunci AI anda sendiri, Joyo AI percuma dalam aplikasi ini.",
+      "cta": "Lihat Joyo Pro"
     },
     "unavailable": {
       "title": "Enjin JoyoRogo belum tersedia",
@@ -220,7 +220,7 @@
     "ownName": "Kunci sendiri",
     "hostedReady": "Dijawab oleh pelayan JoyoRogo, dengan had mesej harian",
     "hostedUsed": "{{used}} daripada {{cap}} mesej hari ini",
-    "hostedLocked": "Memerlukan JoyoRogo Pro",
+    "hostedLocked": "Memerlukan Joyo Pro",
     "hostedUnavailable": "Belum tersedia pada pelayan ini",
     "hostedChecking": "Menyemak akaun anda...",
     "ownNone": "Belum disediakan. Percuma untuk semua.",

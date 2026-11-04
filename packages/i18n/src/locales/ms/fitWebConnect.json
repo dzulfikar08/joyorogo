@@ -11,8 +11,8 @@
     "title": "Aplikasi AI (MCP)",
     "subtitle": "Claude atau ChatGPT boleh membaca data anda di JoyoRogo dan JoyoFit melalui penyambung (connector). Baca sahaja, memerlukan Pro, dan boleh anda putuskan pada bila-bila masa.",
     "pro": {
-      "required": "Penyambung ini ialah ciri JoyoRogo Pro. Aplikasi AI boleh disambungkan, tetapi hanya boleh membaca data anda jika Pro aktif.",
-      "cta": "Lihat JoyoRogo Pro"
+      "required": "Penyambung ini ialah ciri Joyo Pro. Aplikasi AI boleh disambungkan, tetapi hanya boleh membaca data anda jika Pro aktif.",
+      "cta": "Lihat Joyo Pro"
     },
     "connector": {
       "title": "Alamat penyambung",
@@ -129,7 +129,7 @@
     "limits": {
       "title": "Had penggunaan",
       "l1": "Baca sahaja: tiada apa-apa yang boleh dicatat, diubah atau dipadam melalui sambungan ini.",
-      "l2": "Untuk JoyoRogo Pro sahaja. Pada akaun Free, setiap soalan dijawab bahawa Pro diperlukan.",
+      "l2": "Untuk Joyo Pro sahaja. Pada akaun Free, setiap soalan dijawab bahawa Pro diperlukan.",
       "l3": "Paling banyak 60 panggilan seminit dan 1000 setiap 24 jam untuk akaun anda. Jika sudah dicapai, tunggu sebentar atau cuba lagi esok.",
       "l4": "Aktiviti dicatat selama 90 hari, kemudian dipadam secara automatik.",
       "l5": "Memutuskan sesebuah aplikasi terus mematikan aksesnya, tanpa menunggu tokennya tamat."
@@ -179,7 +179,7 @@
       "done": "Perbualan dipadam daripada tab ini."
     },
     "error": {
-      "paywall": "Coach khas untuk JoyoRogo Pro, dan Pro anda sedang tidak aktif.",
+      "paywall": "Coach khas untuk Joyo Pro, dan Pro anda sedang tidak aktif.",
       "paywallCta": "Lihat harga Pro",
       "capReached": "Jatah {{cap}} mesej hari ini sudah habis. Jatah kembali esok pada 12 tengah malam waktu tempatan.",
       "capReachedNoCap": "Jatah mesej hari ini sudah habis. Jatah kembali esok pada 12 tengah malam waktu tempatan.",
@@ -194,7 +194,7 @@
     },
     "locked": {
       "title": "Coach khas untuk Pro",
-      "body": "Dengan JoyoRogo Pro, anda boleh bertanya kepada coach di sini dan dalam aplikasi.",
+      "body": "Dengan Joyo Pro, anda boleh bertanya kepada coach di sini dan dalam aplikasi.",
       "cta": "Lihat harga Pro"
     },
     "context": {

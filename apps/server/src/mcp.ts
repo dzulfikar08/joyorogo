@@ -86,8 +86,8 @@ const appOrigin = (env: McpEnv) => (env.APP_URL || env.BETTER_AUTH_URL).replace(
 const siteOrigin = (env: McpEnv) => (env.SITE_URL ? env.SITE_URL.replace(/\/$/, "") : appOrigin(env));
 
 const upsell = (env: McpEnv) =>
-  `JoyoRogo Pro dibutuhkan untuk memakai koneksi AI. Upgrade di ${siteOrigin(env)}/harga, lalu tanya lagi (tidak perlu menyambung ulang).\n` +
-  `JoyoRogo Pro is required to use the AI connection. Upgrade at ${siteOrigin(env)}/harga, then ask again (no need to reconnect).`;
+  `Joyo Pro dibutuhkan untuk memakai koneksi AI. Upgrade di ${siteOrigin(env)}/harga, lalu tanya lagi (tidak perlu menyambung ulang).\n` +
+  `Joyo Pro is required to use the AI connection. Upgrade at ${siteOrigin(env)}/harga, then ask again (no need to reconnect).`;
 
 /** The one place a tool call is checked, limited, run and logged. */
 async function runTool(
