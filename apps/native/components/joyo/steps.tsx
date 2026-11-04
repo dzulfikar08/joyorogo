@@ -45,9 +45,12 @@ function StepRow({ step }: { step: StepView }) {
         <Ionicons
           name={bad ? "alert-circle-outline" : TOOL_ICON[step.tool]}
           size={16}
-          color={bad ? theme.colors.destructive : theme.colors.mutedForeground}
+          color={bad ? theme.colors.destructiveText : theme.colors.mutedForeground}
         />
-        <Text style={[styles.phrase, bad && { color: theme.colors.destructive }]} numberOfLines={2}>
+        <Text
+          style={[styles.phrase, bad && { color: theme.colors.destructiveText }]}
+          numberOfLines={2}
+        >
           {label}
         </Text>
         <Ionicons
@@ -63,7 +66,7 @@ function StepRow({ step }: { step: StepView }) {
             {stepCall(step)}
           </Text>
           {bad ? (
-            <Text style={[styles.small, { color: theme.colors.destructive }]}>
+            <Text style={[styles.small, { color: theme.colors.destructiveText }]}>
               {step.notConnected ? t("steps.notConnected") : t("steps.failed")}
             </Text>
           ) : null}

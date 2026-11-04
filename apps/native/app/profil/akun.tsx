@@ -93,13 +93,13 @@ function AkunContent() {
       quality: 0.8,
       exif: false,
     };
-    const result =
-      source === "camera"
-        ? await ImagePicker.launchCameraAsync(options)
-        : await ImagePicker.launchImageLibraryAsync(options);
-    const asset = result.canceled ? null : result.assets[0];
-    if (!asset) return;
     try {
+      const result =
+        source === "camera"
+          ? await ImagePicker.launchCameraAsync(options)
+          : await ImagePicker.launchImageLibraryAsync(options);
+      const asset = result.canceled ? null : result.assets[0];
+      if (!asset) return;
       // Center-crop ke persegi lalu kecilkan ke 512px: satu bentuk untuk semua.
       const side = Math.min(asset.width, asset.height);
       const rendered = await ImageManipulator.manipulate(asset.uri)
@@ -164,6 +164,7 @@ function AkunContent() {
         title={t("profile.photo.removeConfirm.title")}
         message={t("profile.photo.removeConfirm.message")}
         confirmLabel={t("common:actions.delete")}
+        cancelLabel={t("common:actions.cancel")}
         onConfirm={() => {
           setAvatarRemoveOpen(false);
           removeAvatar({ id: "avatar" });

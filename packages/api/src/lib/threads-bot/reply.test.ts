@@ -9,46 +9,46 @@ import {
   cleanDishName,
   formatEstimate,
   isLowConfidence,
-  kcalRange,
   replyTextProblem,
 } from "./reply";
 
-describe("kcalRange", () => {
-  test("±band in 10-kcal steps, never below 0", () => {
-    expect(kcalRange(500, 0.2)).toEqual({ low: 400, high: 600 });
-    expect(kcalRange(333, 0.2)).toEqual({ low: 270, high: 400 });
-    expect(kcalRange(5, 0.2)).toEqual({ low: 0, high: 10 });
-    expect(kcalRange(500, 0.1)).toEqual({ low: 450, high: 550 });
-  });
-});
-
 describe("formatEstimate", () => {
-  test("Indonesian reply: a range per dish, the total range, the disclaimer and the site link", () => {
-    const { text, low, high, dishes } = formatEstimate(
-      [
-        { name: "Telur mata sapi", kcal: 90 },
-        { name: "Nasi goreng", kcal: 500 },
-      ],
-      0.2,
-    );
-    expect(text).toContain("• Nasi goreng: 400–600 kcal");
-    expect(text).toContain("• Telur mata sapi: 70–110 kcal");
+  test("Indonesian reply: weight and kcal per dish, the plate's kcal and macros, the disclaimer and the site link", () => {
+    const { text, totalKcal, totals, dishes } = formatEstimate([
+      { name: "Telur mata sapi", kcal: 90, grams: 50, protein: 6.4, carbs: 0.4, fat: 7, fiber: 0 },
+      { name: "Nasi goreng", kcal: 500, grams: 300, protein: 12, carbs: 70, fat: 18, fiber: 3 },
+    ]);
+    expect(text).toContain("• Nasi goreng (300 g): 500 kcal");
+    expect(text).toContain("• Telur mata sapi (50 g): 90 kcal");
     expect(text.indexOf("Nasi goreng")).toBeLessThan(text.indexOf("Telur mata sapi"));
-    expect(text).toContain("Total: 470–710 kcal (±20%)");
+    expect(text).toContain("Total: 590 kcal");
+    expect(text).toContain("Protein 18 g · Karbo 70 g · Lemak 25 g · Serat 3 g");
     expect(text).toContain("Perkiraan AI, bukan saran medis");
     expect(text).toContain(REPLY_LINK);
-    expect([low, high]).toEqual([470, 710]);
-    expect(dishes.map((d) => [d.name, d.low, d.high])).toEqual([
-      ["Nasi goreng", 400, 600],
-      ["Telur mata sapi", 70, 110],
+    expect(REPLY_LINK).toBe("https://joyorogo.com/");
+    expect(totalKcal).toBe(590);
+    expect(totals).toEqual({ protein: 18, carbs: 70, fat: 25, fiber: 3 });
+    expect(dishes.map((d) => [d.name, d.grams, d.kcal])).toEqual([
+      ["Nasi goreng", 300, 500],
+      ["Telur mata sapi", 50, 90],
     ]);
   });
 
-  test("band comes from config", () => {
-    expect(formatEstimate([{ name: "Soto", kcal: 300 }], 0.1).text).toContain(
-      "• Soto: 270–330 kcal",
-    );
-    expect(formatEstimate([{ name: "Soto", kcal: 300 }], 0.1).text).toContain("(±10%)");
+  test("a dish the scan gave no weight for is listed without one; missing macros count as 0", () => {
+    const { text, totals } = formatEstimate([{ name: "Soto", kcal: 300, protein: 15 }]);
+    expect(text).toContain("• Soto: 300 kcal");
+    expect(totals).toEqual({ protein: 15, carbs: 0, fat: 0, fiber: 0 });
+  });
+
+  test("drinks show ml and numbers use Indonesian thousands separators, as in the app", () => {
+    const { text, dishes } = formatEstimate([
+      { name: "Ayam goreng", kcal: 1200, grams: 1500, protein: 90, carbs: 10, fat: 80, fiber: 0, kind: "makanan" },
+      { name: "Es cokelat", kcal: 250, grams: 300, protein: 6, carbs: 40, fat: 8, fiber: 1, kind: "minuman" },
+    ]);
+    expect(text).toContain("• Ayam goreng (1.500 g): 1.200 kcal");
+    expect(text).toContain("• Es cokelat (300 ml): 250 kcal");
+    expect(text).toContain("Total: 1.450 kcal");
+    expect(dishes.map((d) => d.drink ?? false)).toEqual([false, true]);
   });
 
   test("never passes 500 characters: ten long dish names fold into '+ N lainnya', the total still counts all", () => {
@@ -56,7 +56,7 @@ describe("formatEstimate", () => {
       name: `Hidangan panjang nomor ${i + 1} dengan nama yang sangat panjang sekali ya`,
       kcal: 600 - i * 10,
     }));
-    const { text, totalKcal } = formatEstimate(items, 0.2);
+    const { text, totalKcal } = formatEstimate(items);
     expect(text.length).toBeLessThanOrEqual(MAX_REPLY_CHARS);
     expect(text).toMatch(/\+ \d+ lainnya/);
     expect(totalKcal).toBe(items.reduce((sum, item) => sum + item.kcal, 0));
@@ -65,36 +65,30 @@ describe("formatEstimate", () => {
   });
 
   test("a plate of three ordinary dishes fits whole", () => {
-    const { text } = formatEstimate(
-      [
-        { name: "Nasi putih", kcal: 200 },
-        { name: "Ayam goreng", kcal: 260 },
-        { name: "Sambal", kcal: 30 },
-      ],
-      0.2,
-    );
+    const { text } = formatEstimate([
+      { name: "Nasi putih", kcal: 200, grams: 150, protein: 4, carbs: 45, fat: 0, fiber: 1 },
+      { name: "Ayam goreng", kcal: 260, grams: 120, protein: 25, carbs: 5, fat: 16, fiber: 0 },
+      { name: "Sambal", kcal: 30, grams: 20, protein: 0, carbs: 3, fat: 2, fiber: 1 },
+    ]);
     expect(text.length).toBeLessThanOrEqual(MAX_REPLY_CHARS);
     expect(text).not.toContain("lainnya");
   });
 
   test("items without calories are left out", () => {
-    const { dishes } = formatEstimate(
-      [
-        { name: "Air putih", kcal: 0 },
-        { name: "Tempe", kcal: 100 },
-      ],
-      0.2,
-    );
+    const { dishes } = formatEstimate([
+      { name: "Air putih", kcal: 0 },
+      { name: "Tempe", kcal: 100 },
+    ]);
     expect(dishes.map((d) => d.name)).toEqual(["Tempe"]);
   });
 
   test("says nothing about body, weight or health beyond the disclaimer", () => {
-    const { text } = formatEstimate([{ name: "Bakso", kcal: 400 }], 0.2);
+    const { text } = formatEstimate([{ name: "Bakso", kcal: 400 }]);
     expect(text).not.toMatch(/berat badan|diet|gemuk|kurus|sehat|obesitas|lemak tubuh/i);
   });
 
   test("contains nothing Threads users hide, so the reply stays visible under their post", () => {
-    const { text } = formatEstimate([{ name: "Nasi goreng", kcal: 500 }], 0.2);
+    const { text } = formatEstimate([{ name: "Nasi goreng", kcal: 500, grams: 300 }]);
     expect(findThreadsHiddenWords(text)).toEqual([]);
   });
 });

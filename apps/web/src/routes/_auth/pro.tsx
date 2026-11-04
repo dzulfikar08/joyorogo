@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ChevronDown, CircleCheck, CircleHelp, Loader } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -127,7 +127,7 @@ function FounderPage() {
   // Nothing to sell here (billing off) or nothing left to buy (sudah Pro):
   // continue straight away, no flash of the offer.
   if (!config.data.billing || profile.data?.tier === "founder") {
-    return <Navigate to={destination} replace />;
+    return <RedirectTo to={destination} />;
   }
 
   const standardMonthly = config.data.promo?.nextPriceIdr ?? config.data.founderPriceIdr;
@@ -311,4 +311,13 @@ function FounderSkeleton() {
       </div>
     </Page>
   );
+}
+
+/** Sends an already-Pro buyer onward. An effect, not `<Navigate to={destination}>`: that hung the tab on this route. */
+function RedirectTo({ to }: { to: string }) {
+  const navigate = useNavigate();
+  useEffect(() => {
+    void navigate({ to, replace: true });
+  }, [navigate, to]);
+  return null;
 }

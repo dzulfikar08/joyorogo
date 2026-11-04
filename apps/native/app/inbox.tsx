@@ -11,6 +11,7 @@ import {
   Button,
   Chip,
   EmptyState,
+  ErrorState,
   Field,
   Input,
   ListGroup,
@@ -118,6 +119,8 @@ export default function Inbox() {
 
       {inbox.isPending ? (
         <Skeleton width="100%" height={220} radius={24} />
+      ) : inbox.isError ? (
+        <ErrorState message={errorMessage(inbox.error)} onRetry={() => void inbox.refetch()} />
       ) : items.length === 0 ? (
         <EmptyState
           pose="sleepy"
@@ -151,11 +154,11 @@ export default function Inbox() {
                   />
                 )}
                 {unread ? (
-                  <View style={styles.dot} accessibilityLabel={t("inbox.unread")} />
+                  <View style={styles.dot} accessible accessibilityLabel={t("inbox.unread")} />
                 ) : null}
               </View>
             ) : unread ? (
-              <View style={styles.dot} accessibilityLabel={t("inbox.unread")} />
+              <View style={styles.dot} accessible accessibilityLabel={t("inbox.unread")} />
             ) : undefined;
             return (
               <ListRow
@@ -222,6 +225,7 @@ export default function Inbox() {
             maxLength={140}
             multiline
             placeholder={t("inbox.sheet.placeholderNative")}
+            accessibilityLabel={t("inbox.sheet.fieldLabel")}
           />
         </Field>
       </Sheet>

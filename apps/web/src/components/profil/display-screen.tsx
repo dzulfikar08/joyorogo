@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -67,12 +68,26 @@ function LanguageSection() {
   };
   return (
     <Card>
-      <Segmented
-        label={t("language.groupLabel")}
-        value={instance.language as Locale}
-        onChange={pick}
-        options={LOCALES.map((locale) => ({ value: locale, label: LOCALE_NAMES[locale] }))}
-      />
+      <div role="radiogroup" aria-label={t("language.groupLabel")} className="space-y-1">
+        {LOCALES.map((locale) => {
+          const active = locale === instance.language;
+          return (
+            <button
+              key={locale}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => pick(locale)}
+              className={`flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl px-4 text-left text-[0.9375rem] font-semibold transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none ${
+                active ? "bg-primary/10 text-primary" : "hover:bg-muted"
+              }`}
+            >
+              {LOCALE_NAMES[locale]}
+              {active && <Check className="size-5" aria-hidden />}
+            </button>
+          );
+        })}
+      </div>
       <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">
         {t("language.caption")}
       </p>

@@ -36,6 +36,7 @@
     "password": "Password",
     "submit": "Sign in",
     "emailToggle": "Sign in with email",
+    "googleFailed": "Google sign-in didn't work. Please try again.",
     "rateLimited": "Too many attempts. Try again in a moment.",
     "invalidCredentials": "Wrong email or password.",
     "footer": "Use the same JoyoRogo account as in the app.",
@@ -49,6 +50,7 @@
     "featureSleep": "Sleep each night, your sleep need, and how regular your sleep is",
     "cta": "See Pro pricing",
     "recheck": "Already subscribed? Check again",
+    "stillLocked": "Still no active Pro on this account. If you just subscribed, wait a minute and check again.",
     "switchAccount": "Sign out and use another account",
     "lapsed": "Your Pro isn't active, so this data can't be opened. Renew it to continue."
   },

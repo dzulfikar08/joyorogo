@@ -39,23 +39,31 @@ export function MuscleMap({ status }: { status: WorkoutStatus }) {
         </div>
       ))}
 
-      <ul className="space-y-1.5">
-        {status.weekly.map((muscle) => (
-          <li key={muscle.muscle} className="flex items-center gap-3">
-            <span className="w-28 shrink-0 text-sm font-semibold">{muscleLabel(muscle.muscle)}</span>
-            <span
-              className="h-2.5 rounded-full bg-primary/70"
-              style={{ width: `${Math.max((muscle.sets / maxSets) * 100, muscle.sets > 0 ? 4 : 0)}%` }}
-              role="presentation"
-            />
-            <span className="ml-auto shrink-0 text-xs font-bold text-muted-foreground tabular-nums">
-              {muscle.sets > 0
-                ? t("latihan.map.sets", { count: muscle.sets, sets: fmtNumber(muscle.sets, 1) })
-                : "–"}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {status.weekly.every((muscle) => muscle.sets === 0) ? (
+        <p className="text-sm text-muted-foreground">{t("latihan.map.empty")}</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {status.weekly.map((muscle) => (
+            <li key={muscle.muscle} className="flex items-center gap-3">
+              <span className="w-28 shrink-0 text-sm font-semibold">
+                {muscleLabel(muscle.muscle)}
+              </span>
+              <span
+                className="h-2.5 rounded-full bg-primary/70"
+                style={{
+                  width: `${Math.max((muscle.sets / maxSets) * 100, muscle.sets > 0 ? 4 : 0)}%`,
+                }}
+                role="presentation"
+              />
+              <span className="ml-auto shrink-0 text-xs font-bold text-muted-foreground tabular-nums">
+                {muscle.sets > 0
+                  ? t("latihan.map.sets", { count: muscle.sets, sets: fmtNumber(muscle.sets, 1) })
+                  : "–"}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <details className="group text-xs text-muted-foreground">
         <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold select-none [&::-webkit-details-marker]:hidden">

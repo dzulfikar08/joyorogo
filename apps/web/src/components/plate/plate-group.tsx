@@ -56,10 +56,20 @@ type PlateRow = {
   priceIdr: number | null;
 };
 
+/** The days DayChips offers: today and the two before it, WIB. */
+function quickDays(today: string): string[] {
+  return [today, shiftDate(today, -1), shiftDate(today, -2)];
+}
+
+/** Whether `date` has its own chip, so the calendar button can say "other date" instead of repeating it. */
+export function isQuickDay(date: string): boolean {
+  return quickDays(jakartaToday()).includes(date);
+}
+
 /** Chip shortcuts for the three most recent days, WIB. */
 export function DayChips({ value, onChange }: { value: string; onChange: (date: string) => void }) {
   const today = jakartaToday();
-  const options = [today, shiftDate(today, -1), shiftDate(today, -2)];
+  const options = quickDays(today);
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((date) => (
@@ -489,7 +499,9 @@ function PlateEditSheet({
                 onClick={() => setPickingDate(true)}
               >
                 <CalendarIcon aria-hidden />
-                {relativeDayLabel(date, jakartaToday())}
+                {isQuickDay(date)
+                  ? t("portionSheet.pickDateShort")
+                  : relativeDayLabel(date, jakartaToday())}
               </Button>
               <p className="text-xs text-muted-foreground">
                 {dateChanged

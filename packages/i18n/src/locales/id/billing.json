@@ -76,7 +76,8 @@
       "how_other": "Kirim DM dan sebutkan email akun JoyoRogo-mu. Dibalas paling lambat {{count}} hari kerja.",
       "open": "Buka Threads",
       "copyEmail": "Salin email akunku",
-      "copied": "Email disalin."
+      "copied": "Email disalin.",
+      "copyFailed": "Email belum bisa disalin. Salin sendiri dari halaman Akun."
     }
   },
   "nudge": {

@@ -16,6 +16,10 @@ export const englishText = {
   'section.comparison': 'Compared with similar workouts',
   'section.route': 'Route',
   'section.heartRate': 'Heart rate',
+  'map.zoomIn': 'Zoom in',
+  'map.zoomOut': 'Zoom out',
+  'map.recenter': 'Recenter on route',
+  'map.attribution': 'Map data sources, opens openfreemap.org',
 
   // Units
   'unit.km': 'km',

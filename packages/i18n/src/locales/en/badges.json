@@ -57,6 +57,7 @@
     "anonymous": "Anonymous #{{rank}}",
     "you": "You",
     "empty": "Nobody has joined yet.",
+    "unavailable": "The consistency board is not available on your account yet.",
     "notRanked": "You are not on this week's board yet. Log a meal first.",
     "daysLogged": "Days logged",
     "workoutDays": "Workout days",

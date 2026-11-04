@@ -1,9 +1,12 @@
-import { Switch, View } from "react-native";
+import { Pressable, Switch, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Text } from "@/components/ui";
 
-/** A label and a switch on one line, at least 56 pt high, the whole row readable as one control by a screen reader. */
+/**
+ * A label and a switch on one line, at least 56 pt high. The whole row is one control: tapping the label toggles it, and a screen
+ * reader gets a single "switch" element with its on/off state (the inner Switch is hidden from it, so it is not read twice).
+ */
 export function SwitchRow({
   label,
   value,
@@ -17,16 +20,23 @@ export function SwitchRow({
 }) {
   const { theme } = useUnistyles();
   return (
-    <View style={styles.row}>
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: value, disabled: !!disabled }}
+      disabled={disabled}
+      onPress={() => onValueChange(!value)}
+      style={styles.row}
+    >
       <Text style={styles.label}>{label}</Text>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        disabled={disabled}
-        accessibilityLabel={label}
-        trackColor={{ true: theme.colors.primary }}
-      />
-    </View>
+      <View
+        pointerEvents="none"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Switch value={value} disabled={disabled} trackColor={{ true: theme.colors.primary }} />
+      </View>
+    </Pressable>
   );
 }
 

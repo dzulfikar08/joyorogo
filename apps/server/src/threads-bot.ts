@@ -73,8 +73,7 @@ function present(row: MentionRow) {
     skipReason: row.skipReason,
     kind: row.kind,
     dishes: parseDishes(row.dishesJson),
-    kcalLow: row.kcalLow,
-    kcalHigh: row.kcalHigh,
+    kcal: row.kcal,
     replyText: row.replyText,
     mode: row.mode,
     replyMediaId: row.replyMediaId,
@@ -206,7 +205,6 @@ export function registerThreadsBotRoutes(app: Hono, deps: Deps) {
     return c.json({
       mode: config.mode,
       caps: { user: config.userCap, global: config.globalCap },
-      band: config.band,
       configured: {
         app: Boolean(config.appId && config.appSecret),
         webhook: Boolean(config.appSecret && config.verifyToken),

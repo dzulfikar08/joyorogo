@@ -57,6 +57,7 @@
     "anonymous": "Tanpa nama #{{rank}}",
     "you": "Anda",
     "empty": "Belum ada yang menyertai.",
+    "unavailable": "Papan konsistensi belum tersedia pada akaun anda.",
     "notRanked": "Anda belum berada dalam papan minggu ini. Catat makanan dahulu.",
     "daysLogged": "Hari dicatat",
     "workoutDays": "Hari senaman",

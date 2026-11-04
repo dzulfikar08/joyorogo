@@ -106,6 +106,7 @@ export function BarChart({
       </View>
       <View
         accessible
+        accessibilityRole="image"
         accessibilityLabel={accessibilityLabel}
         style={[styles.area, { height }]}
         onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}

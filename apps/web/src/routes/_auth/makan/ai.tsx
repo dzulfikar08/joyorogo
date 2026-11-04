@@ -2136,11 +2136,9 @@ function AiFoodPage() {
         className="pb-3"
         title={t("idle.title")}
         action={
-          <Link to="/makan">
-            <Button variant="ghost" size="sm">
-              {t("common:actions.back")}
-            </Button>
-          </Link>
+          <Button variant="ghost" size="sm" nativeButton={false} render={<Link to="/makan" />}>
+            {t("common:actions.back")}
+          </Button>
         }
       />
 

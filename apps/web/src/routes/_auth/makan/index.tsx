@@ -930,7 +930,7 @@ function AddFoodSheet({
               </button>
             )}
 
-            <div className="w-44">
+            <div className="w-full max-w-72">
               <FieldLabel htmlFor={`${meal}-price`}>{t("diary.sheet.field.price")}</FieldLabel>
               <IdrInput
                 id={`${meal}-price`}

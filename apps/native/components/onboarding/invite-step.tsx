@@ -72,7 +72,9 @@ export function InviteFriendsStep({
   return (
     <>
       <Mascot pose="cheer" size="sm" style={styles.mascot} />
-      <Text style={styles.title}>{created ? t("invite.createdTitle") : t("invite.title")}</Text>
+      <Text accessibilityRole="header" style={styles.title}>
+        {created ? t("invite.createdTitle") : t("invite.title")}
+      </Text>
       {created ? <Text style={styles.caption}>{t("invite.createdCaption")}</Text> : null}
 
       {created ? (

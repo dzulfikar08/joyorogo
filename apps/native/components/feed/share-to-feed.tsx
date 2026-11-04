@@ -66,6 +66,7 @@ export function ShareToFeedSheet({
     mutationFn: (input) => client.social.createPost({ kind, refId, ...input }),
     success: (input, data) => {
       onClose();
+      setCaption("");
       // The feed list lives in another screen's cache; the invalidate on
       // settle is enough. Undo deletes the post outright.
       return {
@@ -108,6 +109,7 @@ export function ShareToFeedSheet({
           maxLength={CAPTION_MAX}
           multiline
           placeholder={t("share.captionPlaceholder")}
+          accessibilityLabel={t("share.captionCount", { n: caption.length, max: CAPTION_MAX })}
         />
       </Field>
 

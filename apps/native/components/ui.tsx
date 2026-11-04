@@ -270,7 +270,9 @@ export function SectionTitle({
 }) {
   return (
     <View style={styles.sectionRow}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>
+        {title}
+      </Text>
       {action ? (
         <PressableScale
           accessibilityRole="button"
@@ -588,6 +590,7 @@ export function ListRow({
   right,
   footer,
   wrapTitle,
+  selected,
 }: {
   icon?: IconName;
   iconTint?: Tint | "muted";
@@ -604,6 +607,8 @@ export function ListRow({
   right?: React.ReactNode;
   /** Full-width block under the row (chip clouds, extras) so the leading tile and `right` stay on the top line. */
   footer?: React.ReactNode;
+  /** Row acts as a checkbox-like toggle: announces selected / not selected. */
+  selected?: boolean;
 }) {
   const { theme } = useUnistyles();
   const tintColors = iconTint && iconTint !== "muted" ? TINT_COLORS[iconTint] : null;
@@ -663,7 +668,7 @@ export function ListRow({
   const row = (
     <PressableScale
       accessibilityRole="button"
-      accessibilityLabel={title}
+      accessibilityState={selected === undefined ? undefined : { selected }}
       onPress={onPress}
       scaleTo={1}
       dimTo={0.7}
@@ -771,9 +776,10 @@ export function Sheet({
       supportedOrientations={SHEET_ORIENTATIONS}
     >
       <View style={styles.sheetRoot}>
+        {/* The header's close button is the accessible dismiss; the backdrop stays tappable but out of the screen-reader tree. */}
         <Pressable
-          accessibilityLabel={t("actions.close")}
-          accessibilityRole="button"
+          accessible={false}
+          importantForAccessibility="no"
           onPress={onClose}
           style={StyleSheet.absoluteFill}
         >
@@ -800,7 +806,9 @@ export function Sheet({
             ]}
           >
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>{title}</Text>
+              <Text accessibilityRole="header" style={styles.sheetTitle}>
+                {title}
+              </Text>
               <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel={t("actions.close")}
@@ -959,6 +967,7 @@ export function Button({
       accessibilityRole="button"
       accessibilityLabel={label}
       disabled={inactive}
+      accessibilityState={{ disabled: !!inactive, busy: !!loading }}
       onPress={onPress}
       style={[
         styles.button,
@@ -1039,6 +1048,9 @@ export function Chip({
 
 // --- Form ------------------------------------------------------------------
 
+/** Lets an `Input` inside a `Field` expose the field's label to screen readers (a sibling Text is not associated). */
+const FieldLabelContext = createContext<string | undefined>(undefined);
+
 export function Field({
   label,
   hint,
@@ -1064,7 +1076,7 @@ export function Field({
       ) : (
         <Text style={styles.fieldLabel}>{label}</Text>
       )}
-      {children}
+      <FieldLabelContext.Provider value={label}>{children}</FieldLabelContext.Provider>
       {hint ? <Text style={styles.fieldHint}>{hint}</Text> : null}
     </View>
   );
@@ -1082,10 +1094,12 @@ export function Input({
 }: TextInputProps & { ref?: React.Ref<TextInput> }) {
   const { theme } = useUnistyles();
   const sheet = useContext(SheetScrollContext);
+  const fieldLabel = useContext(FieldLabelContext);
   const own = useRef<TextInput | null>(null);
   return (
     <TextInput
       placeholderTextColor={theme.colors.mutedForeground}
+      accessibilityLabel={fieldLabel}
       {...props}
       ref={(node) => {
         own.current = node;

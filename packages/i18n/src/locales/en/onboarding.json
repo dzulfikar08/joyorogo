@@ -15,8 +15,7 @@
     "birth": {
       "title": "When were you born?",
       "hint": "Used to work out your calorie needs.",
-      "label": "Birth year",
-      "unit": "years"
+      "label": "Birth year"
     },
     "gender": {
       "title": "What's your gender?",

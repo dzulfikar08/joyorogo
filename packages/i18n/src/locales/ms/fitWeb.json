@@ -36,6 +36,7 @@
     "password": "Kata laluan",
     "submit": "Log masuk",
     "emailToggle": "Log masuk dengan e-mel",
+    "googleFailed": "Log masuk dengan Google gagal. Cuba lagi ya.",
     "rateLimited": "Terlalu banyak percubaan. Cuba lagi sebentar nanti.",
     "invalidCredentials": "E-mel atau kata laluan salah.",
     "footer": "Guna akaun JoyoRogo yang sama seperti dalam aplikasi.",
@@ -49,6 +50,7 @@
     "featureSleep": "Tidur setiap malam, keperluan tidur dan sejauh mana tidur anda teratur",
     "cta": "Lihat harga Pro",
     "recheck": "Sudah melanggan? Semak semula",
+    "stillLocked": "Akaun ini belum ada Pro aktif. Jika baru melanggan, tunggu sebentar kemudian semak semula.",
     "switchAccount": "Log keluar dan guna akaun lain",
     "lapsed": "Pro anda tidak aktif, jadi data ini tidak dapat dibuka. Aktifkan semula untuk meneruskan."
   },

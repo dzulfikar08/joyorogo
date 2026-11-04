@@ -143,6 +143,7 @@ export default function Latihan() {
                       preview: sessionMeta(item.session.date, item.session.durationMin, item.sets.length),
                     })
                   }
+                  hitSlop={6}
                   style={({ pressed }) => [styles.shareButton, pressed && styles.pressed]}
                 >
                   <Ionicons name="share-social-outline" size={16} color={theme.colors.foreground} />
@@ -170,7 +171,7 @@ const styles = StyleSheet.create((theme) => ({
   loadingText: { fontSize: theme.fontSize.sm, color: theme.colors.mutedForeground },
   historyEmptyTitle: { fontSize: theme.fontSize.base, fontWeight: "700", color: theme.colors.foreground },
   prList: { gap: theme.spacing.md },
-  prRow: { flexDirection: "row", alignItems: "center", gap: theme.spacing.md },
+  prRow: { flexDirection: "row", alignItems: "center", gap: theme.spacing.md, minHeight: 44 },
   prText: { flex: 1, gap: 2 },
   prName: { fontSize: theme.fontSize.sm, fontWeight: "700", color: theme.colors.foreground },
   prSub: { fontSize: theme.fontSize.xs, color: theme.colors.mutedForeground },

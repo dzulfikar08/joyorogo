@@ -278,7 +278,15 @@ export default function Login() {
                 onPress={() => setEmailForm(true)}
               />
             )}
-            {signInError ? <Text style={styles.errorText}>{signInError}</Text> : null}
+            {signInError ? (
+              <Text
+                accessibilityRole="alert"
+                accessibilityLiveRegion="polite"
+                style={styles.errorText}
+              >
+                {signInError}
+              </Text>
+            ) : null}
           </View>
         </KeyboardAwareScrollView>
       </Container>

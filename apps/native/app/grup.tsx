@@ -166,6 +166,7 @@ export default function GrupList() {
             value={name}
             onChangeText={setName}
             maxLength={40}
+            accessibilityLabel={t("create.nameLabel")}
             placeholder={t("create.namePlaceholder")}
           />
         </Field>
@@ -188,6 +189,7 @@ export default function GrupList() {
               setFormError(null);
             }}
             autoCapitalize="none"
+            accessibilityLabel={t("join.codeLabel")}
             autoCorrect={false}
             placeholder={t("join.linkPlaceholder")}
           />

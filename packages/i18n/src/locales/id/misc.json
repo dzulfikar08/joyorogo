@@ -112,6 +112,7 @@
     "empty": {
       "titleNone": "Belum ada catatan di minggu ini",
       "titleNoFood": "Belum ada makanan yang dicatat",
+      "titlePending": "Hari ini belum masuk rekap",
       "bodyPast": "Rekap dihitung dari hari yang sudah lewat. Cek lagi besok.",
       "bodyLog": "Catat makananmu beberapa hari, nanti rekapnya muncul di sini."
     },

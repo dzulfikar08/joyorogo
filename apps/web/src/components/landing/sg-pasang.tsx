@@ -55,7 +55,7 @@ export function InstallSg() {
         JoyoRogo is on Google Play and the App Store. The web app at joyorogo.com also works in a phone or computer
         browser.
       </p>
-      <div className="mt-10 grid gap-4 md:grid-cols-2">
+      <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div
           id="android"
           data-section="android"
@@ -115,6 +115,7 @@ export function InstallSg() {
             <Button
               size="lg"
               variant="outline"
+              className="h-auto min-h-14 max-w-full shrink py-2 text-center whitespace-normal"
               data-revklik-goal="ios_cta_click"
               data-revklik-goal-location="sg-pasang"
               onClick={() => openIosInstall("sg-pasang")}

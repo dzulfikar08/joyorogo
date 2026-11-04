@@ -83,6 +83,10 @@ export const lightTheme = {
 export const darkTheme = {
   colors: {
     ...sharedColors,
+    // The shared light-theme reds/ambers are 2.6:1 / 3.4:1 on dark cards; these pass AA on every dark surface.
+    destructive: "#FF8A80",
+    destructiveForeground: "#2A0A08",
+    warning: "#F0A35E",
     background: "#110F0A",
     card: "#1E1B17",
     foreground: "#F1EEE9",

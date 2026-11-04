@@ -102,7 +102,7 @@ export function HandlePrompt() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("common:actions.close")}
-          hitSlop={10}
+          hitSlop={12}
           onPress={dismiss}
         >
           <Ionicons name="close" size={20} color={theme.colors.mutedForeground} />

@@ -151,7 +151,9 @@ export default function Air() {
       <WaterCard date={date === today ? undefined : date} bare />
 
       <Card style={styles.trendCard}>
-        <Text style={styles.trendTitle}>{t("water.trend.title")}</Text>
+        <Text style={styles.trendTitle} accessibilityRole="header">
+          {t("water.trend.title")}
+        </Text>
         <RangeNav
           compact
           options={[

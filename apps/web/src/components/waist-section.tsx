@@ -148,7 +148,7 @@ export function WaistSection() {
   const today = jakartaToday();
 
   return (
-    <section aria-label={t("waist.title")} className="space-y-3">
+    <section aria-label={t("waist.title")} className="mt-7 space-y-3">
       <SectionTitle>{t("waist.title")}</SectionTitle>
       <Card className="p-4 sm:p-6">
         <form

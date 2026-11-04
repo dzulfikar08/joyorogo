@@ -984,7 +984,11 @@ export default function Dashboard() {
                       <Pressable
                         key={`${badge.kind}-${badge.value}`}
                         accessibilityRole="button"
-                        style={({ pressed }) => [styles.milestoneBadge, pressed && styles.pressedSoft]}
+                        hitSlop={6}
+                        style={({ pressed }) => [
+                          styles.milestoneBadge,
+                          pressed && styles.pressedSoft,
+                        ]}
                         onPress={() => setWeightOpen(true)}
                       >
                         <Ionicons name="trophy" size={13} color={theme.colors.makanText} />
@@ -1066,6 +1070,7 @@ export default function Dashboard() {
         {!maternal && data.streak && data.streak.status === "broken" ? (
           <Link href="/makan-ai" asChild>
             <Pressable
+              hitSlop={{ top: 2, bottom: 2 }}
               accessibilityRole="button"
               style={({ pressed }) => [styles.streakChip, styles.streakChipCold, pressed && styles.pressedSoft]}
               accessibilityLabel={t(gain ? "header.streakLapseGainLabel" : "header.streakLapseLabel", {
@@ -1078,6 +1083,7 @@ export default function Dashboard() {
           </Link>
         ) : !maternal && data.streakDays > 0 ? (
           <Pressable
+            hitSlop={{ top: 2, bottom: 2 }}
             accessibilityRole="button"
             style={({ pressed }) => [styles.streakChip, pressed && styles.pressedSoft]}
             accessibilityLabel={
@@ -1099,6 +1105,7 @@ export default function Dashboard() {
         ) : null}
         {badgesEarned === null ? null : (
           <Pressable
+            hitSlop={{ top: 2, bottom: 2 }}
             accessibilityRole="button"
             accessibilityLabel={`${t("badges:board.badgesTitle")}: ${t("badges:shelf.count", {
               earned: badgesEarned,

@@ -84,7 +84,7 @@ function TierControls({ user }: { user: AdminUser }) {
   return (
     <div className="flex flex-wrap gap-2">
       <ConfirmAction
-        trigger="Set Free"
+        trigger="Jadikan Free"
         disabled={busy}
         destructive
         title="Jadikan user ini Free?"
@@ -107,7 +107,7 @@ function TierControls({ user }: { user: AdminUser }) {
         onConfirm={() => giveMonth.mutate()}
       />
       <ConfirmAction
-        trigger="Clear founderUntil"
+        trigger="Hapus tanggal habis"
         triggerVariant="ghost"
         disabled={busy}
         destructive
@@ -116,7 +116,7 @@ function TierControls({ user }: { user: AdminUser }) {
         onConfirm={() => clearUntil.mutate()}
       />
       <ConfirmAction
-        trigger={`${user.aiUnlimited ? "Disable" : "Enable"} AI unlimited`}
+        trigger={`${user.aiUnlimited ? "Matikan" : "Aktifkan"} AI unlimited`}
         triggerVariant="ghost"
         disabled={busy}
         title={`Ubah AI unlimited menjadi ${user.aiUnlimited ? "nonaktif" : "aktif"}?`}
@@ -244,10 +244,14 @@ export function UserDetail({ userId, onClose }: { userId: string; onClose: () =>
           <div className="flex flex-wrap gap-2">
             <PlanBadge user={u} />
             {founderUntilNote(u) && <Badge>{founderUntilNote(u)}</Badge>}
-            {u.onboarded ? <Badge tone="green">onboarded</Badge> : <Badge>not onboarded</Badge>}
-            <Badge>joined {fmtDate(u.createdAt)}</Badge>
-            <Badge>last seen {fmtDateTime(u.lastSeen)}</Badge>
-            <Badge>{fmtNum(u.foodLogs)} food logs</Badge>
+            {u.onboarded ? (
+              <Badge tone="green">sudah onboarding</Badge>
+            ) : (
+              <Badge>belum onboarding</Badge>
+            )}
+            <Badge>bergabung {fmtDate(u.createdAt)}</Badge>
+            <Badge>terakhir terlihat {fmtDateTime(u.lastSeen)}</Badge>
+            <Badge>{fmtNum(u.foodLogs)} log makanan</Badge>
           </div>
 
           <SectionCard title="Aktivitas scan">
@@ -263,7 +267,7 @@ export function UserDetail({ userId, onClose }: { userId: string; onClose: () =>
             />
           </SectionCard>
 
-          <SectionCard title="Tier controls">
+          <SectionCard title="Kontrol tier">
             <TierControls user={u} />
           </SectionCard>
 

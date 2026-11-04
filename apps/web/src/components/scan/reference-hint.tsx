@@ -29,7 +29,7 @@ export function ReferenceHint() {
       <button
         type="button"
         aria-label={t("idle.referenceHintClose")}
-        className="-my-0.5 -mr-1.5 shrink-0 rounded-full p-1 hover:bg-background/60"
+        className="-my-3 -mr-2.5 grid size-10 shrink-0 place-items-center rounded-full hover:bg-background/60 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
         onClick={() => {
           setClosed(true);
           try {

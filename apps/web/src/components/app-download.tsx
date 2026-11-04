@@ -44,9 +44,9 @@ export function AppDownload({
   const variantFor = (own: boolean) => (onPrimary ? "ghost" : own ? "secondary" : "outline");
   const buttonClass = onPrimary ? ON_PRIMARY : undefined;
   const smallLink = cn(
-    "basis-full rounded-md text-sm font-semibold underline underline-offset-4 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
+    "inline-flex min-h-11 basis-full items-center rounded-md text-sm font-semibold underline underline-offset-4 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
     align === "center" && "text-center",
-    onPrimary ? "text-primary-foreground/80" : "text-muted-foreground",
+    onPrimary ? "text-primary-foreground" : "text-muted-foreground",
   );
 
   const android = (

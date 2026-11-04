@@ -1,6 +1,7 @@
 import { Button } from "@joyorogo/ui/components/button";
 import { Activity, BedDouble, Crown, LayoutDashboard, LogOut, RotateCw } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { type Session, signOut } from "@/lib/auth-client";
@@ -17,11 +18,14 @@ export function ProWall({
   checking,
 }: {
   session: Session;
-  onRecheck: () => void;
+  /** Resolves once the access check has run; when it unlocks, this wall unmounts. */
+  onRecheck: () => Promise<unknown>;
   checking: boolean;
 }) {
   const { t } = useTranslation("fitWeb");
   const navigate = useNavigate();
+  // Set only after a recheck the user asked for has finished, so "still locked" never shows before it ran.
+  const [rechecked, setRechecked] = useState(false);
   const features = [
     { Icon: LayoutDashboard, text: t("wall.featureOverview") },
     { Icon: Activity, text: t("wall.featureWorkouts") },
@@ -55,10 +59,21 @@ export function ProWall({
           <Button size="lg" nativeButton={false} render={<a href={PRICING_URL} />}>
             {t("wall.cta")}
           </Button>
-          <Button variant="secondary" disabled={checking} onClick={onRecheck}>
+          <Button
+            variant="secondary"
+            disabled={checking}
+            onClick={async () => {
+              setRechecked(false);
+              await onRecheck();
+              setRechecked(true);
+            }}
+          >
             <RotateCw className={checking ? "animate-spin" : undefined} aria-hidden />
             {t("wall.recheck")}
           </Button>
+          <p role="status" className="min-h-5 text-center text-xs text-muted-foreground">
+            {rechecked && !checking ? t("wall.stillLocked") : ""}
+          </p>
           <Button
             variant="ghost"
             size="sm"

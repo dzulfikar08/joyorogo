@@ -110,6 +110,7 @@
     "saving": "Saving...",
     "doneToday": "Weighed in today. Nice.",
     "startPrompt": "Weigh in so your trend line can start forming.",
+    "trendNeedsMore": "Your trend line starts once you have weighed in on two different days.",
     "missedToday": "No weigh-in yet today. One number makes your plan fit better.",
     "weighNow": "Weigh in now"
   },
@@ -190,7 +191,7 @@
     "fill": "Fill glass {{n}}",
     "empty": "Empty glass {{n}}",
     "hint": "A glass of water after every meal keeps you full longer.",
-    "added": "+{{kcal}} kcal from activity ({{pct}}%)",
+    "added": "1 glass added",
     "removed": "1 glass removed",
     "less": "Remove a glass",
     "more": "Add a glass",

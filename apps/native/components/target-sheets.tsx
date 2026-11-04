@@ -99,11 +99,25 @@ export function TargetWeightSheet({
         {t("plan.targetWeight.healthyRange", { min: fmtKg(ideal.minKg), max: fmtKg(ideal.maxKg) })}
       </Text>
       {belowRange ? (
-        <Text style={styles.warnText}>{t("plan.targetWeight.belowRange")}</Text>
+        <Text style={styles.warnText} accessibilityRole="alert" accessibilityLiveRegion="polite">
+          {t("plan.targetWeight.belowRange")}
+        </Text>
       ) : null}
-      {aboveHealthy ? <Text style={styles.note}>{t("gain:target.aboveHealthy", { min: fmtKg(ideal.minKg), max: fmtKg(ideal.maxKg) })}</Text> : null}
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
-      {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
+      {aboveHealthy ? (
+        <Text style={styles.note}>
+          {t("gain:target.aboveHealthy", { min: fmtKg(ideal.minKg), max: fmtKg(ideal.maxKg) })}
+        </Text>
+      ) : null}
+      {error ? (
+        <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="polite">
+          {error}
+        </Text>
+      ) : null}
+      {saveError ? (
+        <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="polite">
+          {saveError}
+        </Text>
+      ) : null}
       <Text style={styles.note}>{t("plan.targetWeight.hint")}</Text>
     </Sheet>
   );
@@ -341,7 +355,11 @@ export function TargetDateSheet({
       {check.status === "maintenance" ? (
         <Text style={styles.note}>{t("plan.targetDate.maintenance")}</Text>
       ) : null}
-      {!valid ? <Text style={styles.errorText}>{t("plan.targetDate.error")}</Text> : null}
+      {!valid ? (
+        <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="polite">
+          {t("plan.targetDate.error")}
+        </Text>
+      ) : null}
 
       {valid && preview.data ? (
         <Text style={styles.previewText}>
@@ -359,7 +377,11 @@ export function TargetDateSheet({
       {valid && preview.isError ? (
         <Text style={styles.note}>{t("plan.targetDate.previewFailed")}</Text>
       ) : null}
-      {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
+      {saveError ? (
+        <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="polite">
+          {saveError}
+        </Text>
+      ) : null}
       <Text style={styles.note}>{t(gaining ? "gain:date.hint" : "plan.targetDate.hint")}</Text>
     </Sheet>
   );

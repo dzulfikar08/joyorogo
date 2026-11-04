@@ -1,3 +1,4 @@
+import { SheetCloseLabelProvider } from "@joyorogo/ui/components/sheet";
 import { ThemeProvider } from "@joyorogo/ui/hooks/use-theme";
 import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -21,13 +22,15 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 function RootComponent() {
   // Remount the tree on a language switch: strings read through the shared format helpers (dates, units) have no
   // subscription of their own. The URL and the query cache live outside the tree and survive.
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
     <>
       <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-        <Fragment key={i18n.language}>
-          <Outlet />
-        </Fragment>
+        <SheetCloseLabelProvider label={t("actions.close")}>
+          <Fragment key={i18n.language}>
+            <Outlet />
+          </Fragment>
+        </SheetCloseLabelProvider>
       </ThemeProvider>
       {import.meta.env.DEV && <ReactQueryDevtools buttonPosition="bottom-left" />}
     </>

@@ -5,23 +5,26 @@ import { StyleSheet } from "react-native-unistyles";
 
 import { Container } from "@/components/container";
 import { Mascot } from "@/components/mascot";
+import { PressableScale } from "@/components/motion";
 import { Text } from "@/components/ui";
 
 export default function NotFoundScreen() {
   const { t } = useTranslation("misc");
   return (
-      <Container>
-        <View style={styles.container}>
-          <View style={styles.content}>
-            <Mascot pose="peek" size="xl" style={styles.mascot} />
-            <Text style={styles.title}>{t("notFound.title")}</Text>
-            <Text style={styles.description}>{t("notFound.body")}</Text>
-            <Link href="/" style={styles.button}>
+    <Container>
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <Mascot pose="peek" size="xl" style={styles.mascot} />
+          <Text style={styles.title}>{t("notFound.title")}</Text>
+          <Text style={styles.description}>{t("notFound.body")}</Text>
+          <Link href="/" asChild>
+            <PressableScale accessibilityRole="link" style={styles.button}>
               <Text style={styles.buttonText}>{t("notFound.home")}</Text>
-            </Link>
-          </View>
+            </PressableScale>
+          </Link>
         </View>
-      </Container>
+      </View>
+    </Container>
   );
 }
 

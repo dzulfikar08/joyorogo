@@ -1155,6 +1155,7 @@ export default function Makan() {
                   onChangeText={setProtein}
                   keyboardType="decimal-pad"
                   placeholder={t("diary.macro.protein")}
+                  accessibilityLabel={t("diary.macro.protein")}
                   style={styles.macroInput}
                 />
                 <Input
@@ -1162,6 +1163,7 @@ export default function Makan() {
                   onChangeText={setCarbs}
                   keyboardType="decimal-pad"
                   placeholder={t("diary.macro.carbs")}
+                  accessibilityLabel={t("diary.macro.carbs")}
                   style={styles.macroInput}
                 />
                 <Input
@@ -1169,6 +1171,7 @@ export default function Makan() {
                   onChangeText={setFat}
                   keyboardType="decimal-pad"
                   placeholder={t("diary.macro.fat")}
+                  accessibilityLabel={t("diary.macro.fat")}
                   style={styles.macroInput}
                 />
               </View>
@@ -1180,9 +1183,15 @@ export default function Makan() {
                 onPress={() => setMacrosOpen(true)}
               />
             )}
-            {formError ? <Text style={styles.error}>{formError}</Text> : null}
+            {formError ? (
+              <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="polite">
+                {formError}
+              </Text>
+            ) : null}
             {addFood.isError ? (
-              <Text style={styles.error}>{errorMessage(addFood.error)}</Text>
+              <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="polite">
+                {errorMessage(addFood.error)}
+              </Text>
             ) : null}
           </View>
         ) : null}

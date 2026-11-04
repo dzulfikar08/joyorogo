@@ -17,7 +17,7 @@ import { env } from "@/env.public";
 export const Route = createFileRoute("/login")({
   component: RouteComponent,
   head: () => pageHead("/login"),
-  validateSearch: (search: Record<string, unknown>): { redirect?: string } => {
+  validateSearch: (search: Record<string, unknown>): { redirect?: string; error?: string } => {
     const raw = typeof search.redirect === "string" ? search.redirect : undefined;
     // Internal paths only: a single leading slash, no protocol-relative or
     // absolute URLs, and never a loop back into /login.
@@ -25,7 +25,9 @@ export const Route = createFileRoute("/login")({
       raw && raw.startsWith("/") && !raw.startsWith("//") && !raw.startsWith("/login")
         ? raw
         : undefined;
-    return { redirect };
+    // better-auth sends a failed or cancelled Google sign-in back here with ?error=...
+    const error = typeof search.error === "string" ? search.error : undefined;
+    return { redirect, error };
   },
   beforeLoad: async ({ context, search }) => {
     // The login page must render even when the server is unreachable —
@@ -52,20 +54,30 @@ export const Route = createFileRoute("/login")({
 function RouteComponent() {
   const { t, i18n } = useTranslation("auth");
   const isPending = false;
-  const { redirect: returnTo } = Route.useSearch();
+  const { redirect: returnTo, error: returnedError } = Route.useSearch();
+  // access_denied = the user backed out of Google's consent screen, not a connection problem.
+  const [signInError, setSignInError] = useState<string | null>(
+    returnedError === undefined
+      ? null
+      : returnedError === "access_denied"
+        ? t("login.error.googleCancelled")
+        : t("login.error.googleFailed"),
+  );
 
   // Absolute web-origin URLs: better-auth resolves relative callbackURLs
   // against the API origin (server baseURL), which would land users on the
   // API instead of the app.
   const webOrigin = window.location.origin;
 
-  const signInGoogle = () => {
+  const signInGoogle = async () => {
+    setSignInError(null);
     markSignInStart();
-    authClient.signIn.social({
+    const { error } = await authClient.signIn.social({
       provider: "google",
       callbackURL: `${webOrigin}${returnTo ?? "/beranda"}`,
       errorCallbackURL: `${webOrigin}/login${returnTo ? `?redirect=${encodeURIComponent(returnTo)}` : ""}`,
     });
+    if (error) setSignInError(t("login.error.network"));
   };
   const signInDev = async () => {
     // $fetch resolves { data, error } without throwing on HTTP errors
@@ -73,9 +85,11 @@ function RouteComponent() {
       method: "POST",
       body: {},
     });
-    if (!error) {
-      window.location.href = `${webOrigin}${returnTo ?? "/"}`;
+    if (error) {
+      setSignInError(t("login.error.network"));
+      return;
     }
+    window.location.href = `${webOrigin}${returnTo ?? "/"}`;
   };
 
   // Review login (Google Play / App Store reviewers): email + password, only
@@ -157,6 +171,11 @@ function RouteComponent() {
           </svg>
           {t("login.google")}
         </Button>
+        {signInError && (
+          <p role="alert" className="mt-3 max-w-xs text-center text-sm text-destructive">
+            {signInError}
+          </p>
+        )}
         {/* Vite dev server only: production builds drop this even if .env sets the flag. */}
         {import.meta.env.DEV && env.VITE_DEV_LOGIN === "1" && (
           <Button variant="ghost" size="sm" className="mt-3" onClick={signInDev}>
@@ -168,8 +187,11 @@ function RouteComponent() {
             <Input
               type="email"
               autoComplete="username"
-              placeholder={t("login.email.emailLabel")}
+              placeholder={t("login.email.emailPlaceholder")}
               aria-label={t("login.email.emailLabel")}
+              aria-invalid={emailError ? true : undefined}
+              aria-describedby={emailError ? "login-email-error" : undefined}
+              autoFocus
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
@@ -179,12 +201,18 @@ function RouteComponent() {
               autoComplete="current-password"
               placeholder={t("login.email.passwordLabel")}
               aria-label={t("login.email.passwordLabel")}
+              aria-invalid={emailError ? true : undefined}
+              aria-describedby={emailError ? "login-email-error" : undefined}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               required
             />
             {emailError && (
-              <p role="alert" className="text-center text-sm text-destructive">
+              <p
+                id="login-email-error"
+                role="alert"
+                className="text-center text-sm text-destructive"
+              >
                 {emailError}
               </p>
             )}
@@ -195,7 +223,7 @@ function RouteComponent() {
         ) : (
           <button
             type="button"
-            className="mt-4 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            className="mt-2 inline-flex min-h-11 items-center rounded-sm px-2 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
             onClick={() => setEmailForm(true)}
           >
             {t("login.email.toggle")}

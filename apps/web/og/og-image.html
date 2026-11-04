@@ -1,5 +1,10 @@
 <!doctype html>
-<!-- Source of public/og.png (1200×630). Regenerate with `bun run og` in apps/web. -->
+<!--
+  Source of public/og.png (1200×630). Regenerate with `bun run og` in apps/web.
+  Photo: "Nasi Goreng with Prawn - Bali 2025-09-25" from Wikimedia Commons, CC0 (og/nasi-goreng.jpg).
+  Numbers: a real JoyoRogo scan of that photo (POST /ai/scan-anon, 2026-11-03): nasi goreng 350 g 550 kcal,
+  kerupuk 40 g 200 kcal, tomat 30 g 20 kcal, timun 30 g 20 kcal; protein 14 g, karbo 112 g, lemak 28 g.
+-->
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
@@ -16,9 +21,6 @@
         --muted: oklch(0.5 0.014 85);
         --card: oklch(1 0 0);
         --makan: oklch(0.52 0.13 152);
-        --bakar: oklch(0.64 0.17 40);
-        --tidur: oklch(0.55 0.13 275);
-        --track: oklch(0.93 0.01 85);
       }
       * {
         margin: 0;
@@ -32,67 +34,93 @@
       }
       body {
         display: grid;
-        grid-template-columns: 1fr 360px;
-        gap: 56px;
+        grid-template-columns: 1fr 600px;
+        gap: 48px;
         align-items: center;
-        padding: 0 80px;
+        padding: 0 64px 0 80px;
         background: var(--background);
         color: var(--foreground);
         font-family: "Plus Jakarta Sans", sans-serif;
       }
       .logo {
-        height: 52px;
+        height: 48px;
       }
       h1 {
-        margin-top: 44px;
-        font-size: 76px;
-        line-height: 1.02;
+        margin-top: 36px;
+        font-size: 64px;
+        line-height: 1.03;
         font-weight: 800;
         letter-spacing: -0.035em;
       }
-      p {
-        margin-top: 24px;
+      .lead {
+        margin-top: 20px;
         font-size: 28px;
-        line-height: 1.4;
+        line-height: 1.35;
+        font-weight: 600;
         color: var(--muted);
-        max-width: 620px;
       }
       .url {
-        margin-top: 40px;
-        font-size: 24px;
+        display: inline-block;
+        margin-top: 36px;
+        padding: 12px 22px;
+        border-radius: 999px;
+        background: var(--makan);
+        color: white;
+        font-size: 26px;
+        font-weight: 800;
+      }
+      .plate {
+        position: relative;
+        height: 510px;
+      }
+      .plate img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 42% 50%;
+        border-radius: 36px;
+      }
+      .tag {
+        position: absolute;
+        padding: 8px 14px;
+        border-radius: 14px;
+        background: oklch(0.22 0.012 85 / 0.86);
+        color: white;
+        font-size: 20px;
         font-weight: 700;
-        color: var(--makan);
+        white-space: nowrap;
       }
-      .rings {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
+      .tag span {
+        font-weight: 500;
+        opacity: 0.8;
       }
-      .ring {
-        display: flex;
-        align-items: center;
-        gap: 22px;
-        padding: 18px 22px;
-        border-radius: 28px;
+      .total {
+        position: absolute;
+        left: -40px;
+        bottom: 28px;
+        padding: 18px 24px;
+        border-radius: 24px;
         background: var(--card);
+        box-shadow: 0 12px 32px oklch(0.22 0.012 85 / 0.18);
       }
-      .ring svg {
-        width: 104px;
-        height: 104px;
-        flex-shrink: 0;
-        transform: rotate(-90deg);
-      }
-      .ring b {
+      .total b {
         display: block;
-        font-size: 34px;
+        font-size: 44px;
         font-weight: 800;
         letter-spacing: -0.02em;
         font-variant-numeric: tabular-nums;
       }
-      .ring span {
-        font-size: 20px;
+      .total b small {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      .total p {
+        margin-top: 4px;
+        font-size: 19px;
         font-weight: 600;
         color: var(--muted);
+        font-variant-numeric: tabular-nums;
       }
     </style>
   </head>
@@ -100,61 +128,17 @@
     <div>
       <img class="logo" src="../public/brand/logo.svg" alt="" />
       <h1>Diet yang paham porsi warteg</h1>
-      <p>
-        Foto piringmu, kalorinya terhitung. Tiap hari tahu berapa boleh makan, harus bakar, dan
-        butuh tidur.
-      </p>
+      <p class="lead">Foto piringmu, kalori dan gizinya langsung terhitung.</p>
       <div class="url">joyorogo.com</div>
     </div>
-    <div class="rings">
-      <!-- Circumference of r=42 is 263.9; dash = share filled, as on the landing. -->
-      <div class="ring">
-        <svg viewBox="0 0 104 104">
-          <circle cx="52" cy="52" r="42" fill="none" stroke="var(--track)" stroke-width="12" />
-          <circle
-            cx="52"
-            cy="52"
-            r="42"
-            fill="none"
-            stroke="var(--makan)"
-            stroke-width="12"
-            stroke-linecap="round"
-            stroke-dasharray="196 264"
-          />
-        </svg>
-        <div><b>1.650 kkal</b><span>Boleh makan</span></div>
-      </div>
-      <div class="ring">
-        <svg viewBox="0 0 104 104">
-          <circle cx="52" cy="52" r="42" fill="none" stroke="var(--track)" stroke-width="12" />
-          <circle
-            cx="52"
-            cy="52"
-            r="42"
-            fill="none"
-            stroke="var(--bakar)"
-            stroke-width="12"
-            stroke-linecap="round"
-            stroke-dasharray="106 264"
-          />
-        </svg>
-        <div><b>300 kkal</b><span>Harus bakar</span></div>
-      </div>
-      <div class="ring">
-        <svg viewBox="0 0 104 104">
-          <circle cx="52" cy="52" r="42" fill="none" stroke="var(--track)" stroke-width="12" />
-          <circle
-            cx="52"
-            cy="52"
-            r="42"
-            fill="none"
-            stroke="var(--tidur)"
-            stroke-width="12"
-            stroke-linecap="round"
-            stroke-dasharray="247 264"
-          />
-        </svg>
-        <div><b>8 jam</b><span>Butuh tidur</span></div>
+    <div class="plate">
+      <img src="nasi-goreng.jpg" alt="" />
+      <div class="tag" style="left: 150px; top: 250px">Nasi goreng <span>350 g · 550 kcal</span></div>
+      <div class="tag" style="left: 200px; top: 44px">Kerupuk <span>40 g · 200 kcal</span></div>
+      <div class="tag" style="right: 20px; top: 190px">Tomat <span>20 kcal</span></div>
+      <div class="total">
+        <b>790 <small>kcal</small></b>
+        <p>Protein 14 g · Karbo 112 g · Lemak 28 g</p>
       </div>
     </div>
   </body>

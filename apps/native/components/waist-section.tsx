@@ -115,7 +115,9 @@ export function WaistSection({
 
   return (
     <Card>
-      <Text style={styles.title}>{t("waist.title")}</Text>
+      <Text style={styles.title} accessibilityRole="header">
+        {t("waist.title")}
+      </Text>
 
       {historyQuery.isPending ? (
         <Skeleton width="100%" height={180} radius={16} />
@@ -138,7 +140,11 @@ export function WaistSection({
               />
             </View>
           </Field>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? (
+            <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="polite">
+              {error}
+            </Text>
+          ) : null}
           {loggedToday ? <Text style={styles.note}>{t("waist.loggedToday")}</Text> : null}
 
           {assessment !== null && latest !== null ? (

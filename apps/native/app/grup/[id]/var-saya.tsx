@@ -43,19 +43,24 @@ const MAX_SIDE = 1024;
 
 const CAPTURE_TIPS = ["capture.tips.pose", "capture.tips.light", "capture.tips.stand"] as const;
 
-function verdictCopy(verdict: VarVerdict): { icon: string; label: string; color: string } {
+/** Verdict tone as a theme token so it holds contrast on the light and dark card alike. */
+function verdictCopy(verdict: VarVerdict): {
+  icon: string;
+  label: string;
+  tone: "makanText" | "kcalText" | "mutedForeground" | "destructiveText";
+} {
   const label = i18n.t(`varperut:verdict.label.${verdict}`);
   switch (verdict) {
     case "turun":
-      return { icon: "checkmark-circle", label, color: "#3DDB84" };
+      return { icon: "checkmark-circle", label, tone: "makanText" };
     case "naik":
-      return { icon: "alert-circle", label, color: "#FFD84D" };
+      return { icon: "alert-circle", label, tone: "kcalText" };
     case "sama":
-      return { icon: "remove-circle", label, color: "#C9C4BA" };
+      return { icon: "remove-circle", label, tone: "mutedForeground" };
     case "beda":
-      return { icon: "refresh-circle", label, color: "#FF6A52" };
+      return { icon: "refresh-circle", label, tone: "destructiveText" };
     case "pertama":
-      return { icon: "information-circle", label, color: "#C9C4BA" };
+      return { icon: "information-circle", label, tone: "mutedForeground" };
   }
 }
 
@@ -429,7 +434,7 @@ export default function VarSaya() {
                   ]}
                 >
                   <View style={styles.shutter}>
-                    {busy ? <ActivityIndicator color="#FFFFFF" /> : null}
+                    {busy ? <ActivityIndicator color={theme.colors.primaryForeground} /> : null}
                   </View>
                 </Pressable>
                 <Pressable
@@ -541,8 +546,10 @@ function ResultView({
     <>
       <Card style={styles.resultCard}>
         <View style={styles.verdictHead}>
-          <Ionicons name={verdict.icon as never} size={22} color={verdict.color} />
-          <Text style={[styles.verdictTitle, { color: verdict.color }]}>{verdict.label}</Text>
+          <Ionicons name={verdict.icon as never} size={22} color={theme.colors[verdict.tone]} />
+          <Text style={[styles.verdictTitle, { color: theme.colors[verdict.tone] }]}>
+            {verdict.label}
+          </Text>
         </View>
         {hasConfidence ? (
           <View style={styles.confidenceRow}>
@@ -609,6 +616,7 @@ function ResultView({
                 value={retryHint}
                 onChangeText={setRetryHint}
                 placeholder={t("retry.hint")}
+                accessibilityLabel={t("retry.hint")}
                 maxLength={200}
                 editable={!retrying}
               />
@@ -712,7 +720,9 @@ function ResultView({
                   style={styles.historyPhoto}
                 />
                 <View style={styles.historyText}>
-                  <Text style={[styles.historyVerdict, { color: copy.color }]}>{copy.label}</Text>
+                  <Text style={[styles.historyVerdict, { color: theme.colors[copy.tone] }]}>
+                    {copy.label}
+                  </Text>
                   <Text style={styles.historyMeta}>{meta.join(" · ")}</Text>
                   {scan.note ? (
                     <Text style={styles.historyNote} numberOfLines={2}>
@@ -840,10 +850,11 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: theme.radius.pill,
     backgroundColor: theme.colors.muted,
     minWidth: 92,
+    minHeight: 44,
     justifyContent: "center",
   },
   timerChipOn: {
-    backgroundColor: "rgba(61, 219, 132, 0.14)",
+    backgroundColor: theme.colors.makanSoft,
   },
   timerText: {
     fontSize: theme.fontSize.xs,

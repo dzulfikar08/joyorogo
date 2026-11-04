@@ -1,9 +1,11 @@
 import { Unplug } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@joyorogo/ui/components/button";
 import { BrandMark } from "@/components/kit/brand-mark";
 import { ListButtonRow, ListGroup, ListRow } from "@/components/kit/surface";
+import { ConfirmSheet } from "@/components/profil/confirm-sheet";
 import {
   ConnectWithStravaButton,
   PoweredByStrava,
@@ -20,6 +22,7 @@ import {
 export function StravaScreen() {
   const { t } = useTranslation(["settings", "common"]);
   const strava = useStrava();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   let status: string;
   let trailing: React.ReactNode = null;
@@ -90,10 +93,22 @@ export function StravaScreen() {
                 ? t("strava.action.disconnecting")
                 : t("strava.action.disconnectStrava")
             }
-            onClick={strava.disconnect}
+            onClick={() => setConfirmOpen(true)}
           />
         </ListGroup>
       )}
+      <ConfirmSheet
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={t("hubNative.disconnect.confirmTitle", { name: "Strava" })}
+        body={t("hubNative.disconnect.confirmMessage", { name: "Strava" })}
+        confirmLabel={t("strava.action.disconnectStrava")}
+        pending={strava.isDisconnecting}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          strava.disconnect();
+        }}
+      />
 
       {/* The official logo has dark lettering and must not be recolored: it sits on its own light plate so it reads in dark mode too. */}
       <div className="mt-10 flex justify-center">

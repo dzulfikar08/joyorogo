@@ -416,7 +416,7 @@ const styles = StyleSheet.create((theme) => ({
   cardTitle: { fontSize: theme.fontSize.lg, fontWeight: "700" },
   strong: { fontSize: theme.fontSize.base, fontWeight: "700" },
   small: { fontSize: theme.fontSize.sm, lineHeight: 20, color: theme.colors.mutedForeground },
-  danger: { color: theme.colors.destructive },
+  danger: { color: theme.colors.destructiveText },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm },
   keyRow: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
   savedRow: {

@@ -43,7 +43,7 @@ export function PasangMy() {
         JoyoRogo ada di Google Play dan App Store. Web app di joyorogo.com juga boleh digunakan di pelayar telefon atau
         komputer.
       </p>
-      <div className="mt-10 grid gap-4 md:grid-cols-2">
+      <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div
           id="android"
           data-section="android"
@@ -105,6 +105,7 @@ export function PasangMy() {
             <Button
               size="lg"
               variant="outline"
+              className="h-auto min-h-14 max-w-full shrink py-2 text-center whitespace-normal"
               data-revklik-goal="ios_cta_click"
               data-revklik-goal-location="my-pasang"
               onClick={() => openIosInstall("my-pasang")}

@@ -351,6 +351,7 @@
     "fallbackName": "this account",
     "copyLink": "Copy profile link",
     "linkCopied": "Link copied.",
+    "copyFailed": "Couldn't copy the link. Copy it from the address bar.",
     "notFound": {
       "title": "Profile not found",
       "body": "The link is wrong, or the owner made their profile private."
@@ -547,6 +548,12 @@
       "section": {
         "charts": "Charts",
         "comparison": "Compared with similar workouts"
+      },
+      "map": {
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out",
+        "recenter": "Recenter on route",
+        "attribution": "Map data sources, opens openfreemap.org"
       },
       "unit": {
         "km": "km",

@@ -390,12 +390,22 @@ export default function FounderPaywall() {
       {PLAY_ACTIVE || ios ? (
         <View style={styles.legalRow}>
           {legalTerms ? (
-            <Text style={styles.legalLink} accessibilityRole="link" onPress={() => void Linking.openURL(legalTerms)}>
+            <Text
+              style={styles.legalLink}
+              accessibilityRole="link"
+              onPress={() => void Linking.openURL(legalTerms).catch(() => {})}
+            >
               {t("paywall.terms")}
             </Text>
           ) : null}
           <Text style={styles.skipHint}>·</Text>
-          <Text style={styles.legalLink} accessibilityRole="link" onPress={() => void Linking.openURL(privacyUrl(SITE_URL, i18n.language))}>
+          <Text
+            style={styles.legalLink}
+            accessibilityRole="link"
+            onPress={() =>
+              void Linking.openURL(privacyUrl(SITE_URL, i18n.language)).catch(() => {})
+            }
+          >
             {t("paywall.privacy")}
           </Text>
           {ios ? (
@@ -404,7 +414,7 @@ export default function FounderPaywall() {
               <Text
                 style={styles.legalLink}
                 accessibilityRole="link"
-                onPress={() => void openManageSubscriptions()}
+                onPress={() => void openManageSubscriptions().catch(() => {})}
               >
                 {t("cards.manage")}
               </Text>
@@ -574,10 +584,12 @@ const styles = StyleSheet.create((theme) => ({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
+    alignItems: "center",
     gap: theme.spacing.xs,
   },
   legalLink: {
     fontSize: theme.fontSize.sm,
+    paddingVertical: 12,
     fontWeight: "600",
     color: theme.colors.primary,
     textDecorationLine: "underline",

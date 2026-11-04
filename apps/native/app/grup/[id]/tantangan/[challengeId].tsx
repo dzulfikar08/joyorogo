@@ -66,7 +66,8 @@ export default function ChallengeDetailScreen() {
       onSuccess: async () => {
         setConfirm(null);
         await invalidate();
-        router.back();
+        if (router.canGoBack()) router.back();
+        else router.replace("/grup");
       },
       onError: (e) => toast.error(t("toast.removeFailed"), errorMessage(e)),
     }),

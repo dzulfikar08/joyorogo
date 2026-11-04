@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 
 import { Card } from "@/components/kit/surface";
 import { authClient, useSession } from "@/lib/auth-client";
+import { legalPath } from "@/lib/legal-path";
 import { scopeKey } from "@/lib/mcp-scope-key";
 import { parseOAuthRequest, readOAuthQuery } from "@/lib/oauth-query";
 import { orpc } from "@/utils/orpc";
@@ -39,7 +40,7 @@ function hostOf(url: string | undefined): string | null {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  const { t } = useTranslation("izin");
+  const { t, i18n } = useTranslation("izin");
   return (
     <div className="flex min-h-svh flex-col items-center px-4 py-8 md:py-12">
       <main className="w-full max-w-md">
@@ -48,16 +49,16 @@ function Shell({ children }: { children: React.ReactNode }) {
           JoyoRogo
         </p>
         {children}
-        <p className="mt-6 flex items-center justify-center gap-4 text-xs text-muted-foreground">
+        <p className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <Link
             to="/panduan/ai"
-            className="underline underline-offset-4 hover:text-foreground"
+            className="inline-flex min-h-11 items-center px-2 underline underline-offset-4 hover:text-foreground"
           >
             {t("footer.guide")}
           </Link>
           <Link
-            to="/privasi"
-            className="underline underline-offset-4 hover:text-foreground"
+            to={legalPath("privacy", i18n.language)}
+            className="inline-flex min-h-11 items-center px-2 underline underline-offset-4 hover:text-foreground"
           >
             {t("footer.privacy")}
           </Link>
@@ -400,7 +401,7 @@ function Consent({
           <p>{t("izin:pro.body")}</p>
           <Link
             to="/harga"
-            className="mt-1 inline-block font-semibold underline underline-offset-4"
+            className="mt-1 inline-flex min-h-11 items-center font-semibold underline underline-offset-4"
           >
             {t("izin:pro.cta")}
           </Link>

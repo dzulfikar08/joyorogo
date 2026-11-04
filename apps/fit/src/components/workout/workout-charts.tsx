@@ -40,7 +40,7 @@ const RIGHT_PAD = 12;
 const COLOR: Record<Metric, string> = {
   pace: "var(--primary)",
   hr: "var(--heart)",
-  alt: "var(--chart-5)",
+  alt: "var(--muted-foreground)",
   cad: "var(--tidur)",
   stride: "var(--recovery)",
   power: "var(--bakar)",
@@ -145,7 +145,10 @@ const Panel = memo(function Panel({
   const { metric, rows, domain, reversed } = model;
   const color = COLOR[metric];
   // Step length spans a fraction of a metre: three ticks would put one under the panel's label.
-  const ticks = niceTicks(domain[0], domain[1], metric === "stride" ? 2 : 3);
+  const allTicks = niceTicks(domain[0], domain[1], metric === "stride" ? 2 : 3);
+  // The panel's label sits in the top strip of the plot: a tick there would print over it.
+  const topEdge = reversed ? domain[0] : domain[1];
+  const ticks = allTicks.filter((v) => Math.abs(v - topEdge) >= (domain[1] - domain[0]) * 0.18);
   const height = showAxis ? 128 : 104;
   return (
     <div role="img" aria-label={summary} className="min-w-0" style={{ height }}>

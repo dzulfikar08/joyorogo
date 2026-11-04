@@ -49,6 +49,7 @@ export function CalibrationChip({ enabled, compact = false }: { enabled: boolean
         accessibilityLabel={text}
         accessibilityHint={t("calChip.hint")}
         onPress={() => router.push("/profil/target")}
+        hitSlop={4}
         scaleTo={0.97}
         dimTo={0.8}
         style={[styles.chip, compact && styles.chipCompact]}

@@ -62,12 +62,13 @@ export const threadsMention = sqliteTable(
     status: text("status", { enum: THREADS_MENTION_STATUS }).notNull().default("received"),
     // Why a mention was skipped: stale, own_post, own_thread, no_image, duplicate_photo, user_cap, global_cap, not_food.
     skipReason: text("skip_reason"),
-    // 'estimate' = kcal ranges per dish; 'unclear' = the short polite "photo not clear enough" reply.
-    kind: text("kind", { enum: ["estimate", "unclear"] }),
-    // JSON [{ name, kcal, low, high }]: dish names and the kcal range shown in the reply.
+    // 'estimate' = weight and kcal per dish, kcal and macros for the plate; 'unclear' = the short polite "photo not
+    // clear enough" reply; 'capped' = the one "quota used up" reply a person gets per day past the per-user cap.
+    kind: text("kind", { enum: ["estimate", "unclear", "capped"] }),
+    // JSON [{ name, kcal, grams?, protein?, carbs?, fat?, fiber? }]: the dishes shown in the reply.
     dishesJson: text("dishes_json"),
-    kcalLow: integer("kcal_low"),
-    kcalHigh: integer("kcal_high"),
+    // Plate total kcal.
+    kcal: integer("kcal"),
     // Draft, and after sending the exact text that went out (<= 500 characters).
     replyText: text("reply_text"),
     // THREADS_BOT_MODE when the draft was made: 'review' or 'auto'.

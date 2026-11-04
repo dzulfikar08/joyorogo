@@ -45,10 +45,11 @@ function Stepper({
   const atMin = value <= range.min;
   const atMax = value >= range.max;
   return (
-    <View style={styles.stepper} accessibilityRole="adjustable" accessibilityLabel={label}>
+    <View style={styles.stepper}>
       <PressableScale
         accessibilityRole="button"
         accessibilityLabel={`${label} -`}
+        accessibilityState={{ disabled: atMin }}
         disabled={atMin}
         onPress={() => onChange(Math.max(range.min, value - range.step))}
         style={[styles.stepButton, atMin && styles.disabled]}
@@ -59,6 +60,7 @@ function Stepper({
       <PressableScale
         accessibilityRole="button"
         accessibilityLabel={`${label} +`}
+        accessibilityState={{ disabled: atMax }}
         disabled={atMax}
         onPress={() => onChange(Math.min(range.max, value + range.step))}
         style={[styles.stepButton, atMax && styles.disabled]}
@@ -121,7 +123,7 @@ export function ExerciseCreditSection({ includedKcal }: { includedKcal: number }
         <Switch
           value={settings.enabled}
           onValueChange={(value) => void commit("enabled", value)}
-          trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+          trackColor={{ false: theme.colors.mutedForeground, true: theme.colors.primary }}
           thumbColor={theme.colors.background}
           accessibilityLabel={t("exerciseCredit.enabled.title")}
         />

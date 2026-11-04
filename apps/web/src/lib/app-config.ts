@@ -1,5 +1,5 @@
-import { fmtIdr, i18n, isRegion, setActiveRegion } from "@joyorogo/i18n";
-import type { Region } from "@joyorogo/i18n";
+import { fmtIdr, isRegion, setActiveRegion } from "@joyorogo/i18n";
+import type { Locale, Region } from "@joyorogo/i18n";
 import { useQuery } from "@tanstack/react-query";
 
 import { env } from "@/env.public";
@@ -111,13 +111,6 @@ export function useAppConfig() {
   });
 }
 
-export function fmtRupiah(amount: number): string {
-  return fmtIdr(amount);
-}
-
-/** Founder scan allowance as sold: the daily cap when the server sets one. */
-export function founderScans(config: Pick<AppConfig, "founderDailyCap">): string {
-  return config.founderDailyCap === null
-    ? i18n.t("billing:benefits.scansUnlimited")
-    : i18n.t("billing:benefits.scansCapped", { count: config.founderDailyCap });
+export function fmtRupiah(amount: number, locale?: Locale): string {
+  return fmtIdr(amount, locale);
 }

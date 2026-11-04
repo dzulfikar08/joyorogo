@@ -148,6 +148,9 @@ function CommentBody({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t("post.openProfile", { name: comment.author.name })}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        hitSlop={8}
         onPress={() => openAuthor(comment.author.handle)}
       >
         <Avatar name={comment.author.name} image={comment.author.image} size={reply ? 24 : 32} />
@@ -333,7 +336,7 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
   },
   replyButton: {
-    minHeight: 36,
+    minHeight: 44,
     justifyContent: "center",
     paddingRight: theme.spacing.md,
   },

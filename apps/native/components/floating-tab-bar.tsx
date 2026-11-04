@@ -89,7 +89,7 @@ function TabItem({
     <PressableScale
       accessibilityRole="tab"
       accessibilityState={{ selected: focused }}
-      accessibilityLabel={label}
+      accessibilityLabel={badge === undefined ? label : `${label}, ${badge}`}
       testID={testID}
       onPress={onPress}
       onLongPress={onLongPress}

@@ -118,7 +118,10 @@ function RecapDays({
         height={120}
         selectedKey={selectedKey}
         onSelect={setSelectedKey}
-        accessibilityLabel={t("misc:recap.chart.aria", { target: fmtInt(targetKcal) })}
+        accessibilityLabel={
+          t("misc:recap.chart.aria", { target: fmtInt(targetKcal) }) +
+          (days.length <= 7 ? `. ${data.map((datum) => datum.readout).join(". ")}` : "")
+        }
       />
       <View style={styles.legend}>
         <LegendDot color={theme.colors.primary} label={t("misc:recap.chart.legend.onTarget")} />

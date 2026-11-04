@@ -218,7 +218,7 @@
       "history": {
         "title": "Sejarah sesi",
         "emptyTitle": "Belum ada sesi",
-        "emptyHint": "Dua tiga sesi seminggu cukup untuk mengekalkan otot.",
+        "emptyHint": "Tiada log kekuatan lama. Sesi baharu dicatat dalam JoyoFit.",
         "shareStory": "Kongsi sesi {{name}} ke Story",
         "shareFeed": "Kongsi sesi {{name}} ke suapan"
       }
@@ -226,6 +226,7 @@
     "map": {
       "title": "Peta otot minggu ini",
       "loading": "Mengira volum otot…",
+      "empty": "Belum ada set yang dikira minggu ini.",
       "sets_other": "{{sets}} set",
       "try": "Cuba: {{names}}",
       "how": {
@@ -242,7 +243,7 @@
     },
     "progress": {
       "title": "Kemajuan kekuatan",
-      "empty": "Belum ada rekod. Selesaikan satu sesi, rekod gerakan akan muncul di sini.",
+      "empty": "Belum ada rekod. Rekod daripada log kekuatan lama anda akan muncul di sini.",
       "history": "Sejarah {{name}}"
     },
     "template": {
@@ -277,7 +278,7 @@
       },
       "sessions": "Sesi sebelumnya",
       "emptyTitle": "Belum pernah dicatat",
-      "emptyHint": "Selesaikan satu sesi, sejarah gerakan ini akan muncul di sini."
+      "emptyHint": "Gerakan ini belum mempunyai sejarah dalam log kekuatan lama anda."
     }
   },
   "movement": {

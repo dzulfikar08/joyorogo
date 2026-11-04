@@ -112,6 +112,7 @@
     "empty": {
       "titleNone": "Nothing logged this week",
       "titleNoFood": "No food logged yet",
+      "titlePending": "Today is not in the recap yet",
       "bodyPast": "The recap covers days that have already passed. Check back tomorrow.",
       "bodyLog": "Log your food for a few days and your recap will show up here."
     },

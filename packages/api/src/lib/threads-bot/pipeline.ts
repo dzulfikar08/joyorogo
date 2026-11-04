@@ -14,8 +14,9 @@ import type { VisionAnalysis } from "../vision";
 import type { BotConfig } from "./config";
 import { fetchImage, getMedia, listMentions, publishReply } from "./graph";
 import type { ThreadsMedia } from "./graph";
-import { UNCLEAR_REPLY, formatEstimate, isLowConfidence } from "./reply";
+import { UNCLEAR_REPLY, capReply, formatEstimate, isLowConfidence } from "./reply";
 import {
+  claimCapNotice,
   STALE_MS,
   dishesJson,
   expireReceived,
@@ -50,7 +51,7 @@ export type MentionOutcome =
   | { status: "duplicate" }
   | { status: "queued" }
   | { status: "skipped"; reason: string }
-  | { status: "pending_review"; kind: "estimate" | "unclear" }
+  | { status: "pending_review"; kind: "estimate" | "unclear" | "capped" }
   | { status: "sent"; replyId: string }
   | { status: "failed"; error: string }
   | { status: "retry"; error: string };
@@ -295,10 +296,14 @@ export async function processMention(
     mediaId,
     who,
     photo.sourceId,
-    { user: config.userCap, global: config.globalCap },
+    { user: config.uncappedUsers.includes(who) ? Number.MAX_SAFE_INTEGER : config.userCap, global: config.globalCap },
     now,
   );
   if (slot === "gone") return { status: "duplicate" };
+  // Over the per-user cap: one short "quota used up" reply per person per day, then silence. The global cap and a cap of
+  // 0 (bot answering nobody) stay silent.
+  if (slot === "user_cap" && config.userCap > 0 && (await claimCapNotice(db, mediaId, who, now)))
+    return draft(deps, account, mediaId, { kind: "capped", text: capReply(config.userCap) });
   if (slot !== "reserved") return skip(slot);
 
   let image: { bytes: ArrayBuffer; mimeType: string };
@@ -340,22 +345,20 @@ export async function processMention(
 
   if (isLowConfidence(analysis.items))
     return draft(deps, account, mediaId, { kind: "unclear", text: UNCLEAR_REPLY });
-  const estimate = formatEstimate(analysis.items, config.band);
+  const estimate = formatEstimate(analysis.items);
   return draft(deps, account, mediaId, {
     kind: "estimate",
     text: estimate.text,
     dishes: dishesJson(estimate.dishes),
-    kcalLow: estimate.low,
-    kcalHigh: estimate.high,
+    kcal: estimate.totalKcal,
   });
 }
 
 type Draft = {
-  kind: "estimate" | "unclear";
+  kind: "estimate" | "unclear" | "capped";
   text: string;
   dishes?: string;
-  kcalLow?: number;
-  kcalHigh?: number;
+  kcal?: number;
 };
 
 /** Stores the reply: queued in review mode, posted straight away in auto mode (and queued if that post fails). */
@@ -370,8 +373,7 @@ async function draft(
     kind: reply.kind,
     replyText: reply.text,
     dishesJson: reply.dishes ?? null,
-    kcalLow: reply.kcalLow ?? null,
-    kcalHigh: reply.kcalHigh ?? null,
+    kcal: reply.kcal ?? null,
     mode: deps.config.mode === "auto" ? ("auto" as const) : ("review" as const),
   };
   if (deps.config.mode !== "auto") {

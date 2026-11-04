@@ -134,7 +134,7 @@ function PrivasiPage() {
               di balasan di bawah foto makanan), kami membaca postingan itu lewat API resmi Threads,
               mengirim fotonya ke AI untuk memperkirakan kalori, lalu membalas di Threads. Fotonya
               hanya dibaca ke memori untuk satu kali scan dan tidak disimpan. Yang kami simpan hanya
-              username Threads-mu, nama makanan dan rentang kalori dari AI, status balasan, dan
+              username Threads-mu, nama makanan serta berat, kalori, dan gizinya dari AI, status balasan, dan
               waktunya. Postingan privat tidak terbaca. Mau datamu dihapus? Kirim email ke
               kontak di bawah.
             </p>

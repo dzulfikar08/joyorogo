@@ -3,12 +3,17 @@
 Someone tags the brand Threads account (`@joyorogo_com`) on a food photo, or replies "@joyorogo_com" under one, and the account
 replies with a calorie estimate. The estimate is the same photo scan the app uses, run server-side on the image held in
 memory. **No photo is ever stored** (no R2, no dataset); the D1 row keeps only the media id, the author's username, the
-dish names, the kcal range, status and times.
+dish names with their grams, kcal and macros, the plate's kcal, status and times.
 
-Status: live in `auto` since 2026-11-03 (`THREADS_BOT_MODE=auto` in `apps/server/wrangler.jsonc`; the code default when the
-var is unset is still `off`). Until App Review grants Advanced Access, Meta's mentions edge and webhooks only return
-mentions by **Threads Testers** of the app, so the bot answers testers only. Every Threads call is covered by tests
-against a stubbed Graph API (`packages/api/src/lib/threads-bot/fixtures.ts`).
+Status (2026-11-03): live in `THREADS_BOT_MODE=auto` (set in `apps/server/wrangler.jsonc`, switched from `review` after three reviewed test replies; the code default when the var is unset is still `off`) on the shared Meta app **ThreadsAPI** (Threads app ID
+`985569897159985`, also used by nempel and atur). Secrets `THREADS_APP_ID`, `THREADS_APP_SECRET` and
+`THREADS_WEBHOOK_VERIFY_TOKEN` are set; the redirect URI is registered; the webhook is verified and subscribed to
+`mentions` only (object Interaction). `joyorogo_com` is a Threads Tester (the add failed with Meta's `field_exception`
+on 2026-11-02 and went through on 2026-11-03) and is connected through the admin page (token valid to 2027-01-02).
+Until App Review grants Advanced Access, only mentions by testers are seen. The shared app's uninstall/delete callbacks
+point at nempel, so `/api/threads/deauthorize` and `/api/threads/delete` are not called by Meta.
+Every Threads call is covered by tests against a stubbed Graph API (`packages/api/src/lib/threads-bot/fixtures.ts`);
+the first live run is the real check. The things to watch on that run are listed under [First live run](#first-live-run).
 
 ## How it works
 
@@ -25,7 +30,7 @@ cron poll, every 5 min   ─┘     (idempotent                                 
 | Webhook (GET challenge, POST + `X-Hub-Signature-256`), OAuth redirect, deauthorize/delete callbacks, admin API, cron tick | `apps/server/src/threads-bot.ts` |
 | Graph client (OAuth, refresh, mentions edge, post read, reply publish, image fetch) | `packages/api/src/lib/threads-bot/graph.ts` |
 | Pipeline: filters, scan, draft, approve, poll, sweep | `packages/api/src/lib/threads-bot/pipeline.ts` |
-| Reply text and kcal range | `packages/api/src/lib/threads-bot/reply.ts` |
+| Reply text | `packages/api/src/lib/threads-bot/reply.ts` |
 | Caps, slots, queue queries | `packages/api/src/lib/threads-bot/store.ts` |
 | Token storage and auto-refresh | `packages/api/src/lib/threads-bot/token.ts` |
 | Tables `threads_account`, `threads_mention` (migration `0068_threads_bot`) | `packages/db/src/schema/threads.ts` |
@@ -73,8 +78,15 @@ concurrent mentions cannot all pass a stale count (tests fire 10 and 20 at once 
 | --- | --- | --- |
 | `THREADS_BOT_USER_DAILY_CAP` | `3` | Scans per Threads username per day. `0` = nobody is answered. |
 | `THREADS_BOT_DAILY_CAP` | `200` | Scans per day over everyone. `0` = nobody is answered. |
+| `THREADS_BOT_UNCAPPED_USERS` | `dzulfikar.at` | Comma-separated usernames the per-user cap skips (the owner's testing account). They still count toward the global cap. |
 
 A scan that reaches the model costs a slot even when the photo was not food. A failed image fetch gives the slot back.
+
+Past the per-user cap a person gets **one** short reply per WIB day, "Kuota hari ini sudah habis (3 foto per hari). Coba
+lagi besok ya, atau catat di aplikasi JoyoRogo: <link>" (kind `capped`, no scan, no slot), claimed in one statement so a
+burst of tags gets a single notice; further over-cap tags that day are skipped silently (`user_cap`). The global cap and
+a per-user cap of `0` stay silent.
+
 Every scan also writes an `ai_usage` row (`scan_type = 'threads'`, no user) so the cost shows up beside the app's.
 
 ### Scan
@@ -87,21 +99,23 @@ dishware, correction memory, scale readout or usual portions. The image is fetch
 ### Reply
 
 Indonesian, at most 500 characters (the Threads limit; the formatter folds the smallest dishes into "+ N lainnya" when a
-plate is long, and the total still counts them):
+plate is long, and the totals still count them):
 
 ```
-Perkiraan kalori dari fotomu:
-• Nasi goreng: 400–600 kcal
-• Telur mata sapi: 70–110 kcal
+Perkiraan gizi dari fotomu:
+• Nasi goreng (300 g): 500 kcal
+• Telur mata sapi (50 g): 90 kcal
 
-Total: 470–710 kcal (±20%)
+Total: 590 kcal
+Protein 18 g · Karbo 70 g · Lemak 25 g · Serat 3 g
 
 Perkiraan AI, bukan saran medis. Catat makananmu lebih mudah di JoyoRogo: https://joyorogo.com/
 ```
 
-- **Range.** Each dish and the total are `kcal × (1 ± band)`, rounded to 10 kcal. There is no per-scan error band in the app
-  (`lib/calibration.ts` is a per-person energy shift, not a scan band), so the band is `THREADS_BOT_KCAL_BAND`, default
-  `0.2` (±20%), clamped to 0.05 to 0.5. Replace it with a measured figure when the accuracy report has one.
+- **Same numbers as the app.** Grams and kcal per dish, and kcal, protein, carbs, fat and fiber for the plate, straight
+  from the scan (rounded to whole numbers), the way the app's scan result shows them. No range: the app shows none.
+  Drinks (scan kind `minuman`) show ml instead of g, and numbers use Indonesian separators (`1.475 kcal`). A dish
+  without a weight is listed without one; a missing macro counts as 0 in the total.
 - Dish names are cleaned before they are published: one line, no `@`, `#` or links, at most 40 characters.
 - It never says anything about a body, weight or health.
 - **Not food** (`not_food` from the gate): **no reply**, recorded as `skipped / not_food`. A bot that answers every
@@ -130,7 +144,7 @@ request. Drafts left in the queue stay approvable after switching `auto` back to
   and last error, the webhook URL and OAuth redirect URI to paste into Meta, **Hubungkan Threads** (OAuth) and **Baca
   mention sekarang** (runs the cron tick on demand).
 - **Antrian:** every draft with the photo (read live from Threads when the page loads, never stored), a link to the post,
-  dish names with ranges, an editable text with a 500-character counter, and **Tolak** / **Simpan edit** /
+  dishes with grams and kcal, an editable text with a 500-character counter, and **Tolak** / **Simpan edit** /
   **Setujui & kirim**. Approving posts the (edited) text; the row moves atomically `pending_review -> publishing -> sent`,
   so a double click or two admins post once. A failed post goes back to the queue with Meta's error.
 - **Terkirim:** the log of every reply sent, with the exact text, auto or approved-by, and time.
@@ -181,11 +195,12 @@ than 24 hours; the failure is harmless and retried.
    | `THREADS_WEBHOOK_SECRET` | optional, only if deliveries come back 401: the Meta app secret (Settings > Basic), accepted as a second signing key |
 
    Vars (`apps/server/wrangler.jsonc`, already present): `THREADS_BOT_MODE` (`auto`), `THREADS_BOT_USER_DAILY_CAP` (`3`),
-   `THREADS_BOT_DAILY_CAP` (`200`); optional `THREADS_BOT_KCAL_BAND` (`0.2`).
+   `THREADS_BOT_DAILY_CAP` (`200`).
 7. **Connect:** deploy, open `admin.joyorogo.com/#threads`, **Hubungkan Threads**, log in as the brand account and allow.
 8. **Try it in review mode:** set `THREADS_BOT_MODE=review`, tag the account on a food photo from a tester account, wait
    for the webhook (or press **Baca mention sekarang**), approve the draft, check the reply on Threads.
-9. Go `auto` only after a few dozen reviewed drafts look right.
+9. Go `auto` once the reviewed drafts look right. Before App Review only testers' mentions reach the bot, so `auto` only
+   answers testers until then.
 
 Deploying the migration: `packages/db/src/migrations/0068_threads_bot.sql` (also in `migrations-deploy/`) creates the two
 tables; the usual D1 migration step applies it.
@@ -208,7 +223,7 @@ tables; the usual D1 migration step applies it.
 | Table | Holds |
 | --- | --- |
 | `threads_account` | the brand token, its expiry and refresh state, the brand user id and username, the mentions cursor, last error |
-| `threads_mention` | media id, author username, id of the post with the photo, status, skip reason, dish names and kcal range (JSON), reply text and its media id, who approved, timestamps |
+| `threads_mention` | media id, author username, id of the post with the photo, status, skip reason, dishes with grams, kcal and macros (JSON), the plate's kcal, reply text and its media id, who approved, timestamps |
 
 Not kept: the photo (memory only), its URL, the text of the mention, the author's profile. The admin photo is requested
 from Threads each time the queue loads.

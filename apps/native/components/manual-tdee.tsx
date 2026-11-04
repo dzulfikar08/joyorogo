@@ -117,9 +117,13 @@ export function ManualTdeeForm({
             : t(diff > 0 ? "manual.diff.more" : "manual.diff.less", { kcal: fmtInt(Math.abs(diff)) })}
         </Text>
       ) : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="polite">
+          {error}
+        </Text>
+      ) : null}
       {warning ? (
-        <Text style={styles.warning}>
+        <Text style={styles.warning} accessibilityLiveRegion="polite">
           {warning === "BELOW_BMR"
             ? t("manual.warn.BELOW_BMR", { bmr: fmtInt(info.bmrKcal) })
             : t("manual.warn.ABOVE_RANGE", {

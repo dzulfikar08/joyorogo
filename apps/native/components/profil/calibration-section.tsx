@@ -176,7 +176,7 @@ export function CalibrationSection({
             <Switch
               value={enabled}
               onValueChange={(value) => void commit(value)}
-              trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+              trackColor={{ false: theme.colors.mutedForeground, true: theme.colors.primary }}
               thumbColor={theme.colors.background}
               accessibilityLabel={t("auto.toggle")}
             />

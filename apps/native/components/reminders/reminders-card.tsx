@@ -173,7 +173,7 @@ export function RemindersCard() {
   };
 
   const switchProps = {
-    trackColor: { false: theme.colors.muted, true: theme.colors.primary },
+    trackColor: { false: theme.colors.mutedForeground, true: theme.colors.primary },
     thumbColor: theme.colors.background,
     disabled: !loaded,
   } as const;

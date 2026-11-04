@@ -173,8 +173,8 @@ function MemberCard({
 
       {member.varStatus ? (
         <View style={styles.varChip}>
-          <Ionicons name="tv" size={12} color={theme.colors.primary} />
-          <Text style={[styles.varChipText, { color: theme.colors.primary }]} numberOfLines={1}>
+          <Ionicons name="tv" size={12} color={theme.colors.makanText} />
+          <Text style={[styles.varChipText, { color: theme.colors.makanText }]} numberOfLines={1}>
             {t(isMe ? "var.chip.self" : "var.chip.other", {
               name: member.name.split(" ")[0] ?? "",
               verdict: t(`var.verdict.${member.varStatus.verdict}`),
@@ -417,7 +417,10 @@ export default function GroupDetail() {
   };
 
   const poke = (member: GroupMember) => {
-    nudge.mutate({ groupId, toUserId: member.userId, kind: "poke" });
+    nudge.mutate(
+      { groupId, toUserId: member.userId, kind: "poke" },
+      { onSuccess: () => toast.success(t("toast.poked")) },
+    );
   };
 
   const openNote = (member: GroupMember) => {
@@ -595,6 +598,7 @@ export default function GroupDetail() {
                   value={me?.shareFood ?? false}
                   disabled={setShareFood.isPending}
                   onValueChange={(value) => setShareFood.mutate({ groupId, shareFood: value })}
+                  accessibilityLabel={t("settings.privacy.food.titleNative")}
                 />
               }
             />
@@ -608,6 +612,7 @@ export default function GroupDetail() {
                   value={me?.shareVar ?? false}
                   disabled={setShareVar.isPending}
                   onValueChange={(value) => setShareVar.mutate({ groupId, shareVar: value })}
+                  accessibilityLabel={t("settings.privacy.var.title")}
                 />
               }
             />
@@ -670,7 +675,12 @@ export default function GroupDetail() {
           }
         >
           <Field label={t("create.nameLabel")}>
-            <Input value={newName} onChangeText={setNewName} maxLength={40} />
+            <Input
+              value={newName}
+              onChangeText={setNewName}
+              maxLength={40}
+              accessibilityLabel={t("create.nameLabel")}
+            />
           </Field>
         </Sheet>
 
@@ -704,6 +714,7 @@ export default function GroupDetail() {
               maxLength={140}
               multiline
               placeholder={t("note.placeholderNative")}
+              accessibilityLabel={t("note.messageLabel")}
             />
           </Field>
         </Sheet>
@@ -771,7 +782,7 @@ const styles = StyleSheet.create((theme) => ({
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 6,
     borderRadius: theme.radius.pill,
-    backgroundColor: "rgba(46, 125, 70, 0.12)",
+    backgroundColor: theme.colors.makanSoft,
   },
   varChipText: {
     fontSize: theme.fontSize.xs,

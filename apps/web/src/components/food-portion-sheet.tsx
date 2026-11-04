@@ -18,12 +18,12 @@ import { FieldLabel } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
 import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { MealSlotField } from "@/components/plate/meal-slot-field";
-import { CalendarSheet, DayChips } from "@/components/plate/plate-group";
+import { CalendarSheet, DayChips, isQuickDay } from "@/components/plate/plate-group";
 import { FoodSafetyNotes } from "@/components/maternal/food-safety-notes";
 import { SheetActions } from "@/components/sheet-actions";
 import { StickerHero, useStickerTarget } from "@/components/sticker";
 import type { FoodItem } from "@/lib/api-types";
-import { fmtDateLong, fmtGramsLabel, fmtKcalLabel, parseNum } from "@/lib/format";
+import { fmtDateLong, fmtGramsLabel, fmtKcalLabel, fmtNumber, parseNum } from "@/lib/format";
 import { askText } from "@/lib/joyo-chat";
 import { MACRO_META } from "@/lib/macro-icons";
 import { OptimisticCache, insertFoodRow, stripFoodRow, useOptimisticMutation } from "@/lib/optimistic";
@@ -425,7 +425,7 @@ export function FoodPortionSheet({
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   {PORTION_MULTIPLIERS.map((mult) => (
                     <Chip key={mult} active={ratio === mult} onClick={() => applyRatio(mult)}>
-                      {fmtField(mult, 1)}x
+                      {fmtNumber(mult, 1)}×
                     </Chip>
                   ))}
                   <Input
@@ -522,7 +522,9 @@ export function FoodPortionSheet({
                 onClick={() => setPickingDate(true)}
               >
                 <CalendarIcon aria-hidden />
-                {relativeDayLabel(date, jakartaToday())}
+                {isQuickDay(date)
+                  ? t("portionSheet.pickDateShort")
+                  : relativeDayLabel(date, jakartaToday())}
               </Button>
               {dateChanged && (
                 <p className="text-xs text-muted-foreground">

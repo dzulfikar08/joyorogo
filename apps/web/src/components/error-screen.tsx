@@ -109,7 +109,7 @@ export function ErrorScreen({ error, reset }: ErrorComponentProps) {
 
       <button
         type="button"
-        className="mt-8 inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
+        className="mt-4 inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-xs font-semibold text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
         onClick={() => setShowDetails((v) => !v)}
         aria-expanded={showDetails}
       >

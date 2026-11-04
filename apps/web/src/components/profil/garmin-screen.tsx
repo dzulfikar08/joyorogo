@@ -11,6 +11,7 @@ import {
   useGarminConnectedNote,
 } from "@/components/garmin-card";
 import { IconChip, ListButtonRow, ListGroup, ListRow } from "@/components/kit/surface";
+import { ConfirmSheet } from "@/components/profil/confirm-sheet";
 
 /**
  * Garmin connection: status head, then the Personal API key form until
@@ -18,10 +19,11 @@ import { IconChip, ListButtonRow, ListGroup, ListRow } from "@/components/kit/su
  * open when the last sync is missing or over an hour old.
  */
 export function GarminScreen() {
-  const { t } = useTranslation(["garmin", "common"]);
+  const { t } = useTranslation(["garmin", "common", "settings"]);
   const garmin = useGarmin({ autoSync: true });
   const connectedNote = useGarminConnectedNote(garmin);
   const [apiKey, setApiKey] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   let status: string;
   let trailing: React.ReactNode = null;
@@ -57,8 +59,22 @@ export function GarminScreen() {
       .catch(() => {});
   };
 
-  // Nothing renders for users off the allowlist.
-  if (!garmin.isChecking && !garmin.statusError && !garmin.configured) return null;
+  // Off the allowlist: say so instead of leaving a bare heading.
+  if (!garmin.isChecking && !garmin.statusError && !garmin.configured) {
+    return (
+      <ListGroup>
+        <ListRow
+          icon={
+            <IconChip tone="muted">
+              <Activity />
+            </IconChip>
+          }
+          title={t("garmin:server.notConfigured")}
+          wrapTitle
+        />
+      </ListGroup>
+    );
+  }
 
   return (
     <>
@@ -133,10 +149,22 @@ export function GarminScreen() {
                 ? t("garmin:action.disconnecting")
                 : t("garmin:action.disconnect")
             }
-            onClick={garmin.disconnect}
+            onClick={() => setConfirmOpen(true)}
           />
         </ListGroup>
       )}
+      <ConfirmSheet
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={t("settings:hubNative.disconnect.confirmTitle", { name: "Garmin" })}
+        body={t("settings:hubNative.disconnect.confirmMessage", { name: "Garmin" })}
+        confirmLabel={t("garmin:action.disconnect")}
+        pending={garmin.isDisconnecting}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          garmin.disconnect();
+        }}
+      />
     </>
   );
 }

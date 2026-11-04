@@ -444,6 +444,7 @@
     },
     "loggedOn": "Logged on",
     "pickDate": "Pick a date, selected {{date}}",
+    "pickDateShort": "Other date",
     "movedHint": "Will be moved to {{date}}.",
     "slotMovedHint": "Will be moved to {{meal}}.",
     "slotHint": "Move it to another meal if it's in the wrong slot.",

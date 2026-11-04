@@ -58,7 +58,9 @@ function Hub({ profile }: { profile: ProfileData }) {
     <>
       <PressableScale
         accessibilityRole="button"
-        accessibilityLabel={t("settings:hub.rows.account.title")}
+        accessibilityLabel={[t("settings:hub.rows.account.title"), name, status.text]
+          .filter(Boolean)
+          .join(". ")}
         onPress={() => router.push("/profil/akun")}
         scaleTo={1}
         dimTo={0.7}

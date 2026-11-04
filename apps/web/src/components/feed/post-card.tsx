@@ -298,6 +298,7 @@ export function PostCard({
           <Button
             variant="ghost"
             size="icon-sm"
+            className="size-11"
             aria-label={t("post.actions")}
             onClick={() => setMenuOpen(true)}
           >
@@ -343,7 +344,7 @@ export function PostCard({
         <Button
           variant="ghost"
           size="sm"
-          className={cn("gap-1.5", kudos.active && "text-destructive")}
+          className={cn("min-h-11 gap-1.5", kudos.active && "text-destructive")}
           disabled={toggleKudos.isPending}
           onClick={() => {
             if (!kudos.active) setKudosPop((n) => n + 1);
@@ -366,7 +367,7 @@ export function PostCard({
         <Button
           variant="ghost"
           size="sm"
-          className={cn("gap-1.5 text-muted-foreground", post.commentsOff && "opacity-70")}
+          className={cn("min-h-11 gap-1.5 text-muted-foreground", post.commentsOff && "opacity-70")}
           onClick={() => setCommentsOpen(true)}
           aria-label={post.commentsOff ? t("comments.off.label") : t("post.comments.view")}
         >

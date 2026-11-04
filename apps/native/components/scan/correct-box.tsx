@@ -182,7 +182,11 @@ export function CorrectBox({
         </View>
       ) : null}
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+          {error}
+        </Text>
+      ) : null}
       {heard ? <Text style={styles.status}>{t("correct.heard", { text: heard })}</Text> : null}
       {outcome ? (
         <Summary check>

@@ -298,6 +298,15 @@ function WeightChart({
     ? bars.find((b) => b.from <= scrubEntry.date && scrubEntry.date <= b.to)
     : undefined;
   const lastIdx = entries.length - 1;
+  const latestEntry = entries[lastIdx];
+  const latestTrend = trendPoints.at(-1);
+  const chartSummary = [
+    t("chart.a11yTouch", { range: rangeLabel }),
+    latestEntry ? `${t("tip.scale")}: ${fmtKg(latestEntry.weightKg)} kg` : null,
+    latestTrend ? `${t("tip.trend")}: ${fmtKg(latestTrend.trendKg)} kg` : null,
+  ]
+    .filter(Boolean)
+    .join(". ");
   return (
     <View onLayout={onFillLayout}>
       <Animated.View
@@ -308,12 +317,14 @@ function WeightChart({
           transform: [{ translateY: fade.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }],
         }}
       >
-        <View style={{ width: w, height: h }} {...panResponder.panHandlers}>
-          <Svg
-            width={w}
-            height={h}
-            accessibilityLabel={t("chart.a11yTouch", { range: rangeLabel })}
-          >
+        <View
+          style={{ width: w, height: h }}
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={chartSummary}
+          {...panResponder.panHandlers}
+        >
+          <Svg width={w} height={h}>
             {yTicks.map((t) => (
               <Line
                 key={t}
@@ -601,7 +612,11 @@ function KcalChart({
   return (
     <View onLayout={onFillLayout}>
       <View style={styles.kcalReadoutRow}>
-        <Text style={[styles.kcalReadout, picked && { color: theme.colors.foreground }]} numberOfLines={1}>
+        <Text
+          style={[styles.kcalReadout, picked && { color: theme.colors.foreground }]}
+          numberOfLines={1}
+          accessibilityLiveRegion="polite"
+        >
           {readout}
         </Text>
         {picked ? (
@@ -618,7 +633,7 @@ function KcalChart({
       </View>
       <Pressable
         accessibilityRole="image"
-        accessibilityLabel={t("kcal.a11y")}
+        accessibilityLabel={picked ? `${t("kcal.a11y")}. ${readout}` : t("kcal.a11y")}
         onPress={(event) => pick(event.nativeEvent.locationX)}
         style={{ width: w, height: h }}
       >
@@ -1047,7 +1062,9 @@ export default function Berat() {
 
             {/* The chosen period: the tabs drive every number and the chart below them */}
             <Card>
-              <Text style={styles.sectionLabel}>{t("period.title")}</Text>
+              <Text accessibilityRole="header" style={styles.sectionLabel}>
+                {t("period.title")}
+              </Text>
               <View style={styles.rangeBox}>
                 <RangeNav
                   options={[
@@ -1245,7 +1262,7 @@ export default function Berat() {
             {/* What was eaten over the same period, on its own axis */}
             {kcalQuery.data && kcalBarList.length > 0 ? (
               <Card>
-                <Text style={styles.sectionLabel}>
+                <Text accessibilityRole="header" style={styles.sectionLabel}>
                   {kcalWeekly ? t("kcal.titleWeekly") : t("kcal.title")}
                 </Text>
                 <KcalChart

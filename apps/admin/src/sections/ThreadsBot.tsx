@@ -151,11 +151,7 @@ function StatusCard({ status }: { status: ThreadsBotStatus }) {
         />
         <StatCard label="Balasan terkirim hari ini" value={fmtNum(status.today.sent)} />
         <StatCard label="Menunggu persetujuan" value={fmtNum(status.today.pending)} />
-        <StatCard
-          label="Batas per user"
-          value={`${fmtNum(status.caps.user)}/hari`}
-          hint={`rentang kcal ±${Math.round(status.band * 100)}%`}
-        />
+        <StatCard label="Batas per user" value={`${fmtNum(status.caps.user)}/hari`} />
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         {account ? (
@@ -244,8 +240,8 @@ function Draft({ item }: { item: ThreadsMentionItem }) {
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="font-semibold">@{item.author || "?"}</span>
           <span className="text-xs text-muted-foreground">{fmtDateTime(item.createdAt)}</span>
-          <Badge tone={item.kind === "unclear" ? "amber" : "green"}>
-            {item.kind === "unclear" ? "Foto kurang jelas" : "Perkiraan kalori"}
+          <Badge tone={item.kind === "estimate" ? "green" : "amber"}>
+            {item.kind === "unclear" ? "Foto kurang jelas" : item.kind === "capped" ? "Kuota habis" : "Perkiraan gizi"}
           </Badge>
           {item.permalink && (
             <a
@@ -260,8 +256,13 @@ function Draft({ item }: { item: ThreadsMentionItem }) {
         </div>
         {item.dishes.length > 0 && (
           <p className="text-xs text-muted-foreground">
-            {item.dishes.map((dish) => `${dish.name} ${dish.low}–${dish.high}`).join(" · ")} kcal,
-            total {item.kcalLow}–{item.kcalHigh}
+            {item.dishes
+              .map(
+                (dish) =>
+                  `${dish.name}${dish.grams ? ` ${fmtNum(dish.grams)} ${dish.drink ? "ml" : "g"}` : ""} ${fmtNum(dish.kcal)}`,
+              )
+              .join(" · ")}{" "}
+            kcal, total {item.kcal === null ? "–" : fmtNum(item.kcal)}
           </p>
         )}
         <textarea
@@ -407,9 +408,10 @@ export function ThreadsBotSection() {
               <button
                 key={v.id}
                 role="tab"
+                type="button"
                 aria-selected={view === v.id}
                 onClick={() => setView(v.id)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${view === v.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                className={`rounded-full px-3 py-1 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring max-md:min-h-11 pointer-coarse:min-h-11 ${view === v.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 {v.label}
               </button>

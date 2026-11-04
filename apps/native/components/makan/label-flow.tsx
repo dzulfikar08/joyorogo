@@ -277,7 +277,7 @@ export function LabelFlow({
       ) : null}
 
       {error ? (
-        <Text style={styles.errorText} accessibilityLiveRegion="polite">
+        <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="polite">
           {error}
         </Text>
       ) : null}
@@ -560,7 +560,7 @@ function LabelForm({
       ))}
 
       {error ? (
-        <Text style={styles.errorText} accessibilityLiveRegion="polite">
+        <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="polite">
           {error}
         </Text>
       ) : null}

@@ -1,6 +1,6 @@
 {
   "title": "Tidur dan pemulihan",
-  "subtitle": "Tidur dan pemulihan, {{from}} sampai {{to}}.",
+  "subtitle": "{{from}} sampai {{to}}",
   "empty": {
     "title": "Belum ada data tidur di rentang ini",
     "body": "Data tidur dan pemulihan muncul di sini setelah JoyoFit di ponselmu menyinkronkannya, atau setelah kamu mencatat tidur di JoyoRogo."

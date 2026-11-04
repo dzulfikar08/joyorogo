@@ -141,6 +141,7 @@ export function FeedSettingsSection() {
             }
             title={t("feed.maps.title")}
             subtitle={t("feed.maps.subtitle")}
+            fullSubtitle
             trailing={
               <Switch
                 checked={data?.shareMaps ?? true}

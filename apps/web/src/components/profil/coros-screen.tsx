@@ -1,9 +1,11 @@
 import { Unplug, Watch } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@joyorogo/ui/components/button";
 import { CorosNotes, useCoros, useCorosConnectedNote } from "@/components/coros-card";
 import { IconChip, ListButtonRow, ListGroup, ListRow } from "@/components/kit/surface";
+import { ConfirmSheet } from "@/components/profil/confirm-sheet";
 
 /**
  * COROS connection: status head, Connect as THE connect control, sync /
@@ -11,9 +13,10 @@ import { IconChip, ListButtonRow, ListGroup, ListRow } from "@/components/kit/su
  * last sync is missing or over an hour old.
  */
 export function CorosScreen() {
-  const { t } = useTranslation(["coros", "common"]);
+  const { t } = useTranslation(["coros", "common", "settings"]);
   const coros = useCoros({ autoSync: true });
   const connectedNote = useCorosConnectedNote(coros);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   let status: string;
   let trailing: React.ReactNode = null;
@@ -78,10 +81,22 @@ export function CorosScreen() {
             title={
               coros.isDisconnecting ? t("coros:action.disconnecting") : t("coros:action.disconnect")
             }
-            onClick={coros.disconnect}
+            onClick={() => setConfirmOpen(true)}
           />
         </ListGroup>
       )}
+      <ConfirmSheet
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={t("settings:hubNative.disconnect.confirmTitle", { name: "COROS" })}
+        body={t("settings:hubNative.disconnect.confirmMessage", { name: "COROS" })}
+        confirmLabel={t("coros:action.disconnect")}
+        pending={coros.isDisconnecting}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          coros.disconnect();
+        }}
+      />
     </>
   );
 }

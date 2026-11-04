@@ -182,12 +182,15 @@ function BarcodePage() {
         title={t("page.title")}
         subtitle={t("page.subtitle")}
         action={
-          <Link to="/makan" search={date ? { date } : {}}>
-            <Button variant="ghost" size="sm">
-              <ChevronLeft className="size-4" aria-hidden />
-              {t("common:actions.back")}
-            </Button>
-          </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={<Link to="/makan" search={date ? { date } : {}} />}
+          >
+            <ChevronLeft className="size-4" aria-hidden />
+            {t("common:actions.back")}
+          </Button>
         }
       />
       {code === null ? (
@@ -233,7 +236,7 @@ function BarcodePage() {
                   {codeError}
                 </p>
               )}
-              <Button type="submit" className="mt-3 w-full" disabled={typed.trim() === ""}>
+              <Button type="submit" className="mt-3 w-full">
                 <ScanBarcode className="size-4" aria-hidden />
                 {t("entry.search")}
               </Button>
@@ -417,12 +420,15 @@ function BarcodeResult({
       <Notes summary={t("label.title")}>
         <p>{t("fallback.labelNote")}</p>
       </Notes>
-      <Link to="/makan/ai" search={date ? { date } : {}}>
-        <Button variant="secondary" className="w-full">
-          <Camera className="size-4" aria-hidden />
-          {t("fallback.photo")}
-        </Button>
-      </Link>
+      <Button
+        variant="secondary"
+        className="w-full"
+        nativeButton={false}
+        render={<Link to="/makan/ai" search={date ? { date } : {}} />}
+      >
+        <Camera className="size-4" aria-hidden />
+        {t("fallback.photo")}
+      </Button>
       <Notes summary={t("fallback.notes")}>
         <p>{t("fallback.photoNote")}</p>
       </Notes>

@@ -17,7 +17,7 @@ import {
   sweepReceived,
 } from "./pipeline";
 import type { BotDeps } from "./pipeline";
-import { MAX_REPLY_CHARS, REPLY_LINK, UNCLEAR_REPLY } from "./reply";
+import { MAX_REPLY_CHARS, REPLY_LINK, UNCLEAR_REPLY, capReply } from "./reply";
 import { getMention } from "./store";
 
 const { client, db } = await d1TestDb();
@@ -31,8 +31,8 @@ let scans = 0;
 let scanImpl: BotDeps["scan"];
 const plate = () =>
   analysis([
-    { name: "Nasi goreng", kcal: 500, confidence: 0.8 },
-    { name: "Telur mata sapi", kcal: 90, confidence: 0.7 },
+    { name: "Nasi goreng", kcal: 500, grams: 300, protein: 12, carbs: 70, fat: 18, fiber: 3, confidence: 0.8 },
+    { name: "Telur mata sapi", kcal: 90, grams: 50, protein: 6, carbs: 0, fat: 7, fiber: 0, confidence: 0.7 },
   ]);
 
 function config(over: Record<string, string> = {}): BotConfig {
@@ -100,7 +100,7 @@ describe("kill switch", () => {
 });
 
 describe("review mode", () => {
-  test("a mention with a photo is scanned in memory and queued as a draft with kcal ranges", async () => {
+  test("a mention with a photo is scanned in memory and queued as a draft with the app's numbers", async () => {
     const post = imagePost();
     const outcome = await processMention(deps(), post);
     expect(outcome).toEqual({ status: "pending_review", kind: "estimate" });
@@ -113,19 +113,18 @@ describe("review mode", () => {
     expect(row.authorUsername).toBe(post.username!);
     expect(row.sourceMediaId).toBe(post.id);
     expect(row.mode).toBe("review");
-    expect(row.kcalLow).toBe(470);
-    expect(row.kcalHigh).toBe(710);
+    expect(row.kcal).toBe(590);
     expect(JSON.parse(row.dishesJson!)).toEqual([
-      { name: "Nasi goreng", kcal: 500, low: 400, high: 600 },
-      { name: "Telur mata sapi", kcal: 90, low: 70, high: 110 },
+      { name: "Nasi goreng", kcal: 500, grams: 300, protein: 12, carbs: 70, fat: 18, fiber: 3 },
+      { name: "Telur mata sapi", kcal: 90, grams: 50, protein: 6, carbs: 0, fat: 7, fiber: 0 },
     ]);
     expect(row.replyText!.length).toBeLessThanOrEqual(MAX_REPLY_CHARS);
-    expect(row.replyText).toContain("400–600 kcal");
+    expect(row.replyText).toContain("• Nasi goreng (300 g): 500 kcal");
     expect(row.replyText).toContain(REPLY_LINK);
     expect(row.scannedAt).not.toBeNull();
   });
 
-  test("stores no photo and no post text: the row has only ids, names, ranges, status and times", async () => {
+  test("stores no photo and no post text: the row has only ids, names, numbers, status and times", async () => {
     const post = imagePost({ text: "makan siang @joyorogo" });
     await processMention(deps(), post);
     const row = await rowOf(post.id);
@@ -141,8 +140,7 @@ describe("review mode", () => {
         "skipReason",
         "kind",
         "dishesJson",
-        "kcalLow",
-        "kcalHigh",
+        "kcal",
         "replyText",
         "mode",
         "replyMediaId",
@@ -380,19 +378,38 @@ describe("filters run before any model call", () => {
 });
 
 describe("daily caps", () => {
-  test("per Threads user: the 4th photo of the day is skipped before the model (default 3)", async () => {
+  test("per Threads user: the 4th photo gets one short quota reply instead of a scan, the 5th gets silence (default 3)", async () => {
     const outcomes = [];
-    for (let i = 0; i < 4; i++)
+    for (let i = 0; i < 5; i++)
       outcomes.push(await processMention(deps(), imagePost({ username: "greedy" })));
-    expect(outcomes.map((o) => o.status)).toEqual([
-      "pending_review",
-      "pending_review",
-      "pending_review",
-      "skipped",
-    ]);
-    expect(outcomes[3]).toEqual({ status: "skipped", reason: "user_cap" });
+    expect(outcomes.slice(0, 3)).toEqual(
+      Array(3).fill({ status: "pending_review", kind: "estimate" }),
+    );
+    expect(outcomes[3]).toEqual({ status: "pending_review", kind: "capped" });
+    expect(outcomes[4]).toEqual({ status: "skipped", reason: "user_cap" });
     expect(scans).toBe(3);
     expect(graph.imageFetches).toBe(3);
+  });
+
+  test("the quota reply says the cap and links the app, posts as-is in auto mode, and costs no slot", async () => {
+    const cfg = config({ THREADS_BOT_MODE: "auto", THREADS_BOT_DAILY_CAP: "4" });
+    for (let i = 0; i < 3; i++) await processMention(deps(cfg), imagePost({ username: "greedy" }));
+    const capped = imagePost({ username: "greedy" });
+    expect((await processMention(deps(cfg), capped)).status).toBe("sent");
+    expect(graph.published.at(-1)!.text).toBe(capReply(3));
+    expect(graph.published.at(-1)!.replyTo).toBe(capped.id);
+    expect(capReply(3)).toContain("3 foto per hari");
+    expect(capReply(3)).toContain(REPLY_LINK);
+    // The global cap of 4 still has room: the notice did not take a slot.
+    expect((await processMention(deps(cfg), imagePost({ username: "other" }))).status).toBe("sent");
+  });
+
+  test("ten concurrent over-cap mentions from one user get exactly one quota reply", async () => {
+    for (let i = 0; i < 3; i++) await processMention(deps(), imagePost({ username: "burst2" }));
+    const posts = Array.from({ length: 10 }, () => imagePost({ username: "burst2" }));
+    const outcomes = await Promise.all(posts.map((post) => processMention(deps(), post)));
+    expect(outcomes.filter((o) => o.status === "pending_review")).toHaveLength(1);
+    expect(outcomes.filter((o) => o.status === "skipped")).toHaveLength(9);
   });
 
   test("the user cap is per user and case-insensitive; tomorrow (WIB) is a new day", async () => {
@@ -402,8 +419,8 @@ describe("daily caps", () => {
       "pending_review",
     );
     expect(await processMention(deps(), imagePost({ username: "GREEDY" }))).toEqual({
-      status: "skipped",
-      reason: "user_cap",
+      status: "pending_review",
+      kind: "capped",
     });
     clock = NOW + 24 * 3_600_000;
     expect(
@@ -422,6 +439,15 @@ describe("daily caps", () => {
     for (let i = 0; i < 3; i++) outcomes.push(await processMention(deps(cfg), imagePost()));
     expect(outcomes[2]).toEqual({ status: "skipped", reason: "global_cap" });
     expect(scans).toBe(2);
+  });
+
+  test("an uncapped user skips the per-user cap (any case, with @) but still counts toward the global cap", async () => {
+    const cfg = config({ THREADS_BOT_UNCAPPED_USERS: " @Owner , someone", THREADS_BOT_DAILY_CAP: "5" });
+    const outcomes = [];
+    for (let i = 0; i < 6; i++) outcomes.push(await processMention(deps(cfg), imagePost({ username: "owner" })));
+    expect(outcomes.slice(0, 5).every((o) => o.status === "pending_review")).toBe(true);
+    expect(outcomes[5]).toEqual({ status: "skipped", reason: "global_cap" });
+    expect(scans).toBe(5);
   });
 
   test("a cap of 0 answers nobody", async () => {
@@ -444,8 +470,8 @@ describe("daily caps", () => {
       imagePost({ username: "snap", media_type: "TEXT_POST", media_url: undefined }),
     );
     expect(await processMention(deps(), imagePost({ username: "snap" }))).toEqual({
-      status: "skipped",
-      reason: "user_cap",
+      status: "pending_review",
+      kind: "capped",
     });
     expect(scans).toBe(3);
   });
@@ -453,8 +479,8 @@ describe("daily caps", () => {
   test("ten concurrent mentions from one user with a cap of 3 reach the model exactly 3 times", async () => {
     const posts = Array.from({ length: 10 }, () => imagePost({ username: "burst" }));
     const outcomes = await Promise.all(posts.map((post) => processMention(deps(), post)));
-    expect(outcomes.filter((o) => o.status === "pending_review")).toHaveLength(3);
-    expect(outcomes.filter((o) => o.status === "skipped")).toHaveLength(7);
+    expect(outcomes.filter((o) => o.status === "pending_review")).toHaveLength(4);
+    expect(outcomes.filter((o) => o.status === "skipped")).toHaveLength(6);
     expect(scans).toBe(3);
   });
 
@@ -501,7 +527,7 @@ describe("scan outcomes", () => {
     });
     const row = await rowOf(post.id);
     expect(row.replyText).toBe(UNCLEAR_REPLY);
-    expect(row.kcalLow).toBeNull();
+    expect(row.kcal).toBeNull();
   });
 
   test("a model timeout is recorded as failed and nothing is sent", async () => {
@@ -516,14 +542,6 @@ describe("scan outcomes", () => {
     expect(graph.published).toHaveLength(0);
     expect((await rowOf(post.id)).status).toBe("failed");
   });
-
-  test("the kcal band comes from config", async () => {
-    const post = imagePost();
-    await processMention(deps(config({ THREADS_BOT_KCAL_BAND: "0.1" })), post);
-    const row = await rowOf(post.id);
-    expect([row.kcalLow, row.kcalHigh]).toEqual([530, 650]);
-    expect(row.replyText).toContain("(±10%)");
-  });
 });
 
 describe("auto mode", () => {
@@ -533,7 +551,7 @@ describe("auto mode", () => {
     expect(outcome).toEqual({ status: "sent", replyId: "reply-1" });
     expect(graph.published).toHaveLength(1);
     expect(graph.published[0]!.replyTo).toBe(post.id);
-    expect(graph.published[0]!.text).toContain("400–600 kcal");
+    expect(graph.published[0]!.text).toContain("• Nasi goreng (300 g): 500 kcal");
     const row = await rowOf(post.id);
     expect(row.status).toBe("sent");
     expect(row.mode).toBe("auto");

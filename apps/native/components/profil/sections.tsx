@@ -83,7 +83,7 @@ export function ShareRow() {
               setCopied(false);
               toggle.mutate({ enabled: value });
             }}
-            trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+            trackColor={{ false: theme.colors.mutedForeground, true: theme.colors.primary }}
             thumbColor={theme.colors.background}
             accessibilityLabel={t("privacy.share.titleNative")}
           />
@@ -279,7 +279,7 @@ export function PrivacyList({ keepPhotos }: { keepPhotos: boolean }) {
           value={keepPhotos}
           onValueChange={change}
           disabled={setKeep.isPending}
-          trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+          trackColor={{ false: theme.colors.mutedForeground, true: theme.colors.primary }}
           thumbColor={theme.colors.background}
           accessibilityLabel={t("privacy.keepPhotos.title")}
         />
@@ -338,7 +338,7 @@ export function ScanSimpleCard() {
         <Switch
           value={enabled}
           onValueChange={(value) => void change(value)}
-          trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+          trackColor={{ false: theme.colors.mutedForeground, true: theme.colors.primary }}
           thumbColor={theme.colors.background}
           accessibilityLabel={t("scanSimple.label")}
         />
@@ -370,7 +370,7 @@ const styles = StyleSheet.create((theme) => ({
   },
   error: {
     fontSize: theme.fontSize.sm,
-    color: theme.colors.destructive,
+    color: theme.colors.destructiveText,
   },
   rowTitle: {
     fontSize: theme.fontSize.base,

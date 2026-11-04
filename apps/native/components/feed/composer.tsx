@@ -143,6 +143,7 @@ export function FeedComposer({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t("composer.removePhoto", { n: index + 1 })}
+                hitSlop={11}
                 onPress={() => setPhotos((prev) => prev.filter((p) => p !== photo))}
                 style={({ pressed }) => [styles.thumbRemove, pressed && styles.pressed]}
               >

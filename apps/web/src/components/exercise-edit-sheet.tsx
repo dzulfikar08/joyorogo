@@ -18,7 +18,7 @@ import { recentDayLabel } from "@joyorogo/api/lib/format";
 
 import { FieldLabel } from "@/components/kit/surface";
 import { InfoAccordion } from "@/components/onboarding/info-accordion";
-import { CalendarSheet, DayChips } from "@/components/plate/plate-group";
+import { CalendarSheet, DayChips, isQuickDay } from "@/components/plate/plate-group";
 import type { ExerciseItem } from "@/lib/api-types";
 import { fmtDateLong, fmtInt, fmtKcalLabel, parseNum } from "@/lib/format";
 import { OptimisticCache, useOptimisticMutation } from "@/lib/optimistic";
@@ -100,7 +100,7 @@ function patchExerciseEdit(cache: OptimisticCache, before: ExerciseItem, after: 
  * Imported rows keep their source and external id, so a resync leaves the edit alone.
  */
 export function ExerciseEditSheet({ row, onClose }: { row: ExerciseItem; onClose: () => void }) {
-  const { t } = useTranslation(["olahraga", "common"]);
+  const { t } = useTranslation(["olahraga", "common", "makan"]);
   const queryClient = useQueryClient();
   const initialDuration = row.durationMin == null ? "" : fmtField(row.durationMin);
   const initialKcal = fmtField(row.kcal);
@@ -309,7 +309,9 @@ export function ExerciseEditSheet({ row, onClose }: { row: ExerciseItem; onClose
                 onClick={() => setPickingDate(true)}
               >
                 <CalendarIcon aria-hidden />
-                {recentDayLabel(date, jakartaToday())}
+                {isQuickDay(date)
+                  ? t("makan:portionSheet.pickDateShort")
+                  : recentDayLabel(date, jakartaToday())}
               </Button>
               {dateChanged && (
                 <p className="text-xs text-muted-foreground">

@@ -16,7 +16,7 @@
     "reminders": "Pengingat",
     "shopping": "Belanja makan",
     "appIphone": "Aplikasi iPhone",
-    "appAndroid": "Aplikasi Android",
+    "appAndroid": "Aplikasi seluler",
     "privacy": "Privasi"
   },
   "hub": {
@@ -57,7 +57,12 @@
   "hubNative": {
     "signOut": {
       "confirmTitle": "Keluar dari JoyoRogo?",
-      "confirmMessage": "Kamu perlu masuk lagi untuk membuka datamu. Datamu tetap aman di akunmu."
+      "confirmMessage": "Kamu perlu masuk lagi untuk membuka datamu. Datamu tetap aman di akunmu.",
+      "failedTitle": "Gagal keluar"
+    },
+    "disconnect": {
+      "confirmTitle": "Putuskan {{name}}?",
+      "confirmMessage": "Data yang diimpor dari {{name}} akan dihapus dari jurnalmu. Kamu bisa menyambungkan lagi nanti."
     },
     "about": { "version": "Versi" },
     "strava": {

@@ -52,6 +52,7 @@ function SleepBars({
   need: number;
 }) {
   const { theme } = useUnistyles();
+  const { t } = useTranslation("tidur");
   const w = Math.min(320, Dimensions.get("window").width - 100);
   const h = 96;
   const gap = 8;
@@ -61,8 +62,24 @@ function SleepBars({
     weekday: "short",
     timeZone: "UTC",
   });
+  const weekdayLong = new Intl.DateTimeFormat(getActiveLocale(), {
+    weekday: "long",
+    timeZone: "UTC",
+  });
+  const summary = nights
+    .filter((night) => night.hours !== null)
+    .map(
+      (night) =>
+        `${weekdayLong.format(new Date(`${night.date}T00:00:00Z`))} ${fmtKg(night.hours ?? 0)} ${t("unit.hours")}`,
+    )
+    .join(", ");
   return (
-    <View style={styles.barsRow}>
+    <View
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={summary ? `${t("week.title")}: ${summary}` : t("week.title")}
+      style={styles.barsRow}
+    >
       {nights.map((night, i) => {
         const ratio = night.hours !== null ? night.hours / max : 0;
         const isLast = i === nights.length - 1;
@@ -236,19 +253,29 @@ export default function Tidur() {
 
         {/* Last night: ring beside the status line */}
         <Card style={styles.ringCard}>
-          <Ring
-            size={116}
-            stroke={10}
-            value={logged ?? 0}
-            max={need}
-            color={theme.colors.tidur}
-            track={theme.colors.tidurSoft}
+          <View
+            accessible
+            accessibilityRole="image"
+            accessibilityLabel={
+              logged !== null
+                ? t("ring.aria.logged", { hours: fmtKg(logged), need })
+                : t("ring.aria.empty", { need })
+            }
           >
-            <Num style={styles.ringValue} adjustsFontSizeToFit numberOfLines={1}>
-              {logged !== null ? fmtKg(logged) : "–"}
-            </Num>
-            <Text style={styles.ringUnit}>{t("unit.hours")}</Text>
-          </Ring>
+            <Ring
+              size={116}
+              stroke={10}
+              value={logged ?? 0}
+              max={need}
+              color={theme.colors.tidur}
+              track={theme.colors.tidurSoft}
+            >
+              <Num style={styles.ringValue} adjustsFontSizeToFit numberOfLines={1}>
+                {logged !== null ? fmtKg(logged) : "–"}
+              </Num>
+              <Text style={styles.ringUnit}>{t("unit.hours")}</Text>
+            </Ring>
+          </View>
           <View style={styles.ringText}>
             <Text style={styles.ringLabel}>{nightLabel}</Text>
             <Text style={styles.ringNote}>
@@ -280,7 +307,9 @@ export default function Tidur() {
         </Card>
 
         {/* Preset hours: one tap logs */}
-        <Text style={styles.sectionLabel}>{t("log.quick")}</Text>
+        <Text accessibilityRole="header" style={styles.sectionLabel}>
+          {t("log.quick")}
+        </Text>
         <View style={styles.presetRow}>
           {PRESETS.map((preset) => {
             const active = logged === preset;
@@ -307,7 +336,9 @@ export default function Tidur() {
         </View>
 
         {/* Last 7 nights */}
-        <Text style={styles.sectionLabel}>{t("week.title")}</Text>
+        <Text accessibilityRole="header" style={styles.sectionLabel}>
+          {t("week.title")}
+        </Text>
         <Card>
           {weekQueries.some((q) => q === undefined) ? (
             <View style={styles.barsSkeleton}>
@@ -357,7 +388,11 @@ export default function Tidur() {
           {watchHours !== null ? (
             <Text style={styles.note}>{t("manualEntry.watchHint", { hours: fmtKg(watchHours) })}</Text>
           ) : null}
-          {formError ? <Text style={styles.error}>{formError}</Text> : null}
+          {formError ? (
+            <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+              {formError}
+            </Text>
+          ) : null}
           {isManual && watchHours === null ? (
             <Button
               variant="secondary"

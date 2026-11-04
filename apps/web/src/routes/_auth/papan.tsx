@@ -157,7 +157,8 @@ function PapanPage() {
   if (!prefs.data.enabled) {
     return (
       <Page className="max-w-xl">
-        <EmptyHint title={t("badges:board.empty")} pose="watch" />
+        <PageHeader title={t("badges:board.title")} subtitle={t("badges:board.subtitle")} />
+        <EmptyHint title={t("badges:board.unavailable")} pose="watch" />
       </Page>
     );
   }

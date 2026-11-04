@@ -161,6 +161,7 @@ export function FastingSettingsCard() {
           onChangeText={setWindowText}
           onEndEditing={commitWindow}
           placeholder={data.windowStart}
+          accessibilityLabel={t("fasting.window.label")}
           keyboardType="numbers-and-punctuation"
           maxLength={5}
           editable={data.pattern !== "off" && !save.isPending}
@@ -185,7 +186,11 @@ export function FastingSettingsCard() {
           ? t("fasting.hint.off")
           : t("fasting.hint.nativeOn", { label: FASTING_LABELS[data.pattern] })}
       </Text>
-      {save.isError ? <Text style={styles.error}>{errorMessage(save.error)}</Text> : null}
+      {save.isError ? (
+        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+          {errorMessage(save.error)}
+        </Text>
+      ) : null}
       {gate.sheet}
     </Card>
   );

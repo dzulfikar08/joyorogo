@@ -112,6 +112,7 @@
     "empty": {
       "titleNone": "Belum ada catatan pada minggu ini",
       "titleNoFood": "Belum ada makanan yang dicatat",
+      "titlePending": "Hari ini belum termasuk dalam rumusan",
       "bodyPast": "Rumusan dikira daripada hari yang sudah berlalu. Semak lagi esok.",
       "bodyLog": "Catat makanan anda beberapa hari, nanti rumusannya muncul di sini."
     },
@@ -162,15 +163,15 @@
       "headlineMonth": "Bulan saya di JoyoRogo · {{range}}",
       "headlineLost": "Saya turun {{kg}} kg pada {{range}}",
       "headlineGained": "Saya naik {{kg}} kg pada {{range}}",
-      "avg": "🍽️ Purata harian — {{kcal}} kkal (sasaran {{target}})",
-      "onTarget_other": "🎯 Capai sasaran — {{on}} daripada {{count}} hari",
-      "protein": "🥩 Protein — {{g}} g/hari (sasaran {{target}} g)",
-      "streak_other": "🔥 Streak — {{count}} hari",
-      "weightLost": "⚖️ Berat — turun {{kg}} kg ({{from}} → {{to}} kg)",
-      "weightGained": "⚖️ Berat — naik {{kg}} kg ({{from}} → {{to}} kg)",
-      "weightSteady": "⚖️ Berat — stabil ({{from}} → {{to}} kg)",
-      "exercise_other": "🏋️ Senaman — {{kcal}} kkal · {{count}} sesi, {{minutes}} minit",
-      "bestDay": "🏆 Hari terbaik — {{day}} · {{kcal}} kkal",
+      "avg": "🍽️ Purata harian: {{kcal}} kcal (sasaran {{target}})",
+      "onTarget_other": "🎯 Capai sasaran: {{on}} daripada {{count}} hari",
+      "protein": "🥩 Protein: {{g}} g/hari (sasaran {{target}} g)",
+      "streak_other": "🔥 Streak: {{count}} hari",
+      "weightLost": "⚖️ Berat: turun {{kg}} kg ({{from}} → {{to}} kg)",
+      "weightGained": "⚖️ Berat: naik {{kg}} kg ({{from}} → {{to}} kg)",
+      "weightSteady": "⚖️ Berat: stabil ({{from}} → {{to}} kg)",
+      "exercise_other": "🏋️ Senaman: {{kcal}} kcal · {{count}} sesi, {{minutes}} minit",
+      "bestDay": "🏆 Hari terbaik: {{day}} · {{kcal}} kcal",
       "madeWith": "Dibuat dengan JoyoRogo: {{url}}"
     },
     "note": {

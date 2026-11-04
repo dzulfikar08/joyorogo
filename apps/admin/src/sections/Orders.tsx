@@ -131,6 +131,7 @@ export function OrdersSection() {
         ids.push(...res.orders.map((o) => o.orderId));
         if (res.orders.length < pageSizeAll || p * pageSizeAll >= res.total) break;
       }
+      if (ids.length === 0) toast.info("Tidak ada order pending");
       for (const orderId of ids) {
         try {
           const r = await api<{ outcome: string }>(`/api/admin/orders/${orderId}/check`, {
@@ -177,7 +178,7 @@ export function OrdersSection() {
             disabled={checkingAll > 0}
             onClick={() => void checkAllPending()}
           >
-            {checkingAll > 0 ? `Checking… (${fmtNum(checkingAll)})` : "Check all pending"}
+            {checkingAll > 0 ? `Mengecek… (${fmtNum(checkingAll)})` : "Cek semua pending"}
           </Button>
         </div>
       </div>

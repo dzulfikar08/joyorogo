@@ -239,6 +239,11 @@
   }
 }
 
+/* Sonner ships its own system font stack; keep toasts in the app's font. */
+[data-sonner-toaster] {
+  font-family: inherit;
+}
+
 /* Success toasts: the check draws itself as the toast lands. */
 @media (prefers-reduced-motion: no-preference) {
   [data-sonner-toast][data-type="success"] [data-icon] svg path {

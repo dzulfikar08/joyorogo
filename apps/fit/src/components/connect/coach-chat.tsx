@@ -390,7 +390,7 @@ export function CoachChat({ userId }: { userId: string }) {
             placeholder={t("coach.input.placeholder")}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={onKeyDown}
-            className="max-h-40 min-h-[3.25rem] min-w-0 flex-1 resize-none rounded-2xl border border-transparent bg-muted px-4 py-3 text-base [field-sizing:content] outline-none placeholder:text-muted-foreground/80 focus-visible:border-ring/60 focus-visible:bg-card focus-visible:ring-[3px] focus-visible:ring-ring/25 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive/60"
+            className="max-h-40 min-h-[3.25rem] min-w-0 flex-1 resize-none rounded-2xl border border-transparent bg-muted px-4 py-3 text-base [field-sizing:content] outline-none placeholder:text-muted-foreground focus-visible:border-ring/60 focus-visible:bg-card focus-visible:ring-[3px] focus-visible:ring-ring/25 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive/60"
           />
           <Button
             type="submit"

@@ -19,7 +19,9 @@ export function EnergySources({ plain = false }: { plain?: boolean }) {
   const Wrap = plain ? View : Card;
   return (
     <Wrap>
-      <Text style={styles.title}>{t("sources.title")}</Text>
+      <Text style={styles.title} accessibilityRole="header">
+        {t("sources.title")}
+      </Text>
       <Text style={styles.intro}>{t("sources.intro")}</Text>
       <View style={styles.list}>
         {ENERGY_SOURCES.map((source) => (

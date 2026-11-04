@@ -47,12 +47,7 @@ import { PublicFooter } from "@/components/public-footer";
 import { FounderPromo } from "@/components/founder-promo";
 import { useProBenefits } from "@/components/pro-benefits";
 import { Testimonials } from "@/components/testimonials";
-import {
-  fmtRupiah,
-  fmtUsd,
-  founderScans,
-  useAppConfig,
-} from "@/lib/app-config";
+import { fmtRupiah, fmtUsd, useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { HOSTS } from "@/lib/app-host";
 import { landingSkipsForSignedIn } from "@/lib/hosts";
@@ -403,7 +398,10 @@ const PROMISES = [
 ] as const;
 
 /** Pricing answer follows the server's paywall; omitted until config loads. */
-function pricingFaq(config: AppConfig | undefined): Array<{ q: string; a: string }> {
+function pricingFaq(
+  config: AppConfig | undefined,
+  scansText: (cap: number | null) => string,
+): Array<{ q: string; a: string }> {
   if (!config) return [];
   if (!config.paywall) {
     return [
@@ -416,7 +414,7 @@ function pricingFaq(config: AppConfig | undefined): Array<{ q: string; a: string
   return [
     {
       q: "Gratisnya sampai kapan?",
-      a: `Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan ${config.freeDailyScans} foto AI per hari. Pro ${fmtRupiah(config.founderPriceIdr)} per bulan: ${founderScans(config).toLowerCase()}, plus fitur AI lain, rencana makan, cadangan cloud JoyoFit, tantangan grup buatanmu sendiri, dan dukungan prioritas lewat DM Threads (daftar lengkap ada di halaman Harga). Paket tahunan ${fmtRupiah(config.founderYearlyPriceIdr)}, setara ${fmtRupiah(Math.round(config.founderYearlyPriceIdr / 12))} per bulan.${config.usd?.preferred ? ` Di luar Indonesia harganya dalam dolar: ${fmtUsd(config.usd.monthlyCents)} per bulan atau ${fmtUsd(config.usd.yearlyCents)} per tahun, dibayar dengan kartu lewat Polar.` : ""}`,
+      a: `Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan ${config.freeDailyScans} foto AI per hari. Pro ${fmtRupiah(config.founderPriceIdr, "id")} per bulan: ${scansText(config.founderDailyCap).toLowerCase()}, plus fitur AI lain, rencana makan, cadangan cloud JoyoFit, tantangan grup buatanmu sendiri, dan dukungan prioritas lewat DM Threads (daftar lengkap ada di halaman Harga). Paket tahunan ${fmtRupiah(config.founderYearlyPriceIdr, "id")}, setara ${fmtRupiah(Math.round(config.founderYearlyPriceIdr / 12), "id")} per bulan.${config.usd?.preferred ? ` Di luar Indonesia harganya dalam dolar: ${fmtUsd(config.usd.monthlyCents)} per bulan atau ${fmtUsd(config.usd.yearlyCents)} per tahun, dibayar dengan kartu lewat Polar.` : ""}`,
     },
   ];
 }
@@ -439,12 +437,13 @@ function Landing() {
       <PublicHeader />
 
       <main>
-        {/* Hero */}
+        {/* Hero. On phones the buttons stay above the fold and the scan shot follows them; on desktop the shot spans
+            the right column. */}
         <section
           data-section="hero"
-          className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 pt-8 pb-14 md:grid-cols-[1.05fr_1fr] md:gap-8 md:px-6 md:pt-14 md:pb-20"
+          className="mx-auto grid w-full max-w-6xl items-center gap-x-8 gap-y-6 px-4 pt-8 pb-14 md:grid-cols-[1.05fr_1fr] md:grid-rows-[auto_auto] md:px-6 md:pt-14 md:pb-20"
         >
-          <div className="stagger-enter">
+          <div className="stagger-enter md:self-end">
             <h1 className="max-w-xl text-[2.625rem] leading-[1.04] font-extrabold tracking-tight text-balance md:text-[4rem]">
               Diet yang paham porsi warteg
             </h1>
@@ -453,33 +452,31 @@ function Landing() {
               tiga angka: berapa lagi yang boleh kamu makan, berapa yang perlu dibakar, dan butuh
               tidur berapa jam.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Button
-                size="lg"
-                render={
-                  <a
-                    href="#coba"
-                    data-revklik-goal="try_scan_click"
-                    data-revklik-goal-location="hero"
-                  />
-                }
-              >
-                Coba gratis
-              </Button>
-              <AppDownload location="hero" />
-            </div>
-            <p className="mt-4 text-sm text-muted-foreground">
+          </div>
+          <HeroShot className="order-last md:order-none md:col-start-2 md:row-span-2 md:row-start-1" />
+          <div className="-mt-1 md:mt-0 md:self-start">
+            <Button
+              size="lg"
+              render={
+                <a href="#coba" data-revklik-goal="try_scan_click" data-revklik-goal-location="hero" />
+              }
+            >
+              Coba gratis
+            </Button>
+            <p className="mt-3 text-sm text-muted-foreground">
               {config.data?.anonScans ? `${config.data.anonScans} foto pertama tanpa daftar. ` : ""}
               Foto tidak disimpan.
             </p>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <AppDownload location="hero" />
+            </div>
           </div>
-          <HeroShot />
         </section>
 
         {/* Founder intro price, while slots last — after the hero so the
             promise leads and the price tag follows. */}
         <div className="mx-auto w-full max-w-6xl px-4 pb-8 md:px-6 md:pb-10">
-          <FounderPromo className="mx-auto max-w-3xl" />
+          <FounderPromo lng="id" className="mx-auto max-w-3xl" />
         </div>
 
         {/* Facts strip */}
@@ -633,14 +630,14 @@ function Landing() {
               <ScanDemo />
               <figure className="mt-6 flex flex-col items-center gap-5 rounded-[1.75rem] bg-background p-5 sm:flex-row">
                 <PhoneShot
-                  shot="scan"
-                  alt="Layar hasil scan AI: total 400 kkal, soto daging dan bawang goreng dengan kolom kalori yang bisa diubah dan pilihan nama lain"
+                  shot="beranda"
+                  alt="Beranda JoyoRogo: sisa 735 kkal hari ini dari target 1.635, protein, aktivitas, tidur, air, dan berat"
                   className="w-[min(100%,13rem)] shrink-0"
                 />
                 <figcaption className="text-[0.9375rem] leading-relaxed text-muted-foreground">
-                  <span className="block font-bold text-foreground">Hasil scan di aplikasi</span>
-                  Tiap item punya kolom kalori yang bisa kamu ubah sebelum disimpan. Di sini porsi
-                  nasinya dikecilkan dan total kalorinya langsung ikut berubah.
+                  <span className="block font-bold text-foreground">Lalu masuk ke Beranda</span>
+                  Hasil scan yang kamu simpan langsung mengurangi sisa kalori hari ini, lengkap
+                  dengan protein, karbo, dan lemaknya.
                 </figcaption>
               </figure>
             </div>
@@ -1064,8 +1061,9 @@ function Landing() {
                   </li>
                 ))}
               </ul>
-              <p className="mt-8 text-sm text-tidur-ink/70">
-                Grup dibuat dari dalam aplikasi; undangannya lewat tautan atau kode, dan bisa dibuka juga dari JoyoFit.
+              <p className="mt-8 text-sm text-tidur-ink/85">
+                Grup dibuat dari dalam aplikasi; undangannya lewat tautan atau kode, dan bisa dibuka
+                juga dari JoyoFit.
               </p>
             </div>
             <figure>
@@ -1073,7 +1071,7 @@ function Landing() {
                 shot="grup"
                 alt="Layar Grup Kantor Sehat: tiga anggota dengan asupan hari ini, streak, tombol Colek, Catatan, dan VAR"
               />
-              <figcaption className="mt-4 text-center text-xs text-tidur-ink/70">
+              <figcaption className="mt-4 text-center text-xs text-tidur-ink/85">
                 Tampilan asli aplikasi, dengan anggota contoh.
               </figcaption>
             </figure>
@@ -1223,7 +1221,7 @@ function Landing() {
                   <p className="mt-2 text-4xl font-extrabold tracking-tight">
                     {showUsd
                       ? fmtUsd(config.data.usd!.monthlyCents)
-                      : fmtRupiah(config.data.founderPriceIdr)}
+                      : fmtRupiah(config.data.founderPriceIdr, "id")}
                   </p>
                   <p className="text-sm text-muted-foreground">per bulan</p>
                   <ul className="mt-5 space-y-2 text-sm">
@@ -1243,7 +1241,7 @@ function Landing() {
                       <Check className="mt-0.5 size-4 shrink-0 text-makan-ink" aria-hidden />
                       {showUsd
                         ? `Paket tahunan ${fmtUsd(config.data.usd!.yearlyCents)}/tahun, setara ${fmtUsd(Math.round(config.data.usd!.yearlyCents / 12))}/bulan`
-                        : `Paket tahunan ${fmtRupiah(config.data.founderYearlyPriceIdr)}/tahun, setara ${fmtRupiah(Math.round(config.data.founderYearlyPriceIdr / 12))}/bulan`}
+                        : `Paket tahunan ${fmtRupiah(config.data.founderYearlyPriceIdr, "id")}/tahun, setara ${fmtRupiah(Math.round(config.data.founderYearlyPriceIdr / 12), "id")}/bulan`}
                     </li>
                     {showUsd && (
                       <li className="flex gap-2">
@@ -1281,32 +1279,34 @@ function Landing() {
             Pertanyaan yang sering muncul
           </h2>
           <div className="mt-8 divide-y divide-border/70 rounded-[1.75rem] bg-card">
-            {[...FAQ, ...pricingFaq(config.data)].map((item) => (
-              <details key={item.q} className="group px-5 md:px-6">
-                <summary className="-mx-2 flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 rounded-xl px-2 py-4 text-[1.0625rem] font-bold focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
-                  {item.q}
-                  <ChevronDown
-                    className="size-5 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
-                    aria-hidden
-                  />
-                </summary>
-                <p className="pb-5 text-[0.9375rem] leading-relaxed text-muted-foreground">
-                  {item.a}
-                </p>
-                {item.q === IPHONE_FAQ_Q && (
-                  <Button
-                    variant="secondary"
-                    className="mb-5"
-                    data-revklik-goal="ios_cta_click"
-                    data-revklik-goal-location="faq"
-                    onClick={() => openIosInstall("faq")}
-                  >
-                    <AppleMark />
-                    Lihat caranya
-                  </Button>
-                )}
-              </details>
-            ))}
+            {[...FAQ, ...pricingFaq(config.data, (cap) => benefits.text("scans", cap))].map(
+              (item) => (
+                <details key={item.q} className="group px-5 md:px-6">
+                  <summary className="-mx-2 flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 rounded-xl px-2 py-4 text-[1.0625rem] font-bold focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+                    {item.q}
+                    <ChevronDown
+                      className="size-5 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
+                      aria-hidden
+                    />
+                  </summary>
+                  <p className="pb-5 text-[0.9375rem] leading-relaxed text-muted-foreground">
+                    {item.a}
+                  </p>
+                  {item.q === IPHONE_FAQ_Q && (
+                    <Button
+                      variant="secondary"
+                      className="mb-5"
+                      data-revklik-goal="ios_cta_click"
+                      data-revklik-goal-location="faq"
+                      onClick={() => openIosInstall("faq")}
+                    >
+                      <AppleMark />
+                      Lihat caranya
+                    </Button>
+                  )}
+                </details>
+              ),
+            )}
           </div>
         </section>
 
@@ -1355,7 +1355,7 @@ function Landing() {
             <h2 className="mx-auto max-w-xl text-3xl font-extrabold tracking-tight text-balance md:text-[2.75rem] md:leading-[1.1]">
               Rencana harianmu siap dalam satu menit
             </h2>
-            <p className="mx-auto mt-4 max-w-lg text-lg leading-relaxed text-primary-foreground/80">
+            <p className="mx-auto mt-4 max-w-lg text-lg leading-relaxed text-primary-foreground">
               Masuk dengan Google, isi tinggi, berat, dan target. Angka pertamamu muncul hari ini
               juga.
             </p>

@@ -79,7 +79,8 @@ export default function JoyoAiSettingsScreen() {
   useEffect(() => {
     void joyoUsage
       .today()
-      .then((u) => setUsage({ tokens: u.inputTokens + u.outputTokens, calls: u.calls }));
+      .then((u) => setUsage({ tokens: u.inputTokens + u.outputTokens, calls: u.calls }))
+      .catch(() => setUsage(null));
   }, []);
 
   const loadModels = async (p: ProviderId) => {
@@ -362,5 +363,5 @@ const styles = StyleSheet.create((theme) => ({
   sheetBody: { paddingBottom: theme.spacing.md },
   strong: { fontSize: theme.fontSize.base, fontWeight: "700" },
   small: { fontSize: theme.fontSize.sm, lineHeight: 20, color: theme.colors.mutedForeground },
-  danger: { color: theme.colors.destructive },
+  danger: { color: theme.colors.destructiveText },
 }));

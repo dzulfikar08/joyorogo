@@ -9,8 +9,8 @@ export function useSendTestEmail() {
     setSending(true);
     try {
       const res = await api<{ outcome: string }>("/api/admin/test-email", { method: "POST" });
-      if (res.outcome === "sent") toast.success(res.outcome);
-      else toast.error(res.outcome);
+      if (res.outcome === "sent") toast.success("Email uji terkirim ke inbox admin");
+      else toast.error(`Email uji gagal: ${res.outcome}`);
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {

@@ -109,6 +109,7 @@ export default function Feed() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t("header.compose")}
+              hitSlop={4}
               onPress={() => setComposerOpen(true)}
               style={({ pressed }) => [styles.bell, pressed && styles.pressed]}
             >
@@ -116,7 +117,12 @@ export default function Feed() {
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={t("header.notifications")}
+              accessibilityLabel={
+                unreadCount > 0
+                  ? t("header.notificationsUnread", { count: unreadCount })
+                  : t("header.notifications")
+              }
+              hitSlop={4}
               onPress={() => router.push("/feed/notifikasi")}
               style={({ pressed }) => [styles.bell, pressed && styles.pressed]}
             >
@@ -250,7 +256,7 @@ const styles = StyleSheet.create((theme) => ({
   badgeText: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: theme.colors.destructiveForeground,
   },
   listContent: {
     gap: theme.spacing.md,

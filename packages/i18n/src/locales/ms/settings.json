@@ -16,7 +16,7 @@
     "reminders": "Peringatan",
     "shopping": "Belanja makanan",
     "appIphone": "Aplikasi iPhone",
-    "appAndroid": "Aplikasi Android",
+    "appAndroid": "Aplikasi mudah alih",
     "privacy": "Privasi"
   },
   "hub": {
@@ -93,7 +93,12 @@
   "hubNative": {
     "signOut": {
       "confirmTitle": "Log keluar dari JoyoRogo?",
-      "confirmMessage": "Anda perlu log masuk semula untuk membuka data anda. Data anda kekal selamat dalam akaun anda."
+      "confirmMessage": "Anda perlu log masuk semula untuk membuka data anda. Data anda kekal selamat dalam akaun anda.",
+      "failedTitle": "Gagal log keluar"
+    },
+    "disconnect": {
+      "confirmTitle": "Putuskan {{name}}?",
+      "confirmMessage": "Data yang diimport daripada {{name}} akan dipadam daripada jurnal anda. Anda boleh menyambung semula kemudian."
     },
     "about": {
       "version": "Versi"

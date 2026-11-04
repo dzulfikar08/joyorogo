@@ -1239,7 +1239,9 @@ function WeightCard({
             )}
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">{t("weight.startPrompt")}</p>
+          <p className="text-sm text-muted-foreground">
+            {summary.latestWeightKg !== null ? t("weight.trendNeedsMore") : t("weight.startPrompt")}
+          </p>
         )}
         <div className="mt-3 flex items-center justify-between gap-4">
           <p className="min-w-0 text-sm text-muted-foreground">

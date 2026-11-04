@@ -1,6 +1,9 @@
-// The public reply the bot posts (docs/threads-bot.md): Indonesian, at most 500 characters (the Threads limit), a kcal
-// range per dish and for the plate, "perkiraan AI, bukan saran medis", and the site link. Only what the photo shows:
-// it never says anything about a body, weight or health.
+// The public reply the bot posts (docs/threads-bot.md): Indonesian, at most 500 characters (the Threads limit), the same
+// numbers the app's photo scan shows (weight and kcal per dish; kcal, protein, carbs, fat and fiber for the plate),
+// "perkiraan AI, bukan saran medis", and the site link. Only what the photo shows: it never says anything about a
+// body, weight or health.
+
+import { fmtNumber } from "@joyorogo/i18n";
 
 // Bare: "utm_source=" and "utm_campaign=" are in many users' Threads hidden words (hidden-words.ts), which would hide
 // the reply under the very post that tagged us. Visits show up in RevKlik under the Threads referrer instead.
@@ -11,25 +14,44 @@ export const LOW_CONFIDENCE = 0.4;
 
 const MAX_NAME_CHARS = 40;
 
-export type ReplyItem = { name: string; kcal: number; confidence?: number };
+export type ReplyItem = {
+  name: string;
+  kcal: number;
+  grams?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  /** The scan's kind; "minuman" means the weight is ml, as in the app. */
+  kind?: string;
+  confidence?: number;
+};
 /** A dish as stored on the mention row and shown in the admin page. */
-export type ReplyDish = { name: string; kcal: number; low: number; high: number };
+export type ReplyDish = {
+  name: string;
+  kcal: number;
+  grams?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  /** A drink: its weight is shown in ml. */
+  drink?: boolean;
+};
+
+export type Macros = { protein: number; carbs: number; fat: number; fiber: number };
 
 export type Estimate = {
   dishes: ReplyDish[];
   totalKcal: number;
-  low: number;
-  high: number;
+  totals: Macros;
   text: string;
 };
 
-/** Round to the nearest 10 kcal: a range with unit digits would claim a precision the photo does not have. */
-const round10 = (kcal: number) => Math.round(kcal / 10) * 10;
+const whole = (n: number | undefined) => (n === undefined ? undefined : Math.round(n));
 
-/** The kcal range for a point estimate: ± `band` (a fraction), 10-kcal steps, never below 0. */
-export function kcalRange(kcal: number, band: number): { low: number; high: number } {
-  return { low: Math.max(0, round10(kcal * (1 - band))), high: round10(kcal * (1 + band)) };
-}
+/** Indonesian separators, as the app shows them: 1.475 kcal. */
+const num = (n: number) => fmtNumber(n, 0, "id");
 
 /** A dish name safe to publish under the brand: one line, no mentions, hashtags or links, at most 40 characters. */
 export function cleanDishName(name: string): string {
@@ -46,6 +68,11 @@ export function cleanDishName(name: string): string {
   );
 }
 
+/** The one reply a person gets per day once they pass the per-user cap (THREADS_BOT_USER_DAILY_CAP). */
+export function capReply(perDay: number): string {
+  return `Kuota hari ini sudah habis (${perDay} foto per hari). Coba lagi besok ya, atau catat di aplikasi JoyoRogo: ${REPLY_LINK}`;
+}
+
 /** True when the scan is too unsure to publish numbers: no items, or confidence reported and low on average. */
 export function isLowConfidence(items: readonly ReplyItem[]): boolean {
   const shown = items.filter((item) => item.kcal > 0);
@@ -59,41 +86,63 @@ export function isLowConfidence(items: readonly ReplyItem[]): boolean {
 
 const FOOTER = `Perkiraan AI, bukan saran medis. Catat makananmu lebih mudah di JoyoRogo: ${REPLY_LINK}`;
 
-function compose(lines: readonly string[], total: string, extra: number): string {
+function compose(lines: readonly string[], total: readonly string[], extra: number): string {
   return [
-    "Perkiraan kalori dari fotomu:",
+    "Perkiraan gizi dari fotomu:",
     ...lines,
     ...(extra > 0 ? [`+ ${extra} lainnya`] : []),
     "",
-    total,
+    ...total,
     "",
     FOOTER,
   ].join("\n");
 }
 
 /**
- * The estimate reply. Dishes are listed biggest first; when the text would pass 500 characters the smallest are folded
- * into "+ N lainnya" (the total still counts them). `band` is the ± fraction around each kcal (config: 0.2 by default).
+ * The estimate reply. Dishes are listed biggest first with their weight and kcal; the plate total carries the macros,
+ * as the app's scan result does. When the text would pass 500 characters the smallest dishes are folded into
+ * "+ N lainnya" (the totals still count them).
  */
-export function formatEstimate(items: readonly ReplyItem[], band: number): Estimate {
-  const shown = items
+export function formatEstimate(items: readonly ReplyItem[]): Estimate {
+  const dishes: ReplyDish[] = items
     .filter((item) => item.kcal > 0)
-    .map((item) => ({ name: cleanDishName(item.name), kcal: Math.round(item.kcal) }))
+    .map((item) => ({
+      name: cleanDishName(item.name),
+      kcal: Math.round(item.kcal),
+      grams: whole(item.grams),
+      protein: whole(item.protein),
+      carbs: whole(item.carbs),
+      fat: whole(item.fat),
+      fiber: whole(item.fiber),
+      ...(item.kind === "minuman" ? { drink: true } : {}),
+    }))
     .sort((a, b) => b.kcal - a.kcal);
-  const dishes: ReplyDish[] = shown.map((item) => ({ ...item, ...kcalRange(item.kcal, band) }));
-  const totalKcal = dishes.reduce((sum, dish) => sum + dish.kcal, 0);
-  const total = kcalRange(totalKcal, band);
-  const pct = Math.round(band * 100);
-  const totalLine = `Total: ${total.low}–${total.high} kcal (±${pct}%)`;
+  const sum = (pick: (dish: ReplyDish) => number | undefined) =>
+    dishes.reduce((total, dish) => total + (pick(dish) ?? 0), 0);
+  const totalKcal = sum((dish) => dish.kcal);
+  const totals: Macros = {
+    protein: sum((dish) => dish.protein),
+    carbs: sum((dish) => dish.carbs),
+    fat: sum((dish) => dish.fat),
+    fiber: sum((dish) => dish.fiber),
+  };
+  const totalLines = [
+    `Total: ${num(totalKcal)} kcal`,
+    `Protein ${num(totals.protein)} g · Karbo ${num(totals.carbs)} g · Lemak ${num(totals.fat)} g · Serat ${num(totals.fiber)} g`,
+  ];
 
-  const lines = dishes.map((dish) => `• ${dish.name}: ${dish.low}–${dish.high} kcal`);
+  // "• Nasi goreng (350 g): 550 kcal", "• Es teh (350 ml): 100 kcal"; the weight left out when the scan gave none.
+  const lines = dishes.map(
+    (dish) =>
+      `• ${dish.name}${dish.grams ? ` (${num(dish.grams)} ${dish.drink ? "ml" : "g"})` : ""}: ${num(dish.kcal)} kcal`,
+  );
   let keep = lines.length;
-  let text = compose(lines.slice(0, keep), totalLine, lines.length - keep);
+  let text = compose(lines.slice(0, keep), totalLines, lines.length - keep);
   while (text.length > MAX_REPLY_CHARS && keep > 1) {
     keep -= 1;
-    text = compose(lines.slice(0, keep), totalLine, lines.length - keep);
+    text = compose(lines.slice(0, keep), totalLines, lines.length - keep);
   }
-  return { dishes, totalKcal, low: total.low, high: total.high, text };
+  return { dishes, totalKcal, totals, text };
 }
 
 /** The short, polite reply when a photo is food but too unclear to put numbers on. */

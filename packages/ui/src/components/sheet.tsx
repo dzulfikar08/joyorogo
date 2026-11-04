@@ -1,7 +1,21 @@
 import { Drawer } from "@base-ui/react/drawer";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { X } from "lucide-react";
+import { createContext, useContext } from "react";
 import type { ReactNode } from "react";
+
+const CloseLabelContext = createContext<string | null>(null);
+
+/** Mounted once per app with its translated "Close", so every Sheet's close button follows the app language. */
+export function SheetCloseLabelProvider({ label, children }: { label: string; children: ReactNode }) {
+  return <CloseLabelContext.Provider value={label}>{children}</CloseLabelContext.Provider>;
+}
+
+/** Without a provider: <html lang>, where Indonesian and Malay both say "Tutup". */
+function fallbackCloseLabel(): string {
+  const lang = typeof document === "undefined" ? "" : document.documentElement.lang;
+  return lang.toLowerCase().startsWith("en") ? "Close" : "Tutup";
+}
 
 /**
  * Bottom sheet for every "add/edit" form. Swipe down, tap the backdrop, Esc,
@@ -24,6 +38,7 @@ export function Sheet({
   /** Optional element that opens the sheet (rendered via Drawer.Trigger render prop). */
   trigger?: React.ReactElement;
 }) {
+  const closeLabel = useContext(CloseLabelContext) ?? fallbackCloseLabel();
   return (
     <Drawer.Root open={open} onOpenChange={(next) => onOpenChange?.(next)}>
       {trigger && <Drawer.Trigger render={trigger} />}
@@ -50,7 +65,7 @@ export function Sheet({
                   )}
                 </div>
                 <Drawer.Close
-                  aria-label="Tutup"
+                  aria-label={closeLabel}
                   className="-mt-1 -mr-2 flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
                 >
                   <X className="size-5" aria-hidden />

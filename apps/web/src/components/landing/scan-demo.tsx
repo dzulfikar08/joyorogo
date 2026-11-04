@@ -47,7 +47,7 @@ async function fileToImageBase64(file: File) {
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error(i18n.t("scan:flow.imageUnsupported"));
+  if (!ctx) throw new Error(i18n.t("scan:flow.imageUnsupported", { lng: "id" }));
   // Flatten alpha onto white: the vision endpoint rejects transparent PNGs.
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, width, height);
@@ -70,7 +70,9 @@ const PICKER =
  * client-side and never stored.
  */
 export function ScanDemo() {
-  const { t } = useTranslation("scan");
+  // The landing is Indonesian whatever the UI language is, so the demo's copy, units and numbers are pinned to it.
+  const { i18n: i18nInstance } = useTranslation("scan");
+  const t = i18nInstance.getFixedT("id", "scan");
   const config = useAppConfig();
   const freeDaily = config.data?.freeDailyScans ?? null;
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -95,7 +97,7 @@ export function ScanDemo() {
     mutationFn: async (input: { imageBase64: string; mimeType: string }) => {
       const r = await fetch(`${env.VITE_SERVER_URL}/ai/scan-anon`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", [LOCALE_HEADER]: i18n.language },
+        headers: { "Content-Type": "application/json", [LOCALE_HEADER]: "id" },
         body: JSON.stringify(input),
       });
       const body = (await r.json()) as {
@@ -255,19 +257,19 @@ export function ScanDemo() {
               <div>
                 <p className="text-sm font-semibold text-muted-foreground">{t("demo.total")}</p>
                 <p className="text-[2.75rem] leading-none font-extrabold tracking-tighter tabular-nums">
-                  {fmtInt(total)}
+                  {fmtInt(total, "id")}
                   <span className="ml-1.5 text-base font-semibold tracking-normal text-muted-foreground">
-                    {kcalUnit()}
+                    {kcalUnit("id")}
                   </span>
                 </p>
               </div>
               <p
-                className={`flex items-center gap-1.5 pb-1 text-sm font-bold ${heavy ? "text-bakar-ink" : "text-makan-ink"}`}
+                className={`flex items-start gap-1.5 pb-1 text-sm font-bold ${heavy ? "text-bakar-ink" : "text-makan-ink"}`}
               >
                 {heavy ? (
-                  <TriangleAlert className="size-4" aria-hidden />
+                  <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
                 ) : (
-                  <ThumbsUp className="size-4" aria-hidden />
+                  <ThumbsUp className="mt-0.5 size-4 shrink-0" aria-hidden />
                 )}
                 {reaction}
               </p>
@@ -278,7 +280,7 @@ export function ScanDemo() {
                   key={`${item.name}-${index}`}
                   title={item.name}
                   subtitle={item.portion}
-                  value={fmtKcalLabel(item.kcal)}
+                  value={fmtKcalLabel(item.kcal, "id")}
                 />
               ))}
             </ListGroup>

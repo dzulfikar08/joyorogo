@@ -143,7 +143,15 @@ export function CreateChallengeSheet({
       title={t("create.title")}
       footer={
         <View style={styles.footer}>
-          {error ? <Text style={[styles.error, { color: theme.colors.destructive }]}>{error}</Text> : null}
+          {error ? (
+            <Text
+              accessibilityRole="alert"
+              accessibilityLiveRegion="polite"
+              style={[styles.error, { color: theme.colors.destructive }]}
+            >
+              {error}
+            </Text>
+          ) : null}
           <Button
             label={t("create.submit")}
             disabled={liveError !== null}
@@ -295,6 +303,7 @@ export function CreateChallengeSheet({
             value={title}
             onChangeText={edit(setTitle)}
             maxLength={CHALLENGE_TITLE_MAX}
+            accessibilityLabel={t("create.name.label")}
             placeholder={defaultChallengeTitle(goal, target, durationDays)}
           />
         </Field>

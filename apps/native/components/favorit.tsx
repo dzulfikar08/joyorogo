@@ -675,7 +675,7 @@ export function FavoritManageSheet({
 const styles = StyleSheet.create((theme) => ({
   starButton: {
     width: 40,
-    height: 40,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
   },

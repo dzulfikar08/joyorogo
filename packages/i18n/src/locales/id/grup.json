@@ -89,6 +89,7 @@
     "memberFallback": "Anggota",
     "left": "Kamu keluar dari grup.",
     "linkCopied": "Tautan disalin",
+    "copyFailed": "Gagal menyalin. Pakai Bagikan saja.",
     "sendFailed": "Gagal mengirim",
     "settingsSaved": "Pengaturan grup disimpan",
     "shareFailed": "Gagal mengubah bagikan",
@@ -128,7 +129,10 @@
     },
     "members": {
       "title": "Anggota",
-      "remove": "Keluarkan"
+      "remove": "Keluarkan",
+      "removeNamed": "Keluarkan {{name}}",
+      "confirm": "Keluarkan {{name}} dari grup ini?",
+      "confirmYes": "Ya, keluarkan"
     },
     "leave": {
       "confirm": "Keluar dari {{name}}?",

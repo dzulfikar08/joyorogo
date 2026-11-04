@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { Button, Card, Input, Text } from "@/components/ui";
+import { ConfirmSheet } from "@/components/confirm-sheet";
 import { errorMessage, timeAgo } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 
@@ -19,7 +20,7 @@ const AUTO_SYNC_AFTER_MS = 60 * 60 * 1000;
  * (the Garmin page), leaving the status line.
  */
 export function GarminCard({ headless = false }: { headless?: boolean }) {
-  const { t } = useTranslation(["garmin", "common"]);
+  const { t } = useTranslation(["garmin", "common", "settings"]);
   const { theme } = useUnistyles();
   const statusQuery = useQuery(orpc.garmin.status.queryOptions());
   const sync = useMutation(
@@ -30,6 +31,7 @@ export function GarminCard({ headless = false }: { headless?: boolean }) {
   const [apiKey, setApiKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Once per mount: refresh a stale connection when the card opens.
   const autoSynced = useRef(false);
@@ -145,7 +147,7 @@ export function GarminCard({ headless = false }: { headless?: boolean }) {
           size="sm"
           label={busy ? t("garmin:action.disconnecting") : t("garmin:action.disconnect")}
           destructive
-          onPress={() => void disconnect()}
+          onPress={() => setConfirmOpen(true)}
           disabled={busy || sync.isPending}
         />
       </View>
@@ -153,31 +155,45 @@ export function GarminCard({ headless = false }: { headless?: boolean }) {
   }
 
   return (
-    <Card>
-      {headless ? (
-        <Text style={styles.subtitle}>{subtitle}</Text>
-      ) : (
-        <View style={styles.headRow}>
-          <View style={styles.mark}>
-            <Ionicons name="fitness" size={20} color={theme.colors.mutedForeground} />
+    <>
+      <Card>
+        {headless ? (
+          <Text style={styles.subtitle}>{subtitle}</Text>
+        ) : (
+          <View style={styles.headRow}>
+            <View style={styles.mark}>
+              <Ionicons name="fitness" size={20} color={theme.colors.mutedForeground} />
+            </View>
+            <View style={styles.headText}>
+              <Text style={styles.title}>{t("garmin:title")}</Text>
+              <Text style={styles.subtitle}>{subtitle}</Text>
+            </View>
           </View>
-          <View style={styles.headText}>
-            <Text style={styles.title}>{t("garmin:title")}</Text>
-            <Text style={styles.subtitle}>{subtitle}</Text>
+        )}
+        {action}
+        {data?.configured ? (
+          <View style={styles.notes}>
+            <Text style={styles.subtitle}>{t("garmin:notes.text")}</Text>
+            <Text style={styles.subtitle}>{t("garmin:notes.dedupe")}</Text>
+            {data.connected ? <Text style={styles.subtitle}>{t("garmin:key.expiry")}</Text> : null}
           </View>
-        </View>
-      )}
-      {action}
-      {data?.configured ? (
-        <View style={styles.notes}>
-          <Text style={styles.subtitle}>{t("garmin:notes.text")}</Text>
-          <Text style={styles.subtitle}>{t("garmin:notes.dedupe")}</Text>
-          {data.connected ? <Text style={styles.subtitle}>{t("garmin:key.expiry")}</Text> : null}
-        </View>
-      ) : null}
-      {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
-      {sync.isError ? <Text style={styles.error}>{errorMessage(sync.error)}</Text> : null}
-    </Card>
+        ) : null}
+        {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
+        {sync.isError ? <Text style={styles.error}>{errorMessage(sync.error)}</Text> : null}
+      </Card>
+      <ConfirmSheet
+        visible={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title={t("settings:hubNative.disconnect.confirmTitle", { name: "Garmin" })}
+        message={t("settings:hubNative.disconnect.confirmMessage", { name: "Garmin" })}
+        confirmLabel={t("garmin:action.disconnect")}
+        cancelLabel={t("common:actions.cancel")}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          void disconnect();
+        }}
+      />
+    </>
   );
 }
 
@@ -225,6 +241,6 @@ const styles = StyleSheet.create((theme) => ({
   },
   error: {
     fontSize: theme.fontSize.sm,
-    color: theme.colors.destructive,
+    color: theme.colors.destructiveText,
   },
 }));

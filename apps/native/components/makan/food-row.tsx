@@ -73,7 +73,7 @@ export function FoodRow({
     <Animated.View entering={item.id.startsWith("temp-") ? enter : undefined} style={leaveStyle}>
       <PressableScale
         accessibilityRole="button"
-        accessibilityLabel={item.name}
+        accessibilityLabel={`${item.name}, ${fmtInt(item.kcal)} ${t("diary.summary.unit")}`}
         onPress={onEdit}
         scaleTo={1}
         dimTo={0.7}

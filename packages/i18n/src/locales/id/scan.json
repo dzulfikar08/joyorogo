@@ -56,6 +56,7 @@
     "permissionTitle": "Kamera dibutuhkan",
     "permissionBody": "JoyoRogo butuh izin kamera untuk memotret makananmu dan menghitung kalorinya dengan AI.",
     "grant": "Beri Izin Kamera",
+    "openSettings": "Buka Pengaturan",
     "close": "Tutup kamera",
     "hint": "Potret piringmu, AI hitung kalorinya",
     "barcode": "Pindai barcode kemasan",

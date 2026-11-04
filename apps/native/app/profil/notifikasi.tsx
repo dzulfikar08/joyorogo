@@ -75,8 +75,12 @@ export default function Notifikasi() {
     const granted = await gate.ensure();
     setPermission(await getNotificationPermission());
     if (!granted) return;
-    await registerPush({ force: true });
-    void refetch();
+    try {
+      await registerPush({ force: true });
+      void refetch();
+    } catch {
+      toast.error(t("saveFailed"));
+    }
   };
 
   const sendTest = async () => {
@@ -103,7 +107,7 @@ export default function Notifikasi() {
           : "undetermined";
 
   const switchProps = {
-    trackColor: { false: theme.colors.muted, true: theme.colors.primary },
+    trackColor: { false: theme.colors.mutedForeground, true: theme.colors.primary },
     thumbColor: theme.colors.background,
     disabled: !prefs,
   } as const;

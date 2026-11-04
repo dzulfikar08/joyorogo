@@ -7,6 +7,7 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
+  ChevronLeft,
   Copy,
   Dumbbell,
   Flame,
@@ -96,6 +97,7 @@ function GrupDetailPage() {
   const [noteMessage, setNoteMessage] = useState("");
   const [newName, setNewName] = useState("");
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
 
   const group = detail.data?.group;
   const me = detail.data?.members.find((m) => m.userId === meId);
@@ -245,7 +247,15 @@ function GrupDetailPage() {
 
   return (
     <Page className="max-w-xl">
+      <Link
+        to="/grup"
+        className="-ml-2 mb-1 inline-flex min-h-11 items-center gap-0.5 rounded-full pr-3 pl-1 text-sm font-semibold text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+      >
+        <ChevronLeft className="size-5" aria-hidden />
+        {t("common:actions.back")}
+      </Link>
       <PageHeader
+        className="pt-0"
         title={group.name}
         subtitle={t("detail.subtitle", { count: detail.data.members.length, code: group.inviteCode })}
         action={
@@ -315,7 +325,7 @@ function GrupDetailPage() {
               <p className="mt-0.5 truncate text-xs text-muted-foreground">
                 joyorogo.com/gabung/{group.inviteCode}
               </p>
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 <Button
                   size="sm"
                   onClick={() => {
@@ -331,9 +341,10 @@ function GrupDetailPage() {
                   size="sm"
                   variant="secondary"
                   onClick={() => {
-                    void navigator.clipboard
-                      .writeText(inviteLink(group.inviteCode))
-                      .then(() => toast.success(t("toast.linkCopied")));
+                    void navigator.clipboard.writeText(inviteLink(group.inviteCode)).then(
+                      () => toast.success(t("toast.linkCopied")),
+                      () => toast.error(t("toast.copyFailed")),
+                    );
                   }}
                 >
                   <Copy className="size-4" aria-hidden />
@@ -360,6 +371,7 @@ function GrupDetailPage() {
               <ListRow
                 title={t("settings.privacy.food.title")}
                 subtitle={t("settings.privacy.food.hint")}
+                fullSubtitle
                 trailing={
                   <Switch
                     checked={me.shareFood}
@@ -372,6 +384,7 @@ function GrupDetailPage() {
               <ListRow
                 title={t("settings.privacy.var.title")}
                 subtitle={t("settings.privacy.var.hint")}
+                fullSubtitle
                 trailing={
                   <Switch
                     checked={me.shareVar}
@@ -384,6 +397,7 @@ function GrupDetailPage() {
               <ListRow
                 title={t("fitness.share.title")}
                 subtitle={t("fitness.share.hint")}
+                fullSubtitle
                 trailing={
                   <Switch
                     checked={me.shareFitness}
@@ -425,26 +439,53 @@ function GrupDetailPage() {
             <section>
               <SectionTitle>{t("settings.members.title")}</SectionTitle>
               <ListGroup className="mt-2">
-                {others.map((member) => (
-                  <ListRow
-                    key={member.userId}
-                    icon={<Avatar name={member.name} image={member.image} />}
-                    title={member.name}
-                    subtitle={member.role === "owner" ? t("member.owner") : t("member.member")}
-                    trailing={
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive"
-                        disabled={removeMember.isPending}
-                        onClick={() => removeMember.mutate({ groupId, userId: member.userId })}
-                      >
-                        <UserMinus className="size-4" aria-hidden />
-                        {t("settings.members.remove")}
-                      </Button>
-                    }
-                  />
-                ))}
+                {others.map((member) =>
+                  confirmRemove === member.userId ? (
+                    <li key={member.userId} className="relative bg-destructive/10 px-5 py-3">
+                      <p className="text-sm font-bold text-destructive">
+                        {t("settings.members.confirm", { name: member.name })}
+                      </p>
+                      <div className="mt-2 flex gap-2">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={removeMember.isPending}
+                          onClick={() =>
+                            removeMember.mutate(
+                              { groupId, userId: member.userId },
+                              { onSettled: () => setConfirmRemove(null) },
+                            )
+                          }
+                        >
+                          {t("settings.members.confirmYes")}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setConfirmRemove(null)}>
+                          {t("common:actions.cancel")}
+                        </Button>
+                      </div>
+                    </li>
+                  ) : (
+                    <ListRow
+                      key={member.userId}
+                      icon={<Avatar name={member.name} image={member.image} />}
+                      title={member.name}
+                      subtitle={member.role === "owner" ? t("member.owner") : t("member.member")}
+                      trailing={
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive"
+                          aria-label={t("settings.members.removeNamed", { name: member.name })}
+                          disabled={removeMember.isPending}
+                          onClick={() => setConfirmRemove(member.userId)}
+                        >
+                          <UserMinus className="size-4" aria-hidden />
+                          {t("settings.members.remove")}
+                        </Button>
+                      }
+                    />
+                  ),
+                )}
               </ListGroup>
             </section>
           )}
@@ -629,7 +670,7 @@ function MemberCard({
                     "ml-1 inline-flex items-center gap-0.5 align-middle font-bold",
                     (today.gaining ? delta > 0 : delta < 0)
                       ? "text-primary"
-                      : "text-amber-600 dark:text-amber-400",
+                      : "text-amber-700 dark:text-amber-400",
                   )}
                 >
                   {delta < 0 ? (

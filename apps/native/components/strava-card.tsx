@@ -8,6 +8,7 @@ import { StyleSheet } from "react-native-unistyles";
 
 import { BrandMark } from "@/components/brand-mark";
 import { Button, Card, Text } from "@/components/ui";
+import { ConfirmSheet } from "@/components/confirm-sheet";
 import { Disclosure } from "@/components/disclosure";
 import { StravaRetentionNote } from "@/components/strava-retention-notice";
 import { errorMessage } from "@/utils/format";
@@ -33,6 +34,7 @@ export function StravaCard({ compact = false, headless = false }: { compact?: bo
   );
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const connect = async () => {
     setActionError(null);
@@ -132,7 +134,7 @@ export function StravaCard({ compact = false, headless = false }: { compact?: bo
           size="sm"
           label={t("strava.action.disconnect")}
           destructive
-          onPress={() => void disconnect()}
+          onPress={() => setConfirmOpen(true)}
           disabled={busy || sync.isPending}
         />
       </View>
@@ -140,44 +142,54 @@ export function StravaCard({ compact = false, headless = false }: { compact?: bo
   }
 
   return (
-    <Card>
-      {headless ? (
-        <Text style={styles.subtitle}>{subtitle}</Text>
-      ) : (
-        <View style={styles.headRow}>
-          <BrandMark brand="strava" />
-          <View style={styles.headText}>
-            <Text style={styles.title}>Strava</Text>
-            <Text style={styles.subtitle}>{subtitle}</Text>
-          </View>
-        </View>
-      )}
-      {action}
-      {statusQuery.data && !statusQuery.data.connected && statusQuery.data.released ? (
-        <Text style={styles.notice}>
-          <Text style={styles.noticeTitle}>{t("strava.slots.releasedTitle")}. </Text>
-          {t("strava.slots.released")}
-        </Text>
-      ) : null}
-      {statusQuery.data && !statusQuery.data.connected && statusQuery.data.slotsFull ? (
-        <Text style={styles.notice}>
-          {t("strava.slots.full")}
-        </Text>
-      ) : null}
-      {statusQuery.data?.configured ? (
-        compact ? (
-          <Disclosure plain title={t("olahraga:strava.notesTitle")}>
-            <StravaRetentionNote />
-          </Disclosure>
+    <>
+      <Card>
+        {headless ? (
+          <Text style={styles.subtitle}>{subtitle}</Text>
         ) : (
-          <StravaRetentionNote />
-        )
-      ) : null}
-      {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
-      {sync.isError ? (
-        <Text style={styles.error}>{errorMessage(sync.error)}</Text>
-      ) : null}
-    </Card>
+          <View style={styles.headRow}>
+            <BrandMark brand="strava" />
+            <View style={styles.headText}>
+              <Text style={styles.title}>Strava</Text>
+              <Text style={styles.subtitle}>{subtitle}</Text>
+            </View>
+          </View>
+        )}
+        {action}
+        {statusQuery.data && !statusQuery.data.connected && statusQuery.data.released ? (
+          <Text style={styles.notice}>
+            <Text style={styles.noticeTitle}>{t("strava.slots.releasedTitle")}. </Text>
+            {t("strava.slots.released")}
+          </Text>
+        ) : null}
+        {statusQuery.data && !statusQuery.data.connected && statusQuery.data.slotsFull ? (
+          <Text style={styles.notice}>{t("strava.slots.full")}</Text>
+        ) : null}
+        {statusQuery.data?.configured ? (
+          compact ? (
+            <Disclosure plain title={t("olahraga:strava.notesTitle")}>
+              <StravaRetentionNote />
+            </Disclosure>
+          ) : (
+            <StravaRetentionNote />
+          )
+        ) : null}
+        {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
+        {sync.isError ? <Text style={styles.error}>{errorMessage(sync.error)}</Text> : null}
+      </Card>
+      <ConfirmSheet
+        visible={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title={t("hubNative.disconnect.confirmTitle", { name: "Strava" })}
+        message={t("hubNative.disconnect.confirmMessage", { name: "Strava" })}
+        confirmLabel={t("strava.action.disconnect")}
+        cancelLabel={t("common:actions.cancel")}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          void disconnect();
+        }}
+      />
+    </>
   );
 }
 
@@ -218,7 +230,7 @@ const styles = StyleSheet.create((theme) => ({
   },
   error: {
     fontSize: theme.fontSize.sm,
-    color: theme.colors.destructive,
+    color: theme.colors.destructiveText,
   },
   notice: {
     fontSize: theme.fontSize.sm,

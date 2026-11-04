@@ -51,7 +51,7 @@ export function ModelPicker({
         <>
           <Text style={styles.strong}>{t("model.selected", { model: value })}</Text>
           {chosen?.tools === false ? (
-            <Text style={[styles.small, { color: theme.colors.destructive }]}>
+            <Text style={[styles.small, { color: theme.colors.destructiveText }]}>
               {t("model.noToolsChosen")}
             </Text>
           ) : null}
@@ -118,7 +118,7 @@ export function ModelPicker({
           ) : null}
           {loading ? <Skeleton width="100%" height={44} /> : null}
           {error ? (
-            <Text style={[styles.small, { color: theme.colors.destructive }]}>{error}</Text>
+            <Text style={[styles.small, { color: theme.colors.destructiveText }]}>{error}</Text>
           ) : null}
           {!loading && !error && models === null ? (
             <Text style={styles.small}>{t("model.afterTest")}</Text>
