@@ -97,7 +97,7 @@ export function polarConfig(env: PolarEnv): PolarConfig | null {
   };
 }
 
-/** Which plan a Polar product sells; null = not a JoyoRogo Pro product (the org may sell other apps). */
+/** Which plan a Polar product sells; null = not a Joyo Pro product (the org may sell other apps). */
 export function polarProductPlan(config: Pick<PolarConfig, "productIds">, productId: string | null | undefined): FounderPlan | null {
   if (!productId) return null;
   if (productId === config.productIds.monthly) return "monthly";
@@ -216,6 +216,8 @@ export async function createCheckout(
     customerIp?: string | null;
     /** RevKlik ids of the buyer's browser; they come back on the order's metadata for sale attribution. */
     revklik?: { visitorId: string | null; sessionId: string | null };
+    /** Where the checkout was started from besides JoyoRogo ("joyoarto"); kept on the order's metadata. */
+    source?: string | null;
   },
 ): Promise<{ url: string }> {
   const checkout = await call<{ url?: unknown }>(config, "/v1/checkouts/", {
@@ -231,6 +233,7 @@ export async function createCheckout(
       app: "joyorogo",
       user_id: params.userId,
       plan: params.plan,
+      ...(params.source ? { source: params.source } : {}),
       ...(params.revklik?.visitorId ? { revklik_vid: params.revklik.visitorId } : {}),
       ...(params.revklik?.sessionId ? { revklik_sid: params.revklik.sessionId } : {}),
     },

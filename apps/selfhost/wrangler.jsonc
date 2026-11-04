@@ -114,7 +114,7 @@
     {
       "name": "DOKU_CLIENT_ID",
       "label": "DOKU Client ID",
-      "description": "Opsional, tombol Transfer Bank untuk paket Founder lewat DOKU Checkout. Pembayaran aktif hanya kalau batas scan gratis juga diisi.",
+      "description": "Opsional, tombol QRIS dan Transfer Bank untuk paket Founder lewat DOKU Checkout. Pembayaran aktif hanya kalau batas scan gratis juga diisi.",
       "docs_url": "https://dashboard.doku.com",
     },
     { "name": "DOKU_SECRET_KEY", "label": "DOKU Secret Key", "secret": true },
@@ -126,7 +126,7 @@
     {
       "name": "PAKASIR_SLUG",
       "label": "Pakasir slug proyek",
-      "description": "Opsional, tombol QRIS lewat Pakasir. Webhook proyek: <alamatmu>/api/billing/pakasir/webhook",
+      "description": "Opsional, hanya untuk menuntaskan pesanan Pakasir lama (Pakasir berhenti November 2026). Pesanan baru lewat Pakasir hanya kalau PAKASIR_ENABLED diisi 1. Webhook proyek: <alamatmu>/api/billing/pakasir/webhook",
       "docs_url": "https://pakasir.com/p/get-started",
     },
     { "name": "PAKASIR_API_KEY", "label": "Pakasir API key", "secret": true },
@@ -135,6 +135,11 @@
       "name": "PAKASIR_SANDBOX",
       "label": "Terima pembayaran sandbox Pakasir",
       "description": "Isi 1 hanya untuk uji coba: pembayaran sandbox ikut mengaktifkan Founder.",
+    },
+    {
+      "name": "PAKASIR_ENABLED",
+      "label": "Pesanan baru lewat Pakasir",
+      "description": "Kosong (bawaan) = tombol QRIS lewat DOKU. Isi 1 agar QRIS tetap lewat Pakasir. Webhook Pakasir tetap aktif selama kuncinya diisi.",
     },
     {
       "name": "APPLE_BUNDLE_IDS",

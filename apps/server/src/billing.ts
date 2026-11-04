@@ -22,8 +22,8 @@ import { serverT } from "@joyorogo/api/lib/messages";
 import {
   WEBHOOK_TARGET as DOKU_WEBHOOK_PATH,
   buildOrderId,
+  DOKU_QRIS,
   checkStatus as checkDokuStatus,
-  createCheckout,
   isFailed as dokuFailed,
   isOrderId,
   isPaid as dokuPaid,
@@ -31,6 +31,15 @@ import {
   verifySignature,
 } from "@joyorogo/api/lib/doku";
 import type { DokuConfig } from "@joyorogo/api/lib/doku";
+import {
+  PAYMENT_METHODS,
+  createDokuCheckout,
+  defaultProvider,
+  flagOn,
+  methodGateway,
+  orderSource,
+} from "./billing-gateway";
+import type { Provider } from "./billing-gateway";
 import {
   WEBHOOK_PATH as PAKASIR_WEBHOOK_PATH,
   createPaymentLink,
@@ -94,6 +103,12 @@ export type BillingEnv = PaywallEnv & GooglePlayEnv & PolarEnv & AppVersionEnv &
   PAKASIR_WEBHOOK_SECRET?: string;
   /** "1" lets Pakasir sandbox-mode payments credit Founder (testing only). */
   PAKASIR_SANDBOX?: string;
+  /**
+   * "1"/"on" = new checkouts may still go to Pakasir. Default off: Pakasir sunsets in November 2026, so QRIS goes
+   * through DOKU. The webhook and the reconcile path stay live while the credentials are set, so orders opened
+   * before the switch still settle. Delete the Pakasir code once no Pakasir order is pending (docs/billing-status.md).
+   */
+  PAKASIR_ENABLED?: string;
   APPLE_BUNDLE_IDS?: string;
   APPLE_TEAM_ID?: string;
   APPLE_SIWA_KEY_ID?: string;
@@ -121,12 +136,6 @@ type Deps = {
   revklik?: Revklik;
 };
 
-type Provider = "doku" | "pakasir";
-
-/** Buyer-facing choice in the checkout picker; each maps to one gateway. */
-type PaymentMethod = "qris" | "transfer";
-const METHOD_GATEWAY: Record<PaymentMethod, Provider> = { qris: "pakasir", transfer: "doku" };
-const PAYMENT_METHODS: readonly PaymentMethod[] = ["qris", "transfer"];
 
 const SUMMARY_WINDOW_DAYS = 30;
 const DOKU_PRODUCTION = "https://api.doku.com";
@@ -150,24 +159,13 @@ function pakasirConfig(env: BillingEnv): PakasirConfig | null {
   };
 }
 
-/** Gateway for checkouts without a payment method; null = checkout off. */
-function defaultProvider(
-  choice: string | undefined,
-  configured: Record<Provider, boolean>,
-): Provider | null {
-  if ((choice === "doku" || choice === "pakasir") && configured[choice]) return choice;
-  if (configured.doku) return "doku";
-  if (configured.pakasir) return "pakasir";
-  return null;
-}
-
 /** User-facing text of a billing response, in the language the request asks for. */
 const t = (c: Context) => serverT(requestLocale(c), "errors");
 
 /**
- * Founder plan: prepaid months over DOKU Checkout or a Pakasir payment link.
- * The buyer picks QRIS (Pakasir, QR only) or bank transfer (DOKU); each
- * option exists only when its gateway is configured. Billing is live only
+ * Founder plan: prepaid months over DOKU Checkout (or a Pakasir payment link
+ * while PAKASIR_ENABLED is on). The buyer picks QRIS (DOKU's QRIS channel) or
+ * bank transfer (DOKU); each option exists only when its gateway is configured. Billing is live only
  * when the operator set a paywall (FREE_DAILY_SCANS) AND at least one
  * gateway's credentials; any other self-hosted setup runs without checkout
  * or upgrade prompts. Both webhooks stay mounted whenever their gateway is
@@ -178,11 +176,16 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   const config = paywallConfig(env);
   const doku = paywallEnabled(config) ? dokuConfig(env) : null;
   const pakasir = paywallEnabled(config) ? pakasirConfig(env) : null;
-  const configured: Record<Provider, boolean> = { doku: doku !== null, pakasir: pakasir !== null };
+  // Gateways that take NEW orders. Pakasir's webhook and reconcile only need `pakasir` (credentials), so orders
+  // opened before PAKASIR_ENABLED went off still settle.
+  const pakasirForNewOrders = pakasir !== null && flagOn(env.PAKASIR_ENABLED);
+  const configured: Record<Provider, boolean> = { doku: doku !== null, pakasir: pakasirForNewOrders };
   // Polar (USD, merchant of record): web only, never advertised to the store builds.
   const polar = paywallEnabled(config) ? polarConfig(env) : null;
   const provider = defaultProvider(env.BILLING_PROVIDER, configured);
-  const paymentMethods = PAYMENT_METHODS.filter((method) => configured[METHOD_GATEWAY[method]]);
+  const paymentMethods = PAYMENT_METHODS.filter(
+    (method) => configured[methodGateway(method, pakasirForNewOrders)],
+  );
   const appUrl = (env.APP_URL || env.BETTER_AUTH_URL).replace(/\/$/, "");
   const apiUrl = env.BETTER_AUTH_URL.replace(/\/$/, "");
   const dokuNotifyUrl = `${(env.DOKU_NOTIFY_BASE_URL || apiUrl).replace(/\/$/, "")}${DOKU_WEBHOOK_PATH}`;
@@ -345,8 +348,9 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     });
   });
 
-  // Body (optional JSON): { plan: "monthly" | "yearly"; method?: "qris" | "transfer" }.
-  // Default monthly; no method = the default gateway's full page (older apps).
+  // Body (optional JSON): { plan: "monthly" | "yearly"; method?: "qris" | "transfer"; source?: "joyoarto" }.
+  // Default monthly; no method = the default gateway's full page (older apps). `source` tags the order and
+  // carries a "back to" link through the return page.
   app.post("/api/billing/checkout", async (c) => {
     if (!provider) return c.json({ error: t(c)("billing.unavailable") }, 404);
     const me = await sessionUser(c.req.raw.headers);
@@ -354,12 +358,14 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     const body = (await c.req.json().catch(() => null)) as {
       plan?: unknown;
       method?: unknown;
+      source?: unknown;
       revklikVisitorId?: unknown;
       revklikSessionId?: unknown;
     } | null;
     const plan: FounderPlan = body?.plan === "yearly" ? "yearly" : "monthly";
     const method = PAYMENT_METHODS.find((m) => m === body?.method) ?? null;
-    const gateway = method ? METHOD_GATEWAY[method] : provider;
+    const source = orderSource(body?.source);
+    const gateway = method ? methodGateway(method, pakasirForNewOrders) : provider;
     if (!configured[gateway]) {
       return c.json({ error: t(c)("billing.methodUnavailable") }, 400);
     }
@@ -388,12 +394,13 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     }
 
     const orderId = buildOrderId();
-    const returnUrl = `${appUrl}/pembayaran?order=${encodeURIComponent(orderId)}`;
+    const returnUrl = `${appUrl}/pembayaran?order=${encodeURIComponent(orderId)}${source ? `&from=${source}` : ""}`;
     await db.insert(payment).values({
       orderId,
       userId: me.id,
       amountIdr,
       months,
+      source,
       ...parseRevklikIds({ visitorId: body?.revklikVisitorId, sessionId: body?.revklikSessionId }),
     });
     try {
@@ -405,14 +412,16 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
               redirectUrl: returnUrl,
               qrisOnly: method === "qris",
             })
-          : await createCheckout(doku as DokuConfig, {
+          : await createDokuCheckout(doku as DokuConfig, {
               orderId,
               amountIdr,
-              itemName: plan === "yearly" ? "JoyoRogo Pro 1 tahun" : "JoyoRogo Pro 1 bulan",
+              itemName: plan === "yearly" ? "Joyo Pro 1 tahun" : "Joyo Pro 1 bulan",
               customerEmail: me.email,
               customerName: me.name,
               notifyUrl: dokuNotifyUrl,
               returnUrl,
+              // The QRIS button opens DOKU on its QRIS channel; bank transfer shows every channel.
+              paymentMethodTypes: method === "qris" ? DOKU_QRIS : undefined,
             });
       await db.update(payment).set({ paymentUrl }).where(eq(payment.orderId, orderId));
       return c.json({ orderId, paymentUrl });
@@ -515,10 +524,13 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     if (!me) return c.json({ error: t(c)("billing.signInToSubscribe") }, 401);
     const body = (await c.req.json().catch(() => null)) as {
       plan?: unknown;
+      source?: unknown;
       revklikVisitorId?: unknown;
       revklikSessionId?: unknown;
     } | null;
     const plan: FounderPlan = body?.plan === "yearly" ? "yearly" : "monthly";
+    const source = orderSource(body?.source);
+    const from = source ? `&from=${source}` : "";
     const db = deps.getDb();
     const [live] = await db
       .select({ subscriptionId: polarSubscription.subscriptionId })
@@ -534,8 +546,9 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
         userId: me.id,
         email: me.email,
         name: me.name,
-        successUrl: `${appUrl}/pro?polar=success`,
-        returnUrl: `${appUrl}/pro`,
+        successUrl: `${appUrl}/pro?polar=success${from}`,
+        returnUrl: `${appUrl}/pro${source ? `?from=${source}` : ""}`,
+        source,
         customerIp: c.req.header("CF-Connecting-IP"),
         revklik: (({ revklikVisitorId, revklikSessionId }) => ({ visitorId: revklikVisitorId, sessionId: revklikSessionId }))(
           parseRevklikIds({ visitorId: body?.revklikVisitorId, sessionId: body?.revklikSessionId }),

@@ -9,6 +9,12 @@ export const CHECKOUT_TARGET = "/checkout/v1/payment";
 export const WEBHOOK_TARGET = "/api/billing/webhook";
 export const ORDER_PREFIX = "JRG-";
 
+/**
+ * DOKU Checkout's QRIS channel (`payment.payment_method_types`). Without a list DOKU shows every channel enabled on
+ * the merchant (QRIS, virtual accounts, e-wallets); the QRIS button narrows the page to this one.
+ */
+export const DOKU_QRIS: readonly string[] = ["QRIS"];
+
 export type DokuConfig = {
   clientId: string;
   secretKey: string;
@@ -118,7 +124,7 @@ export function requestTimestamp(now = new Date()): string {
   return `${now.toISOString().slice(0, 19)}Z`;
 }
 
-/** Create a DOKU Checkout page (QRIS, VA, e-wallet rendered by DOKU). */
+/** Create a DOKU Checkout page (QRIS, VA, e-wallet rendered by DOKU; `paymentMethodTypes` narrows it). */
 export async function createCheckout(
   config: DokuConfig,
   params: {
@@ -129,6 +135,8 @@ export async function createCheckout(
     customerName?: string;
     notifyUrl: string;
     returnUrl: string;
+    /** DOKU channel ids to offer (e.g. DOKU_QRIS); omitted = every channel enabled on the merchant. */
+    paymentMethodTypes?: readonly string[];
   },
 ): Promise<{ paymentUrl: string }> {
   const requestId = crypto.randomUUID();
@@ -142,7 +150,10 @@ export async function createCheckout(
       callback_url: params.returnUrl,
       auto_redirect: true,
     },
-    payment: { payment_due_date: 60 },
+    payment: {
+      payment_due_date: 60,
+      ...(params.paymentMethodTypes?.length ? { payment_method_types: [...params.paymentMethodTypes] } : {}),
+    },
     customer: {
       email: params.customerEmail,
       ...(params.customerName ? { name: params.customerName } : {}),

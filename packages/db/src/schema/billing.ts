@@ -41,6 +41,9 @@ export const payment = sqliteTable(
     // forwarded sale inherits that visitor's utm/referrer/geo. Null for native purchases and renewals.
     revklikVisitorId: text("revklik_visitor_id"),
     revklikSessionId: text("revklik_session_id"),
+    // Where a web checkout was started from when it was not JoyoRogo itself: "joyoarto" (the Upgrade link in
+    // JoyoArto). Null = JoyoRogo/JoyoFit, the native stores and every order before migration 0075.
+    source: text("source"),
     // Founder period end this payment produced (set on the paid flip).
     founderUntil: integer("founder_until", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" })

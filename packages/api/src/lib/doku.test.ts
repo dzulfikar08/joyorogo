@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  DOKU_QRIS,
   WEBHOOK_TARGET,
   buildOrderId,
+  createCheckout,
   isFailed,
   isOrderId,
   isPaid,
@@ -127,5 +129,43 @@ describe("order ids", () => {
 
   test("timestamp drops millis", () => {
     expect(requestTimestamp(new Date("2026-10-12T05:06:07.890Z"))).toBe("2026-10-12T05:06:07Z");
+  });
+});
+
+describe("DOKU Checkout channels", () => {
+  const CONFIG = { clientId: "BRN-0001-0000000000001", secretKey: SECRET, baseUrl: "https://api.doku.test" };
+  const PARAMS = {
+    orderId: "JRG-261104050000-abcdef12",
+    amountIdr: 29000,
+    itemName: "Joyo Pro 1 bulan",
+    customerEmail: "buyer@example.com",
+    notifyUrl: "https://api.example.test/api/billing/webhook",
+    returnUrl: "https://app.example.test/pembayaran?order=x",
+  };
+
+  async function sentPayment(paymentMethodTypes?: readonly string[]): Promise<Record<string, unknown>> {
+    const realFetch = globalThis.fetch;
+    let sent: Record<string, unknown> = {};
+    globalThis.fetch = (async (_url: string, init: { body: string }) => {
+      sent = (JSON.parse(init.body) as { payment: Record<string, unknown> }).payment;
+      return new Response(JSON.stringify({ response: { payment: { url: "https://checkout.doku.test/p/1" } } }));
+    }) as unknown as typeof fetch;
+    try {
+      await createCheckout(CONFIG, { ...PARAMS, paymentMethodTypes });
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+    return sent;
+  }
+
+  test("the QRIS list includes QRIS", () => {
+    expect(DOKU_QRIS).toContain("QRIS");
+  });
+  test("narrowed to QRIS when asked", async () => {
+    expect(await sentPayment(DOKU_QRIS)).toEqual({ payment_due_date: 60, payment_method_types: ["QRIS"] });
+  });
+  test("no list = every channel enabled on the merchant (QRIS, VA, e-wallet)", async () => {
+    expect(await sentPayment()).toEqual({ payment_due_date: 60 });
+    expect(await sentPayment([])).toEqual({ payment_due_date: 60 });
   });
 });
