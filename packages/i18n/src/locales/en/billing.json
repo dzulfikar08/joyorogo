@@ -3,9 +3,9 @@
     "title": "Go Pro",
     "loadError": "Couldn't load prices.",
     "loading": "Loading the Pro offer",
-    "bundle": "Pro covers JoyoRogo + JoyoFit.",
+    "bundle": "Joyo Pro covers JoyoRogo, JoyoFit and JoyoArto.",
     "buy": "Go Pro",
-    "buyStore": "Subscribe to JoyoRogo Pro",
+    "buyStore": "Subscribe to Joyo Pro",
     "opening": "Opening checkout...",
     "later": "Not now",
     "noAutoRenew": "Does not renew automatically.",
@@ -21,12 +21,13 @@
       "challenge": "Pro members create group challenges. Joining a friend's challenge is still free.",
       "joyofit": "JoyoFit cloud backup comes with Pro, in one plan with JoyoRogo.",
       "scanleft": "Your free scans are almost used up today. Pro gives you a much bigger allowance.",
-      "chip": "One plan for JoyoRogo and JoyoFit. This is what Pro opens.",
+      "chip": "One plan for JoyoRogo, JoyoFit and JoyoArto. This is what Pro opens.",
       "mealplan": "Daily and weekly menus that fit your calories and protein, plus a shopping list and recipes.",
       "sleep": "Sleep patterns tied to your eating habits, worked out from your watch data.",
       "recap": "A weekly reflection written by AI from your own numbers.",
       "workout": "The charts, splits and zones of workouts your friends share.",
-      "streak": "A {{days}}-day streak. Pro gives you enough scans to keep logging every day."
+      "streak": "A {{days}}-day streak. Pro gives you enough scans to keep logging every day.",
+      "joyoarto": "Joyo Pro also unlocks JoyoArto. One plan for JoyoRogo, JoyoFit and JoyoArto."
     }
   },
   "plan": {
@@ -69,6 +70,7 @@
       "cloud": "JoyoFit cloud backup: workouts, sleep, routes, sensors and strength training",
       "challenge": "Host group challenges (joining a friend's challenge stays free)",
       "workoutDetail": "Friends' workout details in the feed: heart rate, splits, zones and the route they share",
+      "apps": "One Joyo Pro for JoyoRogo, JoyoFit and JoyoArto (family finances)",
       "reminders": "A reminder when your weekly menu is ready",
       "badge": "Pro badge on your profile",
       "support_one": "Priority support by Threads DM, answered within {{count}} working day",
@@ -86,7 +88,7 @@
   },
   "nudge": {
     "chip": "Pro",
-    "chipLabel": "See JoyoRogo Pro",
+    "chipLabel": "See Joyo Pro",
     "scanLeft": "{{left}} of {{total}} free scans left today",
     "scanLeftNone": "No free scans left today",
     "scanLeftAction": "See Pro",
@@ -97,7 +99,7 @@
       "dismiss": "Close"
     },
     "more": {
-      "title": "JoyoRogo Pro",
+      "title": "Joyo Pro",
       "bodyCapped": "{{pro}} AI scans a day, a meal plan and JoyoFit cloud backup.",
       "bodyUnlimited": "Unlimited AI scans, a meal plan and JoyoFit cloud backup.",
       "cta": "See Pro"
@@ -115,15 +117,15 @@
         "two": "Pick QRIS or bank transfer, then pay."
       },
       "store": {
-        "one": "Pick Monthly or Yearly, then tap \"Subscribe to JoyoRogo Pro\".",
+        "one": "Pick Monthly or Yearly, then tap \"Subscribe to Joyo Pro\".",
         "playTwo": "Pay with Google Play.",
         "appleTwo": "Pay with the App Store."
       },
       "done": "Pro turns on automatically once you've paid."
     },
     "renewal": {
-      "playMonthly": "JoyoRogo Pro, monthly subscription through Google Play. It renews automatically every month until you cancel in Google Play > Subscriptions.",
-      "playYearly": "JoyoRogo Pro, yearly subscription through Google Play. It renews automatically every year until you cancel in Google Play > Subscriptions.",
+      "playMonthly": "Joyo Pro, monthly subscription through Google Play. It renews automatically every month until you cancel in Google Play > Subscriptions.",
+      "playYearly": "Joyo Pro, yearly subscription through Google Play. It renews automatically every year until you cancel in Google Play > Subscriptions.",
       "appleMonthly": "{{price}} per month, App Store subscription. Manage or cancel in Settings > Apple ID > Subscriptions.",
       "appleYearly": "{{price}} per year, App Store subscription. Manage or cancel in Settings > Apple ID > Subscriptions."
     }
@@ -199,7 +201,7 @@
     "proCapped_one": "Pro: {{count}} AI scan per day.",
     "proCapped_other": "Pro: {{count}} AI scans per day.",
     "applePrice": "{{price}}/month through the App Store, renews automatically.",
-    "playPrice": "JoyoRogo Pro {{price}}/month through Google Play.",
+    "playPrice": "Joyo Pro {{price}}/month through Google Play.",
     "upgrade": "Upgrade",
     "checkPending": "Already paid? Check payment",
     "restore": "Restore purchases",
@@ -219,12 +221,12 @@
     "notPaidBody": "Try again in a moment.",
     "checkFailed": "Couldn't check the payment",
     "subscribedTitle": "Subscription active",
-    "subscribedBody": "JoyoRogo Pro is on. Thank you!",
+    "subscribedBody": "Joyo Pro is on. Thank you!",
     "waitingTitle": "Waiting for payment",
     "waitingPlay": "Pro turns on automatically once your Google Play payment completes.",
     "waitingGeneric": "Pro turns on automatically once the payment completes.",
     "restoredTitle": "Purchases restored",
-    "restoredBody": "JoyoRogo Pro is on.",
+    "restoredBody": "Joyo Pro is on.",
     "restoreRejectedTitle": "Couldn't restore",
     "restoreRejectedApple": "This subscription is already linked to another JoyoRogo account.",
     "noSubscriptionTitle": "No subscription found",
@@ -295,5 +297,15 @@
   "sandbox": {
     "title": "Test purchase",
     "body": "This is a test purchase from Apple (sandbox), so you were not charged. Pro stays active for 24 hours."
+  },
+  "joyoarto": {
+    "account": "Use the same Google account as in JoyoArto. You are signed in as {{email}}.",
+    "back": "Back to JoyoArto",
+    "openJoyoRogo": "Open JoyoRogo",
+    "paid": "Joyo Pro also unlocks JoyoArto. Reload JoyoArto's Settings page if it doesn't show yet.",
+    "alreadyPro": {
+      "title": "You already have Joyo Pro",
+      "body": "Joyo Pro on {{email}} also unlocks JoyoArto, as long as JoyoArto uses the same Google account."
+    }
   }
 }

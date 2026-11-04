@@ -61,7 +61,7 @@
       "no-points": "There are no timed recording points in this file.",
       "bad-xml": "The XML file isn't valid.",
       "invalid": "This workout didn't pass the format check.",
-      "paywall": "Uploading workouts needs JoyoRogo Pro.",
+      "paywall": "Uploading workouts needs Joyo Pro.",
       "unauthorized": "Your session ended. Sign in again, then retry the upload.",
       "deleted": "A workout with this start time was deleted from the cloud, so it isn't uploaded again.",
       "quota": "Your account's cloud storage is full.",
@@ -115,7 +115,7 @@
       "invalid_hwt": "This isn't a valid .hwt watch face ({{reason}}).",
       "invalid_hwt_plain": "This isn't a valid .hwt watch face.",
       "library_full": "Your library is full (up to {{max}} watch faces). Delete one first.",
-      "paywall": "Uploading watch faces needs JoyoRogo Pro. The ones you already have can still be downloaded and deleted.",
+      "paywall": "Uploading watch faces needs Joyo Pro. The ones you already have can still be downloaded and deleted.",
       "unauthorized": "Your session ended. Sign in again, then retry the upload.",
       "network": "Couldn't reach the server. Try again.",
       "server": "The server failed to save this watch face. Try again.",
@@ -232,10 +232,10 @@
       "hint": "Move the file to your phone, then in JoyoFit open Settings → Import from Huawei Health and choose this file."
     },
     "send": {
-      "hint": "Needs JoyoRogo Pro. Only the import file is sent, not the ZIP, and it is deleted from the server once your phone has used it.",
+      "hint": "Needs Joyo Pro. Only the import file is sent, not the ZIP, and it is deleted from the server once your phone has used it.",
       "sent": "Sent to your account. In JoyoFit on your phone, open Settings → Import from Huawei Health: the files waiting from your account are listed there.",
       "errors": {
-        "paywall": "Sending to your phone needs JoyoRogo Pro. Saving the file and moving it yourself still works.",
+        "paywall": "Sending to your phone needs Joyo Pro. Saving the file and moving it yourself still works.",
         "unauthorized": "Your session expired. Save the file first, or sign in again in another tab and send it again.",
         "too_large": "The import file is over {{mb}} MB, the server limit. Use Save file.",
         "network": "Could not reach the server. Try again.",

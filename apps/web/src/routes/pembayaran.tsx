@@ -11,13 +11,17 @@ import { useCheckoutPicker } from "@/components/checkout-picker";
 import { PublicHeader } from "@/components/public-header";
 import { fromProps, trackConversion } from "@/lib/analytics";
 import { checkOrder, fetchOrder, fmtFounderDate } from "@/lib/billing";
+import { JOYOARTO_RETURN_URL, checkoutSource } from "@/lib/joyoarto";
+import type { CheckoutSource } from "@/lib/joyoarto";
 import { pageHead } from "@/lib/seo";
 import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/pembayaran")({
   component: PembayaranPage,
-  validateSearch: (search: Record<string, unknown>): { order?: string } => ({
+  // `from=joyoarto` (set by the server on orders started from JoyoArto) adds a link back to JoyoArto's settings.
+  validateSearch: (search: Record<string, unknown>): { order?: string; from?: CheckoutSource } => ({
     order: typeof search.order === "string" ? search.order : undefined,
+    from: checkoutSource(search.from),
   }),
   head: () => pageHead("/pembayaran"),
 });
@@ -28,9 +32,9 @@ const POLL_WINDOW_MS = 3 * 60 * 1000;
 
 function PembayaranPage() {
   const { t } = useTranslation("billing");
-  const { order } = Route.useSearch();
+  const { order, from } = Route.useSearch();
   const queryClient = useQueryClient();
-  const checkout = useCheckoutPicker();
+  const checkout = useCheckoutPicker("monthly", from);
   const [openedAt] = useState(() => Date.now());
 
   const status = useQuery({
@@ -109,11 +113,27 @@ function PembayaranPage() {
         icon={<CircleCheck className="size-7 text-primary" aria-hidden />}
         title={t("order.paid.title")}
         text={
-          status.data.founderUntil
-            ? t("order.paid.until", { date: fmtFounderDate(status.data.founderUntil) })
-            : t("order.paid.thanks")
+          [
+            status.data.founderUntil
+              ? t("order.paid.until", { date: fmtFounderDate(status.data.founderUntil) })
+              : t("order.paid.thanks"),
+            from ? t("joyoarto.paid") : "",
+          ]
+            .filter(Boolean)
+            .join(" ")
         }
-        action={<Button render={<Link to="/beranda" />}>{t("order.paid.action")}</Button>}
+        action={
+          from ? (
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button render={<a href={JOYOARTO_RETURN_URL} />}>{t("joyoarto.back")}</Button>
+              <Button variant="secondary" render={<Link to="/beranda" />}>
+                {t("joyoarto.openJoyoRogo")}
+              </Button>
+            </div>
+          ) : (
+            <Button render={<Link to="/beranda" />}>{t("order.paid.action")}</Button>
+          )
+        }
       />
     );
   } else if (status.data.status === "failed") {

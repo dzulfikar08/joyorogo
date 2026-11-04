@@ -9,8 +9,8 @@
     "guide": "Guide: use Claude or ChatGPT with your JoyoRogo data"
   },
   "pro": {
-    "required": "AI connections are a JoyoRogo Pro feature. You can still connect an app, but it can only read your data once Pro is active.",
-    "cta": "See JoyoRogo Pro"
+    "required": "AI connections are a Joyo Pro feature. You can still connect an app, but it can only read your data once Pro is active.",
+    "cta": "See Joyo Pro"
   },
   "list": {
     "title": "Connected apps",

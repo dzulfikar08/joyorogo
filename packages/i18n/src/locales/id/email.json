@@ -7,7 +7,7 @@
     "yearly": "tahunan"
   },
   "receipt": {
-    "subject": "Pembayaran Pro JoyoRogo diterima",
+    "subject": "Pembayaran Joyo Pro diterima",
     "title": "Terima kasih sudah jadi Pro!",
     "intro": "Halo {{name}}, pembayaran {{amount}} untuk langganan Pro {{plan}} sudah kami terima.",
     "active": "Status Pro kamu aktif sampai {{until}} (WIB).",

@@ -14,8 +14,10 @@ import { Page, Segmented } from "@/components/kit/surface";
 import { ProBenefitGroups } from "@/components/pro-benefits";
 import { ScreenError } from "@/components/screen-state";
 import { fmtRupiah, fmtUsd, useAppConfig } from "@/lib/app-config";
+import { useSession } from "@/lib/auth-client";
 import { validatePaywallSearch } from "@/lib/billing";
 import type { CheckoutPlan } from "@/lib/billing";
+import { JOYOARTO_RETURN_URL, checkoutSource } from "@/lib/joyoarto";
 import { useEnglishBilling } from "@/lib/usd-copy";
 import { orpc } from "@/utils/orpc";
 
@@ -54,7 +56,8 @@ const CONFIRM_TIMEOUT_MS = 60_000;
 function PolarSuccess() {
   const te = useEnglishBilling();
   const navigate = useNavigate();
-  const { next } = Route.useSearch();
+  const { next, from } = Route.useSearch();
+  const fromJoyoArto = checkoutSource(from) !== undefined;
   const [timedOut, setTimedOut] = useState(false);
   const profile = useQuery({
     ...profileOptions,
@@ -64,12 +67,15 @@ function PolarSuccess() {
 
   useEffect(() => {
     if (confirmed) {
-      void navigate({ to: next ?? "/beranda", replace: true });
+      // Bought from JoyoArto: stay here and offer the way back instead of opening JoyoRogo.
+      if (!fromJoyoArto) void navigate({ to: next ?? "/beranda", replace: true });
       return;
     }
     const timer = setTimeout(() => setTimedOut(true), CONFIRM_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, [confirmed, navigate, next]);
+  }, [confirmed, fromJoyoArto, navigate, next]);
+
+  if (confirmed && fromJoyoArto) return <JoyoArtoDone />;
 
   return (
     <Page className="max-w-md">
@@ -111,10 +117,13 @@ function FounderPage() {
   const { t } = useTranslation("billing");
   const navigate = useNavigate();
   const { next, from } = Route.useSearch();
+  const source = checkoutSource(from);
+  const session = useSession();
+  const email = session.data?.user.email ?? "";
   const config = useAppConfig();
   const profile = useQuery(profileOptions);
   const [plan, setPlan] = useState<CheckoutPlan>("yearly");
-  const checkout = useCheckoutPicker(plan);
+  const checkout = useCheckoutPicker(plan, source);
 
   if (config.isError) {
     return (
@@ -124,6 +133,8 @@ function FounderPage() {
   if (!config.data) return <FounderSkeleton />;
 
   const destination = next ?? "/beranda";
+  // Already Pro and sent from JoyoArto: say so and link back, instead of opening JoyoRogo.
+  if (source && profile.data?.tier === "founder") return <JoyoArtoDone alreadyPro email={email} />;
   // Nothing to sell here (billing off) or nothing left to buy (sudah Pro):
   // continue straight away, no flash of the offer.
   if (!config.data.billing || profile.data?.tier === "founder") {
@@ -162,6 +173,11 @@ function FounderPage() {
           </div>
         </div>
         <p className="mt-2 text-sm font-semibold leading-snug">{t("paywall.bundle")}</p>
+        {source && email && (
+          <p className="mt-2 rounded-2xl bg-muted px-3 py-2 text-sm leading-snug text-muted-foreground">
+            {t("joyoarto.account", { email })}
+          </p>
+        )}
         <Segmented
           label={t("plan.label")}
           className="mt-4"
@@ -228,13 +244,19 @@ function FounderPage() {
           {checkout.isPending ? t("paywall.opening") : t("paywall.buy")}
         </Button>
         {checkout.sheet}
-        <Button
-          variant="secondary"
-          className="mt-2 w-full"
-          onClick={() => navigate({ to: destination, replace: true })}
-        >
-          {t("paywall.later")}
-        </Button>
+        {source ? (
+          <Button variant="secondary" className="mt-2 w-full" render={<a href={JOYOARTO_RETURN_URL} />}>
+            {t("joyoarto.back")}
+          </Button>
+        ) : (
+          <Button
+            variant="secondary"
+            className="mt-2 w-full"
+            onClick={() => navigate({ to: destination, replace: true })}
+          >
+            {t("paywall.later")}
+          </Button>
+        )}
         {usd ? (
           <p lang="en" className="mt-2 text-center text-xs text-muted-foreground">
             {t("usd.paywall.disclosure", { lng: "en" })}
@@ -282,6 +304,29 @@ function FounderPage() {
             </p>
           </div>
         </details>
+      </section>
+    </Page>
+  );
+}
+
+/** Joyo Pro is on for a buyer who came from JoyoArto (just bought through Polar, or already Pro): link back to it. */
+function JoyoArtoDone({ alreadyPro = false, email = "" }: { alreadyPro?: boolean; email?: string }) {
+  const { t } = useTranslation("billing");
+  return (
+    <Page className="max-w-md">
+      <section aria-labelledby="joyoarto-done-title" className="rounded-3xl bg-card p-6 text-center">
+        <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-makan-soft text-makan-ink">
+          <CircleCheck className="size-6" aria-hidden />
+        </span>
+        <h1 id="joyoarto-done-title" className="mt-4 text-2xl font-extrabold tracking-tight">
+          {alreadyPro ? t("joyoarto.alreadyPro.title") : t("order.paid.title")}
+        </h1>
+        <p className="mt-2 text-sm leading-snug text-muted-foreground">
+          {alreadyPro && email ? t("joyoarto.alreadyPro.body", { email }) : t("joyoarto.paid")}
+        </p>
+        <Button className="mt-5 w-full" render={<a href={JOYOARTO_RETURN_URL} />}>
+          {t("joyoarto.back")}
+        </Button>
       </section>
     </Page>
   );

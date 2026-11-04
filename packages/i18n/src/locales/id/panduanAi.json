@@ -1,15 +1,15 @@
 {
   "title": "Pakai Claude/ChatGPT dengan data JoyoRogo",
-  "subtitle": "Tanya AI soal catatan makan, latihan, berat, dan tidurmu sendiri. Hanya membaca, butuh JoyoRogo Pro.",
+  "subtitle": "Tanya AI soal catatan makan, latihan, berat, dan tidurmu sendiri. Hanya membaca, butuh Joyo Pro.",
   "toc": "Di halaman ini",
   "what": {
     "title": "Apa ini",
     "p1": "JoyoRogo punya penyambung (connector) yang membiarkan Claude atau ChatGPT membaca datamu di JoyoRogo dan JoyoFit, lalu menjawab pertanyaanmu dengan data itu. Misalnya: \"Kenapa berat badanku stagnan?\" atau \"Seminggu ini tidurku cukup nggak?\"",
-    "p2": "Sifatnya hanya membaca. AI-nya tidak bisa mencatat, mengubah, atau menghapus apa pun di akunmu. Fiturnya bagian dari JoyoRogo Pro."
+    "p2": "Sifatnya hanya membaca. AI-nya tidak bisa mencatat, mengubah, atau menghapus apa pun di akunmu. Fiturnya bagian dari Joyo Pro."
   },
   "need": {
     "title": "Yang kamu butuhkan",
-    "pro": "JoyoRogo Pro yang aktif. Tanpa Pro kamu tetap bisa menyambungkan, tapi setiap pertanyaan dijawab bahwa Pro dibutuhkan.",
+    "pro": "Joyo Pro yang aktif. Tanpa Pro kamu tetap bisa menyambungkan, tapi setiap pertanyaan dijawab bahwa Pro dibutuhkan.",
     "claude": "Untuk Claude: akun claude.ai dengan penyambung kustom (custom connector). Saat ini tersedia di paket Free (satu penyambung), Pro, Max, Team, dan Enterprise. Di Team dan Enterprise, Owner organisasi yang menambahkannya.",
     "chatgpt": "Untuk ChatGPT: paket yang membolehkan server MCP kustom. Saat ini OpenAI mencantumkan Business dan Enterprise/Edu, dan Pro untuk akses baca saja, hanya di ChatGPT web. Di sebagian paket, admin workspace yang harus mengizinkannya.",
     "note": "Paket dan menu di aplikasi AI sering berubah. Kalau langkah di bawah berbeda dengan yang kamu lihat, cek halaman bantuan penyedianya: Anthropic (support.claude.com) atau OpenAI (help.openai.com)."
@@ -67,7 +67,7 @@
   "limits": {
     "title": "Pembatasan",
     "l1": "Hanya membaca: tidak ada yang bisa dicatat, diubah, atau dihapus lewat koneksi ini.",
-    "l2": "Hanya untuk JoyoRogo Pro. Di akun Free setiap pertanyaan dijawab bahwa Pro dibutuhkan.",
+    "l2": "Hanya untuk Joyo Pro. Di akun Free setiap pertanyaan dijawab bahwa Pro dibutuhkan.",
     "l3": "Catatan makan dibaca paling banyak 31 hari sekali panggil. Untuk rentang lebih panjang, AI memakai total harian.",
     "l4": "Ada batas pemanggilan per menit dan per 24 jam. Kalau tercapai, tunggu sebentar atau coba lagi besok.",
     "l5": "Rute GPS tidak pernah dibagikan, dan data yang diimpor dari Strava juga tidak.",
@@ -84,7 +84,7 @@
       "a": "Cek pilihan OAuth client di pengaturan penyambung. JoyoRogo hanya mendukung Register automatically. Kalau yang terpilih Use Claude’s published identity atau Use your own OAuth client, hapus penyambungnya, tambahkan lagi dengan Register automatically, lalu Connect."
     },
     "pro": {
-      "q": "Muncul pesan JoyoRogo Pro dibutuhkan",
+      "q": "Muncul pesan Joyo Pro dibutuhkan",
       "a": "Penyambungannya berhasil, tapi akunmu belum Pro. Aktifkan Pro, lalu tanya lagi tanpa menyambung ulang."
     },
     "reconnect": {

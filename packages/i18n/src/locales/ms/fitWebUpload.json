@@ -60,7 +60,7 @@
       "no-points": "Tiada titik rakaman bermasa dalam fail ini.",
       "bad-xml": "Fail XML ini tidak sah.",
       "invalid": "Latihan ini tidak lulus semakan format.",
-      "paywall": "Memuat naik latihan memerlukan JoyoRogo Pro.",
+      "paywall": "Memuat naik latihan memerlukan Joyo Pro.",
       "unauthorized": "Sesi anda tamat. Log masuk semula, kemudian cuba muat naik lagi.",
       "deleted": "Latihan dengan masa mula ini pernah anda padam daripada cloud, jadi tidak dimuat naik semula.",
       "quota": "Storan cloud akaun anda penuh.",
@@ -112,7 +112,7 @@
       "invalid_hwt": "Ini bukan watchface .hwt yang sah ({{reason}}).",
       "invalid_hwt_plain": "Ini bukan watchface .hwt yang sah.",
       "library_full": "Pustaka anda penuh (maksimum {{max}} watchface). Padam satu dahulu.",
-      "paywall": "Memuat naik watchface memerlukan JoyoRogo Pro. Yang sedia ada masih boleh dimuat turun dan dipadam.",
+      "paywall": "Memuat naik watchface memerlukan Joyo Pro. Yang sedia ada masih boleh dimuat turun dan dipadam.",
       "unauthorized": "Sesi anda tamat. Log masuk semula, kemudian cuba muat naik lagi.",
       "network": "Tidak dapat menghubungi pelayan. Cuba lagi.",
       "server": "Pelayan gagal menyimpan watchface ini. Cuba lagi.",
@@ -226,10 +226,10 @@
       "hint": "Alihkan fail ke telefon anda, kemudian dalam JoyoFit buka Settings → Import from Huawei Health dan pilih fail ini."
     },
     "send": {
-      "hint": "Memerlukan JoyoRogo Pro. Hanya fail import dihantar, bukan ZIP, dan ia dipadam daripada pelayan selepas telefon anda menggunakannya.",
+      "hint": "Memerlukan Joyo Pro. Hanya fail import dihantar, bukan ZIP, dan ia dipadam daripada pelayan selepas telefon anda menggunakannya.",
       "sent": "Dihantar ke akaun anda. Dalam JoyoFit pada telefon anda, buka Settings → Import from Huawei Health: fail yang menunggu daripada akaun anda disenaraikan di sana.",
       "errors": {
-        "paywall": "Menghantar ke telefon memerlukan JoyoRogo Pro. Menyimpan fail dan mengalihkannya sendiri masih boleh.",
+        "paywall": "Menghantar ke telefon memerlukan Joyo Pro. Menyimpan fail dan mengalihkannya sendiri masih boleh.",
         "unauthorized": "Sesi anda tamat. Simpan fail dahulu, atau log masuk semula dalam tab lain kemudian hantar lagi.",
         "too_large": "Fail import melebihi {{mb}} MB, had pelayan. Guna Simpan fail.",
         "network": "Tidak dapat menghubungi pelayan. Cuba lagi.",

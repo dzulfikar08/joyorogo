@@ -8,6 +8,7 @@ import { fmtUsd, useAppConfig } from "@/lib/app-config";
 import type { PaymentMethod } from "@/lib/app-config";
 import { useFounderCheckout, useUsdCheckout } from "@/lib/billing";
 import type { CheckoutPlan } from "@/lib/billing";
+import type { CheckoutSource } from "@/lib/joyoarto";
 
 const ICONS: Record<PaymentMethod | "usd", LucideIcon> = {
   qris: QrCode,
@@ -22,12 +23,13 @@ const ICONS: Record<PaymentMethod | "usd", LucideIcon> = {
  * more than one option exists, otherwise goes straight to the one gateway (or
  * the server default when the config predates the picker). `startUsd()` skips
  * the picker. Render `sheet` once next to the buttons that call `start()`.
+ * `source` tags an order started from JoyoArto, whichever gateway it takes.
  */
-export function useCheckoutPicker(plan: CheckoutPlan = "monthly") {
+export function useCheckoutPicker(plan: CheckoutPlan = "monthly", source?: CheckoutSource) {
   const { t } = useTranslation("billing");
   const config = useAppConfig();
-  const checkout = useFounderCheckout(plan);
-  const usdCheckout = useUsdCheckout(plan);
+  const checkout = useFounderCheckout(plan, source);
+  const usdCheckout = useUsdCheckout(plan, source);
   const [open, setOpen] = useState(false);
   const onErrorRef = useRef<((error: Error) => void) | undefined>(undefined);
   const methods = config.data?.paymentMethods ?? [];

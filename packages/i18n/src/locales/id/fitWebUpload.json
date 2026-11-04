@@ -60,7 +60,7 @@
       "no-points": "Tidak ada titik rekaman dengan waktu di berkas ini.",
       "bad-xml": "Berkas XML-nya tidak valid.",
       "invalid": "Latihan ini tidak lolos pemeriksaan format.",
-      "paywall": "Mengunggah latihan butuh JoyoRogo Pro.",
+      "paywall": "Mengunggah latihan butuh Joyo Pro.",
       "unauthorized": "Sesimu berakhir. Masuk lagi, lalu coba unggah ulang.",
       "deleted": "Latihan dengan waktu mulai ini pernah kamu hapus dari cloud, jadi tidak diunggah lagi.",
       "quota": "Penyimpanan cloud akunmu penuh.",
@@ -112,7 +112,7 @@
       "invalid_hwt": "Ini bukan watchface .hwt yang valid ({{reason}}).",
       "invalid_hwt_plain": "Ini bukan watchface .hwt yang valid.",
       "library_full": "Pustakamu penuh (maksimal {{max}} watchface). Hapus satu dulu.",
-      "paywall": "Mengunggah watchface butuh JoyoRogo Pro. Yang sudah ada tetap bisa diunduh dan dihapus.",
+      "paywall": "Mengunggah watchface butuh Joyo Pro. Yang sudah ada tetap bisa diunduh dan dihapus.",
       "unauthorized": "Sesimu berakhir. Masuk lagi, lalu coba unggah ulang.",
       "network": "Tidak bisa menghubungi server. Coba lagi.",
       "server": "Server gagal menyimpan watchface ini. Coba lagi.",
@@ -226,10 +226,10 @@
       "hint": "Pindahkan berkasnya ke ponselmu, lalu di JoyoFit buka Pengaturan → Impor dari Huawei Health dan pilih berkas ini."
     },
     "send": {
-      "hint": "Butuh JoyoRogo Pro. Yang terkirim hanya berkas impor, bukan ZIP-nya, dan dihapus dari server setelah ponselmu memakainya.",
+      "hint": "Butuh Joyo Pro. Yang terkirim hanya berkas impor, bukan ZIP-nya, dan dihapus dari server setelah ponselmu memakainya.",
       "sent": "Terkirim ke akunmu. Di JoyoFit pada ponselmu, buka Pengaturan → Impor dari Huawei Health: berkas yang menunggu dari akunmu tampil di sana.",
       "errors": {
-        "paywall": "Mengirim ke HP butuh JoyoRogo Pro. Menyimpan berkasnya dan memindahkannya sendiri tetap bisa.",
+        "paywall": "Mengirim ke HP butuh Joyo Pro. Menyimpan berkasnya dan memindahkannya sendiri tetap bisa.",
         "unauthorized": "Sesimu berakhir. Simpan berkasnya dulu, atau masuk lagi di tab lain lalu kirim ulang.",
         "too_large": "Berkas impornya lebih dari {{mb}} MB, batas di server. Pakai Simpan berkas.",
         "network": "Tidak bisa menghubungi server. Coba lagi.",

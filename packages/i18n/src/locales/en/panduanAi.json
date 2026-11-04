@@ -1,15 +1,15 @@
 {
   "title": "Use Claude or ChatGPT with your JoyoRogo data",
-  "subtitle": "Ask an AI about your own food diary, workouts, weight and sleep. Read only, needs JoyoRogo Pro.",
+  "subtitle": "Ask an AI about your own food diary, workouts, weight and sleep. Read only, needs Joyo Pro.",
   "toc": "On this page",
   "what": {
     "title": "What this is",
     "p1": "JoyoRogo has a connector that lets Claude or ChatGPT read your data in JoyoRogo and JoyoFit and answer your questions with it. For example: \"Why has my weight stalled?\" or \"Did I sleep enough this week?\"",
-    "p2": "It is read only. The AI can't log, change or delete anything in your account. The feature is part of JoyoRogo Pro."
+    "p2": "It is read only. The AI can't log, change or delete anything in your account. The feature is part of Joyo Pro."
   },
   "need": {
     "title": "What you need",
-    "pro": "An active JoyoRogo Pro. Without Pro you can still connect, but every question is answered with a note that Pro is required.",
+    "pro": "An active Joyo Pro. Without Pro you can still connect, but every question is answered with a note that Pro is required.",
     "claude": "For Claude: a claude.ai account with custom connectors. Today that is the Free plan (one connector), Pro, Max, Team and Enterprise. On Team and Enterprise an organization Owner adds it.",
     "chatgpt": "For ChatGPT: a plan that allows custom MCP servers. Today OpenAI lists Business and Enterprise/Edu, and Pro for read-only access, on ChatGPT web only. On some plans a workspace admin has to allow it.",
     "note": "Plans and menus in the AI apps change often. If the steps below differ from what you see, check the provider's help pages: Anthropic (support.claude.com) or OpenAI (help.openai.com)."
@@ -67,7 +67,7 @@
   "limits": {
     "title": "Limits",
     "l1": "Read only: nothing can be logged, changed or deleted through this connection.",
-    "l2": "JoyoRogo Pro only. On a Free account every question is answered with a note that Pro is required.",
+    "l2": "Joyo Pro only. On a Free account every question is answered with a note that Pro is required.",
     "l3": "Food logs are read for at most 31 days per call. For longer ranges the AI uses daily totals.",
     "l4": "There are limits per minute and per 24 hours. If you hit one, wait a moment or try again tomorrow.",
     "l5": "GPS routes are never shared, and neither is data imported from Strava.",
@@ -84,7 +84,7 @@
       "a": "Check the OAuth client option in the connector settings. JoyoRogo only supports Register automatically. If Use Claude’s published identity or Use your own OAuth client is selected, remove the connector, add it again with Register automatically, then Connect."
     },
     "pro": {
-      "q": "A message says JoyoRogo Pro is required",
+      "q": "A message says Joyo Pro is required",
       "a": "Connecting worked, but your account isn't Pro yet. Activate Pro, then ask again without reconnecting."
     },
     "reconnect": {

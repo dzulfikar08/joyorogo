@@ -135,13 +135,13 @@ export const PAGES: Record<PublicPath, PageMeta> = {
   "/pengembalian-dana": {
     title: "Pengembalian Dana | JoyoRogo",
     description:
-      "Kebijakan pengembalian dana JoyoRogo Pro: pembayaran rupiah di web, pembelian toko aplikasi, dan pembelian dolar AS lewat Polar (USD purchases).",
+      "Kebijakan pengembalian dana Joyo Pro: pembayaran rupiah di web, pembelian toko aplikasi, dan pembelian dolar AS lewat Polar (USD purchases).",
     lastmod: "2026-10-18",
   },
   "/panduan/ai": {
     title: "Pakai Claude/ChatGPT dengan Data JoyoRogo | JoyoRogo",
     description:
-      "Tanya Claude atau ChatGPT soal catatan makan, latihan, berat, dan tidurmu sendiri. Hanya membaca, butuh JoyoRogo Pro. Langkah penyambungan dan privasinya.",
+      "Tanya Claude atau ChatGPT soal catatan makan, latihan, berat, dan tidurmu sendiri. Hanya membaca, butuh Joyo Pro. Langkah penyambungan dan privasinya.",
     lastmod: "2026-10-18",
   },
   "/panduan/kalori": {

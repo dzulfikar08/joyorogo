@@ -105,8 +105,8 @@
     },
     "paywall": {
       "title": "Joyo AI on JoyoRogo is for Pro",
-      "body": "The JoyoRogo engine answers by reading your food log and needs JoyoRogo Pro. With your own AI key, Joyo AI is free in this app.",
-      "cta": "See JoyoRogo Pro"
+      "body": "The JoyoRogo engine answers by reading your food log and needs Joyo Pro. With your own AI key, Joyo AI is free in this app.",
+      "cta": "See Joyo Pro"
     },
     "unavailable": {
       "title": "The JoyoRogo engine is not available yet",
@@ -223,7 +223,7 @@
     "ownName": "Own key",
     "hostedReady": "Answered by the JoyoRogo server, with a daily message limit",
     "hostedUsed": "{{used}} of {{cap}} messages today",
-    "hostedLocked": "Needs JoyoRogo Pro",
+    "hostedLocked": "Needs Joyo Pro",
     "hostedUnavailable": "Not available on this server yet",
     "hostedChecking": "Checking your account...",
     "ownNone": "Not set up. Free for everyone.",

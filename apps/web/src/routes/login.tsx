@@ -8,6 +8,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { Mascot } from "@/components/mascot";
 import { markSignInStart } from "@/lib/analytics";
 import { authClient, sessionQuery } from "@/lib/auth-client";
+import { isJoyoArtoReturn } from "@/lib/joyoarto";
 import { legalPath } from "@/lib/legal-path";
 import { restoreAccountPrefs } from "@/lib/prefs-sync";
 import { pageHead } from "@/lib/seo";
@@ -130,6 +131,11 @@ function RouteComponent() {
         <p className="mt-2 max-w-xs text-center text-[0.9375rem] leading-relaxed text-muted-foreground">
           {t("login.tagline")}
         </p>
+        {isJoyoArtoReturn(returnTo) && (
+          <p className="mt-6 w-full max-w-xs rounded-2xl bg-card p-3 text-center text-sm leading-snug text-muted-foreground">
+            {t("login.joyoarto")}
+          </p>
+        )}
         {invite.data && (
           <div className="mt-6 flex w-full max-w-xs items-center gap-3 rounded-2xl bg-card p-3 text-left">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10">

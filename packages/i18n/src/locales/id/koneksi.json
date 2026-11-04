@@ -9,8 +9,8 @@
     "guide": "Panduan: pakai Claude atau ChatGPT dengan data JoyoRogo"
   },
   "pro": {
-    "required": "Koneksi AI adalah fitur JoyoRogo Pro. Kamu tetap bisa menyambungkannya, tapi aplikasi AI baru bisa membaca datamu setelah Pro aktif.",
-    "cta": "Lihat JoyoRogo Pro"
+    "required": "Koneksi AI adalah fitur Joyo Pro. Kamu tetap bisa menyambungkannya, tapi aplikasi AI baru bisa membaca datamu setelah Pro aktif.",
+    "cta": "Lihat Joyo Pro"
   },
   "list": {
     "title": "Aplikasi tersambung",

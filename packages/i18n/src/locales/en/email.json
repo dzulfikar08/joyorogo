@@ -7,7 +7,7 @@
     "yearly": "yearly"
   },
   "receipt": {
-    "subject": "Your JoyoRogo Pro payment is confirmed",
+    "subject": "Your Joyo Pro payment is confirmed",
     "title": "Thanks for going Pro!",
     "intro": "Hi {{name}}, we've received your {{amount}} payment for the {{plan}} Pro plan.",
     "active": "Your Pro status is active until {{until}} (WIB).",

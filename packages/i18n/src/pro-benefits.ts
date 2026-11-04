@@ -1,5 +1,5 @@
 /**
- * What JoyoRogo Pro unlocks, as ids only: web (/harga, /pro, the landing and /my and /sg pricing, the Profil
+ * What Joyo Pro unlocks, as ids only: web (/harga, /pro, the landing and /my and /sg pricing, the Profil
  * subscription screen) and native (the paywall) turn them into text with the `billing` namespace
  * (`pro.groups.<group>`, `pro.items.<item>`; `scans` is the exception, see below).
  *
@@ -54,6 +54,9 @@ export const PRO_BENEFIT_GROUPS = [
   {
     id: "more",
     items: [
+      // One subscription for JoyoRogo, JoyoFit and JoyoArto: JoyoFit reads the same account; JoyoArto asks
+      // POST /api/internal/joyo-pro/status (apps/server/src/joyo-pro.ts, lib/joyo-pro.ts: premiumUnlocked's rule)
+      "apps",
       // lib/reminders.ts "plan" reminder (premiumUnlocked)
       "reminders",
       // the Pro pill on Profil
