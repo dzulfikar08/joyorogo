@@ -15,8 +15,7 @@
     "birth": {
       "title": "Bila anda dilahirkan?",
       "hint": "Untuk mengira keperluan kalori anda.",
-      "label": "Tahun lahir",
-      "unit": "tahun"
+      "label": "Tahun lahir"
     },
     "gender": {
       "title": "Jantina anda?",

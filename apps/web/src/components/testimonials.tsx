@@ -48,7 +48,7 @@ function Card({ item, hidden }: { item: Testimonial; hidden?: boolean }) {
               target="_blank"
               rel="noopener noreferrer"
               tabIndex={hidden ? -1 : undefined}
-              className="truncate font-bold text-foreground underline-offset-4 hover:underline focus-visible:underline"
+              className="-my-2 truncate py-2 font-bold text-foreground underline-offset-4 hover:underline focus-visible:underline"
             >
               @{item.handle}
             </a>

@@ -1,3 +1,5 @@
+import { Page } from "@/components/kit/surface";
+import { Skeleton } from "@joyorogo/ui/components/skeleton";
 import { ExerciseDetail } from "@/components/workout/exercise-detail";
 import { ScreenError } from "@/components/screen-state";
 import { workoutApi, workoutQueryPrefix } from "@/lib/workout-contract";
@@ -20,7 +22,13 @@ function GerakanPage() {
 
   const exercise = catalog.data?.exercises.find((item) => item.id === exerciseId);
   if (catalog.isPending) {
-    return <p className="p-6 text-sm text-muted-foreground">{t("common:state.loading")}</p>;
+    return (
+      <Page className="max-w-xl" aria-busy="true" aria-label={t("common:state.loading")}>
+        <Skeleton className="h-9 w-56 rounded-full" />
+        <Skeleton className="mt-4 h-44 rounded-3xl" />
+        <Skeleton className="mt-3 h-64 rounded-3xl" />
+      </Page>
+    );
   }
   if (!exercise) {
     return (

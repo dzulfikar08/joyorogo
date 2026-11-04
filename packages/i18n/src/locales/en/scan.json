@@ -56,6 +56,7 @@
     "permissionTitle": "Camera access needed",
     "permissionBody": "JoyoRogo needs camera access to photograph your food and count its calories with AI.",
     "grant": "Allow camera",
+    "openSettings": "Open Settings",
     "close": "Close camera",
     "hint": "Snap your plate, AI counts the calories",
     "barcode": "Scan a package barcode",

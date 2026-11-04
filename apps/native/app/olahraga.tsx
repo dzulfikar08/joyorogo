@@ -365,7 +365,9 @@ export default function Olahraga() {
 
       {/* Activity list */}
       <View style={styles.sectionHead}>
-        <Text style={styles.sectionLabel}>{relativeDayLabel(date, today)}</Text>
+        <Text style={styles.sectionLabel} accessibilityRole="header">
+          {relativeDayLabel(date, today)}
+        </Text>
         <Num style={styles.sectionTotal}>{fmtKcalLabel(totalKcal)}</Num>
       </View>
       {items.length === 0 ? (
@@ -431,7 +433,9 @@ export default function Olahraga() {
       )}
 
       {/* Activity type tiles → add sheet */}
-      <Text style={styles.sectionLabel}>{t("picker.title")}</Text>
+      <Text style={styles.sectionLabel} accessibilityRole="header">
+        {t("picker.title")}
+      </Text>
       {typesQuery.isPending ? (
         <View style={styles.typeGrid}>
           <Skeleton width="100%" height={72} radius={18} />
@@ -501,10 +505,12 @@ export default function Olahraga() {
           if (group) group.push(item);
           else byDate.set(item.date, [item]);
         }
-        if (byDate.size === 0) return null;
+        if (byDate.size === 0 && !recentQuery.isError) return null;
         return (
           <>
-            <Text style={styles.sectionLabel}>{t("history.title")}</Text>
+            <Text style={styles.sectionLabel} accessibilityRole="header">
+              {t("history.title")}
+            </Text>
             {recentQuery.isError ? (
               <ErrorState
                 message={errorMessage(recentQuery.error)}
@@ -596,7 +602,11 @@ export default function Olahraga() {
             placeholder="150"
           />
         </Field>
-        {formError ? <Text style={styles.error}>{formError}</Text> : null}
+        {formError ? (
+          <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="polite">
+            {formError}
+          </Text>
+        ) : null}
       </Sheet>
       {editRow ? (
         <ExerciseEditSheet key={editRow.id} row={editRow} onClose={() => setEditRow(null)} />

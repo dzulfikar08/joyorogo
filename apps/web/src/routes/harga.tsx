@@ -26,7 +26,7 @@ import { useProBenefits } from "@/components/pro-benefits";
 import type { ProBenefitsText } from "@/components/pro-benefits";
 import { FounderPromo } from "@/components/founder-promo";
 import { ProgressBar } from "@/components/progress-bar";
-import { fmtRupiah, fmtUsd, useAppConfig } from "@/lib/app-config";
+import { fmtRupiahId, fmtUsd, useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { CONTACT_EMAIL } from "@/lib/contact";
 import { pageHead } from "@/lib/seo";
@@ -226,7 +226,7 @@ function pricingFaq(config: AppConfig): Array<{ q: string; a: string }> {
     },
     {
       q: "Hargaku ikut naik kalau daftar harga naik?",
-      a: `Tidak. Di pembayaran web, harga terkunci di harga terendah yang pernah kamu bayar. Mulai ${fmtRupiah(config.founderPriceIdr)}/bulan sekarang, dan perpanjangan tetap bayar harga itu walaupun harga penuh sudah naik.`,
+      a: `Tidak. Di pembayaran web, harga terkunci di harga terendah yang pernah kamu bayar. Mulai ${fmtRupiahId(config.founderPriceIdr)}/bulan sekarang, dan perpanjangan tetap bayar harga itu walaupun harga penuh sudah naik.`,
     },
     {
       q: "Kalau beli lagi sebelum masa aktif habis?",
@@ -234,7 +234,7 @@ function pricingFaq(config: AppConfig): Array<{ q: string; a: string }> {
     },
     {
       q: "Bedanya paket bulanan dan tahunan?",
-      a: `Isinya sama. Tahunan ${fmtRupiah(config.founderYearlyPriceIdr)} setara ${fmtRupiah(perMonthYearly)}/bulan, aktif 12 bulan penuh${saving > 0 ? `, hemat ${fmtRupiah(saving)} dibanding bayar bulanan ${fmtRupiah(standardMonthly)}` : ""}. Cocok kalau memang mau jalan panjang.`,
+      a: `Isinya sama. Tahunan ${fmtRupiahId(config.founderYearlyPriceIdr)} setara ${fmtRupiahId(perMonthYearly)}/bulan, aktif 12 bulan penuh${saving > 0 ? `, hemat ${fmtRupiahId(saving)} dibanding bayar bulanan ${fmtRupiahId(standardMonthly)}` : ""}. Cocok kalau memang mau jalan panjang.`,
     },
   ];
 }
@@ -259,7 +259,7 @@ function HargaPage() {
     : 0;
   const perMonthYearly = config.data ? Math.round(config.data.founderYearlyPriceIdr / 12) : 0;
   const yearlySaving = config.data ? standardMonthly * 12 - config.data.founderYearlyPriceIdr : 0;
-  const yearlyBadge = yearlySaving > 0 ? `Hemat ${fmtRupiah(yearlySaving)}` : undefined;
+  const yearlyBadge = yearlySaving > 0 ? `Hemat ${fmtRupiahId(yearlySaving)}` : undefined;
 
   const promo = config.data?.promo ?? null;
   const promoLeft = promo ? promo.slots - promo.taken : 0;
@@ -310,7 +310,7 @@ function HargaPage() {
           </header>
         </div>
 
-        {config.data?.paywall && <FounderPromo className="mx-auto mt-8 max-w-xl" />}
+        {config.data?.paywall && <FounderPromo lng="id" className="mx-auto mt-8 max-w-xl" />}
 
         {config.isPending && (
           <div
@@ -410,9 +410,9 @@ function HargaPage() {
               />
               <TierCard
                 name="Pro Tahunan"
-                price={fmtRupiah(config.data.founderYearlyPriceIdr)}
+                price={fmtRupiahId(config.data.founderYearlyPriceIdr)}
                 per="per tahun"
-                sub={perMonthYearly > 0 ? `setara ${fmtRupiah(perMonthYearly)}/bulan` : undefined}
+                sub={perMonthYearly > 0 ? `setara ${fmtRupiahId(perMonthYearly)}/bulan` : undefined}
                 badge={yearlyBadge}
                 highlight
                 features={[
@@ -436,7 +436,7 @@ function HargaPage() {
               />
               <TierCard
                 name="Pro Bulanan"
-                price={fmtRupiah(config.data.founderPriceIdr)}
+                price={fmtRupiahId(config.data.founderPriceIdr)}
                 per="per bulan"
                 badge={promo ? "Harga perkenalan" : undefined}
                 features={founderFeatures(config.data, benefits)}
@@ -497,7 +497,7 @@ function HargaPage() {
                   </span>
                 </p>
                 <p className="mt-3 text-3xl font-extrabold tracking-tight tabular-nums text-makan-ink">
-                  {fmtRupiah(config.data.founderPriceIdr)}
+                  {fmtRupiahId(config.data.founderPriceIdr)}
                   <span className="ml-1 text-base font-semibold text-muted-foreground">/bulan</span>
                 </p>
                 <ProgressBar
@@ -518,7 +518,7 @@ function HargaPage() {
                   </span>
                 </p>
                 <p className="mt-3 text-3xl font-extrabold tracking-tight tabular-nums text-muted-foreground">
-                  {fmtRupiah(promo.nextPriceIdr)}
+                  {fmtRupiahId(promo.nextPriceIdr)}
                   <span className="ml-1 text-base font-semibold text-muted-foreground">/bulan</span>
                 </p>
                 <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
@@ -687,7 +687,9 @@ function HargaPage() {
             <div className="min-w-0">
               <p className="text-xs font-semibold text-muted-foreground">Pro bulanan</p>
               <p className="text-sm font-extrabold tabular-nums">
-                {usd?.preferred ? fmtUsd(usd.monthlyCents) : fmtRupiah(config.data.founderPriceIdr)}
+                {usd?.preferred
+                  ? fmtUsd(usd.monthlyCents)
+                  : fmtRupiahId(config.data.founderPriceIdr)}
                 <span className="font-semibold text-muted-foreground">
                   {usd?.preferred ? "/month" : "/bulan"}
                 </span>

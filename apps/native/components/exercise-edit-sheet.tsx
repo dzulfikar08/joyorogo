@@ -275,8 +275,8 @@ export function ExerciseEditSheet({
               </Field>
             </View>
             <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ selected: linked }}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: linked }}
               accessibilityLabel={linked ? t("edit.linkOn") : t("edit.linkOff")}
               onPress={toggleLink}
               style={({ pressed }) => [

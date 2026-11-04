@@ -70,7 +70,9 @@ const PICKER =
  * client-side and never stored.
  */
 export function ScanDemo() {
-  const { t } = useTranslation("scan");
+  // The landing is Indonesian whatever the UI language is, so the demo's copy is pinned to it.
+  const { i18n: i18nInstance } = useTranslation("scan");
+  const t = i18nInstance.getFixedT("id", "scan");
   const config = useAppConfig();
   const freeDaily = config.data?.freeDailyScans ?? null;
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -95,7 +97,7 @@ export function ScanDemo() {
     mutationFn: async (input: { imageBase64: string; mimeType: string }) => {
       const r = await fetch(`${env.VITE_SERVER_URL}/ai/scan-anon`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", [LOCALE_HEADER]: i18n.language },
+        headers: { "Content-Type": "application/json", [LOCALE_HEADER]: "id" },
         body: JSON.stringify(input),
       });
       const body = (await r.json()) as {

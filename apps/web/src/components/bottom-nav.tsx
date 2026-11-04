@@ -53,7 +53,7 @@ function Tab({ to, label, Icon, badge }: (typeof TABS)[number] & { badge?: numbe
         "group flex min-h-14 flex-col items-center justify-center gap-1 text-[0.6875rem] font-semibold transition-colors focus-visible:outline-none",
         groupedActive
           ? "text-foreground"
-          : "text-foreground/45 data-[status=active]:text-foreground",
+          : "text-muted-foreground data-[status=active]:text-foreground",
       )}
     >
       <span className="relative flex h-8 w-14 items-center justify-center rounded-full transition-colors group-focus-visible:ring-[3px] group-focus-visible:ring-ring/40 group-data-[status=active]:bg-muted">
@@ -133,12 +133,12 @@ export function DesktopBar() {
   const daySearch = useDaySearch(jakartaToday());
   return (
     <header className="sticky top-0 z-40 hidden border-b border-border/70 bg-background/90 backdrop-blur-sm md:block">
-      <div className="mx-auto flex h-16 max-w-5xl items-center gap-6 px-6">
-        <Link to="/beranda" className="flex items-center gap-2">
+      <div className="mx-auto flex h-16 max-w-5xl items-center gap-4 px-6 lg:gap-6">
+        <Link to="/beranda" aria-label="JoyoRogo" className="flex items-center gap-2">
           <img src="/brand/joyo-head.webp" alt="" width={104} height={96} className="h-7 w-auto" />
-          <span className="text-lg font-extrabold tracking-tight">JoyoRogo</span>
+          <span className="hidden text-lg font-extrabold tracking-tight lg:inline">JoyoRogo</span>
         </Link>
-        <nav aria-label={t("nav.primary")} className="flex-1">
+        <nav aria-label={t("nav.primary")} className="min-w-0 flex-1">
           <ul className="flex gap-1">
             {DESKTOP_LINKS.map(({ to, label }) => {
               const groupedActive = inTabGroup(pathname, to);
@@ -149,7 +149,7 @@ export function DesktopBar() {
                     search={isDayTab(to) ? daySearch : undefined}
                     activeOptions={{ exact: true, includeSearch: false }}
                     className={cn(
-                      "inline-flex h-10 items-center rounded-full px-4 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
+                      "inline-flex h-10 items-center rounded-full px-3 text-sm font-semibold whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none lg:px-4",
                       groupedActive
                         ? "bg-card text-foreground"
                         : "data-[status=active]:bg-card data-[status=active]:text-foreground",
@@ -176,17 +176,19 @@ export function DesktopBar() {
           to="/joyo"
           aria-label={tJoyo("title")}
           title={tJoyo("title")}
-          className="inline-flex size-11 items-center justify-center gap-2 rounded-full text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none data-[status=active]:bg-card data-[status=active]:text-foreground lg:w-auto lg:px-4"
+          className="inline-flex size-11 shrink-0 items-center justify-center gap-2 rounded-full text-sm font-semibold whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none data-[status=active]:bg-card data-[status=active]:text-foreground lg:w-auto lg:px-4"
         >
           <MessagesSquare className="size-[1.125rem]" aria-hidden />
           <span className="hidden lg:inline">{tJoyo("title")}</span>
         </Link>
         <Link
           to="/makan/ai"
-          className="pressable inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+          aria-label={t("nav.photo")}
+          title={t("nav.photo")}
+          className="pressable inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold whitespace-nowrap text-primary-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none max-lg:w-11 lg:px-5"
         >
           <Camera className="size-[1.125rem]" aria-hidden />
-          {t("nav.photo")}
+          <span className="hidden lg:inline">{t("nav.photo")}</span>
         </Link>
       </div>
     </header>

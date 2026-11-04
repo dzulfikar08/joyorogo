@@ -148,6 +148,6 @@ const styles = StyleSheet.create((theme) => ({
   },
   error: {
     fontSize: theme.fontSize.sm,
-    color: theme.colors.destructive,
+    color: theme.colors.destructiveText,
   },
 }));

@@ -159,11 +159,11 @@ export function BarChart({
     <div className="flex flex-col gap-1.5">
       <div className="grid grid-cols-[3rem_1fr] gap-2">
         <div
-          className="flex flex-col items-end justify-between text-right text-[0.625rem] leading-none tabular-nums text-muted-foreground"
+          className="flex flex-col items-end justify-between text-right text-[0.6875rem] leading-none tabular-nums text-muted-foreground"
           style={{ height }}
         >
           <span>{formatValue(max)}</span>
-          <span>{formatValue(Math.round(max / 2))}</span>
+          <span>{max >= 2 ? formatValue(Math.round(max / 2)) : ""}</span>
           <span>0</span>
         </div>
         <div className="relative min-w-0" style={{ height }}>
@@ -192,7 +192,7 @@ export function BarChart({
           {rows.map((r, i) => (
             <span
               key={r.key}
-              className="flex-1 overflow-visible text-center text-[0.5625rem] whitespace-nowrap text-muted-foreground"
+              className="flex-1 overflow-visible text-center text-[0.625rem] whitespace-nowrap text-muted-foreground"
             >
               {i % 5 === 0 || i === rows.length - 1 ? r.label : ""}
             </span>
@@ -310,7 +310,7 @@ export function DayBars({
           <span className="font-semibold text-foreground">{formatValue(r.value)}</span>
         </div>
       ))}
-      {rows.length === 0 && <p className="text-xs text-muted-foreground">No data.</p>}
+      {rows.length === 0 && <p className="text-xs text-muted-foreground">Belum ada data.</p>}
     </div>
   );
 }

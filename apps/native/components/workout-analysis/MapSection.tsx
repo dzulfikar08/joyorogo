@@ -44,6 +44,12 @@ export function RouteMap({ segments, markers, highlight, mapTheme, height = MAP_
       interactive={interactive}
       onInteract={setScrubActive}
       a11yLabel={t('section.route')}
+      labels={{
+        zoomIn: t('map.zoomIn'),
+        zoomOut: t('map.zoomOut'),
+        recenter: t('map.recenter'),
+        attribution: t('map.attribution'),
+      }}
     />
   );
 }

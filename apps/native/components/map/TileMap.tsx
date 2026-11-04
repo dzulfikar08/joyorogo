@@ -86,6 +86,20 @@ export interface TileMapColors {
   surface: string;
 }
 
+export interface TileMapLabels {
+  zoomIn: string;
+  zoomOut: string;
+  recenter: string;
+  attribution: string;
+}
+
+const DEFAULT_LABELS: TileMapLabels = {
+  zoomIn: "Zoom in",
+  zoomOut: "Zoom out",
+  recenter: "Recenter on route",
+  attribution: "Map data sources, opens openfreemap.org",
+};
+
 export interface TileMapProps {
   segments: readonly (readonly LatLon[])[];
   markers?: readonly MapMarker[];
@@ -101,6 +115,8 @@ export interface TileMapProps {
   /** True while the map owns the touch (disable the parent ScrollView), false on release. */
   onInteract?: (active: boolean) => void;
   a11yLabel: string;
+  /** Names of the zoom / recenter buttons and the attribution link; English when omitted. */
+  labels?: TileMapLabels;
 }
 
 /** Clears the zoom column (8 px gap + 34 px buttons) plus the route casing, so the fitted route never hides under a button. */
@@ -232,6 +248,7 @@ export function TileMap({
   dragMode = 'press',
   onInteract,
   a11yLabel,
+  labels = DEFAULT_LABELS,
 }: TileMapProps) {
   const palette = paletteFor(theme);
   const [width, setWidth] = useState(0);
@@ -786,21 +803,21 @@ export function TileMap({
           onTouchCancel={stop}>
           <MapButton
             icon="add"
-            label="Zoom in"
+            label={labels.zoomIn}
             colors={colors}
             border={border}
             onPress={() => animateZoom(1)}
           />
           <MapButton
             icon="remove"
-            label="Zoom out"
+            label={labels.zoomOut}
             colors={colors}
             border={border}
             onPress={() => animateZoom(-1)}
           />
           <MapButton
             icon="locate"
-            label="Recenter on route"
+            label={labels.recenter}
             colors={colors}
             border={border}
             onPress={recenter}
@@ -811,7 +828,7 @@ export function TileMap({
       <View style={styles.attribution} onTouchStart={stop} onTouchEnd={stop}>
         <Pressable
           accessibilityRole="link"
-          accessibilityLabel="Map data sources, opens openfreemap.org"
+          accessibilityLabel={labels.attribution}
           hitSlop={6}
           onPress={() => void Linking.openURL(ATTRIBUTION_URL).catch(() => undefined)}>
           <Text style={[styles.attributionText, { color: colors.text }]}>{ATTRIBUTION_TEXT}</Text>

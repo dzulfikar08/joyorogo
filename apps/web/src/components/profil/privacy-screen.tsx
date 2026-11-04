@@ -104,6 +104,7 @@ function ShareSection({ enabled, code }: { enabled: boolean; code: string | null
         }
         title={t("privacy.share.titleWeb")}
         subtitle={t("privacy.share.hintWeb")}
+        fullSubtitle
         trailing={
           <Switch
             label={t("privacy.share.titleWeb")}
@@ -190,6 +191,7 @@ function KeepPhotosSection({ keep }: { keep: boolean }) {
           }
           title={t("privacy.keepPhotos.title")}
           subtitle={keep ? t("privacy.keepPhotos.onWeb") : t("privacy.keepPhotos.offWeb")}
+          fullSubtitle
           trailing={
             <Switch
               label={t("privacy.keepPhotos.title")}

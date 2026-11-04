@@ -85,6 +85,7 @@ export function DayList({
       {rows.length > COLLAPSED_ROWS && selectedIndex < COLLAPSED_ROWS ? (
         <PressableScale
           accessibilityRole="button"
+          accessibilityState={{ expanded: open }}
           onPress={() => setOpen((v) => !v)}
           scaleTo={1}
           dimTo={0.7}

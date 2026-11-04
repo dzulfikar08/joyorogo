@@ -17,7 +17,11 @@ export function BadgeShelf({ badges, onOpen }: { badges: BadgeLike[]; onOpen: (b
         <PressableScale
           key={badge.id}
           accessibilityRole="button"
-          accessibilityLabel={t(badgeKey(badge.id, "name"))}
+          accessibilityLabel={
+            badge.tier <= 0
+              ? `${t(badgeKey(badge.id, "name"))}, ${t("board.locked")}`
+              : t(badgeKey(badge.id, "name"))
+          }
           onPress={() => onOpen(badge)}
           scaleTo={0.95}
           style={styles.cell}

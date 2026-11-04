@@ -69,7 +69,11 @@ export function EatenAtField({
         {nudge !== null ? (
           <Chip compact label={t("eatenAt.nudge")} onPress={() => setPicking(true)} />
         ) : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+            {error}
+          </Text>
+        ) : null}
         <Text style={styles.hint}>{t("eatenAt.hint")}</Text>
       </Field>
       <TimePickerSheet

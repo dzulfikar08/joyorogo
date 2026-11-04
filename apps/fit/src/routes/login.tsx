@@ -10,20 +10,24 @@ import { DEV_LOGIN } from "@/lib/env";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
-  validateSearch: (search: Record<string, unknown>): { redirect?: string } => {
+  validateSearch: (search: Record<string, unknown>): { redirect?: string; error?: true } => {
     const raw = typeof search.redirect === "string" ? search.redirect : undefined;
     // Internal paths only: a single leading slash, no protocol-relative or absolute URLs, never a loop into /login.
     const target =
       raw && raw.startsWith("/") && !raw.startsWith("//") && !raw.startsWith("/login")
         ? raw
         : undefined;
-    return { redirect: target };
+    // Better Auth sends a failed or cancelled Google sign-in back here with `?error=<code>`.
+    return {
+      redirect: target,
+      ...(typeof search.error === "string" ? { error: true as const } : {}),
+    };
   },
 });
 
 function LoginPage() {
   const { t } = useTranslation("fitWeb");
-  const { redirect: returnTo } = Route.useSearch();
+  const { redirect: returnTo, error: returnedError } = Route.useSearch();
   // The form is on screen at once; a session found in the background sends the person on (never blocks first paint,
   // and a down server leaves the login page usable).
   const session = useSession();
@@ -35,12 +39,15 @@ function LoginPage() {
   const origin = window.location.origin;
   const landing = `${origin}${returnTo ?? "/"}`;
 
-  const signInGoogle = () => {
-    void authClient.signIn.social({
+  const [googleFailed, setGoogleFailed] = useState(returnedError === true);
+  const signInGoogle = async () => {
+    setGoogleFailed(false);
+    const { error } = await authClient.signIn.social({
       provider: "google",
       callbackURL: landing,
       errorCallbackURL: `${origin}/login${returnTo ? `?redirect=${encodeURIComponent(returnTo)}` : ""}`,
     });
+    if (error) setGoogleFailed(true);
   };
 
   const signInDev = async () => {
@@ -99,6 +106,11 @@ function LoginPage() {
           </svg>
           {t("login.google")}
         </Button>
+        {googleFailed && (
+          <p role="alert" className="mt-3 max-w-xs text-center text-sm text-destructive">
+            {t("login.googleFailed")}
+          </p>
+        )}
         {DEV_LOGIN && (
           <Button variant="ghost" size="sm" className="mt-3" onClick={signInDev}>
             {t("login.dev")}
@@ -136,7 +148,7 @@ function LoginPage() {
         ) : (
           <button
             type="button"
-            className="mt-4 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            className="mt-2 inline-flex min-h-11 items-center px-3 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
             onClick={() => setEmailForm(true)}
           >
             {t("login.emailToggle")}

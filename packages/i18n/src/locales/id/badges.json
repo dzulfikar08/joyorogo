@@ -57,6 +57,7 @@
     "anonymous": "Anonim #{{rank}}",
     "you": "Kamu",
     "empty": "Belum ada yang ikut.",
+    "unavailable": "Papan konsistensi belum tersedia di akunmu.",
     "notRanked": "Kamu belum masuk papan minggu ini. Catat makanan dulu.",
     "daysLogged": "Hari tercatat",
     "workoutDays": "Hari latihan",

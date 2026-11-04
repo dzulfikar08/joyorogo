@@ -296,6 +296,7 @@ export function UsersSection() {
             value={plan}
             onValueChange={(v) => setFilter({ plan: v || null })}
             aria-label="Filter plan"
+            className="max-sm:order-1"
             options={[
               { value: "", label: "Plan: semua" },
               { value: "paid", label: "Plan: paid" },
@@ -307,12 +308,14 @@ export function UsersSection() {
             value={idle}
             onValueChange={(v) => setFilter({ idle: v || null })}
             aria-label="Filter tidak scan"
+            className="max-sm:order-3 max-sm:col-span-2"
             options={IDLE_OPTIONS}
           />
           <Select
             value={sort}
             onValueChange={(v) => setSort(v as SortKey, dir)}
             aria-label="Urutkan"
+            className="max-sm:order-2"
             options={[
               { value: "scans7d", label: "Sort: scans 7d" },
               { value: "scansToday", label: "Sort: scans today" },
@@ -326,17 +329,18 @@ export function UsersSection() {
           />
           <Button
             variant="secondary"
-            className="h-12 rounded-xl"
+            className="h-12 rounded-xl max-sm:order-4 max-sm:col-span-2"
             aria-label={dir === "desc" ? "Urutan terbesar dulu" : "Urutan terkecil dulu"}
             onClick={() => setSort(sort, dir === "desc" ? "asc" : "desc")}
           >
             {dir === "desc" ? <ArrowDown /> : <ArrowUp />}
             {dir === "desc" ? "Terbesar dulu" : "Terkecil dulu"}
           </Button>
-          <label className="col-span-2 inline-flex h-12 cursor-pointer items-center gap-2 rounded-xl bg-muted px-3 text-base text-foreground">
+          <label className="col-span-2 inline-flex h-12 cursor-pointer items-center gap-2 rounded-xl bg-muted px-3 text-base text-foreground max-sm:order-5">
             <Checkbox
               checked={abuse}
               onCheckedChange={(checked) => setFilter({ abuse: checked ? "1" : null })}
+              className="border-muted-foreground bg-card dark:border-muted-foreground dark:bg-card"
             />
             Dugaan abuse
           </label>

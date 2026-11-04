@@ -1,6 +1,6 @@
 {
   "title": "Sleep and recovery",
-  "subtitle": "Sleep and recovery, {{from}} to {{to}}.",
+  "subtitle": "{{from}} to {{to}}",
   "empty": {
     "title": "No sleep data in this range yet",
     "body": "Sleep and recovery show up here after JoyoFit on your phone syncs them, or after you log sleep in JoyoRogo."

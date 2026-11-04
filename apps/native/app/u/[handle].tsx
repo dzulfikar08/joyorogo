@@ -101,6 +101,7 @@ export default function ProfilPublik() {
       refresh();
       router.replace("/feed");
     },
+    onError: () => setBlockOpen(false),
   });
 
   if (gate === "loading") {
@@ -178,6 +179,7 @@ export default function ProfilPublik() {
             <View style={styles.statRow}>
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel={`${countOf(data.stats?.followerCount)} ${t("profile.stats.followers")}`}
                 onPress={() => setListOpen("followers")}
                 style={styles.stat}
               >
@@ -186,6 +188,7 @@ export default function ProfilPublik() {
               </Pressable>
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel={`${countOf(data.stats?.followingCount)} ${t("profile.stats.following")}`}
                 onPress={() => setListOpen("following")}
                 style={styles.stat}
               >
@@ -243,6 +246,16 @@ export default function ProfilPublik() {
         tab={listOpen}
         onClose={() => setListOpen(null)}
         pending={listOpen === "followers" ? followers.isPending : following.isPending}
+        error={
+          listOpen === "followers"
+            ? followers.isError
+              ? errorMessage(followers.error)
+              : null
+            : following.isError
+              ? errorMessage(following.error)
+              : null
+        }
+        onRetry={() => void (listOpen === "followers" ? followers.refetch() : following.refetch())}
         people={
           listOpen === "followers"
             ? (followers.data ?? [])
@@ -274,12 +287,16 @@ function PeopleListSheet({
   onClose,
   pending,
   people,
+  error,
+  onRetry,
 }: {
   visible: boolean;
   tab: ListTab | null;
   onClose: () => void;
   pending: boolean;
   people: { id: string; name: string; image: string | null; handle: string | null }[];
+  error: string | null;
+  onRetry: () => void;
 }) {
   const { t } = useTranslation("feed");
   const { theme } = useUnistyles();
@@ -289,7 +306,9 @@ function PeopleListSheet({
       onClose={onClose}
       title={tab === "followers" ? t("profile.stats.followers") : t("profile.stats.following")}
     >
-      {pending ? (
+      {error ? (
+        <ErrorState message={error} onRetry={onRetry} />
+      ) : pending ? (
         <Skeleton width="100%" height={120} radius={24} />
       ) : people.length === 0 ? (
         <Text style={styles.muted}>
@@ -325,8 +344,8 @@ function PeopleListSheet({
 const styles = StyleSheet.create((theme) => ({
   pressed: { opacity: 0.7 },
   iconButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -392,6 +411,7 @@ const styles = StyleSheet.create((theme) => ({
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.md,
+    minHeight: 44,
   },
   personText: {
     flex: 1,

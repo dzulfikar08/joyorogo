@@ -80,7 +80,8 @@
       "how_other": "Send a DM and name the email of your JoyoRogo account. Answered within {{count}} working days.",
       "open": "Open Threads",
       "copyEmail": "Copy my account email",
-      "copied": "Email copied."
+      "copied": "Email copied.",
+      "copyFailed": "Couldn't copy the email. Select it in Account and copy it yourself."
     }
   },
   "nudge": {

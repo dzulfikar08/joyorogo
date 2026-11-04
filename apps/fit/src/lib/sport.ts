@@ -53,5 +53,5 @@ export const SPORT_COLOR: Record<SportKind, string> = {
   walk: "var(--recovery)",
   ride: "var(--bakar)",
   swim: "var(--tidur)",
-  other: "var(--chart-5)",
+  other: "var(--muted-foreground)",
 };

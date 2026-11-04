@@ -320,7 +320,11 @@ export function MaternalForm({
         </View>
       </Field>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+          {error}
+        </Text>
+      ) : null}
       {showDisclaimer ? <MaternalDisclaimer /> : null}
     </View>
   );

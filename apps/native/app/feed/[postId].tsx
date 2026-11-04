@@ -99,6 +99,10 @@ export default function DetailPost() {
       refresh();
       router.replace("/feed");
     },
+    onError: (error) => {
+      setConfirm(null);
+      toast.error(errorMessage(error));
+    },
   });
   const postKey = orpc.social.post.queryOptions({ input: { id } }).queryKey;
   const setPostMap = useOptimisticMutation<{ show: boolean }, { showMap: number }>({
@@ -248,6 +252,11 @@ export default function DetailPost() {
       <Text style={styles.sectionLabel}>{t("post.kudos.label")}</Text>
       {kudosList.isPending ? (
         <Skeleton width="100%" height={80} radius={24} />
+      ) : kudosList.isError ? (
+        <ErrorState
+          message={errorMessage(kudosList.error)}
+          onRetry={() => void kudosList.refetch()}
+        />
       ) : (kudosList.data?.length ?? 0) === 0 ? (
         <Card>
           <Text style={styles.muted}>{t("post.kudos.empty")}</Text>
@@ -456,8 +465,8 @@ function ReportSheet({
 const styles = StyleSheet.create((theme) => ({
   pressed: { opacity: 0.7 },
   iconButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -474,6 +483,7 @@ const styles = StyleSheet.create((theme) => ({
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.md,
+    minHeight: 44,
   },
   personName: {
     flex: 1,

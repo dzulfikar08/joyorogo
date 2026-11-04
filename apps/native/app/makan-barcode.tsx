@@ -624,8 +624,16 @@ export default function MakanBarcode() {
           onSubmitEditing={() => accept(typed)}
         />
       </Field>
-      {scanError ? <Text style={styles.errorText}>{scanError}</Text> : null}
-      <Button label={t("entry.search")} onPress={() => accept(typed)} disabled={typed.trim() === ""} />
+      {scanError ? (
+        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.errorText}>
+          {scanError}
+        </Text>
+      ) : null}
+      <Button
+        label={t("entry.search")}
+        onPress={() => accept(typed)}
+        disabled={typed.trim() === ""}
+      />
     </View>
   );
 
@@ -703,7 +711,9 @@ export default function MakanBarcode() {
           typedPanel
         ) : (
           <>
-            <Text style={styles.hint}>{scanError ?? t("camera.aim")}</Text>
+            <Text accessibilityLiveRegion="polite" style={styles.hint}>
+              {scanError ?? t("camera.aim")}
+            </Text>
             <Button
               variant="secondary"
               label={t("entry.type")}

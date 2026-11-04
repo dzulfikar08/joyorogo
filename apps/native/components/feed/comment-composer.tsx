@@ -163,7 +163,7 @@ export function CommentComposer({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t("comments.attach.remove")}
-            hitSlop={8}
+            hitSlop={10}
             onPress={() => setDraft(null)}
             style={({ pressed }) => [styles.draftRemove, pressed && styles.pressed]}
           >
@@ -213,7 +213,7 @@ export function CommentComposer({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("comments.send")}
-          accessibilityState={{ disabled: !canSend }}
+          accessibilityState={{ disabled: !canSend, busy: send.isPending || working }}
           disabled={!canSend}
           onPress={submit}
           style={({ pressed }) => [styles.roundButton, styles.sendButton, !canSend && styles.sendOff, pressed && styles.pressed]}

@@ -300,7 +300,7 @@ function CommentRow({
         <button
           type="button"
           aria-label={t("comments.delete")}
-          className="-mr-1 flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+          className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
           onClick={() =>
             removeComment({ id: comment.id, parentId: comment.parentId, replyCount: comment.replyCount })
           }

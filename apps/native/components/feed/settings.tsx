@@ -7,8 +7,8 @@ import { StyleSheet } from "react-native-unistyles";
 import {
   Avatar,
   Button,
-  Card,
   Chip,
+  ErrorState,
   Field,
   Input,
   ListGroup,
@@ -88,9 +88,7 @@ export function FeedSettingsCard() {
       {profile.isPending ? (
         <Skeleton width="100%" height={160} radius={24} />
       ) : profile.isError ? (
-        <Card>
-          <Text style={styles.error}>{errorMessage(profile.error)}</Text>
-        </Card>
+        <ErrorState message={errorMessage(profile.error)} onRetry={() => void profile.refetch()} />
       ) : (
         <ListGroup>
           <ListRow
@@ -159,6 +157,11 @@ export function FeedSettingsCard() {
       >
         {blockList.isPending ? (
           <Skeleton width="100%" height={120} radius={24} />
+        ) : blockList.isError ? (
+          <ErrorState
+            message={errorMessage(blockList.error)}
+            onRetry={() => void blockList.refetch()}
+          />
         ) : (blockList.data?.length ?? 0) === 0 ? (
           <Text style={styles.muted}>{t("feed.blocked.emptyNative")}</Text>
         ) : (
@@ -269,6 +272,7 @@ function FeedSettingsSheet({
           autoCapitalize="none"
           autoCorrect={false}
           placeholder={t("feed.handle.placeholderNative")}
+          accessibilityLabel={t("feed.handle.label")}
         />
       </Field>
       {!handleValid ? <Text style={styles.error}>{t("feed.handle.error")}</Text> : null}
@@ -280,6 +284,7 @@ function FeedSettingsSheet({
           maxLength={BIO_MAX}
           multiline
           placeholder={t("feed.bio.placeholderNative")}
+          accessibilityLabel={t("feed.bio.labelCount", { length: bio.length, max: BIO_MAX })}
         />
       </Field>
 

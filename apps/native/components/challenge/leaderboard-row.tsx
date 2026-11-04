@@ -34,11 +34,32 @@ export function LeaderboardRow({ member, unit }: { member: ChallengeMember; unit
     pending: theme.colors.mutedForeground,
   } as const;
 
+  const headLabel = [
+    t("board.rank", { rank: m.rank }),
+    `${m.name}${m.isMe ? ` (${t("board.you")})` : ""}`,
+    m.judgedDays === 0
+      ? t("board.noJudged")
+      : t("board.score", { hit: m.hitDays, judged: m.judgedDays }),
+    m.streak > 0 ? t("card.streak", { count: m.streak }) : null,
+  ]
+    .filter((part) => part !== null)
+    .join(", ");
+
   return (
     <Card style={m.isMe ? { borderWidth: 1.5, borderColor: theme.colors.primary } : undefined}>
-      <View style={styles.head}>
-        <View style={[styles.rank, { backgroundColor: m.rank === 1 ? theme.colors.bakarSoft : theme.colors.muted }]}>
-          <Num style={[styles.rankText, { color: m.rank === 1 ? theme.colors.bakarText : theme.colors.foreground }]}>
+      <View style={styles.head} accessible accessibilityLabel={headLabel}>
+        <View
+          style={[
+            styles.rank,
+            { backgroundColor: m.rank === 1 ? theme.colors.bakarSoft : theme.colors.muted },
+          ]}
+        >
+          <Num
+            style={[
+              styles.rankText,
+              { color: m.rank === 1 ? theme.colors.bakarText : theme.colors.foreground },
+            ]}
+          >
             {m.rank}
           </Num>
         </View>

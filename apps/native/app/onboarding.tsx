@@ -205,7 +205,9 @@ function ResultView({
   return (
     <>
       <Mascot pose="cheer" size="sm" style={styles.resultMascot} />
-      <Text style={styles.stepTitle}>{t("result.title")}</Text>
+      <Text accessibilityRole="header" style={styles.stepTitle}>
+        {t("result.title")}
+      </Text>
       {targets.maternal ? (
         <MaternalResult targets={targets} info={targets.maternal} />
       ) : (
@@ -453,6 +455,15 @@ function MaternalResult({ targets, info }: { targets: Targets; info: MaternalInf
       <MaternalFlagNotes info={info} />
       <MaternalDisclaimer />
     </>
+  );
+}
+
+/** Validation message, announced when it appears. */
+function FormError({ message }: { message: string }) {
+  return (
+    <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+      {message}
+    </Text>
   );
 }
 
@@ -722,7 +733,13 @@ export default function Onboarding() {
   return (
     <Screen>
       {/* Progress bar */}
-      <View style={styles.progressRow}>
+      <View
+        style={styles.progressRow}
+        accessible={!targets}
+        accessibilityRole="progressbar"
+        accessibilityLabel={t("progress", { step: step + 1, total: steps.length })}
+        accessibilityValue={{ min: 1, max: steps.length, now: step + 1 }}
+      >
         {steps.map((id, i) => (
           <ProgressSegment key={i} filled={i <= step && !targets} />
         ))}
@@ -759,7 +776,9 @@ export default function Onboarding() {
 
             {stepId === "birth" ? (
               <>
-                <Text style={styles.stepTitle}>{t("question.birth.title")}</Text>
+                <Text accessibilityRole="header" style={styles.stepTitle}>
+                  {t("question.birth.title")}
+                </Text>
                 <Text style={styles.stepCaption}>{t("question.birth.hint")}</Text>
                 <Card>
                   <Field label={t("question.birth.label")}>
@@ -771,7 +790,7 @@ export default function Onboarding() {
                       maxLength={4}
                     />
                   </Field>
-                  {formError ? <Text style={styles.error}>{formError}</Text> : null}
+                  {formError ? <FormError message={formError} /> : null}
                   <Button label={t("action.next")} onPress={submitBirth} />
                 </Card>
               </>
@@ -779,7 +798,9 @@ export default function Onboarding() {
 
             {stepId === "gender" ? (
               <>
-                <Text style={styles.stepTitle}>{t("question.gender.title")}</Text>
+                <Text accessibilityRole="header" style={styles.stepTitle}>
+                  {t("question.gender.title")}
+                </Text>
                 <Text style={styles.stepCaption}>{t("question.gender.hint")}</Text>
                 <View style={styles.choiceList}>
                   <ChoiceRow
@@ -793,14 +814,16 @@ export default function Onboarding() {
                     onPress={() => setGender("female")}
                   />
                 </View>
-                {formError ? <Text style={styles.error}>{formError}</Text> : null}
+                {formError ? <FormError message={formError} /> : null}
                 <Button label={t("action.next")} onPress={nextStep} />
               </>
             ) : null}
 
             {stepId === "maternalEntry" ? (
               <>
-                <Text style={styles.stepTitle}>{t("maternal:entry.question")}</Text>
+                <Text accessibilityRole="header" style={styles.stepTitle}>
+                  {t("maternal:entry.question")}
+                </Text>
                 <Text style={styles.stepCaption}>{t("maternal:entry.hint")}</Text>
                 <View style={styles.choiceList}>
                   <ChoiceRow
@@ -834,7 +857,9 @@ export default function Onboarding() {
 
             {stepId === "height" ? (
               <>
-                <Text style={styles.stepTitle}>{t("question.height.title")}</Text>
+                <Text accessibilityRole="header" style={styles.stepTitle}>
+                  {t("question.height.title")}
+                </Text>
                 <Card>
                   <Field label={t("question.height.label")}>
                     <Input
@@ -844,7 +869,7 @@ export default function Onboarding() {
                       placeholder="170"
                     />
                   </Field>
-                  {formError ? <Text style={styles.error}>{formError}</Text> : null}
+                  {formError ? <FormError message={formError} /> : null}
                   <Button label={t("action.next")} onPress={submitHeight} />
                 </Card>
               </>
@@ -852,7 +877,9 @@ export default function Onboarding() {
 
             {stepId === "weight" ? (
               <>
-                <Text style={styles.stepTitle}>{t("question.weight.title")}</Text>
+                <Text accessibilityRole="header" style={styles.stepTitle}>
+                  {t("question.weight.title")}
+                </Text>
                 <Text style={styles.stepCaption}>{t("question.weight.hint")}</Text>
                 <Card>
                   <Field label={t("question.weight.label")}>
@@ -863,7 +890,7 @@ export default function Onboarding() {
                       placeholder="80"
                     />
                   </Field>
-                  {formError ? <Text style={styles.error}>{formError}</Text> : null}
+                  {formError ? <FormError message={formError} /> : null}
                   <Button label={t("action.next")} onPress={submitWeight} />
                 </Card>
                 <Disclosure title={t("info.title")}>
@@ -874,7 +901,9 @@ export default function Onboarding() {
 
             {stepId === "goal" ? (
               <>
-                <Text style={styles.stepTitle}>{t("question.goal.title")}</Text>
+                <Text accessibilityRole="header" style={styles.stepTitle}>
+                  {t("question.goal.title")}
+                </Text>
                 <Card>
                   <GoalChooser value={goal} onChange={chooseGoal} />
                   {goal === "maintain" ? (
@@ -947,7 +976,7 @@ export default function Onboarding() {
                       ) : null}
                     </>
                   )}
-                  {formError ? <Text style={styles.error}>{formError}</Text> : null}
+                  {formError ? <FormError message={formError} /> : null}
                   <Button label={t("action.next")} onPress={submitTarget} />
                 </Card>
                 <Disclosure title={t("info.title")}>
@@ -958,7 +987,9 @@ export default function Onboarding() {
 
             {stepId === "activity" ? (
               <>
-                <Text style={styles.stepTitle}>{t("question.activity.title")}</Text>
+                <Text accessibilityRole="header" style={styles.stepTitle}>
+                  {t("question.activity.title")}
+                </Text>
                 <Card>
                   <ActivityLevelPicker
                     options={activityChoices}
@@ -976,7 +1007,7 @@ export default function Onboarding() {
                   />
                 </Card>
                 <GuideLink label={t("guide.activity")} />
-                {formError ? <Text style={styles.error}>{formError}</Text> : null}
+                {formError ? <FormError message={formError} /> : null}
                 <Button
                   label={t("action.save")}
                   onPress={() => void submitAll()}

@@ -30,8 +30,10 @@ export function PrioritySupportCard({ email }: { email: string | null }) {
             size="sm"
             variant="secondary"
             onClick={() => {
-              void navigator.clipboard.writeText(email);
-              toast.success(t("pro.support.copied"));
+              void navigator.clipboard.writeText(email).then(
+                () => toast.success(t("pro.support.copied")),
+                () => toast.error(t("pro.support.copyFailed")),
+              );
             }}
           >
             {t("pro.support.copyEmail")}

@@ -133,7 +133,7 @@ export function FastingSettingsSection() {
             const value = event.target.value;
             if (/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) change({ windowStart: value });
           }}
-          className="w-32"
+          className="w-40"
         />
       </div>
       <div className="mt-4 flex min-h-[2.75rem] items-center justify-between gap-3">

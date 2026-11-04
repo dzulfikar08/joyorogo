@@ -90,6 +90,7 @@ export function Calendar({
           accessibilityRole="button"
           accessibilityLabel={prevLabel}
           disabled={!canPrev}
+          accessibilityState={{ disabled: !canPrev }}
           onPress={() => setMonth((m) => addMonths(m, -1))}
           style={({ pressed }) => [styles.nav, (!canPrev || pressed) && styles.dim]}
         >
@@ -102,6 +103,7 @@ export function Calendar({
           accessibilityRole="button"
           accessibilityLabel={nextLabel}
           disabled={!canNext}
+          accessibilityState={{ disabled: !canNext }}
           onPress={() => setMonth((m) => addMonths(m, 1))}
           style={({ pressed }) => [styles.nav, (!canNext || pressed) && styles.dim]}
         >

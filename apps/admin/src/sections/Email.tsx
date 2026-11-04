@@ -123,10 +123,15 @@ function Composer({ config }: { config: BroadcastConfig }) {
               onChange={(event) => setId(event.target.value.trim().toLowerCase())}
               disabled={frozen || sending}
               aria-invalid={!idValid}
+              aria-describedby="campaign-id-help"
               spellCheck={false}
             />
-            <span className="text-xs font-normal text-muted-foreground">
-              Satu pengguna hanya sekali per ID kampanye. Huruf kecil, angka, tanda minus; 3 sampai 40 karakter.
+            <span
+              id="campaign-id-help"
+              className={`text-xs font-normal ${idValid ? "text-muted-foreground" : "text-destructive"}`}
+            >
+              {idValid ? "Satu pengguna hanya sekali per ID kampanye. " : "ID tidak valid. "}
+              Huruf kecil, angka, tanda minus; 3 sampai 40 karakter.
             </span>
           </label>
           <label className="flex flex-col gap-1.5 text-sm font-medium">
@@ -186,6 +191,11 @@ function Composer({ config }: { config: BroadcastConfig }) {
               onConfirm={() => void sendAll(remaining)}
             />
           </div>
+          {!sending && current !== undefined && remaining === 0 && idValid && (
+            <p className="text-xs text-muted-foreground">
+              Tidak ada penerima tersisa untuk kampanye ini, jadi Kirim ke semua dinonaktifkan.
+            </p>
+          )}
         </div>
       </SectionCard>
 
@@ -194,10 +204,20 @@ function Composer({ config }: { config: BroadcastConfig }) {
           title="Pratinjau"
           action={
             <div className="flex gap-1">
-              <Button size="xs" variant={previewView === "html" ? "default" : "ghost"} onClick={() => setPreviewView("html")}>
+              <Button
+                size="xs"
+                variant={previewView === "html" ? "default" : "ghost"}
+                aria-pressed={previewView === "html"}
+                onClick={() => setPreviewView("html")}
+              >
                 HTML
               </Button>
-              <Button size="xs" variant={previewView === "text" ? "default" : "ghost"} onClick={() => setPreviewView("text")}>
+              <Button
+                size="xs"
+                variant={previewView === "text" ? "default" : "ghost"}
+                aria-pressed={previewView === "text"}
+                onClick={() => setPreviewView("text")}
+              >
                 Teks
               </Button>
             </div>

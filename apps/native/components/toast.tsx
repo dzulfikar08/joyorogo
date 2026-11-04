@@ -128,32 +128,31 @@ function ToastView({
         exiting={reduceMotion ? undefined : SlideOutUp.duration(180)}
         style={[styles.card, { borderColor: theme.colors.hairline }]}
       >
-        <Pressable
-          accessibilityRole="alert"
-          accessibilityLiveRegion="polite"
-          accessibilityLabel={`${toast.title}${toast.message ? `. ${toast.message}` : ""}`}
-          onPress={onDismiss}
-          style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-        >
-          <View
-            style={[styles.chip, { backgroundColor: theme.colors[`${tone}Soft`] }]}
+        <View accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.row}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${toast.title}${toast.message ? `. ${toast.message}` : ""}`}
+            onPress={onDismiss}
+            style={({ pressed }) => [styles.body, pressed && styles.pressed]}
           >
-            <Ionicons
-              name={KIND_ICONS[toast.kind]}
-              size={18}
-              color={theme.colors[`${tone}Text`]}
-            />
-          </View>
-          <View style={styles.texts}>
-            <Text style={styles.title} numberOfLines={1}>
-              {toast.title}
-            </Text>
-            {toast.message ? (
-              <Text style={styles.message} numberOfLines={2}>
-                {toast.message}
+            <View style={[styles.chip, { backgroundColor: theme.colors[`${tone}Soft`] }]}>
+              <Ionicons
+                name={KIND_ICONS[toast.kind]}
+                size={18}
+                color={theme.colors[`${tone}Text`]}
+              />
+            </View>
+            <View style={styles.texts}>
+              <Text style={styles.title} numberOfLines={1}>
+                {toast.title}
               </Text>
-            ) : null}
-          </View>
+              {toast.message ? (
+                <Text style={styles.message} numberOfLines={2}>
+                  {toast.message}
+                </Text>
+              ) : null}
+            </View>
+          </Pressable>
           {toast.action ? (
             <Pressable
               accessibilityRole="button"
@@ -167,7 +166,7 @@ function ToastView({
               <Text style={styles.actionLabel}>{toast.action.label}</Text>
             </Pressable>
           ) : null}
-        </Pressable>
+        </View>
       </Animated.View>
     </View>
   );
@@ -202,6 +201,13 @@ const styles = StyleSheet.create((theme) => ({
   row: {
     flexDirection: "row",
     alignItems: "center",
+    gap: theme.spacing.sm,
+    paddingRight: theme.spacing.md,
+  },
+  body: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
     gap: theme.spacing.md,
     padding: theme.spacing.md,
   },
@@ -229,7 +235,8 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.makanSoft,
     borderRadius: 999,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: 8,
+    minHeight: 44,
+    justifyContent: "center",
   },
   actionLabel: {
     fontSize: theme.fontSize.xs,

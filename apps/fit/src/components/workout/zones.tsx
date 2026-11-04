@@ -48,9 +48,7 @@ export function HrZonesCard({ zones }: { zones: AnalysisHrZones }) {
               key={i}
               className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1"
             >
-              <span className="text-sm font-bold" style={{ color: HR_ZONE_COLORS[i] }}>
-                Z{i + 1}
-              </span>
+              <span className="text-sm font-bold">Z{i + 1}</span>
               <Bar percent={percentOf(sec, total)} color={HR_ZONE_COLORS[i] ?? "var(--primary)"} />
               <span className="text-right text-sm font-semibold tabular-nums">
                 {sec > 0 ? fmtHm(sec) : "–"}

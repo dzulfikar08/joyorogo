@@ -76,7 +76,8 @@
       "how_other": "Hantar DM dan nyatakan e-mel akaun JoyoRogo anda. Dibalas selewat-lewatnya {{count}} hari bekerja.",
       "open": "Buka Threads",
       "copyEmail": "Salin e-mel akaun saya",
-      "copied": "E-mel disalin."
+      "copied": "E-mel disalin.",
+      "copyFailed": "E-mel tidak dapat disalin. Salin sendiri daripada halaman Akaun."
     }
   },
   "nudge": {

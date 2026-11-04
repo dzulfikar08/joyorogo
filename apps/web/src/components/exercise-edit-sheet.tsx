@@ -6,7 +6,7 @@ import { CalendarIcon, Link2, Link2Off } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
+import { jakartaToday, relativeDayLabel, shiftDate } from "@joyorogo/api/lib/engine";
 import {
   EXERCISE_MAX_DURATION,
   EXERCISE_MAX_KCAL,
@@ -100,7 +100,7 @@ function patchExerciseEdit(cache: OptimisticCache, before: ExerciseItem, after: 
  * Imported rows keep their source and external id, so a resync leaves the edit alone.
  */
 export function ExerciseEditSheet({ row, onClose }: { row: ExerciseItem; onClose: () => void }) {
-  const { t } = useTranslation(["olahraga", "common"]);
+  const { t } = useTranslation(["olahraga", "common", "makan"]);
   const queryClient = useQueryClient();
   const initialDuration = row.durationMin == null ? "" : fmtField(row.durationMin);
   const initialKcal = fmtField(row.kcal);
@@ -309,7 +309,9 @@ export function ExerciseEditSheet({ row, onClose }: { row: ExerciseItem; onClose
                 onClick={() => setPickingDate(true)}
               >
                 <CalendarIcon aria-hidden />
-                {recentDayLabel(date, jakartaToday())}
+                {[0, 1, 2].some((back) => shiftDate(jakartaToday(), -back) === date)
+                  ? t("makan:portionSheet.pickDateShort")
+                  : recentDayLabel(date, jakartaToday())}
               </Button>
               {dateChanged && (
                 <p className="text-xs text-muted-foreground">

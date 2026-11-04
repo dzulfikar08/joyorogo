@@ -45,7 +45,11 @@ function BoardRowView({ row }: { row: Row }) {
   const { t } = useTranslation("badges");
   const name = row.anonymous || !row.name ? t("board.anonymous", { rank: row.rank }) : row.name;
   return (
-    <View style={[styles.row, row.isMe && styles.rowMe]}>
+    <View
+      accessible
+      accessibilityLabel={`${t("board.rank", { rank: row.rank })}, ${row.isMe ? `${name} (${t("board.you")})` : name}, ${t("board.rowDays", { n: row.daysLogged })}`}
+      style={[styles.row, row.isMe && styles.rowMe]}
+    >
       <Num style={styles.rank}>{t("board.rank", { rank: row.rank })}</Num>
       <View style={styles.rowMain}>
         <Text style={styles.name} numberOfLines={1}>

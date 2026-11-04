@@ -115,7 +115,13 @@ function RekapPage() {
       {recap.avgKcal === null ? (
         <EmptyHint
           pose="determined"
-          title={recap.empty ? t("recap.empty.titleNone") : t("recap.empty.titleNoFood")}
+          title={
+            recap.empty
+              ? t("recap.empty.titleNone")
+              : recap.evaluatedDays === 0
+                ? t("recap.empty.titlePending")
+                : t("recap.empty.titleNoFood")
+          }
         >
           {recap.evaluatedDays === 0 ? t("recap.empty.bodyPast") : t("recap.empty.bodyLog")}
         </EmptyHint>

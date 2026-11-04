@@ -53,7 +53,7 @@ export function CheckOrderButton({
         }
       }}
     >
-      {pending ? "Checking…" : "Check with gateway"}
+      {pending ? "Mengecek…" : "Cek ke gateway"}
     </Button>
   );
 }

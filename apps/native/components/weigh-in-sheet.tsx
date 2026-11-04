@@ -97,12 +97,12 @@ export function WeighInSheet({
           value={kg}
           onChangeText={setKg}
           keyboardType="decimal-pad"
-          placeholder="68,5"
+          placeholder={fmtKg(68.5)}
           autoFocus
         />
       </Field>
       {error ? (
-        <View>
+        <View accessibilityRole="alert" accessibilityLiveRegion="polite">
           <Text style={{ fontSize: 13, color: theme.colors.destructive }}>{error}</Text>
         </View>
       ) : null}

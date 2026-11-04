@@ -431,7 +431,11 @@ export function VolumeChart({
             minTickGap={28}
             tickMargin={8}
           />
-          <YAxis {...AXIS} width={36} tickFormatter={(v: number) => fmtDecimal(v, 0)} />
+          <YAxis
+            {...AXIS}
+            width={36}
+            tickFormatter={(v: number) => fmtDecimal(v, Number.isInteger(v) ? 0 : 1)}
+          />
           <Tooltip
             content={<VolumeTooltip unit={unit} labels={labels} digits={digits} />}
             cursor={{ fill: "var(--muted)", opacity: 0.6 }}

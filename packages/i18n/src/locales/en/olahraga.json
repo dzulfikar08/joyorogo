@@ -224,7 +224,7 @@
       "history": {
         "title": "Session history",
         "emptyTitle": "No sessions yet",
-        "emptyHint": "Two or three sessions a week is enough to keep your muscle.",
+        "emptyHint": "No old strength logs. New sessions are logged in JoyoFit.",
         "shareStory": "Share {{name}} to Story",
         "shareFeed": "Share {{name}} to the feed"
       }
@@ -232,6 +232,7 @@
     "map": {
       "title": "Muscles this week",
       "loading": "Calculating muscle volume…",
+      "empty": "No sets counted this week.",
       "sets_one": "{{sets}} set",
       "sets_other": "{{sets}} sets",
       "try": "Try: {{names}}",
@@ -250,7 +251,7 @@
     },
     "progress": {
       "title": "Strength progress",
-      "empty": "No records yet. Finish a session and your records show up here.",
+      "empty": "No records yet. Records from your old strength logs would show up here.",
       "history": "{{name}} history"
     },
     "template": {
@@ -285,7 +286,7 @@
       },
       "sessions": "Previous sessions",
       "emptyTitle": "Not logged yet",
-      "emptyHint": "Finish a session and this exercise's history shows up here."
+      "emptyHint": "This exercise has no history in your old strength logs."
     }
   },
   "movement": {

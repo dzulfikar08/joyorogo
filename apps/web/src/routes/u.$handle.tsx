@@ -99,8 +99,10 @@ function CopyLinkButton({ handle }: { handle: string }) {
       variant="secondary"
       aria-label={t("profile.copyLink")}
       onClick={() => {
-        void navigator.clipboard.writeText(shareUrl(`/u/${handle}`, "profile"));
-        toast.success(t("profile.linkCopied"));
+        navigator.clipboard.writeText(shareUrl(`/u/${handle}`, "profile")).then(
+          () => toast.success(t("profile.linkCopied")),
+          () => toast.error(t("profile.copyFailed")),
+        );
       }}
     >
       <Link2 className="size-4" aria-hidden />

@@ -160,16 +160,26 @@ function ScanDiffView({ row }: { row: SessionView }) {
   const lines: { sign: string; tone: string; text: string }[] = [];
   if (diff) {
     for (const r of diff.renamed) {
-      lines.push({ sign: "~", tone: "text-amber-600", text: `${r.from.n} jadi ${r.to.n}` });
+      lines.push({
+        sign: "~",
+        tone: "text-amber-700 dark:text-amber-400",
+        text: `${r.from.n} jadi ${r.to.n}`,
+      });
     }
-    for (const r of diff.removed) lines.push({ sign: "−", tone: "text-red-600", text: itemText(r) });
-    for (const r of diff.added) lines.push({ sign: "+", tone: "text-emerald-600", text: itemText(r) });
+    for (const r of diff.removed)
+      lines.push({ sign: "−", tone: "text-red-700 dark:text-red-400", text: itemText(r) });
+    for (const r of diff.added)
+      lines.push({ sign: "+", tone: "text-emerald-700 dark:text-emerald-400", text: itemText(r) });
     for (const r of diff.changed) {
       const parts = [
         r.g ? `${fmtNum(r.g[0])} → ${fmtNum(r.g[1])} g` : null,
         r.k ? `${fmtNum(r.k[0])} → ${fmtNum(r.k[1])} kkal` : null,
       ].filter(Boolean);
-      lines.push({ sign: "Δ", tone: "text-amber-600", text: `${r.n}: ${parts.join(", ")}` });
+      lines.push({
+        sign: "Δ",
+        tone: "text-amber-700 dark:text-amber-400",
+        text: `${r.n}: ${parts.join(", ")}`,
+      });
     }
   }
   const delta = diff && diff.aiKcal > 0 ? Math.round(((diff.savedKcal - diff.aiKcal) / diff.aiKcal) * 100) : null;

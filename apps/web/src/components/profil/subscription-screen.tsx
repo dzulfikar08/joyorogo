@@ -65,7 +65,7 @@ export function SubscriptionScreen({ ctx }: { ctx: ProfilCtx }) {
   return (
     <>
       {!showsCard && (
-        <ListGroup>
+        <ListGroup className="mb-3">
           <ListRow
             icon={
               <IconChip tone={tier === "founder" ? "makan" : "muted"}>

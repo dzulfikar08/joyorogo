@@ -315,7 +315,7 @@ function ConditionsField({
               <span
                 className={cn(
                   "grid size-5 shrink-0 place-items-center rounded-md border",
-                  active ? "border-makan bg-makan text-white" : "border-border bg-card",
+                  active ? "border-makan bg-makan text-white" : "border-muted-foreground bg-card",
                 )}
               >
                 {active && <Check className="size-3.5" aria-hidden strokeWidth={3} />}

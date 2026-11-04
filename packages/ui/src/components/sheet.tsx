@@ -3,6 +3,12 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 
+/** The app sets <html lang> to the active locale; Indonesian and Malay both say "Tutup". */
+function closeLabel(): string {
+  const lang = typeof document === "undefined" ? "" : document.documentElement.lang;
+  return lang.toLowerCase().startsWith("en") ? "Close" : "Tutup";
+}
+
 /**
  * Bottom sheet for every "add/edit" form. Swipe down, tap the backdrop, Esc,
  * or the close button dismisses it. On desktop it stays a bottom sheet but is
@@ -50,7 +56,7 @@ export function Sheet({
                   )}
                 </div>
                 <Drawer.Close
-                  aria-label="Tutup"
+                  aria-label={closeLabel()}
                   className="-mt-1 -mr-2 flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
                 >
                   <X className="size-5" aria-hidden />

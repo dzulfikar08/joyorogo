@@ -184,7 +184,7 @@ export function FeedComposerSheet({
           placeholder={t("composer.placeholder")}
           aria-label={t("composer.label")}
         />
-        <p className="text-right text-xs text-muted-foreground tabular-nums" aria-live="polite">
+        <p className="text-right text-xs text-muted-foreground tabular-nums">
           {caption.length}/{STORY_MAX}
         </p>
 
@@ -200,7 +200,7 @@ export function FeedComposerSheet({
                 <button
                   type="button"
                   aria-label={t("composer.removePhoto", { n: index + 1 })}
-                  className="absolute -top-1.5 -right-1.5 grid size-6 place-items-center rounded-full bg-foreground text-background shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+                  className="absolute -top-1.5 -right-1.5 grid size-6 place-items-center rounded-full bg-foreground text-background shadow-sm before:absolute before:-inset-3 before:content-[''] focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
                   onClick={() => setPhotos((prev) => prev.filter((p) => p !== photo))}
                 >
                   <X className="size-3.5" aria-hidden />

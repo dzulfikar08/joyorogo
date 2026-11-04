@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
   Animated,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   View,
@@ -515,7 +516,9 @@ function AnalyzingOverlay({
       <Image source={{ uri: previewUri }} style={styles.analyzingPreview} resizeMode="cover" />
       <View style={styles.analyzingShade}>
         <ActivityIndicator size="large" color="#FFFFFF" />
-        <Text style={styles.analyzingText}>{t(`analyzing.stage.${ANALYZE_STAGES[stage]}`)}</Text>
+        <Text accessibilityLiveRegion="polite" style={styles.analyzingText}>
+          {t(`analyzing.stage.${ANALYZE_STAGES[stage]}`)}
+        </Text>
         <LiveRows rows={rows} />
         <View style={styles.analyzingMic}>{mic}</View>
         <PressableScale
@@ -1592,7 +1595,9 @@ export default function MakanAi() {
   };
   const contextLine = contextRun ? (
     contextRun.status === "error" ? (
-      <Text style={styles.errorText}>{contextRun.message}</Text>
+      <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.errorText}>
+        {contextRun.message}
+      </Text>
     ) : (
       <Text style={styles.contextStatus} accessibilityLiveRegion="polite">
         {t(
@@ -1622,7 +1627,12 @@ export default function MakanAi() {
               {profile.data?.profile?.keepPhotos ? t("privacy.kept") : t("privacy.notKept")}
             </Text>
             <View style={styles.permissionAction}>
-              <Button label={t("camera.grant")} onPress={() => void requestPermission()} />
+              <Button
+                label={permission.canAskAgain ? t("camera.grant") : t("camera.openSettings")}
+                onPress={() =>
+                  permission.canAskAgain ? void requestPermission() : void Linking.openSettings()
+                }
+              />
               <Button
                 variant="secondary"
                 label={t("idle.gallery")}
@@ -1772,6 +1782,7 @@ export default function MakanAi() {
             </View>
             {flowErrorMessage ? (
               <View
+                accessibilityLiveRegion="polite"
                 style={[
                   styles.cameraError,
                   adapt && {
@@ -1893,6 +1904,7 @@ export default function MakanAi() {
                     corrected={!!mark}
                   >
                     <ListRow
+                      selected={draft.include}
                       icon={draft.include ? "checkmark-circle" : "ellipse-outline"}
                       iconTint={draft.include ? "makan" : "muted"}
                       thumb={
@@ -1943,7 +1955,15 @@ export default function MakanAi() {
                 setMeal(value);
               }}
             />
-            {flowErrorMessage ? <Text style={styles.errorText}>{flowErrorMessage}</Text> : null}
+            {flowErrorMessage ? (
+              <Text
+                accessibilityRole="alert"
+                accessibilityLiveRegion="polite"
+                style={styles.errorText}
+              >
+                {flowErrorMessage}
+              </Text>
+            ) : null}
             <Button
               label={
                 includedCount > 0
@@ -2434,7 +2454,15 @@ export default function MakanAi() {
               </Disclosure>
             ) : null}
 
-            {flowErrorMessage ? <Text style={styles.errorText}>{flowErrorMessage}</Text> : null}
+            {flowErrorMessage ? (
+              <Text
+                accessibilityRole="alert"
+                accessibilityLiveRegion="polite"
+                style={styles.errorText}
+              >
+                {flowErrorMessage}
+              </Text>
+            ) : null}
             <AskJoyoAction
               kind="scan"
               question={scanQuestion(
@@ -2576,7 +2604,7 @@ const styles = StyleSheet.create((theme) => ({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -2592,7 +2620,7 @@ const styles = StyleSheet.create((theme) => ({
     color: "#FFFFFF",
     fontSize: theme.fontSize.sm,
     fontWeight: "600",
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.6)",
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: theme.radius.pill,
@@ -2602,7 +2630,7 @@ const styles = StyleSheet.create((theme) => ({
     color: "#FFFFFF",
     fontSize: theme.fontSize.xs,
     fontWeight: "600",
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.6)",
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: theme.radius.pill,
@@ -2616,7 +2644,7 @@ const styles = StyleSheet.create((theme) => ({
     minHeight: 44,
     paddingHorizontal: 16,
     borderRadius: theme.radius.pill,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.6)",
   },
   barcodeLinkText: {
     color: "#FFFFFF",
@@ -2668,7 +2696,7 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.55)",
   },
   analyzingCancel: {
     minHeight: 44,

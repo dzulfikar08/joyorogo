@@ -63,7 +63,7 @@ function LatihanScreen() {
       <div className="grid items-start gap-3 lg:grid-cols-2 lg:gap-5">
         <div className="min-w-0 space-y-3 lg:space-y-5">
           <Card className="space-y-3">
-            <SectionTitle>{t("latihan.list.history.title")}</SectionTitle>
+            <SectionTitle className="px-0">{t("latihan.list.history.title")}</SectionTitle>
             {history.isPending ? (
               <p className="text-sm text-muted-foreground">{t("common:state.loading")}</p>
             ) : (history.data?.items.length ?? 0) === 0 ? (
@@ -135,7 +135,7 @@ function LatihanScreen() {
 
         <div className="min-w-0 space-y-3 lg:space-y-5">
           <Card className="space-y-3">
-            <SectionTitle>{t("latihan.map.title")}</SectionTitle>
+            <SectionTitle className="px-0">{t("latihan.map.title")}</SectionTitle>
             {status.isPending ? (
               <p className="text-sm text-muted-foreground">{t("latihan.map.loading")}</p>
             ) : status.error ? (
@@ -146,7 +146,7 @@ function LatihanScreen() {
           </Card>
 
           <Card className="space-y-3">
-            <SectionTitle>{t("latihan.progress.title")}</SectionTitle>
+            <SectionTitle className="px-0">{t("latihan.progress.title")}</SectionTitle>
             {status.data ? (
               <ProgressCard status={status.data} />
             ) : (

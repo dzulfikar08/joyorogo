@@ -433,6 +433,7 @@
     },
     "loggedOn": "Dicatat pada",
     "pickDate": "Pilih tanggal, terpilih {{date}}",
+    "pickDateShort": "Tanggal lain",
     "movedHint": "Akan dipindah ke {{date}}.",
     "slotMovedHint": "Akan dipindah ke {{meal}}.",
     "slotHint": "Pindahkan ke waktu makan lain bila salah slot.",

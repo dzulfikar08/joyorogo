@@ -7,7 +7,12 @@ import { CalendarIcon, Link2, Link2Off, MessagesSquare } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { MEAL_EDIT_LABELS, jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
+import {
+  MEAL_EDIT_LABELS,
+  jakartaToday,
+  relativeDayLabel,
+  shiftDate,
+} from "@joyorogo/api/lib/engine";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { PORTION_MULTIPLIERS, rescaleForGrams, scalePortion } from "@joyorogo/api/lib/portion";
@@ -23,7 +28,7 @@ import { FoodSafetyNotes } from "@/components/maternal/food-safety-notes";
 import { SheetActions } from "@/components/sheet-actions";
 import { StickerHero, useStickerTarget } from "@/components/sticker";
 import type { FoodItem } from "@/lib/api-types";
-import { fmtDateLong, fmtGramsLabel, fmtKcalLabel, parseNum } from "@/lib/format";
+import { fmtDateLong, fmtGramsLabel, fmtKcalLabel, fmtNumber, parseNum } from "@/lib/format";
 import { askText } from "@/lib/joyo-chat";
 import { MACRO_META } from "@/lib/macro-icons";
 import { OptimisticCache, insertFoodRow, stripFoodRow, useOptimisticMutation } from "@/lib/optimistic";
@@ -425,7 +430,7 @@ export function FoodPortionSheet({
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   {PORTION_MULTIPLIERS.map((mult) => (
                     <Chip key={mult} active={ratio === mult} onClick={() => applyRatio(mult)}>
-                      {fmtField(mult, 1)}x
+                      {fmtNumber(mult, 1)}×
                     </Chip>
                   ))}
                   <Input
@@ -522,7 +527,9 @@ export function FoodPortionSheet({
                 onClick={() => setPickingDate(true)}
               >
                 <CalendarIcon aria-hidden />
-                {relativeDayLabel(date, jakartaToday())}
+                {[0, 1, 2].some((back) => shiftDate(jakartaToday(), -back) === date)
+                  ? t("portionSheet.pickDateShort")
+                  : relativeDayLabel(date, jakartaToday())}
               </Button>
               {dateChanged && (
                 <p className="text-xs text-muted-foreground">

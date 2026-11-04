@@ -215,8 +215,12 @@ export default function Sumber() {
         </>
       ) : (
         <>
-          <SectionTitle title={t("sumber:sections.connected")} />
-          {render(connected)}
+          {connected.length > 0 ? (
+            <>
+              <SectionTitle title={t("sumber:sections.connected")} />
+              {render(connected)}
+            </>
+          ) : null}
           {available.length > 0 ? (
             <>
               <SectionTitle title={t("sumber:sections.available")} />

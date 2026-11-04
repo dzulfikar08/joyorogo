@@ -152,13 +152,8 @@ export function OverviewSection() {
         </div>
       </SectionCard>
 
-      <SectionCard title="Last 30 days — scans per day">
-        <QueryBoundary
-          query={usage}
-          skeletonRows={2}
-          isEmpty={() => false}
-          empty={{ title: "" }}
-        >
+      <SectionCard title="30 hari terakhir — scan per hari">
+        <QueryBoundary query={usage} skeletonRows={2} isEmpty={() => false} empty={{ title: "" }}>
           {() => (
             <BarChart
               formatValue={fmtNum}
@@ -169,7 +164,7 @@ export function OverviewSection() {
       </SectionCard>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <SectionCard title="Last 30 days — signups per day">
+        <SectionCard title="30 hari terakhir — signup per hari">
           <QueryBoundary query={usage} skeletonRows={2} isEmpty={() => false} empty={{ title: "" }}>
             {() => (
               <BarChart
@@ -180,7 +175,7 @@ export function OverviewSection() {
             )}
           </QueryBoundary>
         </SectionCard>
-        <SectionCard title="Last 30 days — revenue per day">
+        <SectionCard title="30 hari terakhir — pendapatan per hari">
           <QueryBoundary query={usage} skeletonRows={2} isEmpty={() => false} empty={{ title: "" }}>
             {() => (
               <BarChart
@@ -197,7 +192,7 @@ export function OverviewSection() {
         </SectionCard>
       </div>
 
-      <SectionCard title="Daily usage" flush>
+      <SectionCard title="Penggunaan harian" flush>
         <QueryBoundary
           query={usage}
           skeletonRows={3}

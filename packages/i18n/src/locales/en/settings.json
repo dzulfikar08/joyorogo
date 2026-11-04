@@ -16,7 +16,7 @@
     "reminders": "Reminders",
     "shopping": "Food shopping",
     "appIphone": "iPhone app",
-    "appAndroid": "Android app",
+    "appAndroid": "Mobile apps",
     "privacy": "Privacy"
   },
   "hub": {
@@ -57,7 +57,12 @@
   "hubNative": {
     "signOut": {
       "confirmTitle": "Sign out of JoyoRogo?",
-      "confirmMessage": "You'll need to sign in again to open your data. Your data stays safe on your account."
+      "confirmMessage": "You'll need to sign in again to open your data. Your data stays safe on your account.",
+      "failedTitle": "Couldn't sign out"
+    },
+    "disconnect": {
+      "confirmTitle": "Disconnect {{name}}?",
+      "confirmMessage": "Data imported from {{name}} will be removed from your diary. You can connect again later."
     },
     "about": { "version": "Version" },
     "strava": {

@@ -104,6 +104,7 @@
     "saving": "Menyimpan...",
     "doneToday": "Sudah ditimbang hari ini. Bagus.",
     "startPrompt": "Timbang diri anda supaya angka trend mula terbentuk.",
+    "trendNeedsMore": "Garis trend bermula selepas anda menimbang pada dua hari berbeza.",
     "missedToday": "Belum timbang hari ini. Satu angka membuat pelan anda lebih tepat.",
     "weighNow": "Timbang sekarang"
   },
@@ -182,7 +183,7 @@
     "fill": "Isi gelas ke-{{n}}",
     "empty": "Kosongkan gelas ke-{{n}}",
     "hint": "Segelas air selepas makan membuat anda kenyang lebih lama.",
-    "added": "+{{kcal}} kcal daripada aktiviti ({{pct}}%)",
+    "added": "1 gelas ditambah",
     "removed": "1 gelas dipadam",
     "less": "Kurangkan gelas air",
     "more": "Tambah gelas air",

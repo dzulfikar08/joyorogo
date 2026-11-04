@@ -84,6 +84,8 @@ type RowContent = {
   subtitle?: ReactNode;
   /** Truncate the subtitle to one line instead of wrapping to two (dense hubs). */
   oneLineSubtitle?: boolean;
+  /** Never clip the subtitle: explanatory hints (privacy copy) that must be read in full. */
+  fullSubtitle?: boolean;
   value?: ReactNode;
 };
 
@@ -125,6 +127,7 @@ function RowInner({
   wrapTitle,
   subtitle,
   oneLineSubtitle,
+  fullSubtitle,
   value,
   chevron,
   destructive,
@@ -149,7 +152,7 @@ function RowInner({
           <span
             className={cn(
               "mt-0.5 block text-[0.8125rem] leading-snug text-muted-foreground",
-              oneLineSubtitle ? "truncate" : "line-clamp-2",
+              oneLineSubtitle ? "truncate" : fullSubtitle ? "" : "line-clamp-2",
             )}
           >
             {subtitle}
@@ -315,7 +318,7 @@ export function Segmented<T extends string>({
             aria-checked={active}
             onClick={() => onChange(option.value)}
             className={cn(
-              "min-h-10 flex-1 rounded-full px-4 text-sm font-semibold whitespace-nowrap transition-[background-color,color,box-shadow] duration-150 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
+              "min-h-10 flex-1 rounded-full px-1.5 text-[0.8125rem] font-semibold whitespace-nowrap transition-[background-color,color,box-shadow] duration-150 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none sm:px-4 sm:text-sm",
               active
                 ? "bg-card text-foreground shadow-[0_1px_3px_oklch(0.3_0.02_85/12%)]"
                 : "text-muted-foreground hover:text-foreground",

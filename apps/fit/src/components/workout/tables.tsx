@@ -77,11 +77,11 @@ export function SplitsCard({
                 split.paceSecKm !== null && split.paceSecKm === fastest && paces.length > 1;
               return (
                 <tr key={split.n} className="border-b border-border/60 last:border-0">
-                  <th scope="row" className="px-2 py-2 text-left font-semibold">
+                  <th scope="row" className="px-2 py-2 text-left font-semibold whitespace-nowrap">
                     {split.distM < 990 ? fmtKm(split.distM) : split.n}
                   </th>
                   <td
-                    className={`px-2 py-2 text-right font-semibold ${isFastest ? "text-recovery" : ""}`}
+                    className={`px-2 py-2 text-right font-semibold ${isFastest ? "text-[color-mix(in_oklab,var(--recovery)_70%,var(--foreground))]" : ""}`}
                   >
                     {fmtPaceOrSpeed(kind, split.paceSecKm)}
                   </td>

@@ -161,7 +161,7 @@ function PembayaranPage() {
         {body}
         {checkout.sheet}
         {checkout.error && (
-          <p role="alert" className="mt-4 text-center text-sm text-muted-foreground">
+          <p role="alert" className="mt-4 text-center text-sm text-destructive">
             {checkout.error.message}
           </p>
         )}

@@ -189,7 +189,7 @@ function AccountPanel({ session, close }: { session: Session; close: () => void 
                   background: `linear-gradient(135deg, ${option.canvas} 50%, ${option.primary} 50%)`,
                 }}
                 className={cn(
-                  "size-9 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40",
+                  "size-9 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 max-sm:size-11",
                   selected
                     ? "ring-2 ring-foreground ring-offset-2 ring-offset-popover"
                     : "ring-1 ring-foreground/20",

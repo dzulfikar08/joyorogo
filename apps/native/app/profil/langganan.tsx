@@ -7,7 +7,8 @@ import { FounderCards, useAppConfig } from "@/components/billing";
 import { ProfilDataPage, type ProfileData } from "@/components/profil/page";
 import { PrioritySupportCard } from "@/components/profil/priority-support";
 import { usePlanStatus } from "@/components/profil/status";
-import { Card, Text } from "@/components/ui";
+import { Card, ErrorState, Skeleton, Text } from "@/components/ui";
+import { errorMessage } from "@/utils/format";
 
 /** Langganan: free scan quota and Pro (FounderCards); a status card when there is nothing to buy. */
 export default function Langganan() {
@@ -27,6 +28,10 @@ function LanggananContent({ profile }: { profile: ProfileData }) {
   const bare = profile.tier === "founder" ? !profile.founderUntil : billing !== true;
   return (
     <>
+      {config.isPending ? <Skeleton width="100%" height={96} radius={24} /> : null}
+      {config.isError ? (
+        <ErrorState message={errorMessage(config.error)} onRetry={() => void config.refetch()} />
+      ) : null}
       <FounderCards tier={profile.tier ?? "free"} founderUntil={profile.founderUntil ?? null} />
       {config.data && bare && status.text ? (
         <Card>

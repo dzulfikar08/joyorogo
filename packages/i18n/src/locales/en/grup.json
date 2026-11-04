@@ -93,6 +93,7 @@
     "memberFallback": "Member",
     "left": "You left the group.",
     "linkCopied": "Link copied",
+    "copyFailed": "Couldn't copy. Use Share instead.",
     "sendFailed": "Couldn't send",
     "settingsSaved": "Group settings saved",
     "shareFailed": "Couldn't change sharing",
@@ -132,7 +133,10 @@
     },
     "members": {
       "title": "Members",
-      "remove": "Remove"
+      "remove": "Remove",
+      "removeNamed": "Remove {{name}}",
+      "confirm": "Remove {{name}} from this group?",
+      "confirmYes": "Yes, remove"
     },
     "leave": {
       "confirm": "Leave {{name}}?",

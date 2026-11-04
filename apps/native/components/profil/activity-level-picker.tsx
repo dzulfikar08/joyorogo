@@ -54,7 +54,7 @@ function LevelOption({
   return (
     <PressableScale
       accessibilityRole="radio"
-      accessibilityLabel={name}
+      accessibilityLabel={`${name}. ${t("impact.target", { kcal: fmtInt(option.targetKcal) })}. ${impact}`}
       accessibilityState={{ checked: selected, disabled }}
       disabled={disabled}
       onPress={onPress}

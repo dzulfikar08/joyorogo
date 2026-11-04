@@ -82,6 +82,7 @@ function MonthGrid({
           accessibilityRole="button"
           accessibilityLabel={t("plate.dateSheet.prevMonth")}
           disabled={!canPrev}
+          hitSlop={4}
           onPress={() => onMonth(prevMonth)}
           style={({ pressed }) => [
             styles.monthNav,
@@ -96,6 +97,7 @@ function MonthGrid({
           accessibilityRole="button"
           accessibilityLabel={t("plate.dateSheet.nextMonth")}
           disabled={!canNext}
+          hitSlop={4}
           onPress={() => onMonth(nextMonth)}
           style={({ pressed }) => [
             styles.monthNav,

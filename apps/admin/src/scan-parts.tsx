@@ -31,7 +31,7 @@ export function ScanCount({ value, flagAt }: { value: number; flagAt: number }) 
 }
 
 export const founderUntilNote = (u: AdminUser) =>
-  u.plan === "paid" && u.founderUntil !== null ? `until ${fmtDate(u.founderUntil)}` : null;
+  u.plan === "paid" && u.founderUntil !== null ? `sampai ${fmtDate(u.founderUntil)}` : null;
 
 /** Zero is dimmed: the point of these columns is spotting who did not scan. */
 export function DayScans({ value }: { value: number }) {

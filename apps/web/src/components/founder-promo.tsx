@@ -2,6 +2,8 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { ChevronDown } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 
+import type { Locale } from "@joyorogo/i18n";
+
 import { ProgressBar } from "@/components/progress-bar";
 import { fmtRupiah, useAppConfig } from "@/lib/app-config";
 
@@ -9,9 +11,12 @@ import { fmtRupiah, useAppConfig } from "@/lib/app-config";
  * Intro-price banner with slot progress. Hidden while the config
  * loads, when the promo is off, and once every slot is taken. The
  * "after that" price and the price-lock note sit in a collapsed row.
+ * `lng` pins the language (public pages that are not translated).
  */
-export function FounderPromo({ className }: { className?: string }) {
-  const { t } = useTranslation("billing");
+export function FounderPromo({ className, lng }: { className?: string; lng?: Locale }) {
+  const { t: tActive, i18n } = useTranslation("billing");
+  // Public pages are fixed-language (Indonesian), so they pin the banner to theirs instead of the device's.
+  const t = lng ? i18n.getFixedT(lng, "billing") : tActive;
   const config = useAppConfig();
   const promo = config.data?.promo;
   if (!config.data || !promo || promo.slots - promo.taken <= 0) return null;
@@ -27,13 +32,15 @@ export function FounderPromo({ className }: { className?: string }) {
           <p className="text-xs font-bold tracking-wide uppercase">{t("promo.eyebrow")}</p>
           <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
             <span className="text-3xl font-extrabold tracking-tight tabular-nums">
-              {fmtRupiah(config.data.founderPriceIdr)}
+              {fmtRupiah(config.data.founderPriceIdr, lng)}
             </span>
             <span className="text-sm font-semibold">{t("promo.perMonth")}</span>
             {nextPriceIdr !== null && (
-              <span className="text-sm text-makan-ink/60 tabular-nums">
-                <span className="sr-only">{t("promo.wasPrice", { price: fmtRupiah(nextPriceIdr) })}</span>
-                <s aria-hidden>{fmtRupiah(nextPriceIdr)}</s>
+              <span className="text-sm text-makan-ink/85 tabular-nums">
+                <span className="sr-only">
+                  {t("promo.wasPrice", { price: fmtRupiah(nextPriceIdr, lng) })}
+                </span>
+                <s aria-hidden>{fmtRupiah(nextPriceIdr, lng)}</s>
               </span>
             )}
           </p>
@@ -41,6 +48,7 @@ export function FounderPromo({ className }: { className?: string }) {
         <div className="w-full sm:max-w-xs">
           <p className="text-sm leading-snug">
             <Trans
+              t={t}
               ns="billing"
               i18nKey="promo.slots"
               count={left}
@@ -49,7 +57,7 @@ export function FounderPromo({ className }: { className?: string }) {
             />
           </p>
           <ProgressBar
-            value={promo.taken}
+            value={left}
             max={promo.slots}
             ariaLabel={t("promo.progress", { count: left, left, total: promo.slots })}
             className="mt-2 h-2 bg-card"
@@ -64,8 +72,10 @@ export function FounderPromo({ className }: { className?: string }) {
             aria-hidden
           />
         </summary>
-        <div className="space-y-1 pb-1 text-sm leading-relaxed text-makan-ink/80">
-          {nextPriceIdr !== null && <p>{t("promo.then", { price: fmtRupiah(nextPriceIdr) })}</p>}
+        <div className="space-y-1 pb-1 text-sm leading-relaxed text-makan-ink/90">
+          {nextPriceIdr !== null && (
+            <p>{t("promo.then", { price: fmtRupiah(nextPriceIdr, lng) })}</p>
+          )}
           <p>{t("promo.locked")}</p>
         </div>
       </details>

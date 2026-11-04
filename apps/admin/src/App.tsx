@@ -1,6 +1,6 @@
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import { useIsFetching, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Toaster } from "sonner";
 import {
   FileText,
@@ -15,6 +15,7 @@ import {
   Receipt,
   RotateCw,
   Sun,
+  TriangleAlert,
   UserRound,
   Users,
   type LucideIcon,
@@ -22,7 +23,8 @@ import {
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useSendTestEmail } from "./account-actions";
 import { useAdminGate, useSignIn, useSignOut } from "./auth";
-import { Badge, Button } from "./ui";
+import { Badge, Button, StateMessage } from "./ui";
+import { errorMessage } from "./api";
 import { useTheme } from "./theme";
 import { OrdersSection } from "./sections/Orders";
 import { EmailSection } from "./sections/Email";
@@ -85,10 +87,10 @@ function SignInScreen({ notAdmin, email }: { notAdmin: boolean; email: string | 
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
         <h1 className="text-xl font-bold">Akun ini bukan admin</h1>
         <p className="text-sm text-muted-foreground">
-          Signed in as {email ?? "unknown"}. Keluar lalu masuk dengan akun admin.
+          Masuk sebagai {email ?? "tidak diketahui"}. Keluar lalu masuk dengan akun admin.
         </p>
         <Button variant="outline" onClick={() => signOut.mutate()} disabled={signOut.isPending}>
-          Sign out
+          Keluar
         </Button>
       </div>
     );
@@ -100,9 +102,13 @@ function SignInScreen({ notAdmin, email }: { notAdmin: boolean; email: string | 
       <h1 className="text-xl font-bold">JoyoRogo Admin</h1>
       <p className="text-sm text-muted-foreground">Masuk dengan akun Google admin.</p>
       <Button onClick={() => signIn.mutate()} disabled={signIn.isPending}>
-        Continue with Google
+        Masuk dengan Google
       </Button>
-      {signIn.isError && <p className="text-sm text-destructive">{String(signIn.error)}</p>}
+      {signIn.isError && (
+        <p role="alert" className="text-sm text-destructive">
+          {errorMessage(signIn.error)}
+        </p>
+      )}
     </div>
   );
 }
@@ -137,7 +143,7 @@ function AccountMenu({ email, updated }: { email: string; updated: string }) {
               onClick={() => void testEmail.send()}
             >
               <Mail className="size-4" />
-              {testEmail.sending ? "Sending…" : "Send test email"}
+              {testEmail.sending ? "Mengirim…" : "Kirim email uji"}
             </MenuPrimitive.Item>
             <MenuPrimitive.Item
               className={menuItem}
@@ -145,7 +151,7 @@ function AccountMenu({ email, updated }: { email: string; updated: string }) {
               onClick={() => signOut.mutate()}
             >
               <LogOut className="size-4" />
-              Sign out
+              Keluar
             </MenuPrimitive.Item>
           </MenuPrimitive.Popup>
         </MenuPrimitive.Positioner>
@@ -173,6 +179,16 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [tab]);
 
+  // The phone tab bar scrolls sideways: keep the active tab in view.
+  const mobileNav = useRef<HTMLElement>(null);
+  const gateState = gate.data?.state;
+  useEffect(() => {
+    const nav = mobileNav.current;
+    const link = nav?.querySelector<HTMLElement>("[aria-current=page]");
+    if (!nav || !link) return;
+    nav.scrollTo({ left: link.offsetLeft - (nav.clientWidth - link.offsetWidth) / 2 });
+  }, [tab, gateState]);
+
   // "Updated" stamp refreshes whenever a fetch cycle completes.
   useEffect(() => {
     if (fetching === 0) setUpdated(new Date());
@@ -186,6 +202,24 @@ export default function App() {
     return (
       <div className="grid min-h-dvh place-items-center" role="status" aria-label="Memuat">
         <img src="/brand/joyo-head.webp" alt="" width={104} height={96} className="h-10 w-auto animate-pulse" />
+      </div>
+    );
+  }
+  if (gate.isError) {
+    return (
+      <div className="grid min-h-dvh place-items-center p-6">
+        <StateMessage
+          tone="error"
+          icon={TriangleAlert}
+          title="Tidak bisa terhubung ke server"
+          description="Cek koneksi atau pastikan API sedang berjalan, lalu coba lagi."
+          action={
+            <Button size="sm" variant="outline" onClick={() => void gate.refetch()}>
+              <RotateCw className="size-4" />
+              Coba lagi
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -239,7 +273,7 @@ export default function App() {
               disabled={testEmail.sending}
               onClick={() => void testEmail.send()}
             >
-              {testEmail.sending ? "Sending…" : "Send test email"}
+              {testEmail.sending ? "Mengirim…" : "Kirim email uji"}
             </Button>
             <ThemeToggle />
             <span className="text-xs text-muted-foreground">{email}</span>
@@ -249,7 +283,7 @@ export default function App() {
               disabled={signOut.isPending}
               onClick={() => signOut.mutate()}
             >
-              Sign out
+              Keluar
             </Button>
           </div>
         </header>
@@ -264,7 +298,7 @@ export default function App() {
               href={`#${t.id}`}
               aria-current={tab === t.id ? "page" : undefined}
               className={cn(
-                "rounded-full px-4 py-1.5 text-sm font-semibold",
+                "rounded-full px-4 py-1.5 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 tab === t.id
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground",
@@ -289,8 +323,9 @@ export default function App() {
 
       {/* Phones: bottom tabs. */}
       <nav
+        ref={mobileNav}
         aria-label="Bagian"
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-flow-col auto-cols-fr overflow-x-auto border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-flow-col auto-cols-[minmax(4.75rem,1fr)] overflow-x-auto border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         {TABS.map((t) => (
           <a
@@ -298,7 +333,7 @@ export default function App() {
             href={`#${t.id}`}
             aria-current={tab === t.id ? "page" : undefined}
             className={cn(
-              "flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold",
+              "flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 text-[0.6875rem] font-semibold outline-none focus-visible:bg-muted",
               tab === t.id ? "text-primary" : "text-muted-foreground",
             )}
           >

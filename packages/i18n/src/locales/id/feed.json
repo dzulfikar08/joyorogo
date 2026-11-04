@@ -344,6 +344,7 @@
     "fallbackName": "akun ini",
     "copyLink": "Salin tautan profil",
     "linkCopied": "Tautan disalin.",
+    "copyFailed": "Gagal menyalin tautan. Salin dari bilah alamat.",
     "notFound": {
       "title": "Profil tidak ditemukan",
       "body": "Tautannya salah, atau pemiliknya menutup profilnya."
@@ -540,6 +541,12 @@
       "section": {
         "charts": "Grafik",
         "comparison": "Dibanding latihan serupa"
+      },
+      "map": {
+        "zoomIn": "Perbesar",
+        "zoomOut": "Perkecil",
+        "recenter": "Pusatkan ke rute",
+        "attribution": "Sumber data peta, membuka openfreemap.org"
       },
       "unit": {
         "km": "km",

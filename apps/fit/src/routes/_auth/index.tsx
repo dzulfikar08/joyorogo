@@ -201,7 +201,7 @@ function useDelta() {
     prev: number | null | undefined,
     opts: { better: Better; mode: "pct" | "abs"; digits?: number; unit?: string },
   ) => {
-    if (prev === undefined) return null;
+    if (prev === undefined || cur === null) return null;
     const diff = change(cur, prev);
     if (!diff)
       return <span className="text-xs text-muted-foreground">{t("tiles.noPrevious")}</span>;
@@ -557,7 +557,7 @@ function SleepCard({ rows, prevRows }: CardProps) {
         action={
           <Link
             to="/tidur"
-            className="text-xs font-semibold text-primary underline-offset-4 hover:underline"
+            className="-my-3 py-3 text-xs font-semibold text-primary underline-offset-4 hover:underline"
           >
             {t("sleep.more")}
           </Link>
@@ -665,7 +665,7 @@ function RecentCard({
         action={
           <Link
             to="/latihan"
-            className="text-xs font-semibold text-primary underline-offset-4 hover:underline"
+            className="-my-3 py-3 text-xs font-semibold text-primary underline-offset-4 hover:underline"
           >
             {t("recent.all")}
           </Link>

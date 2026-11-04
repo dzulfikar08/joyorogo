@@ -112,8 +112,16 @@ export function BudgetSetting() {
         value={period}
         onChange={(value) => setPeriod(value)}
       />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {setBudget.isError ? <Text style={styles.error}>{errorMessage(setBudget.error)}</Text> : null}
+      {error ? (
+        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+          {error}
+        </Text>
+      ) : null}
+      {setBudget.isError ? (
+        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+          {errorMessage(setBudget.error)}
+        </Text>
+      ) : null}
       <Button label={t("plate.budget.native.save")} onPress={save} loading={setBudget.isPending} />
     </Card>
   );

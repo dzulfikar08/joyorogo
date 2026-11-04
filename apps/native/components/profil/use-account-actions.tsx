@@ -88,6 +88,8 @@ export function useAccountActions(): AccountActions {
       await teardownReminders();
       await pushSignedOutSnapshot();
       router.replace("/login");
+    } catch (e) {
+      toast.error(t("hubNative.signOut.failedTitle"), errorMessage(e));
     } finally {
       setSigningOut(false);
       setSignOutOpen(false);
@@ -148,6 +150,7 @@ export function useAccountActions(): AccountActions {
         title={t("privacy.wipe.confirmTitle")}
         message={t("privacy.wipe.confirmMessageNative")}
         confirmLabel={t("common:actions.delete")}
+        cancelLabel={t("common:actions.cancel")}
         loading={deleteData.isPending}
         onConfirm={() => {
           setWipeOpen(false);
@@ -161,7 +164,7 @@ export function useAccountActions(): AccountActions {
         message={t("account.delete.confirmMessage")}
         confirmLabel={t("account.delete.title")}
         cancelLabel={t("common:actions.cancel")}
-        loading={deleteAccount.isPending}
+        loading={deleteAccount.isPending || appleChecking}
         onConfirm={() => void confirmDeleteAccount()}
       />
     </>

@@ -374,7 +374,7 @@ export default function VarPerut() {
 
           {/* Scanning stage copy + progress */}
           {scanning ? (
-            <View style={styles.scanInfo} pointerEvents="none">
+            <View style={styles.scanInfo} pointerEvents="none" accessibilityLiveRegion="polite">
               <Text style={styles.stageText}>{t(SCAN_STAGES[stage]!)}</Text>
               <Text style={styles.beepText}>{t("live.beepNative")}</Text>
               <View style={styles.progressTrack}>
@@ -405,7 +405,10 @@ export default function VarPerut() {
         >
           {hidden ? (
             <>
-              <View style={[styles.verdictCard, { borderColor: "#C9C4BA" }]}>
+              <View
+                accessibilityLiveRegion="polite"
+                style={[styles.verdictCard, { borderColor: "#C9C4BA" }]}
+              >
                 <View style={styles.verdictHead}>
                   <Ionicons name="eye-off" size={22} color="#C9C4BA" />
                   <Text style={[styles.verdictTitle, { color: "#C9C4BA" }]}>
@@ -429,7 +432,10 @@ export default function VarPerut() {
             </>
           ) : revealed && scan && verdict ? (
             <>
-              <View style={[styles.verdictCard, { borderColor: verdict.color }]}>
+              <View
+                accessibilityLiveRegion="polite"
+                style={[styles.verdictCard, { borderColor: verdict.color }]}
+              >
                 <View style={styles.verdictHead}>
                   <Ionicons name={verdict.icon} size={22} color={verdict.color} />
                   <Text style={[styles.verdictTitle, { color: verdict.color }]}>
@@ -475,7 +481,7 @@ export default function VarPerut() {
                   accessibilityRole="button"
                   accessibilityState={{ expanded: infoOpen }}
                   onPress={() => setInfoOpen((open) => !open)}
-                  hitSlop={8}
+                  hitSlop={16}
                   style={styles.infoToggle}
                 >
                   <Text style={styles.honestNote}>{t("live.about")}</Text>

@@ -108,7 +108,7 @@ function GuideLink({ label }: { label: string }) {
       href="https://joyorogo.com/panduan/kalori"
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-block px-1 text-sm font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
+      className="inline-flex min-h-11 items-center px-1 text-sm font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
     >
       {label}
     </a>
@@ -617,7 +617,20 @@ function OnboardingPage() {
         </div>
       </header>
 
-      <div className="mt-8">
+      <div
+        className="mt-8"
+        onKeyDown={(event) => {
+          // Number fields are not in a <form>: the keyboard's Go/Enter key still moves on.
+          if (
+            event.key === "Enter" &&
+            event.target instanceof HTMLInputElement &&
+            !save.isPending
+          ) {
+            event.preventDefault();
+            next();
+          }
+        }}
+      >
         <h1 className="text-[1.75rem] leading-tight font-extrabold tracking-tight">
           {titles[key]}
         </h1>
@@ -627,23 +640,18 @@ function OnboardingPage() {
 
         <div className="mt-6">
           {key === "birth" && (
-            <div className="relative">
-              <Input
-                id="birth-year"
-                aria-label={t("question.birth.label")}
-                autoFocus
-                type="number"
-                inputMode="numeric"
-                min="1930"
-                max="2020"
-                value={form.birthYear}
-                onChange={(event) => set({ birthYear: event.target.value })}
-                className="h-16 pr-14 text-center text-3xl font-extrabold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              />
-              <span className="pointer-events-none absolute top-1/2 right-5 -translate-y-1/2 text-base font-semibold text-muted-foreground">
-                {t("question.birth.unit")}
-              </span>
-            </div>
+            <Input
+              id="birth-year"
+              aria-label={t("question.birth.label")}
+              autoFocus
+              type="number"
+              inputMode="numeric"
+              min="1930"
+              max="2020"
+              value={form.birthYear}
+              onChange={(event) => set({ birthYear: event.target.value })}
+              className="h-16 text-center text-3xl font-extrabold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
           )}
 
           {key === "gender" && (

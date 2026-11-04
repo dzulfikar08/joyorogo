@@ -171,6 +171,8 @@ export function NotificationsScreen() {
                 }
                 title={t(`notifications:categories.${key}.title`)}
                 subtitle={t(`notifications:categories.${key}.desc`)}
+                wrapTitle
+                fullSubtitle
                 trailing={
                   <Switch
                     checked={data[key]}
@@ -268,7 +270,7 @@ function QuietTime({
           const next = event.target.value;
           if (HHMM.test(next) && next !== value) onChange(next);
         }}
-        className="w-32"
+        className="w-40"
       />
     </div>
   );

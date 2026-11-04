@@ -102,6 +102,8 @@ export default function Koneksi() {
           <Text style={styles.url} selectable>
             {url}
           </Text>
+        ) : info.isError ? (
+          <ErrorState message={t("list.error")} onRetry={() => void info.refetch()} />
         ) : (
           <Skeleton width="100%" height={24} radius={8} />
         )}
@@ -112,7 +114,7 @@ export default function Koneksi() {
             variant="ghost"
             icon="book"
             label={t("connector.guide")}
-            onPress={() => void Linking.openURL(GUIDE_URL)}
+            onPress={() => void Linking.openURL(GUIDE_URL).catch(() => {})}
           />
         </View>
       </Card>

@@ -206,6 +206,7 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     gap: theme.spacing.sm,
     paddingVertical: theme.spacing.xs,
+    minHeight: 44,
   },
   sourceText: {
     flex: 1,

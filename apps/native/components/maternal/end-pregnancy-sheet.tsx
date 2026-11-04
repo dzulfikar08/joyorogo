@@ -128,7 +128,11 @@ export function EndPregnancySheet({ visible, onClose }: { visible: boolean; onCl
         </Field>
       ) : null}
 
-      {save.isError ? <Text style={styles.error}>{errorMessage(save.error)}</Text> : null}
+      {save.isError ? (
+        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+          {errorMessage(save.error)}
+        </Text>
+      ) : null}
     </Sheet>
   );
 }

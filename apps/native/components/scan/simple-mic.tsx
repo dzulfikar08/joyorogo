@@ -151,7 +151,15 @@ export function SimpleMic({
         </View>
       </Pressable>
 
-      {error ? <Text style={[styles.error, dark]}>{error}</Text> : null}
+      {error ? (
+        <Text
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+          style={[styles.error, dark]}
+        >
+          {error}
+        </Text>
+      ) : null}
       {context ? (
         context.queued && !recording ? (
           <View style={styles.queued}>

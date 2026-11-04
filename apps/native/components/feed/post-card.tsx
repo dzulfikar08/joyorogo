@@ -118,6 +118,7 @@ function StoryText({ caption }: { caption: string }) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={expanded ? t("post.showLess") : t("post.showMore")}
+          hitSlop={8}
           onPress={() => setExpanded((prev) => !prev)}
           style={({ pressed }) => [styles.moreWrap, pressed && styles.pressed]}
         >
@@ -402,6 +403,7 @@ export function PostCard({
           ) : null}
           <View
             style={[styles.kindBadge, { backgroundColor: theme.colors[`${meta.tint}Soft`] }]}
+            accessible
             accessibilityLabel={meta.label}
           >
             <Ionicons name={meta.icon as ComponentProps<typeof Ionicons>["name"]} size={14} color={theme.colors[`${meta.tint}Text`]} />
@@ -450,7 +452,7 @@ export function PostCard({
       <View style={styles.actionRow}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={kudos.byMe ? t("post.kudos.remove") : t("post.kudos.give")}
+          accessibilityLabel={`${kudos.byMe ? t("post.kudos.remove") : t("post.kudos.give")}${kudos.count > 0 ? `, ${fmtInt(kudos.count)}` : ""}`}
           accessibilityState={{ selected: kudos.byMe }}
           onPress={() => !toggleKudos.isPending && toggleKudos.mutate()}
           style={({ pressed }) => [styles.actionButton, pressed && styles.pressed]}
@@ -466,7 +468,11 @@ export function PostCard({
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={post.commentsOff ? t("comments.off.label") : t("comments.placeholder")}
+          accessibilityLabel={
+            post.commentsOff
+              ? t("comments.off.label")
+              : `${t("comments.title")}${post.commentCount > 0 ? `, ${fmtInt(post.commentCount)}` : ""}`
+          }
           onPress={commentPress}
           disabled={!commentPress}
           style={({ pressed }) => [styles.actionButton, pressed && styles.pressed]}
@@ -684,6 +690,7 @@ const styles = StyleSheet.create((theme) => ({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    minHeight: 44,
     paddingVertical: 4,
   },
   actionText: {

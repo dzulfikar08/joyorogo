@@ -29,6 +29,8 @@ export function useAccountActions() {
       await signOut();
       setSignOutOpen(false);
       navigate({ to: "/login" });
+    } catch {
+      toast.error(t("common:state.genericError"));
     } finally {
       setSigningOut(false);
     }

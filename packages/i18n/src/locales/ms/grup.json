@@ -89,6 +89,7 @@
     "memberFallback": "Ahli",
     "left": "Anda keluar daripada kumpulan.",
     "linkCopied": "Pautan disalin",
+    "copyFailed": "Gagal menyalin. Guna Kongsi sebaliknya.",
     "sendFailed": "Gagal menghantar",
     "settingsSaved": "Tetapan kumpulan disimpan",
     "shareFailed": "Gagal menukar tetapan kongsi",
@@ -128,7 +129,10 @@
     },
     "members": {
       "title": "Ahli",
-      "remove": "Keluarkan"
+      "remove": "Keluarkan",
+      "removeNamed": "Keluarkan {{name}}",
+      "confirm": "Keluarkan {{name}} daripada kumpulan ini?",
+      "confirmYes": "Ya, keluarkan"
     },
     "leave": {
       "confirm": "Keluar daripada {{name}}?",

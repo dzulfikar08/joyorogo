@@ -1,6 +1,7 @@
 import { Button } from "@joyorogo/ui/components/button";
 import { Activity, BedDouble, Crown, LayoutDashboard, LogOut, RotateCw } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { type Session, signOut } from "@/lib/auth-client";
@@ -22,6 +23,7 @@ export function ProWall({
 }) {
   const { t } = useTranslation("fitWeb");
   const navigate = useNavigate();
+  const [rechecked, setRechecked] = useState(false);
   const features = [
     { Icon: LayoutDashboard, text: t("wall.featureOverview") },
     { Icon: Activity, text: t("wall.featureWorkouts") },
@@ -55,10 +57,20 @@ export function ProWall({
           <Button size="lg" nativeButton={false} render={<a href={PRICING_URL} />}>
             {t("wall.cta")}
           </Button>
-          <Button variant="secondary" disabled={checking} onClick={onRecheck}>
+          <Button
+            variant="secondary"
+            disabled={checking}
+            onClick={() => {
+              setRechecked(true);
+              onRecheck();
+            }}
+          >
             <RotateCw className={checking ? "animate-spin" : undefined} aria-hidden />
             {t("wall.recheck")}
           </Button>
+          <p role="status" className="min-h-5 text-center text-xs text-muted-foreground">
+            {rechecked && !checking ? t("wall.stillLocked") : ""}
+          </p>
           <Button
             variant="ghost"
             size="sm"

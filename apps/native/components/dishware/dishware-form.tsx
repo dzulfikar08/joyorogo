@@ -238,7 +238,11 @@ export function DishwareForm({ plate, onDone }: { plate?: Plate; onDone: () => v
         </>
       ) : null}
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+          {error}
+        </Text>
+      ) : null}
       <View style={styles.row}>
         <Button
           label={saving ? t("dishware.form.saving") : t("dishware.form.save")}

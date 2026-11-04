@@ -408,9 +408,10 @@ export function ThreadsBotSection() {
               <button
                 key={v.id}
                 role="tab"
+                type="button"
                 aria-selected={view === v.id}
                 onClick={() => setView(v.id)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${view === v.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                className={`rounded-full px-3 py-1 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring max-md:min-h-11 pointer-coarse:min-h-11 ${view === v.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 {v.label}
               </button>

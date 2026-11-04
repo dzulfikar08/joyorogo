@@ -120,9 +120,13 @@ export function WaterCard({ date, bare = false }: { date?: string; bare?: boolea
     />
   );
   const status = error ? (
-    <Text style={styles.errorText}>{error}</Text>
+    <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="polite">
+      {error}
+    </Text>
   ) : loadError ? (
-    <Text style={styles.errorText}>{t("water.loadError")}</Text>
+    <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="polite">
+      {t("water.loadError")}
+    </Text>
   ) : null;
 
   if (bare) {

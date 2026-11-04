@@ -489,7 +489,9 @@ function PlateEditSheet({
                 onClick={() => setPickingDate(true)}
               >
                 <CalendarIcon aria-hidden />
-                {relativeDayLabel(date, jakartaToday())}
+                {[0, 1, 2].some((back) => shiftDate(jakartaToday(), -back) === date)
+                  ? t("portionSheet.pickDateShort")
+                  : relativeDayLabel(date, jakartaToday())}
               </Button>
               <p className="text-xs text-muted-foreground">
                 {dateChanged

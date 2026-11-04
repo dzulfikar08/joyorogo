@@ -37,7 +37,7 @@ const LEGAL_NAV: Record<LegalLang, ReadonlyArray<{ href: string; label: string }
 };
 
 const NAV_LINK = cn(
-  "inline-flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground",
+  "inline-flex min-h-11 items-center rounded-full px-3 text-sm font-semibold whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground",
   FOCUS,
 );
 
@@ -70,7 +70,7 @@ export function HeaderMy({ legal }: { legal?: LegalLang } = {}) {
           <img src="/brand/joyo-head.webp" alt="" width={104} height={96} className="h-7 w-auto md:h-8" />
           <span className="text-lg font-extrabold tracking-tight">JoyoRogo</span>
         </a>
-        <nav aria-label="Utama" className="hidden items-center gap-1 md:flex">
+        <nav aria-label="Utama" className="hidden items-center gap-1 lg:flex">
           {nav.map((item) => (
             <a key={item.href} href={item.href} className={NAV_LINK}>
               {item.label}
@@ -78,7 +78,7 @@ export function HeaderMy({ legal }: { legal?: LegalLang } = {}) {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <Link to="/" lang="id" hrefLang="id" className={cn(NAV_LINK, "hidden md:inline-flex")}>
+          <Link to="/" lang="id" hrefLang="id" className={cn(NAV_LINK, "hidden lg:inline-flex")}>
             Bahasa Indonesia
           </Link>
           <Button
@@ -94,7 +94,7 @@ export function HeaderMy({ legal }: { legal?: LegalLang } = {}) {
             aria-controls="menu-my"
             onClick={() => setOpen((value) => !value)}
             className={cn(
-              "inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold hover:bg-muted md:hidden",
+              "inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold hover:bg-muted lg:hidden",
               FOCUS,
             )}
           >
@@ -107,7 +107,7 @@ export function HeaderMy({ legal }: { legal?: LegalLang } = {}) {
         <nav
           id="menu-my"
           aria-label="Menu"
-          className="mx-auto flex max-w-6xl flex-col border-t border-border/70 px-4 pb-3 md:hidden"
+          className="mx-auto flex max-w-6xl flex-col border-t border-border/70 px-4 pb-3 lg:hidden"
         >
           {nav.map((item) => (
             <a key={item.href} href={item.href} onClick={() => setOpen(false)} className={cn(NAV_LINK, "px-2")}>
