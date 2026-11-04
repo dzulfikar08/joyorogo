@@ -205,7 +205,8 @@ export default function App() {
       </div>
     );
   }
-  if (gate.isError) {
+  // Only when the gate never loaded: a failed background refetch keeps the console (and any draft) on screen.
+  if (gate.isError && !gate.data) {
     return (
       <div className="grid min-h-dvh place-items-center p-6">
         <StateMessage

@@ -47,7 +47,7 @@ import { PublicFooter } from "@/components/public-footer";
 import { FounderPromo } from "@/components/founder-promo";
 import { useProBenefits } from "@/components/pro-benefits";
 import { Testimonials } from "@/components/testimonials";
-import { fmtRupiahId, fmtUsd, useAppConfig } from "@/lib/app-config";
+import { fmtRupiah, fmtUsd, useAppConfig } from "@/lib/app-config";
 import type { AppConfig } from "@/lib/app-config";
 import { HOSTS } from "@/lib/app-host";
 import { landingSkipsForSignedIn } from "@/lib/hosts";
@@ -414,7 +414,7 @@ function pricingFaq(
   return [
     {
       q: "Gratisnya sampai kapan?",
-      a: `Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan ${config.freeDailyScans} foto AI per hari. Pro ${fmtRupiahId(config.founderPriceIdr)} per bulan: ${scansText(config.founderDailyCap).toLowerCase()}, plus fitur AI lain, rencana makan, cadangan cloud JoyoFit, tantangan grup buatanmu sendiri, dan dukungan prioritas lewat DM Threads (daftar lengkap ada di halaman Harga). Paket tahunan ${fmtRupiahId(config.founderYearlyPriceIdr)}, setara ${fmtRupiahId(Math.round(config.founderYearlyPriceIdr / 12))} per bulan.${config.usd?.preferred ? ` Di luar Indonesia harganya dalam dolar: ${fmtUsd(config.usd.monthlyCents)} per bulan atau ${fmtUsd(config.usd.yearlyCents)} per tahun, dibayar dengan kartu lewat Polar.` : ""}`,
+      a: `Diary makan, olahraga, berat, dan tidur gratis selamanya, dengan ${config.freeDailyScans} foto AI per hari. Pro ${fmtRupiah(config.founderPriceIdr, "id")} per bulan: ${scansText(config.founderDailyCap).toLowerCase()}, plus fitur AI lain, rencana makan, cadangan cloud JoyoFit, tantangan grup buatanmu sendiri, dan dukungan prioritas lewat DM Threads (daftar lengkap ada di halaman Harga). Paket tahunan ${fmtRupiah(config.founderYearlyPriceIdr, "id")}, setara ${fmtRupiah(Math.round(config.founderYearlyPriceIdr / 12), "id")} per bulan.${config.usd?.preferred ? ` Di luar Indonesia harganya dalam dolar: ${fmtUsd(config.usd.monthlyCents)} per bulan atau ${fmtUsd(config.usd.yearlyCents)} per tahun, dibayar dengan kartu lewat Polar.` : ""}`,
     },
   ];
 }
@@ -1221,7 +1221,7 @@ function Landing() {
                   <p className="mt-2 text-4xl font-extrabold tracking-tight">
                     {showUsd
                       ? fmtUsd(config.data.usd!.monthlyCents)
-                      : fmtRupiahId(config.data.founderPriceIdr)}
+                      : fmtRupiah(config.data.founderPriceIdr, "id")}
                   </p>
                   <p className="text-sm text-muted-foreground">per bulan</p>
                   <ul className="mt-5 space-y-2 text-sm">
@@ -1241,7 +1241,7 @@ function Landing() {
                       <Check className="mt-0.5 size-4 shrink-0 text-makan-ink" aria-hidden />
                       {showUsd
                         ? `Paket tahunan ${fmtUsd(config.data.usd!.yearlyCents)}/tahun, setara ${fmtUsd(Math.round(config.data.usd!.yearlyCents / 12))}/bulan`
-                        : `Paket tahunan ${fmtRupiahId(config.data.founderYearlyPriceIdr)}/tahun, setara ${fmtRupiahId(Math.round(config.data.founderYearlyPriceIdr / 12))}/bulan`}
+                        : `Paket tahunan ${fmtRupiah(config.data.founderYearlyPriceIdr, "id")}/tahun, setara ${fmtRupiah(Math.round(config.data.founderYearlyPriceIdr / 12), "id")}/bulan`}
                     </li>
                     {showUsd && (
                       <li className="flex gap-2">

@@ -18,11 +18,13 @@ export function ProWall({
   checking,
 }: {
   session: Session;
-  onRecheck: () => void;
+  /** Resolves once the access check has run; when it unlocks, this wall unmounts. */
+  onRecheck: () => Promise<unknown>;
   checking: boolean;
 }) {
   const { t } = useTranslation("fitWeb");
   const navigate = useNavigate();
+  // Set only after a recheck the user asked for has finished, so "still locked" never shows before it ran.
   const [rechecked, setRechecked] = useState(false);
   const features = [
     { Icon: LayoutDashboard, text: t("wall.featureOverview") },
@@ -60,9 +62,10 @@ export function ProWall({
           <Button
             variant="secondary"
             disabled={checking}
-            onClick={() => {
+            onClick={async () => {
+              setRechecked(false);
+              await onRecheck();
               setRechecked(true);
-              onRecheck();
             }}
           >
             <RotateCw className={checking ? "animate-spin" : undefined} aria-hidden />

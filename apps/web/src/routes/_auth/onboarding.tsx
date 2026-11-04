@@ -621,8 +621,10 @@ function OnboardingPage() {
         className="mt-8"
         onKeyDown={(event) => {
           // Number fields are not in a <form>: the keyboard's Go/Enter key still moves on.
+          // Not while an IME is composing: that Enter confirms a candidate.
           if (
             event.key === "Enter" &&
+            !event.nativeEvent.isComposing &&
             event.target instanceof HTMLInputElement &&
             !save.isPending
           ) {

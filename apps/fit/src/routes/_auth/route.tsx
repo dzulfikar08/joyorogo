@@ -60,7 +60,7 @@ function AuthLayout() {
     return (
       <ProWall
         session={session.data}
-        onRecheck={() => void access.refetch()}
+        onRecheck={() => access.refetch()}
         checking={access.isFetching}
       />
     );

@@ -1,4 +1,4 @@
-import { fmtIdr, i18n, isRegion, setActiveRegion } from "@joyorogo/i18n";
+import { fmtIdr, isRegion, setActiveRegion } from "@joyorogo/i18n";
 import type { Locale, Region } from "@joyorogo/i18n";
 import { useQuery } from "@tanstack/react-query";
 
@@ -113,16 +113,4 @@ export function useAppConfig() {
 
 export function fmtRupiah(amount: number, locale?: Locale): string {
   return fmtIdr(amount, locale);
-}
-
-/** Rupiah in Indonesian grouping ("Rp15.000"), for the Indonesian-only public pages whatever the device language. */
-export function fmtRupiahId(amount: number): string {
-  return fmtIdr(amount, "id");
-}
-
-/** Founder scan allowance as sold: the daily cap when the server sets one. */
-export function founderScans(config: Pick<AppConfig, "founderDailyCap">): string {
-  return config.founderDailyCap === null
-    ? i18n.t("billing:benefits.scansUnlimited")
-    : i18n.t("billing:benefits.scansCapped", { count: config.founderDailyCap });
 }

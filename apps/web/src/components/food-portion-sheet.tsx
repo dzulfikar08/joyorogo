@@ -7,12 +7,7 @@ import { CalendarIcon, Link2, Link2Off, MessagesSquare } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  MEAL_EDIT_LABELS,
-  jakartaToday,
-  relativeDayLabel,
-  shiftDate,
-} from "@joyorogo/api/lib/engine";
+import { MEAL_EDIT_LABELS, jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { PORTION_MULTIPLIERS, rescaleForGrams, scalePortion } from "@joyorogo/api/lib/portion";
@@ -23,7 +18,7 @@ import { FieldLabel } from "@/components/kit/surface";
 import { MacroLine } from "@/components/macro-line";
 import { EatenAtField } from "@/components/plate/eaten-at-field";
 import { MealSlotField } from "@/components/plate/meal-slot-field";
-import { CalendarSheet, DayChips } from "@/components/plate/plate-group";
+import { CalendarSheet, DayChips, isQuickDay } from "@/components/plate/plate-group";
 import { FoodSafetyNotes } from "@/components/maternal/food-safety-notes";
 import { SheetActions } from "@/components/sheet-actions";
 import { StickerHero, useStickerTarget } from "@/components/sticker";
@@ -527,7 +522,7 @@ export function FoodPortionSheet({
                 onClick={() => setPickingDate(true)}
               >
                 <CalendarIcon aria-hidden />
-                {[0, 1, 2].some((back) => shiftDate(jakartaToday(), -back) === date)
+                {isQuickDay(date)
                   ? t("portionSheet.pickDateShort")
                   : relativeDayLabel(date, jakartaToday())}
               </Button>

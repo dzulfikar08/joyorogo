@@ -6,7 +6,7 @@ import { CalendarIcon, Link2, Link2Off } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { jakartaToday, relativeDayLabel, shiftDate } from "@joyorogo/api/lib/engine";
+import { jakartaToday, relativeDayLabel } from "@joyorogo/api/lib/engine";
 import {
   EXERCISE_MAX_DURATION,
   EXERCISE_MAX_KCAL,
@@ -18,7 +18,7 @@ import { recentDayLabel } from "@joyorogo/api/lib/format";
 
 import { FieldLabel } from "@/components/kit/surface";
 import { InfoAccordion } from "@/components/onboarding/info-accordion";
-import { CalendarSheet, DayChips } from "@/components/plate/plate-group";
+import { CalendarSheet, DayChips, isQuickDay } from "@/components/plate/plate-group";
 import type { ExerciseItem } from "@/lib/api-types";
 import { fmtDateLong, fmtInt, fmtKcalLabel, parseNum } from "@/lib/format";
 import { OptimisticCache, useOptimisticMutation } from "@/lib/optimistic";
@@ -309,7 +309,7 @@ export function ExerciseEditSheet({ row, onClose }: { row: ExerciseItem; onClose
                 onClick={() => setPickingDate(true)}
               >
                 <CalendarIcon aria-hidden />
-                {[0, 1, 2].some((back) => shiftDate(jakartaToday(), -back) === date)
+                {isQuickDay(date)
                   ? t("makan:portionSheet.pickDateShort")
                   : recentDayLabel(date, jakartaToday())}
               </Button>

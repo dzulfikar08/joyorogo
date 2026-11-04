@@ -47,7 +47,7 @@ async function fileToImageBase64(file: File) {
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error(i18n.t("scan:flow.imageUnsupported"));
+  if (!ctx) throw new Error(i18n.t("scan:flow.imageUnsupported", { lng: "id" }));
   // Flatten alpha onto white: the vision endpoint rejects transparent PNGs.
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, width, height);
@@ -70,7 +70,7 @@ const PICKER =
  * client-side and never stored.
  */
 export function ScanDemo() {
-  // The landing is Indonesian whatever the UI language is, so the demo's copy is pinned to it.
+  // The landing is Indonesian whatever the UI language is, so the demo's copy, units and numbers are pinned to it.
   const { i18n: i18nInstance } = useTranslation("scan");
   const t = i18nInstance.getFixedT("id", "scan");
   const config = useAppConfig();
@@ -257,9 +257,9 @@ export function ScanDemo() {
               <div>
                 <p className="text-sm font-semibold text-muted-foreground">{t("demo.total")}</p>
                 <p className="text-[2.75rem] leading-none font-extrabold tracking-tighter tabular-nums">
-                  {fmtInt(total)}
+                  {fmtInt(total, "id")}
                   <span className="ml-1.5 text-base font-semibold tracking-normal text-muted-foreground">
-                    {kcalUnit()}
+                    {kcalUnit("id")}
                   </span>
                 </p>
               </div>
@@ -280,7 +280,7 @@ export function ScanDemo() {
                   key={`${item.name}-${index}`}
                   title={item.name}
                   subtitle={item.portion}
-                  value={fmtKcalLabel(item.kcal)}
+                  value={fmtKcalLabel(item.kcal, "id")}
                 />
               ))}
             </ListGroup>

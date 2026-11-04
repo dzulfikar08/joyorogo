@@ -1,3 +1,4 @@
+import { SheetCloseLabelProvider } from "@joyorogo/ui/components/sheet";
 import { Toaster } from "@joyorogo/ui/components/sonner";
 import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -52,17 +53,19 @@ function RootComponent() {
   // Remount the tree on a language switch: strings read through the shared
   // format helpers (dates, units) have no subscription of their own. The URL
   // and the query cache live outside the tree and survive.
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
     <>
       <HeadContent />
       <ThemeProvider>
-        <Fragment key={i18n.language}>
-          <Outlet />
-          {signInPending() && <SignInReporter />}
-          <IosInstallHost />
-          <Toaster position="top-center" />
-        </Fragment>
+        <SheetCloseLabelProvider label={t("actions.close")}>
+          <Fragment key={i18n.language}>
+            <Outlet />
+            {signInPending() && <SignInReporter />}
+            <IosInstallHost />
+            <Toaster position="top-center" />
+          </Fragment>
+        </SheetCloseLabelProvider>
       </ThemeProvider>
       {import.meta.env.DEV && (
         <>

@@ -55,8 +55,13 @@ function RouteComponent() {
   const { t, i18n } = useTranslation("auth");
   const isPending = false;
   const { redirect: returnTo, error: returnedError } = Route.useSearch();
+  // access_denied = the user backed out of Google's consent screen, not a connection problem.
   const [signInError, setSignInError] = useState<string | null>(
-    returnedError ? t("login.error.network") : null,
+    returnedError === undefined
+      ? null
+      : returnedError === "access_denied"
+        ? t("login.error.googleCancelled")
+        : t("login.error.googleFailed"),
   );
 
   // Absolute web-origin URLs: better-auth resolves relative callbackURLs
