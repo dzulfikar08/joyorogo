@@ -33,7 +33,7 @@ export type LegalDoc = {
   sections: readonly LegalSection[];
 };
 
-export const LEGAL_VERSION = "2026-10-21";
+export const LEGAL_VERSION = "2026-11-04";
 
 /** Complaints body named in the notice (docs/marketing/malaysia-plan.md section 6). */
 export const PDP_EMAIL = "aduan@pdp.gov.my";
@@ -312,7 +312,7 @@ const PRIVACY_MS: LegalDoc = {
       title: "Komuniti: suapan dan kumpulan",
       blocks: [
         "Tiada apa-apa yang dikongsi secara automatik. Hanya perkara yang anda pilih untuk disiarkan (makanan, latihan, berat atau cerita, dengan foto dan keterangan yang anda tulis) yang kelihatan kepada orang lain: kepada ahli kumpulan anda, atau kepada semua orang jika anda memilih awam dan menghidupkan profil awam. Nama, foto profil, nama pengguna (handle) dan bio turut dipaparkan bersama siaran anda. Siaran awam dan komen boleh dilaporkan, dan pengguna boleh menyekat pengguna lain. Anda boleh memadam siaran anda bila-bila masa.",
-        "Latihan daripada jam yang anda siarkan melalui JoyoFit (Share to JoyoRogo) boleh membawa laluan GPS, graf denyutan jantung dan analisis latihan, mengikut suis yang anda pilih semasa menyiarkan. Ringkasan latihan kelihatan kepada khalayak yang anda pilih (kumpulan atau awam); butirannya (peta, graf, split, zon) kelihatan kepada anda dan ahli JoyoRogo Pro. Siaran itu salinan berasingan: memadam latihan di telefon atau di awan tidak memadam siarannya, dan memadam siaran memadam kudos, komen, laluan dan grafnya. Siaran dan komen disimpan sehingga anda memadamnya atau akaun anda dipadam.",
+        "Latihan daripada jam yang anda siarkan melalui JoyoFit (Share to JoyoRogo) boleh membawa laluan GPS, graf denyutan jantung dan analisis latihan, mengikut suis yang anda pilih semasa menyiarkan. Ringkasan latihan kelihatan kepada khalayak yang anda pilih (kumpulan atau awam); butirannya (peta, graf, split, zon) kelihatan kepada anda dan ahli Joyo Pro. Siaran itu salinan berasingan: memadam latihan di telefon atau di awan tidak memadam siarannya, dan memadam siaran memadam kudos, komen, laluan dan grafnya. Siaran dan komen disimpan sehingga anda memadamnya atau akaun anda dipadam.",
         "Menyertai cabaran kumpulan bermakna ahli kumpulan itu boleh melihat sama ada sasaran anda tercapai setiap hari, streak anda, dan angka langkah, strain, tidur atau bilangan latihan anda untuk cabaran tersebut. Angka makanan anda (kalori dan protein) hanya kelihatan kepada anda, rakan hanya melihat tercapai atau tidak. Anda boleh keluar daripada cabaran bila-bila masa dan data anda di papan kedudukannya turut hilang.",
         "Papan konsistensi mingguan (pilihan, mati secara lalai). Jika anda menyertainya, orang lain melihat nama atau nama samaran pilihan anda, bilangan hari anda mencatat, hari senaman, hari protein dan streak anda pada minggu itu. Berat badan dan data badan tidak pernah dipaparkan, dan papan tidak pernah disusun mengikut berat. Papan tidak tersedia semasa hamil atau menyusu. Keluar daripada papan serta-merta memadam data anda di papan, dan Padam semua data atau memadam akaun turut memadam lencana dan data papan anda. Lencana dikira daripada catatan anda; pada profil awam, lencana hanya kelihatan jika profil awam anda dihidupkan.",
       ],
@@ -346,7 +346,7 @@ const PRIVACY_MS: LegalDoc = {
       id: "pembayaran",
       title: "Pembayaran",
       blocks: [
-        "Di web, Pro dibayar sekali bagi satu tempoh melalui halaman pembayaran di pelayar: QRIS melalui Pakasir atau pindahan bank melalui DOKU (kaedah rupiah). Kami menyimpan nombor pesanan, jumlah, status dan waktu pembayaran. DOKU menerima nama dan e-mel anda untuk membuat halaman pembayaran. Kami tidak menyimpan nombor kad, akaun bank atau data dompet digital anda; itu dikendalikan penyedia pembayaran. Bukti pembayaran dihantar ke e-mel anda.",
+        "Di web, Pro dibayar sekali bagi satu tempoh melalui halaman pembayaran di pelayar: QRIS atau pindahan bank melalui DOKU (kaedah rupiah; pesanan QRIS sebelum November 2026 melalui Pakasir). Kami menyimpan nombor pesanan, jumlah, status dan waktu pembayaran. DOKU menerima nama dan e-mel anda untuk membuat halaman pembayaran. Kami tidak menyimpan nombor kad, akaun bank atau data dompet digital anda; itu dikendalikan penyedia pembayaran. Bukti pembayaran dihantar ke e-mel anda.",
         "Pembelian dalam dolar AS (USD) di web diproses oleh Polar (polar.sh, Polar Software Inc.), merchant of record bagi transaksi itu. Polar mengumpul data kad, nama, e-mel, negara atau alamat bil, dan nombor cukai (jika ada) untuk mengira cukai dan menyemak penipuan. JoyoRogo menerima nombor pesanan, jumlah, status, status langganan dan ID pelanggan Polar. JoyoRogo tidak pernah melihat nombor kad anda. Dasar privasi Polar: [polar.sh/legal/privacy](https://polar.sh/legal/privacy).",
         "Di aplikasi, Pro ialah langganan automatik melalui App Store (iPhone) atau Google Play (Android). Pembayarannya dikendalikan Apple atau Google; kami tidak menerima nombor kad atau data pembayaran anda. Yang kami simpan untuk mengaitkan langganan dengan akaun anda dan memperbaharui atau menarik balik Pro apabila Apple atau Google memberi khabar (pembaharuan, pembatalan, bayaran balik):",
         { list: [
@@ -356,6 +356,14 @@ const PRIVACY_MS: LegalDoc = {
         ] },
         { note: "Langganan diurus dan dibatalkan di tetapan Apple atau Google, bukan di JoyoRogo." },
         { note: "Syarat pembelian ada di [Syarat Perkhidmatan](/my/syarat) dan [Pengembalian Dana](/pengembalian-dana) (Bahasa Indonesia)." },
+      ],
+    },
+    {
+      id: "joyoarto",
+      title: "JoyoArto menyemak status Joyo Pro",
+      blocks: [
+        "Joyo Pro juga membuka JoyoArto, aplikasi catatan kewangan keluarga daripada pembangun yang sama (app.arto.joyorogo.com). JoyoArto mempunyai akaun dan pangkalan data sendiri. Untuk mengetahui sama ada anda Pro, pelayan JoyoArto bertanya kepada pelayan JoyoRogo dengan ID akaun Google anda (pengenal yang sama dalam kedua-dua aplikasi kerana keduanya menggunakan log masuk Google yang sama) dan e-mel anda; e-mel hanya dipadankan dengan akaun JoyoRogo yang e-melnya sudah disahkan.",
+        "JoyoRogo hanya menjawab sama ada anda Pro, sehingga bila, pelannya (bulanan, tahunan atau seumur hidup) dan saluran pembeliannya. Tiada data makan, berat, kesihatan atau senaman dihantar ke JoyoArto, dan JoyoRogo tidak menerima data kewangan anda daripada JoyoArto. Pertanyaan ini tidak menulis e-mel anda ke dalam log.",
       ],
     },
     {
@@ -383,7 +391,7 @@ const PRIVACY_MS: LegalDoc = {
       id: "koneksi-ai",
       title: "Sambungan AI (Claude dan ChatGPT)",
       blocks: [
-        "Ciri JoyoRogo Pro ini membenarkan aplikasi AI pilihan anda, contohnya Claude daripada Anthropic atau ChatGPT daripada OpenAI, membaca data anda. Tiada apa-apa yang bersambung kecuali anda sendiri menambah penyambungnya di aplikasi AI itu, log masuk ke JoyoRogo, dan menekan Benarkan pada skrin kebenaran yang menyebut data apa yang diminta.",
+        "Ciri Joyo Pro ini membenarkan aplikasi AI pilihan anda, contohnya Claude daripada Anthropic atau ChatGPT daripada OpenAI, membaca data anda. Tiada apa-apa yang bersambung kecuali anda sendiri menambah penyambungnya di aplikasi AI itu, log masuk ke JoyoRogo, dan menekan Benarkan pada skrin kebenaran yang menyebut data apa yang diminta.",
         { list: [
           "Yang dikongsi: hanya data yang kebenarannya anda setujui (profil dan sasaran, catatan makan, berat badan, latihan, tidur dan pemulihan), dan hanya dibaca. Aplikasi AI tidak boleh mencatat, mengubah atau memadam apa-apa di akaun anda.",
           "Bila dan kepada siapa: data dihantar daripada JoyoRogo kepada aplikasi AI itu dan penyedianya, dan hanya apabila anda mengemukakan soalan di akaun anda di sana. JoyoRogo tidak menghantar data anda ke mana-mana atas inisiatif sendiri melalui sambungan ini.",
@@ -414,7 +422,7 @@ const PRIVACY_MS: LegalDoc = {
         "Kami tidak menjual data anda. Kami mengongsinya hanya dengan kelas pihak ketiga dan pemproses berikut, setakat yang perlu untuk ciri yang anda gunakan, seperti diterangkan di bahagian di atas:",
         { list: [
           "Penyedia infrastruktur dan AI: Cloudflare (Workers AI untuk foto, cerita dan Coach; storan dan pelayan, termasuk pelayan awan JoyoFit).",
-          "Pembayaran: Polar (Polar Software Inc.) untuk pembelian USD; DOKU dan Pakasir untuk pembayaran rupiah; Apple (App Store) dan Google (Google Play) untuk langganan dalam aplikasi.",
+          "Pembayaran: Polar (Polar Software Inc.) untuk pembelian USD; DOKU untuk pembayaran rupiah (Pakasir untuk pesanan QRIS sebelum November 2026); Apple (App Store) dan Google (Google Play) untuk langganan dalam aplikasi.",
           "Log masuk: Google dan Apple.",
           "Penyegerakan kesihatan dan senaman atas pilihan anda: Google (Health Connect), Apple (Apple Health) dan Strava.",
           "Pangkalan data produk untuk kod bar: Open Food Facts dan pangkalan data produk luar yang serupa (hanya nombor kod bar).",
@@ -749,7 +757,7 @@ const PRIVACY_EN: LegalDoc = {
       title: "Community: feed and groups",
       blocks: [
         "Nothing is shared automatically. Only what you choose to post (food, workouts, weight or stories, with the photo and caption you write) is visible to others: to your group members, or to everyone if you choose public and turn on your public profile. Your name, profile photo, username (handle) and bio appear with your post. Public posts and comments can be reported, and users can block other users. You can delete your posts at any time.",
-        "Workouts from a watch that you post through JoyoFit (Share to JoyoRogo) can carry the GPS route, heart-rate chart and workout analysis, according to the switches you pick when posting. The workout summary is visible to the audience you chose (group or public); the details (map, charts, splits, zones) are visible to you and JoyoRogo Pro members. The post is a separate copy: deleting the workout on your phone or in the cloud does not delete the post, and deleting the post deletes its kudos, comments, route and charts. Posts and comments are kept until you delete them or your account is deleted.",
+        "Workouts from a watch that you post through JoyoFit (Share to JoyoRogo) can carry the GPS route, heart-rate chart and workout analysis, according to the switches you pick when posting. The workout summary is visible to the audience you chose (group or public); the details (map, charts, splits, zones) are visible to you and Joyo Pro members. The post is a separate copy: deleting the workout on your phone or in the cloud does not delete the post, and deleting the post deletes its kudos, comments, route and charts. Posts and comments are kept until you delete them or your account is deleted.",
         "Joining a group challenge means that group's members can see whether your target is met each day, your streak, and your steps, strain, sleep or workout count for that challenge. Your food numbers (calories and protein) are visible only to you; friends see only met or not met. You can leave a challenge at any time and your data on its leaderboard disappears too.",
         "The weekly consistency board (optional, off by default). If you join, other people see your name or the alias you chose, how many days you logged, workout days, protein days and your streak that week. Body weight and body data are never shown, and the board is never ranked by weight. The board is not available during pregnancy or breastfeeding. Leaving the board deletes your data from it at once, and Delete all my data or deleting your account also removes your badges and board data. Badges are worked out from your logs; on a public profile they are visible only if your public profile is on.",
       ],
@@ -783,7 +791,7 @@ const PRIVACY_EN: LegalDoc = {
       id: "payments",
       title: "Payments",
       blocks: [
-        "On the web, Pro is paid once per period on the payment page in the browser: QRIS through Pakasir or bank transfer through DOKU (rupiah methods). We store the order number, amount, status and payment time. DOKU receives your name and email to create the payment page. We do not store your card, bank account or e-wallet details; the payment provider handles them. A receipt is sent to your email.",
+        "On the web, Pro is paid once per period on the payment page in the browser: QRIS or bank transfer through DOKU (rupiah methods; QRIS orders before November 2026 went through Pakasir). We store the order number, amount, status and payment time. DOKU receives your name and email to create the payment page. We do not store your card, bank account or e-wallet details; the payment provider handles them. A receipt is sent to your email.",
         "Purchases in US dollars (USD) on the web are processed by Polar (polar.sh, Polar Software Inc.), the merchant of record for those transactions. Polar collects card details, name, email, country or billing address, and tax number (if any) to calculate tax and check for fraud. JoyoRogo receives the order number, amount, status, subscription status and the Polar customer ID. JoyoRogo never sees your card number. Polar's privacy policy: [polar.sh/legal/privacy](https://polar.sh/legal/privacy).",
         "In the app, Pro is an automatic subscription through the App Store (iPhone) or Google Play (Android). Payment is handled by Apple or Google; we do not receive your card number or payment data. What we store to link the subscription to your account and to renew or revoke Pro when Apple or Google tell us (renewal, cancellation, refund):",
         { list: [
@@ -793,6 +801,14 @@ const PRIVACY_EN: LegalDoc = {
         ] },
         { note: "Subscriptions are managed and cancelled in Apple or Google settings, not in JoyoRogo." },
         { note: "Purchase terms are in the [Terms of Service](/my/terms) and [Refunds](/pengembalian-dana) (Bahasa Indonesia)." },
+      ],
+    },
+    {
+      id: "joyoarto",
+      title: "JoyoArto checks your Joyo Pro status",
+      blocks: [
+        "Joyo Pro also unlocks JoyoArto, a family finance ledger from the same developer (app.arto.joyorogo.com). JoyoArto has its own accounts and database. To find out whether you have Pro, JoyoArto's server asks JoyoRogo's server using your Google account ID (the same identifier in both apps, because both use the same Google sign-in) and your email; the email only matches a JoyoRogo account whose email is verified.",
+        "JoyoRogo answers only whether you have Pro, until when, the plan (monthly, yearly or lifetime) and where it was bought. No food, weight, health or workout data is sent to JoyoArto, and JoyoRogo receives none of your financial data from JoyoArto. These requests do not write your email to any log.",
       ],
     },
     {
@@ -820,7 +836,7 @@ const PRIVACY_EN: LegalDoc = {
       id: "ai-connections",
       title: "AI connections (Claude and ChatGPT)",
       blocks: [
-        "This JoyoRogo Pro feature lets an AI app of your choice, for example Claude from Anthropic or ChatGPT from OpenAI, read your data. Nothing is connected unless you add the connector yourself in that AI app, sign in to JoyoRogo, and press Allow on the permission screen that lists what data is requested.",
+        "This Joyo Pro feature lets an AI app of your choice, for example Claude from Anthropic or ChatGPT from OpenAI, read your data. Nothing is connected unless you add the connector yourself in that AI app, sign in to JoyoRogo, and press Allow on the permission screen that lists what data is requested.",
         { list: [
           "What is shared: only data whose permission you approve (profile and targets, food records, body weight, workouts, sleep and recovery), and read-only. The AI app cannot log, change or delete anything in your account.",
           "When and to whom: data is sent from JoyoRogo to that AI app and its provider, and only when you ask a question in your account there. JoyoRogo does not send your data anywhere on its own initiative through this connection.",
@@ -851,7 +867,7 @@ const PRIVACY_EN: LegalDoc = {
         "We do not sell your data. We share it only with the following classes of third parties and processors, as far as the features you use need, as described in the sections above:",
         { list: [
           "Infrastructure and AI providers: Cloudflare (Workers AI for photos, stories and Coach; storage and servers, including the JoyoFit cloud server).",
-          "Payments: Polar (Polar Software Inc.) for USD purchases; DOKU and Pakasir for rupiah payments; Apple (App Store) and Google (Google Play) for in-app subscriptions.",
+          "Payments: Polar (Polar Software Inc.) for USD purchases; DOKU for rupiah payments (Pakasir for QRIS orders before November 2026); Apple (App Store) and Google (Google Play) for in-app subscriptions.",
           "Sign-in: Google and Apple.",
           "Health and workout sync, when you choose it: Google (Health Connect), Apple (Apple Health) and Strava.",
           "Product databases for barcodes: Open Food Facts and similar external product databases (barcode number only).",
@@ -982,6 +998,7 @@ const TERMS_MS: LegalDoc = {
       title: "Pelan percuma dan Pro",
       blocks: [
         "Ciri asas percuma selama-lamanya, dengan jatah imbasan AI harian. Pro menambah jatah imbasan dan ciri lain yang tercatat di halaman [Harga](/my#harga). Isi dan harga pelan boleh berubah; perubahan tidak menjejaskan tempoh yang sudah anda bayar.",
+        "Pro (Joyo Pro) ialah satu langganan bagi setiap akaun JoyoRogo dan merangkumi JoyoRogo, JoyoFit dan JoyoArto (catatan kewangan keluarga). Di mana pun anda membelinya (web, App Store atau Google Play), Pro aktif dalam ketiga-tiga aplikasi selagi anda menggunakan akaun yang sama. JoyoArto memadankan langganan anda melalui akaun Google anda; lihat [Notis Privasi](/my/privasi).",
       ],
     },
     {
@@ -1052,6 +1069,7 @@ const TERMS_EN: LegalDoc = {
       title: "Free and Pro plans",
       blocks: [
         "Basic features are free forever, with a daily AI scan allowance. Pro adds scan allowance and other features listed on the [Pricing](/my#harga) page (Bahasa Melayu). Plan contents and prices can change; changes do not affect a period you have already paid for.",
+        "Pro (Joyo Pro) is one subscription per JoyoRogo account and covers JoyoRogo, JoyoFit and JoyoArto (a family finance ledger). Wherever you buy it (web, App Store or Google Play), Pro is active in all three apps as long as you use the same account. JoyoArto matches your subscription through your Google account; see the [Privacy Notice](/my/privacy).",
       ],
     },
     {

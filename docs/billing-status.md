@@ -1,6 +1,6 @@
 # Billing status
 
-Audit of every way JoyoRogo Pro is sold, read from the code, the production Cloudflare worker, Google Play Console, App Store Connect and the production D1 ledger on 2026-10-21. Nothing in this file is a guess unless it carries `[INFERENCE]`. Runbooks: `docs/play-billing.md` (Play), `docs/pricing.md` (prices, Apple, Polar).
+Audit of every way Joyo Pro (formerly "JoyoRogo Pro"; one subscription for JoyoRogo, JoyoFit and JoyoArto, see `docs/joyo-pro.md`) is sold, read from the code, the production Cloudflare worker, Google Play Console, App Store Connect and the production D1 ledger on 2026-10-21. Nothing in this file is a guess unless it carries `[INFERENCE]`. Runbooks: `docs/play-billing.md` (Play), `docs/pricing.md` (prices, Apple, Polar).
 
 The paywall is **already on in production** (`FREE_DAILY_SCANS=3`, `GET /api/config` answers `paywall: true`). This work flipped no flag.
 
@@ -8,12 +8,38 @@ The paywall is **already on in production** (`FREE_DAILY_SCANS=3`, `GET /api/con
 
 | Channel | Code | Prod secrets and vars | Store products | Sold so far (prod D1) | Reachable by a real buyer today |
 | --- | --- | --- | --- | --- | --- |
-| Web, QRIS (Pakasir) and bank transfer (DOKU) | `apps/server/src/billing.ts`, `packages/api/src/lib/{pakasir,doku}*` | `DOKU_SECRET_KEY`, `PAKASIR_API_KEY`, `PAKASIR_WEBHOOK_SECRET` set; `DOKU_CLIENT_ID`, `PAKASIR_SLUG` in `wrangler.jsonc` | none needed | 14 paid orders (Rp266.000), 35 failed, 3 pending | Yes: joyorogo.com/pro, /harga, the sideload APK, JoyoFit sideload |
+| Web, QRIS and bank transfer (DOKU; QRIS was Pakasir until 2026-11, see below) | `apps/server/src/billing.ts`, `billing-gateway.ts`, `packages/api/src/lib/doku*` (Pakasir: `lib/pakasir*`, settle-only) | `DOKU_SECRET_KEY`, `PAKASIR_API_KEY`, `PAKASIR_WEBHOOK_SECRET` set; `DOKU_CLIENT_ID`, `PAKASIR_SLUG`, `PAKASIR_ENABLED=off` in `wrangler.jsonc` | none needed | 14 paid orders (Rp266.000), 35 failed, 3 pending (2026-10-21) | Yes: joyorogo.com/pro, /harga, the sideload APK, JoyoFit sideload, JoyoArto's Upgrade (`/pro?from=joyoarto`) |
 | Web, USD card (Polar) | `packages/api/src/lib/polar*.ts` | `POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET` set; product ids and USD prices in `wrangler.jsonc`; `/api/config` carries `usd` | Polar products monthly US$9.99, yearly US$59.99 | **0 `polar:` orders**: never bought once | Yes for non-Indonesian visitors; the go-live buy (docs/pricing.md, step 4) is not on record |
 | Android, Google Play Billing | `apps/server/src/google-billing.ts`, `packages/api/src/lib/google-play*.ts`, native `src/lib/play-billing.ts` (expo-iap 6.0.2) | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, `GOOGLE_PLAY_RTDN_PUSH_EMAIL`, `GOOGLE_PLAY_TEST_EMAILS` set. `/api/config`: `googlePlayBilling: true` | Subscription `pro` ACTIVE, base plans `monthly` (Rp29.000) and `yearly` (Rp199.000) both ACTIVE, 128 regions each, auto-renewing | 1 license-tester purchase (2026-10-16): one `google_purchase` row (monthly, 4 test renewals, now `expired`), **no `google:` ledger row** | Only closed-test installs (see "What blocks Android") |
 | iOS, StoreKit | local module `apps/native/modules/apple-iap`, `packages/api/src/lib/apple-billing.ts`. (expo-iap is excluded on iOS autolinking; it is not used there) | `appleBilling: true` in `/api/config` | ASC `com.joyodigitama.joyorogo.founder.monthly` and `.yearly`: **IN_REVIEW** with app version 1.0.0 (IN_REVIEW). Legacy `.founder.1m` READY_TO_SUBMIT, cleared for sale nowhere | 7 `apple:` rows, all Rp0 (TestFlight Sandbox) | Not yet: the App Store page `apps.apple.com/app/id6823222101` answers 404 until review ends |
 | iOS, StoreKit, JoyoFit app (`com.joyodigitama.joyofit`) | JoyoFit's own StoreKit module posts to the same `POST /api/billing/apple`; the server side is `packages/api/src/lib/apple.ts` (`APPLE_PRODUCTS`) and `APPLE_BUNDLE_IDS` in `apps/server/wrangler.jsonc`. JoyoFit's notification URL in App Store Connect is `/api/billing/apple/notifications` | `APPLE_BUNDLE_IDS=com.joyodigitama.joyorogo,com.joyodigitama.joyofit` (needs the server deploy); `appleBilling: true` in `/api/config` stays the switch | ASC (JoyoFit app) `com.joyodigitama.joyofit.pro.monthly` and `.yearly`: created, awaiting first review with the first JoyoFit build that sells them | none yet | Not yet: awaiting first review |
 | Android, Google Play Billing, JoyoFit app (`com.joyodigitama.joyofit`) | JoyoFit posts the purchase token to the same `POST /api/billing/google` with `packageName`; the server side is `GOOGLE_PLAY_PRODUCTS` in `packages/api/src/lib/google-play.ts` and `GOOGLE_PLAY_PACKAGE_NAMES` (default both packages; `google_purchase.package_name`, migration 0073). RTDN comes through the same topic once enabled in JoyoFit's Play Console app. See `docs/play-billing.md` section 4 | Needs the server deploy and the migration; no new secret (the service account must be invited to the JoyoFit app) | Play (JoyoFit app) `com.joyodigitama.joyofit.pro.monthly` and `.yearly`: to be created, one base plan each (`monthly`, `yearly`) | none yet | Not yet: awaiting the first JoyoFit Android build that sells them |
+
+## Pakasir retired (2026-11)
+
+Pakasir sunsets in November 2026. Since this change no checkout path offers it: the QRIS button on the web (`/pro`,
+`/harga`, `/pembayaran`), the sideload APK and the JoyoFit sideload all post `method: "qris"`, and the server now sends
+that to **DOKU Checkout narrowed to its QRIS channel** (`payment_method_types: ["QRIS"]`, `DOKU_QRIS` in
+`packages/api/src/lib/doku.ts`). Transfer Bank stays DOKU with every channel enabled on the merchant (QRIS, virtual
+accounts, e-wallets). If DOKU refuses the QRIS-only request (a channel not enabled on the merchant), the buyer gets
+DOKU's full page instead of an error (`createDokuCheckout` in `apps/server/src/billing-gateway.ts`); the worker logs
+`doku checkout <order> with QRIS failed, retrying with every channel`. Check DOKU Dashboard > Payment methods that QRIS
+is active, then look for that line after the first QRIS order. No client change was needed: installed apps keep their
+QRIS button. Older builds that send no method follow `BILLING_PROVIDER`, which can no longer pick Pakasir while it is
+off.
+
+`PAKASIR_ENABLED` (worker var, default off; `"1"`/`"on"` turns new Pakasir orders back on) gates **new orders only**.
+The Pakasir webhook (`/api/billing/pakasir/webhook`), the buyer's "Cek pembayaran" and the `*/5` reconcile cron keep
+settling Pakasir orders opened before the switch for as long as `PAKASIR_SLUG`, `PAKASIR_API_KEY` and
+`PAKASIR_WEBHOOK_SECRET` are set.
+
+**When the Pakasir code can go:** a Pakasir link expires after 24 hours and the cron only reconciles orders up to
+2 days old, so 3 days after this deploy no Pakasir order can still be paid. Once
+`select count(*) from payment where status = 'pending' and payment_url like '%pakasir%'` answers 0 (or from
+2026-12-01 at the latest, after Pakasir has shut down), delete `packages/api/src/lib/pakasir*`, the Pakasir branches in
+`apps/server/src/billing.ts` and `billing-gateway.ts`, the `PAKASIR_*` vars and secrets, and the self-host form fields.
+Keep the history readers: `orderMethod` in `apps/admin/src/api.ts` and `ledgerRail` in `packages/api/src/lib/revklik.ts`
+recognise old Pakasir rows by their `app.pakasir.com` link.
 
 Play pieces I checked directly:
 

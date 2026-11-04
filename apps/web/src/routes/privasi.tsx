@@ -532,8 +532,9 @@ function PrivasiPage() {
           <section className="rounded-3xl bg-card p-5">
             <h2 className="text-base font-bold tracking-tight">Pembayaran</h2>
             <p className="mt-3 text-sm leading-relaxed">
-              Di web, Pro dibayar sekali per periode lewat halaman pembayaran di browser: QRIS
-              melalui Pakasir atau transfer bank melalui DOKU. Kami menyimpan nomor pesanan,
+              Di web, Pro dibayar sekali per periode lewat halaman pembayaran di browser: QRIS atau
+              transfer bank melalui DOKU (pesanan QRIS sebelum November 2026 melalui Pakasir). Kami
+              menyimpan nomor pesanan,
               jumlah, status, dan waktu pembayaran. DOKU menerima namamu dan emailmu untuk membuat
               halaman pembayaran. Kami tidak menyimpan nomor kartu, rekening, atau data dompet
               digitalmu; itu ditangani penyedia pembayaran. Bukti pembayaran dikirim ke emailmu.
@@ -591,6 +592,24 @@ function PrivasiPage() {
             </p>
           </section>
 
+          <section className="rounded-3xl bg-card p-5" id="joyoarto">
+            <h2 className="text-base font-bold tracking-tight">JoyoArto memeriksa status Joyo Pro</h2>
+            <p className="mt-3 text-sm leading-relaxed">
+              Joyo Pro juga membuka JoyoArto, aplikasi catatan keuangan keluarga dari pengembang yang
+              sama (app.arto.joyorogo.com). JoyoArto punya akun dan database sendiri. Untuk tahu
+              apakah kamu Pro, server JoyoArto bertanya ke server JoyoRogo dengan ID akun Google-mu
+              (pengenal yang sama di kedua aplikasi karena keduanya memakai login Google yang sama)
+              dan emailmu; email hanya dicocokkan dengan akun JoyoRogo yang emailnya sudah
+              terverifikasi.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed">
+              JoyoRogo hanya menjawab apakah kamu Pro, sampai kapan, paketnya (bulanan, tahunan, atau
+              seumur hidup), dan lewat apa dibeli. Tidak ada data makan, berat, kesehatan, atau
+              latihan yang dikirim ke JoyoArto, dan JoyoRogo tidak menerima data keuanganmu dari
+              JoyoArto. Pertanyaan ini tidak mencatat emailmu di log.
+            </p>
+          </section>
+
           <section className="rounded-3xl bg-card p-5" id="masuk-apple">
             <h2 className="text-base font-bold tracking-tight">Masuk dengan Apple</h2>
             <p className="mt-3 text-sm leading-relaxed">
@@ -633,7 +652,7 @@ function PrivasiPage() {
           <section className="rounded-3xl bg-card p-5" id="koneksi-ai">
             <h2 className="text-base font-bold tracking-tight">Koneksi AI (Claude dan ChatGPT)</h2>
             <p className="mt-3 text-sm leading-relaxed">
-              Fitur JoyoRogo Pro ini membiarkan aplikasi AI yang kamu pilih, misalnya Claude dari
+              Fitur Joyo Pro ini membiarkan aplikasi AI yang kamu pilih, misalnya Claude dari
               Anthropic atau ChatGPT dari OpenAI, membaca datamu. Tidak ada yang tersambung kecuali
               kamu sendiri menambahkan penyambungnya di aplikasi AI itu, masuk ke JoyoRogo, dan
               menekan Izinkan di layar izin yang menyebut data apa saja yang diminta.
