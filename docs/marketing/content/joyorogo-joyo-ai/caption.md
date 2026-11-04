@@ -16,7 +16,7 @@ Post 2 (balasan, link di sini)
 
 batasnya: mesin bawaan JoyoRogo buat Pro (web dan app), ada batas pertanyaan per hari. di app, siapa pun 18+ bisa pakai kunci API sendiri, gratis, biayanya ke penyedia pilihan lo. TKPI nggak punya kolom gula, jadi soal gula dijawab nggak ada di data. bukan saran medis.
 
-download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-joyo-ai
+download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/
 
 ## Instagram
 

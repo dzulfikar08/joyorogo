@@ -8,11 +8,16 @@ own mechanisms (below). Click goals on buttons use `data-revklik-goal` / `data-r
 
 Always lowercase, ASCII, hyphens inside a value, no spaces.
 
+**Threads links carry no UTM or other tracking parameter.** `utm_source=`, `utm_campaign=`, `ref=` and `referrer=` are
+in many Threads users' hidden words, which hides the whole post or reply for them (`docs/marketing/social-playbook.md`
+section 3.1). Post bare URLs there; RevKlik still counts the visit under the Threads referrer, without a campaign. The
+App Store `ct=` token is the one exception: it is not on the list.
+
 ## utm_source: where the link was posted
 
 | Value | Use for |
 | --- | --- |
-| `threads` | Threads posts and replies |
+| `threads` | Not in links: Threads links are bare (above), RevKlik shows those visits under the Threads referrer |
 | `instagram` | Instagram posts, stories, reels |
 | `tiktok` | TikTok captions |
 | `whatsapp` | WhatsApp status, groups, broadcasts |
@@ -31,13 +36,12 @@ JoyoRogo linking to JoyoFit uses `utm_source=joyorogo`. Add new sources to this 
 | `dm` | Direct message or private chat |
 | `referral` | A link placed on another page, including a Strava description |
 | `app` | A link opened from inside one of our apps |
-| `reply` | A reply our Threads mention bot posts (docs/threads-bot.md): `utm_source=threads&utm_medium=reply&utm_campaign=mention-bot` |
 
 ## utm_campaign: `<yyyy-mm>-<topic>`
 
 Month the campaign started plus a short topic: `2026-10-launch`, `2026-11-ramadan-diary`. Links that live in code for
 years (app cards, site buttons, the Strava description) are not dated; use `evergreen-<where>`, for example
-`evergreen-today-card`. The Threads mention bot's replies use the undated `mention-bot` for the same reason.
+`evergreen-today-card`.
 
 ## utm_content: post id
 
@@ -66,17 +70,18 @@ https://apps.apple.com/id/app/id6823222101?ct=threads-2026-10-launch
 
 ## Ready-made links
 
-Replace `2026-10-launch` and the source/medium per post. The rows below are for a Threads post (`threads`, `social`);
-swap `utm_source` and `utm_medium` for other channels (bio link: `utm_medium=bio`).
+Replace `2026-10-launch` and the source/medium per post. The rows below are for an Instagram post (`instagram`,
+`social`); swap `utm_source` and `utm_medium` for other channels (bio link: `utm_medium=bio`). On Threads use the bare
+link in the last column.
 
-| Destination | Link |
-| --- | --- |
-| JoyoRogo web | `https://joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-launch` |
-| JoyoFit web | `https://fit.joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-launch` |
-| JoyoFit guide | `https://fit.joyorogo.com/panduan?utm_source=threads&utm_medium=social&utm_campaign=2026-10-launch` |
-| JoyoRogo on Play | `https://play.google.com/store/apps/details?id=com.joyodigitama.joyorogo&referrer=utm_source%3Dthreads%26utm_medium%3Dsocial%26utm_campaign%3D2026-10-launch` |
-| JoyoFit on Play | `https://play.google.com/store/apps/details?id=com.joyodigitama.joyofit&referrer=utm_source%3Dthreads%26utm_medium%3Dsocial%26utm_campaign%3D2026-10-launch` |
-| JoyoRogo on the App Store | `https://apps.apple.com/id/app/id6823222101?ct=threads-2026-10-launch` |
+| Destination | Link | Threads |
+| --- | --- | --- |
+| JoyoRogo web | `https://joyorogo.com/?utm_source=instagram&utm_medium=social&utm_campaign=2026-10-launch` | `https://joyorogo.com/` |
+| JoyoFit web | `https://fit.joyorogo.com/?utm_source=instagram&utm_medium=social&utm_campaign=2026-10-launch` | `https://fit.joyorogo.com/` |
+| JoyoFit guide | `https://fit.joyorogo.com/panduan?utm_source=instagram&utm_medium=social&utm_campaign=2026-10-launch` | `https://fit.joyorogo.com/panduan` |
+| JoyoRogo on Play | `https://play.google.com/store/apps/details?id=com.joyodigitama.joyorogo&referrer=utm_source%3Dinstagram%26utm_medium%3Dsocial%26utm_campaign%3D2026-10-launch` | `https://play.google.com/store/apps/details?id=com.joyodigitama.joyorogo` |
+| JoyoFit on Play | `https://play.google.com/store/apps/details?id=com.joyodigitama.joyofit&referrer=utm_source%3Dinstagram%26utm_medium%3Dsocial%26utm_campaign%3D2026-10-launch` | `https://play.google.com/store/apps/details?id=com.joyodigitama.joyofit` |
+| JoyoRogo on the App Store | `https://apps.apple.com/id/app/id6823222101?ct=instagram-2026-10-launch` | `https://apps.apple.com/id/app/id6823222101?ct=threads-2026-10-launch` (`ct=` is not a hidden word) |
 
 ## Already applied in code
 
@@ -89,3 +94,4 @@ swap `utm_source` and `utm_medium` for other channels (bio link: `utm_medium=bio
 | JoyoRogo app, update gate on iPhone (`/api/config` `app.ios.storeUrl`) | `ct=joyorogo-evergreen-update` (`apps/server/src/app-version.ts`) |
 | Broadcast email default campaign | `ct=email-2026-10-broadcast` (`apps/server/src/broadcast-campaign.ts`) |
 | Strava activity description (opt-in) | `fit.joyorogo.com/?utm_source=strava&utm_medium=referral&utm_campaign=evergreen-description` |
+| Threads mention bot reply (`packages/api/src/lib/threads-bot/reply.ts`) | none: bare `https://joyorogo.com/` (hidden words) |

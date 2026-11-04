@@ -5,7 +5,7 @@ replies with a calorie estimate. The estimate is the same photo scan the app use
 memory. **No photo is ever stored** (no R2, no dataset); the D1 row keeps only the media id, the author's username, the
 dish names with their grams, kcal and macros, the plate's kcal, status and times.
 
-Status (2026-11-03): live in `THREADS_BOT_MODE=auto` (switched from `review` after three reviewed test replies) on the shared Meta app **ThreadsAPI** (Threads app ID
+Status (2026-11-03): live in `THREADS_BOT_MODE=auto` (set in `apps/server/wrangler.jsonc`, switched from `review` after three reviewed test replies; the code default when the var is unset is still `off`) on the shared Meta app **ThreadsAPI** (Threads app ID
 `985569897159985`, also used by nempel and atur). Secrets `THREADS_APP_ID`, `THREADS_APP_SECRET` and
 `THREADS_WEBHOOK_VERIFY_TOKEN` are set; the redirect URI is registered; the webhook is verified and subscribed to
 `mentions` only (object Interaction). `joyorogo_com` is a Threads Tester (the add failed with Meta's `field_exception`
@@ -109,7 +109,7 @@ Perkiraan gizi dari fotomu:
 Total: 590 kcal
 Protein 18 g · Karbo 70 g · Lemak 25 g · Serat 3 g
 
-Perkiraan AI, bukan saran medis. Catat makananmu lebih mudah di JoyoRogo: https://joyorogo.com/?utm_source=threads&utm_medium=reply&utm_campaign=mention-bot
+Perkiraan AI, bukan saran medis. Catat makananmu lebih mudah di JoyoRogo: https://joyorogo.com/
 ```
 
 - **Same numbers as the app.** Grams and kcal per dish, and kcal, protein, carbs, fat and fiber for the plate, straight
@@ -194,7 +194,7 @@ than 24 hours; the failure is harmless and retried.
    | `THREADS_ACCESS_TOKEN` | optional: a long-lived token to seed instead of using Connect |
    | `THREADS_WEBHOOK_SECRET` | optional, only if deliveries come back 401: the Meta app secret (Settings > Basic), accepted as a second signing key |
 
-   Vars (`apps/server/wrangler.jsonc`, already present): `THREADS_BOT_MODE` (`off`), `THREADS_BOT_USER_DAILY_CAP` (`3`),
+   Vars (`apps/server/wrangler.jsonc`, already present): `THREADS_BOT_MODE` (`auto`), `THREADS_BOT_USER_DAILY_CAP` (`3`),
    `THREADS_BOT_DAILY_CAP` (`200`).
 7. **Connect:** deploy, open `admin.joyorogo.com/#threads`, **Hubungkan Threads**, log in as the brand account and allow.
 8. **Try it in review mode:** set `THREADS_BOT_MODE=review`, tag the account on a food photo from a tester account, wait

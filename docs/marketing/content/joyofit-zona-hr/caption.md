@@ -16,7 +16,7 @@ Post 2 (balasan, link di sini)
 
 satu koreksi: sempat strain ikut metode zona yang lo pilih, jadi ganti metode ikut menggeser angkanya. gue balikin. strain, beban latihan, dan menit intensitas selalu dari persen tetap HR maks (50 sampai 90%, metode Edwards). zona lo dipakai buat waktu per zona, grafik detak jantung harian, dan Coach. yang masih ngubah strain cuma HR maks.
 
-skor itu perkiraan, bukan alat medis. download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau web. dites di Huawei Watch Fit 4 Pro. fit.joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-zona-hr
+skor itu perkiraan, bukan alat medis. download di Play Store (versi tes, gabung dulu lewat link), iPhone lewat TestFlight, atau web. dites di Huawei Watch Fit 4 Pro. fit.joyorogo.com/
 
 ## Instagram
 

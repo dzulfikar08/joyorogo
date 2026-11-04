@@ -16,7 +16,7 @@ Post 2 (balasan, link di sini)
 
 yang disorot cuma yang tercapai (protein, serat, pas di target). berat badan nggak pernah ada di gambar, memang nggak ada opsinya. stikernya hasil potong foto, jadi tepinya kadang nggak rapi, keliatan di halaman 3.
 
-download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-bagikan-makan-sehari
+download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/
 
 ## Instagram
 

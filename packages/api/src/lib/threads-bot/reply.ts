@@ -1,12 +1,13 @@
 // The public reply the bot posts (docs/threads-bot.md): Indonesian, at most 500 characters (the Threads limit), the same
 // numbers the app's photo scan shows (weight and kcal per dish; kcal, protein, carbs, fat and fiber for the plate),
-// "perkiraan AI, bukan saran medis", and the campaign link. Only what the photo shows: it never says anything about a
+// "perkiraan AI, bukan saran medis", and the site link. Only what the photo shows: it never says anything about a
 // body, weight or health.
 
 import { fmtNumber } from "@joyorogo/i18n";
 
-export const REPLY_LINK =
-  "https://joyorogo.com/?utm_source=threads&utm_medium=reply&utm_campaign=mention-bot";
+// Bare: "utm_source=" and "utm_campaign=" are in many users' Threads hidden words (hidden-words.ts), which would hide
+// the reply under the very post that tagged us. Visits show up in RevKlik under the Threads referrer instead.
+export const REPLY_LINK = "https://joyorogo.com/";
 export const MAX_REPLY_CHARS = 500;
 /** A scan whose items average below this confidence gets the "photo not clear" reply instead of numbers. */
 export const LOW_CONFIDENCE = 0.4;

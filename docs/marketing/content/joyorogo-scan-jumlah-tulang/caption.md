@@ -18,7 +18,7 @@ Post 2 (balasan, link di sini)
 
 batasnya: berat bagian yang bisa dimakan itu perkiraan per bagian (sayap 50%, paha bawah 60%, paha 65%, dada 70%, iga 50%, ikan utuh 55%), bukan hasil timbang. AI masih bisa salah baca bagian ayamnya atau beratnya. jumlah awal tetap dibaca AI dari foto, plus dan minus buat ngebetulin.
 
-download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-scan-jumlah-tulang
+download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/
 
 ## Instagram
 

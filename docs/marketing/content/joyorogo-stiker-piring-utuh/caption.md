@@ -16,7 +16,7 @@ Post 2 (balasan, link di sini)
 
 batasnya: cuma scan baru yang dapet stiker piring, makanan lama tetap per lauk. potongan latar dikerjakan model segmentasi, jadi tepi piring atau benda di meja kadang ikut kebawa. di diari, gambar kecil tiap baris tetap per makanan, ketuk buat buka stiker piringnya.
 
-download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-stiker-piring
+download di Play Store (versi tes, gabung dulu lewat link), iPhone di App Store, atau langsung di web. joyorogo.com/
 
 ## Instagram
 

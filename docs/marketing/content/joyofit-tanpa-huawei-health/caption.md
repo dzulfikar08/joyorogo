@@ -12,7 +12,7 @@ sekarang bisa: langkah, detak jantung, tidur lengkap sama tahapnya, olahraga + r
 
 gratis, open source. diuji di Huawei Watch Fit 4 Pro, jam lain masih eksperimen. Android masih tes tertutup, iPhone via TestFlight. tidak berafiliasi dengan Huawei.
 
-fit.joyorogo.com/?utm_source=threads&utm_medium=social&utm_campaign=2026-10-joyofit-tanpa-huawei-health
+fit.joyorogo.com/
 
 ## Instagram
 

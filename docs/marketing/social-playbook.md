@@ -148,8 +148,32 @@ All static pieces are 1080x1350 (4:5). Sources live in `docs/marketing/content/<
 | Pertanyaan | Text only, Threads | Starts replies in a topic, sets up a later feature post | A question answerable in one word |
 | Build in public | Text + 1 screenshot | Founder diary ("programmer diet minggu ke-2"), numbers, mistakes | A number or a stake |
 
-Every piece: one CTA, a UTM link (`docs/utm.md`: `utm_source=threads|instagram|tiktok`, `utm_medium=social`,
-`utm_campaign=<yyyy-mm>-<topic>`, for example `2026-10-update-fitur`), and on Threads the link goes in the second post.
+Every piece: one CTA and one link. Instagram and TikTok links carry UTM (`docs/utm.md`: `utm_source=instagram|tiktok`,
+`utm_medium=social`, `utm_campaign=<yyyy-mm>-<topic>`, for example `2026-10-update-fitur`). Threads links are bare
+(section 3.1), and on Threads the link goes in the second post.
+
+### 3.1 Threads hidden words
+
+Many Indonesian Threads users hide posts and replies that contain words tied to affiliate spam, link-in-bio funnels
+and bait openers (list shared by the owner, 2026-11-03). Their filter hides our post too, including a reply under their
+own post, so nothing we publish on Threads contains one: posts, thread replies, the mention bot's replies, and admin
+replies sent from the bot page. The list is `THREADS_HIDDEN_WORDS` in
+`packages/api/src/lib/threads-bot/hidden-words.ts`; add new entries there.
+
+- Links: bare URLs, no query string (`joyorogo.com/`, `fit.joyorogo.com/panduan`). `utm_source=`, `utm_campaign=`,
+  `ref=`, `referrer=` and `tag=` are all on the list, and so are shorteners and link-in-bio hosts (`s.id`, `bit.ly`,
+  `linktr.ee`, `lynk.id`). Play links stop at `?id=<package>`; the App Store `?ct=` token is not on the list.
+- No marketplace names (Shopee, Tokopedia, TikTok Shop, Lazada...), not even in a list of apps.
+- No selling phrases: "link di bio", "cek bio", "klik link", "cek komen", "komisi", "promo produk", "izin kak".
+- No bait openers or fillers: "jujur" (write "terus terang", "catatan:" or "yang perlu kamu tahu"), "spill",
+  "hidden gem", "stop", "ternyata selama ini", "akhirnya nemu", "in this economy", "maaf norak", "oot", "maaf curhat".
+  Inflected forms count as hidden too ("kejujuran", "nge-spill").
+- The words "foto ai" and "cerita ai" are on the list: say "foto dianalisis AI" or "scan AI" instead.
+
+Check before posting: `bun docs/marketing/content/check-threads.ts` reads the Threads section of every `caption.md`
+and `drafts-*.md` under `docs/marketing` (or the files you pass; a `.txt` file is checked whole) and exits 1 with
+the line and word for each hit. It matches whole words, case-insensitive; Threads does not document how its matching
+works, so rewrite anything close to an entry. Instagram and TikTok captions are not checked.
 
 ---
 
@@ -261,8 +285,8 @@ Per post (Threads Insights per post, Instagram Insights, TikTok analytics): view
 Profile visits and follows matter more than likes for us (section 1.3).
 
 Per week (Sunday), one row in the table below: total views, follows, top piece, Revklik `campaigns` for
-`utm_source=threads|instagram|tiktok` (visitors, `try_scan_click`, `signup_click`), JoyoFit `tester_optin_click`
-(marketing-plan 11.3).
+`utm_source=instagram|tiktok` and the Threads referrer for Threads (no UTM there, section 3.1) (visitors,
+`try_scan_click`, `signup_click`), JoyoFit `tester_optin_click` (marketing-plan 11.3).
 
 | Week | Threads views | Follows | Top piece | Revklik visitors (social) | Signups | JoyoFit tester opt-ins |
 | --- | --- | --- | --- | --- | --- | --- |

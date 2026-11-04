@@ -6,9 +6,10 @@ HTML sources for Instagram/Threads carousels, single images and stories. One fol
 docs/marketing/content/
   _base.css          shared type scale, brand themes (.rogo, .fit), phone frame, .snap crops, rows, cards
   render.ts          bun renderer
+  check-threads.ts   flags Threads hidden words in captions (social-playbook.md 3.1)
   _shots/            real screenshots of the web app (webp), shared by every piece
   <slug>/slides.html every slide is <section class="slide rogo|fit [deep|soft]">
-  <slug>/caption.md  Threads + Instagram caption, 3 to 5 hashtags, link with UTM
+  <slug>/caption.md  Threads + Instagram caption, 3 to 5 hashtags, one link (bare on Threads, UTM elsewhere)
 ```
 
 ## Add a piece
@@ -18,7 +19,8 @@ docs/marketing/content/
 3. Asset paths use tokens the renderer expands: `@joyorogo/` (this repo), `@watch-fit/` (sibling `../watch-fit`, override with `WATCH_FIT_DIR`), `@content/` (this folder). Use real screenshots inside `.phone`; never invent UI.
 4. Mark anything that is meant to bleed past the slide edge (phones, mascot, cropped screenshots) with `data-bleed`; the renderer warns about everything else that overflows the slide or runs into the footer.
 5. Every slide except the cover and the CTA shows a real screenshot (see "Screenshots" below). Crop to the one control the headline is about instead of shrinking a whole phone.
-6. Write `caption.md`. UTM per `docs/utm.md`: `utm_source=threads|instagram`, `utm_medium=social` (`bio` for the link in bio), `utm_campaign=<yyyy-mm>-<topic>`.
+6. Write `caption.md`. Threads: bare link, no query string. Instagram: UTM per `docs/utm.md`: `utm_source=instagram`, `utm_medium=social` (`bio` for the link in bio), `utm_campaign=<yyyy-mm>-<topic>`.
+7. Run `bun docs/marketing/content/check-threads.ts` and reword every line it prints: those words get the post hidden for many Threads users.
 
 ## Screenshots
 
@@ -65,3 +67,4 @@ Claim rules live in `docs/marketing/marketing-plan.md` (sections 1.1, 1.6, 3.3).
 - JoyoRogo mascot: green, armored, hero pose only. No other brands' logos (Huawei, Honor, WHOOP, Strava).
 - JoyoFit pieces: "tidak berafiliasi dengan Huawei", "Diuji di Huawei Watch Fit 4 Pro, jam lain eksperimen", Strava as "kirim latihan ke Strava".
 - Last slide: one CTA only.
+- Threads text: none of the hidden words in `packages/api/src/lib/threads-bot/hidden-words.ts` (no UTM, no marketplace names, no "jujur", "spill", "link di bio"); see `social-playbook.md` section 3.1.
