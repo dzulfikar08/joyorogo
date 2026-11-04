@@ -264,12 +264,12 @@ export function ScanDemo() {
                 </p>
               </div>
               <p
-                className={`flex items-center gap-1.5 pb-1 text-sm font-bold ${heavy ? "text-bakar-ink" : "text-makan-ink"}`}
+                className={`flex items-start gap-1.5 pb-1 text-sm font-bold ${heavy ? "text-bakar-ink" : "text-makan-ink"}`}
               >
                 {heavy ? (
-                  <TriangleAlert className="size-4" aria-hidden />
+                  <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
                 ) : (
-                  <ThumbsUp className="size-4" aria-hidden />
+                  <ThumbsUp className="mt-0.5 size-4 shrink-0" aria-hidden />
                 )}
                 {reaction}
               </p>
