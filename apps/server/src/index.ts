@@ -55,6 +55,7 @@ import type { McpEnv } from "./mcp";
 import { registerOgRoutes } from "./og";
 import { registerPrivacyRoutes } from "./privacy";
 import { registerFamilyRoutes } from "./family";
+import { registerJoyoProRoutes } from "./joyo-pro";
 import { registerCorosRoutes } from "./coros";
 import { registerStravaRoutes } from "./strava";
 import { registerThreadsBotRoutes, runThreadsBotTick } from "./threads-bot";
@@ -128,7 +129,7 @@ const testflightNotice = testflightNoticeConfig(env);
 // Activation and win-back mail; LIFECYCLE_EMAIL=on enables it (docs/lifecycle-email.md).
 const lifecycle = lifecycleConfig(env);
 
-// Public config, Founder checkout (DOKU/Pakasir) + webhooks, personal AI usage.
+// Public config, Founder checkout (DOKU; Pakasir only while PAKASIR_ENABLED) + webhooks, personal AI usage.
 // After CORS so web can read errors.
 const revklik = createRevklik({ env, getDb });
 // Deliver whatever a billing request just queued (webhooks, purchases, order checks) without delaying its answer.
@@ -591,6 +592,8 @@ registerStravaRoutes(app, { env, getDb });
 registerCorosRoutes(app, { getDb, appOrigin: () => env.APP_URL || env.BETTER_AUTH_URL });
 // JoyoFit family monitoring asks here for a user's Pro state, name, email and language (same Basic auth).
 registerFamilyRoutes(app, { env, getDb });
+// JoyoArto asks here whether its user has Joyo Pro (x-joyo-internal-key; off while JOYO_INTERNAL_KEY is unset).
+registerJoyoProRoutes(app, { env, getDb });
 
 // The Android app only knows the API origin; send its "Kebijakan privasi"
 // link on to the web page (a marketing page: the site origin, not the app's).
