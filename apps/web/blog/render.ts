@@ -13,6 +13,7 @@ import { OG_IMAGE, PAGES } from "../src/lib/seo.ts";
 import { ANDROID_ROBOT_PATH, ANDROID_ROBOT_VIEWBOX } from "../src/lib/android-robot.ts";
 import { APPLE_LOGO_PATH, APPLE_LOGO_VIEWBOX } from "../src/lib/apple-logo.ts";
 import { ANDROID_ROBOT_CREDIT } from "../src/lib/credits.ts";
+import { DISCORD_LOGO_PATH, DISCORD_LOGO_VIEWBOX, DISCORD_URL } from "../src/lib/discord.ts";
 import { APP_STORE_URL, PLAY_STORE_URL } from "../src/lib/store-urls.ts";
 import { alternatesFor, ogImageTags, PUBLIC_PATHS, type ShareImage } from "./pages.ts";
 import {
@@ -64,9 +65,10 @@ export type Post = {
 
 const POSTS_DIR = join(import.meta.dirname, "posts");
 const SOURCE_URL = "https://github.com/dzulfikar08/joyorogo";
-/** Inline icons for the static pages: the official Android robot head (src/lib/android-robot.ts) and the Apple logo (src/lib/apple-logo.ts). */
+/** Inline icons for the static pages: the official Android robot head (src/lib/android-robot.ts), the Apple logo (src/lib/apple-logo.ts) and the Discord logo (src/lib/discord.ts). */
 const ANDROID_ICON = `<svg viewBox="${ANDROID_ROBOT_VIEWBOX}" aria-hidden="true" focusable="false" class="size-4 shrink-0"><path fill="currentColor" fill-rule="evenodd" d="${ANDROID_ROBOT_PATH}"/></svg>`;
 const APPLE_ICON = `<svg viewBox="${APPLE_LOGO_VIEWBOX}" aria-hidden="true" focusable="false" class="size-4 shrink-0"><path fill="currentColor" d="${APPLE_LOGO_PATH}"/></svg>`;
+const DISCORD_ICON = `<svg viewBox="${DISCORD_LOGO_VIEWBOX}" aria-hidden="true" focusable="false" class="size-4 shrink-0"><path fill="currentColor" d="${DISCORD_LOGO_PATH}"/></svg>`;
 const TKPI_NOTE =
   "Sumber angka: Tabel Komposisi Pangan Indonesia (TKPI) 2019, Kementerian Kesehatan RI. Nilai per 100 g bagian yang dapat dimakan. Berat porsi di artikel ini contoh, porsimu bisa berbeda.";
 
@@ -412,6 +414,7 @@ ${opts.main}
           <a href="${PLAY_STORE_URL}" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${ANDROID_ICON}Android (Google Play)</a>
           <a href="${APP_STORE_URL}" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${APPLE_ICON}iPhone (App Store)</a>
           <a href="${SOURCE_URL}" class="inline-flex min-h-11 items-center hover:text-primary">Kode sumber</a>
+          <a href="${DISCORD_URL}" target="_blank" rel="noopener" aria-label="Discord: lapor bug dan diskusi (tab baru)" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${DISCORD_ICON}Discord</a>
         </nav>
         <p class="text-muted-foreground">Artikel di blog ini informasi umum, bukan pengganti saran dokter atau ahli gizi.</p>
         <p class="text-xs leading-relaxed text-muted-foreground">${ANDROID_ROBOT_CREDIT}</p>

@@ -6,8 +6,10 @@ import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
 
 import { AppLink } from "@/components/app-link";
+import { DiscordMark } from "@/components/discord-mark";
 import { GITHUB_URL, GithubMark } from "@/components/public-header";
 import { ANDROID_ROBOT_CREDIT } from "@/lib/credits";
+import { DISCORD_URL } from "@/lib/discord";
 import { COMPANY_NAME, COMPANY_REGION, CONTACT_EMAIL, companyLine } from "@/lib/contact";
 import { WhatsAppLink } from "@/components/landing/my-whatsapp";
 
@@ -195,6 +197,18 @@ export function FooterMy({ legal }: { legal?: LegalLang } = {}) {
           <WhatsAppLink location="my-footer" lang={en ? "en" : "ms"} className={FOOT_LINK} />
           <a href={`mailto:${CONTACT_EMAIL}`} className={FOOT_LINK}>
             {CONTACT_EMAIL}
+          </a>
+          <a
+            href={DISCORD_URL}
+            target="_blank"
+            rel="noopener"
+            aria-label={en ? "Discord: bug reports and discussion (new tab)" : "Discord: lapor pepijat dan perbincangan (tab baharu)"}
+            data-revklik-goal="discord_click"
+            data-revklik-goal-location="my-footer"
+            className={FOOT_LINK}
+          >
+            <DiscordMark className="size-4" />
+            Discord
           </a>
           <a href={GITHUB_URL} target="_blank" rel="noopener" className={FOOT_LINK}>
             <GithubMark className="size-4" />

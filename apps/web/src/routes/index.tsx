@@ -38,6 +38,7 @@ import { AppDownload } from "@/components/app-download";
 import { AppLink } from "@/components/app-link";
 import { AndroidMark } from "@/components/android-mark";
 import { AppleMark } from "@/components/apple-mark";
+import { DiscordMark } from "@/components/discord-mark";
 import { Roadmap } from "@/components/landing/roadmap";
 import { ScanDemo } from "@/components/landing/scan-demo";
 import { BrowserShot, HeroShot, PhoneShot } from "@/components/landing/phone-frame";
@@ -54,6 +55,7 @@ import { landingSkipsForSignedIn } from "@/lib/hosts";
 import { sessionQuery } from "@/lib/auth-client";
 import { openIosInstall } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
+import { DISCORD_URL } from "@/lib/discord";
 import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/store-urls";
 import { TESTIMONIALS } from "@/lib/testimonials";
 import { FAQ, IPHONE_FAQ_Q, pageHead } from "@/lib/seo";
@@ -1308,6 +1310,21 @@ function Landing() {
               ),
             )}
           </div>
+          <p className="mt-5 text-[0.9375rem] leading-relaxed text-muted-foreground">
+            Ketemu bug atau punya usul?{" "}
+            <a
+              href={DISCORD_URL}
+              target="_blank"
+              rel="noopener"
+              data-revklik-goal="discord_click"
+              data-revklik-goal-location="faq"
+              className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-foreground underline underline-offset-4"
+            >
+              <DiscordMark className="size-4" />
+              Gabung Discord untuk lapor bug dan diskusi
+            </a>
+            .
+          </p>
         </section>
 
         <InstallApp />
