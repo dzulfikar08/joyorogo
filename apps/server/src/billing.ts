@@ -36,6 +36,8 @@ import {
   createDokuCheckout,
   defaultProvider,
   flagOn,
+  methodOffered,
+  qrisOn,
   methodGateway,
   orderSource,
 } from "./billing-gateway";
@@ -109,6 +111,8 @@ export type BillingEnv = PaywallEnv & GooglePlayEnv & PolarEnv & AppVersionEnv &
    * before the switch still settle. Delete the Pakasir code once no Pakasir order is pending (docs/billing-status.md).
    */
   PAKASIR_ENABLED?: string;
+  /** "off"/"0" hides QRIS in the checkout and refuses new QRIS orders; bank transfer stays. Unset = on. */
+  QRIS_ENABLED?: string;
   APPLE_BUNDLE_IDS?: string;
   APPLE_TEAM_ID?: string;
   APPLE_SIWA_KEY_ID?: string;
@@ -183,8 +187,9 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   // Polar (USD, merchant of record): web only, never advertised to the store builds.
   const polar = paywallEnabled(config) ? polarConfig(env) : null;
   const provider = defaultProvider(env.BILLING_PROVIDER, configured);
+  const qrisEnabled = qrisOn(env.QRIS_ENABLED);
   const paymentMethods = PAYMENT_METHODS.filter(
-    (method) => configured[methodGateway(method, pakasirForNewOrders)],
+    (method) => methodOffered(method, qrisEnabled) && configured[methodGateway(method, pakasirForNewOrders)],
   );
   const appUrl = (env.APP_URL || env.BETTER_AUTH_URL).replace(/\/$/, "");
   const apiUrl = env.BETTER_AUTH_URL.replace(/\/$/, "");
@@ -366,7 +371,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     const method = PAYMENT_METHODS.find((m) => m === body?.method) ?? null;
     const source = orderSource(body?.source);
     const gateway = method ? methodGateway(method, pakasirForNewOrders) : provider;
-    if (!configured[gateway]) {
+    if (!configured[gateway] || (method && !methodOffered(method, qrisEnabled))) {
       return c.json({ error: t(c)("billing.methodUnavailable") }, 400);
     }
     const months = planMonths(plan);

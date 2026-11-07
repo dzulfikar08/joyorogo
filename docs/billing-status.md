@@ -28,6 +28,10 @@ is active, then look for that line after the first QRIS order. No client change 
 QRIS button. Older builds that send no method follow `BILLING_PROVIDER`, which can no longer pick Pakasir while it is
 off.
 
+`QRIS_ENABLED` (worker var, unset = on; production has `"off"` since 2026-11-07) hides the QRIS button on web and in
+the apps and refuses new `method: "qris"` checkouts with "method unavailable"; bank transfer (DOKU) stays. Set it to
+`"on"` (or remove it) in `apps/server/wrangler.jsonc` and deploy the server to bring QRIS back.
+
 `PAKASIR_ENABLED` (worker var, default off; `"1"`/`"on"` turns new Pakasir orders back on) gates **new orders only**.
 The Pakasir webhook (`/api/billing/pakasir/webhook`), the buyer's "Cek pembayaran" and the `*/5` reconcile cron keep
 settling Pakasir orders opened before the switch for as long as `PAKASIR_SLUG`, `PAKASIR_API_KEY` and

@@ -135,6 +135,7 @@
     "DOKU_NOTIFY_BASE_URL": "https://joyorogo-server-live-dzul-btifrf7qulj3wn55.dzulfikar-at.workers.dev",
     "PAKASIR_SLUG": "joyorogo",
     "PAKASIR_ENABLED": "off",
+    "QRIS_ENABLED": "off",
     "POLAR_PRODUCT_MONTHLY_ID": "0eccddaa-1f8d-404c-b68c-7bfc99026f0c",
     "POLAR_PRODUCT_YEARLY_ID": "52630e7f-e269-4998-8064-f1b375a200a8",
     "POLAR_PRICE_MONTHLY_USD_CENTS": "999",
