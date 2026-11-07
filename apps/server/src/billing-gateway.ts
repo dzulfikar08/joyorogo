@@ -17,6 +17,17 @@ export function orderSource(value: unknown): OrderSource | null {
 export const flagOn = (value: string | undefined) => ["1", "on", "true"].includes((value ?? "").trim().toLowerCase());
 
 /**
+ * QRIS_ENABLED: QRIS is offered unless the worker var says "0"/"off"/"false" (switched off while DOKU's QRIS channel is
+ * not usable). Unset = on, so self-hosted setups keep it.
+ */
+export const qrisOn = (value: string | undefined) => !["0", "off", "false"].includes((value ?? "").trim().toLowerCase());
+
+/** Whether the checkout offers [method]; bank transfer is always offered when its gateway is configured. */
+export function methodOffered(method: PaymentMethod, qrisEnabled: boolean): boolean {
+  return method !== "qris" || qrisEnabled;
+}
+
+/**
  * QRIS goes to Pakasir only while PAKASIR_ENABLED is on; otherwise to DOKU Checkout limited to its QRIS channel.
  * Bank transfer is always DOKU.
  */

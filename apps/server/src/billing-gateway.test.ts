@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { DOKU_QRIS } from "@joyorogo/api/lib/doku";
 import type { createCheckout } from "@joyorogo/api/lib/doku";
 
-import { createDokuCheckout, defaultProvider, methodGateway, orderSource } from "./billing-gateway";
+import { createDokuCheckout, defaultProvider, methodGateway, methodOffered, orderSource, qrisOn } from "./billing-gateway";
 
 describe("Pakasir switch (PAKASIR_ENABLED)", () => {
   test("QRIS goes to DOKU while Pakasir is off, to Pakasir only while it is on", () => {
@@ -17,6 +17,18 @@ describe("Pakasir switch (PAKASIR_ENABLED)", () => {
     expect(defaultProvider("pakasir", { doku: true, pakasir: false })).toBe("doku");
     expect(defaultProvider("", { doku: false, pakasir: false })).toBeNull();
     expect(defaultProvider("pakasir", { doku: true, pakasir: true })).toBe("pakasir");
+  });
+});
+
+describe("QRIS switch (QRIS_ENABLED)", () => {
+  test("on unless explicitly off", () => {
+    for (const value of [undefined, "", "1", "on", "true"]) expect(qrisOn(value)).toBe(true);
+    for (const value of ["0", "off", "OFF", " false "]) expect(qrisOn(value)).toBe(false);
+  });
+  test("off hides QRIS only; bank transfer stays", () => {
+    expect(methodOffered("qris", false)).toBe(false);
+    expect(methodOffered("transfer", false)).toBe(true);
+    expect(methodOffered("qris", true)).toBe(true);
   });
 });
 
