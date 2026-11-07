@@ -5,8 +5,10 @@ import type { ReactNode } from "react";
 import { AndroidMark } from "@/components/android-mark";
 import { AppLink } from "@/components/app-link";
 import { AppleMark } from "@/components/apple-mark";
+import { DiscordMark } from "@/components/discord-mark";
 import { FooterLandscape } from "@/components/footer-landscape";
 import { ANDROID_ROBOT_CREDIT } from "@/lib/credits";
+import { DISCORD_URL } from "@/lib/discord";
 import { useAppConfig } from "@/lib/app-config";
 import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/store-urls";
 
@@ -140,6 +142,20 @@ export function PublicFooter() {
             <li>
               <a href={SOURCE_URL} className={linkClass}>
                 Kode sumber
+              </a>
+            </li>
+            <li>
+              <a
+                href={DISCORD_URL}
+                target="_blank"
+                rel="noopener"
+                aria-label="Discord: lapor bug dan diskusi (tab baru)"
+                data-revklik-goal="discord_click"
+                data-revklik-goal-location="footer"
+                className={linkClass}
+              >
+                <DiscordMark className="size-4" />
+                Discord
               </a>
             </li>
           </Column>

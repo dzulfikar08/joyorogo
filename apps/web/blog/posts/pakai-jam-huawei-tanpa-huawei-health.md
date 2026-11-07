@@ -22,7 +22,7 @@ Saat ini baru **Huawei Watch Fit 4 Pro** yang sudah diuji. Puluhan model Huawei 
 ## Cara mulai
 
 1. **Lepaskan jam dari Huawei Health** (Unbind). Jam hanya bisa terikat ke satu aplikasi. Kalau ingin membawa riwayat, sinkronkan sekali lagi dan minta ekspor data dulu sebelum melepas.
-2. **Pasang JoyoFit** dari Google Play. Untuk sekarang masih tes tertutup: gabung grup tester dulu, lalu ketuk *Become a tester*.
+2. **Pasang JoyoFit** dari Google Play. Untuk sekarang masih tes tertutup: gabung grup tester dulu, lalu ketuk *Become a tester*. Ketemu bug? Gabung [Discord JoyoDigitama](https://discord.gg/vtud8UYekp) untuk lapor bug dan diskusi.
 3. **Pasangkan jam.** Buka tab Watch, pilih jam, ketuk *Connect*, lalu setujui di layar jam dalam 30 detik.
 4. **Sinkron pertama.** Buka Today dan ketuk *Sync now*. Sinkron pertama mengambil semua riwayat yang masih tersimpan di jam.
 

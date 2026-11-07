@@ -6,9 +6,11 @@ import { Button } from "@joyorogo/ui/components/button";
 import { cn } from "@joyorogo/ui/lib/utils";
 
 import { AppLink } from "@/components/app-link";
+import { DiscordMark } from "@/components/discord-mark";
 import { WhatsAppLink } from "@/components/landing/my-whatsapp";
 import { GITHUB_URL, GithubMark } from "@/components/public-header";
 import { ANDROID_ROBOT_CREDIT } from "@/lib/credits";
+import { DISCORD_URL } from "@/lib/discord";
 import { CONTACT_EMAIL } from "@/lib/contact";
 
 const FOCUS = "focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none";
@@ -155,6 +157,18 @@ export function FooterSg() {
             {CONTACT_EMAIL}
           </a>
           <WhatsAppLink location="sg-footer" lang="en" className={FOOT_LINK} />
+          <a
+            href={DISCORD_URL}
+            target="_blank"
+            rel="noopener"
+            aria-label="Discord: bug reports and discussion (new tab)"
+            data-revklik-goal="discord_click"
+            data-revklik-goal-location="sg-footer"
+            className={FOOT_LINK}
+          >
+            <DiscordMark className="size-4" />
+            Discord
+          </a>
           <a href={GITHUB_URL} target="_blank" rel="noopener" className={FOOT_LINK}>
             <GithubMark className="size-4" />
             Source code (AGPL-3.0)
