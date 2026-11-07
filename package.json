@@ -71,7 +71,9 @@
     "@effect/sql-d1": "4.0.0-rc.112",
     "@effect/sql-sqlite-do": "4.0.0-rc.112",
     "@effect/vitest": "4.0.0-rc.112",
-    "react-native-device-info": "15.0.2"
+    "react-native-device-info": "15.0.2",
+    "wrangler": "4.158.0",
+    "workerd": "1.20261104.1"
   },
   "packageManager": "bun@1.4.4"
 }
