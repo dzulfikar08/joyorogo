@@ -30,7 +30,8 @@ and native build `https://joyorogo.com/gabung/<code>`). Their "Masuk" button goe
 
 Only `https://joyorogo.com` and `https://app.joyorogo.com` split; any other host (workers.dev preview, localhost, a
 self-hosted deploy) serves everything, because the split needs `VITE_APP_URL` in the build and `APP_URL` in the Worker
-vars. `app.joyorogo.com` also answers `robots.txt` with `Disallow: /` and sends `X-Robots-Tag: noindex` on HTML.
+vars. `app.joyorogo.com` sends `X-Robots-Tag: noindex` on HTML and answers `robots.txt` with `Allow: /`: a `Disallow`
+would hide that header from Google, which then indexes the blocked URLs from links alone.
 
 New route? `hosts.test.ts` fails until its first path segment is added to `APP_SEGMENTS`, `SITE_SEGMENTS` or
 `SHARED_SEGMENTS`. `run_worker_first` in `apps/web/wrangler.jsonc` sends every request through the Worker except the
@@ -134,7 +135,7 @@ Needs: Cloudflare account `b7e6f8457bd39fa37a7eea5249799754` (web and zone) and 
    curl -sI https://joyorogo.com/gabung/ABCD2345    # 200, og tags still per invite
    curl -sI https://app.joyorogo.com/               # 302 -> /beranda
    curl -sI https://app.joyorogo.com/harga          # 302 -> https://joyorogo.com/harga
-   curl -s  https://app.joyorogo.com/robots.txt     # Disallow: /
+   curl -s  https://app.joyorogo.com/robots.txt     # Allow: /
    curl -sI https://app.joyorogo.com/sw.js          # 200
    curl -s  https://app.joyorogo.com/manifest.webmanifest | head -c 200   # start_url /beranda
    curl -sI -H "Origin: https://app.joyorogo.com" https://api.joyorogo.com/api/auth/get-session   # access-control-allow-origin: https://app.joyorogo.com

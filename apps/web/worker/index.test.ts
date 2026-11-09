@@ -70,9 +70,9 @@ describe("app.joyorogo.com", () => {
     expect(res.headers.get("X-Robots-Tag")).toBeNull();
   });
 
-  test("robots.txt disallows everything", async () => {
+  test("robots.txt allows crawling, so crawlers see the noindex header", async () => {
     const res = await call("https://app.joyorogo.com/robots.txt");
-    expect(await res.text()).toBe("User-agent: *\nDisallow: /\n");
+    expect(await res.text()).toBe("User-agent: *\nAllow: /\n");
   });
 });
 

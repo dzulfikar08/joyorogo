@@ -113,8 +113,12 @@ function rewrite(page: Response, tags: OgTags): Response {
   return new Response(out.body, { status: out.status, headers });
 }
 
-/** Nothing on the app host belongs in search results: the pages that are public there canonicalise to the site. */
-const APP_ROBOTS = "User-agent: *\nDisallow: /\n";
+/**
+ * Nothing on the app host belongs in search results; the X-Robots-Tag below keeps it out. Crawling stays allowed on
+ * purpose: a robots.txt block hides that header, and Google then indexes blocked URLs from links alone (Search Console:
+ * "Indexed, though blocked by robots.txt" for joyorogo.com/login, which redirects here).
+ */
+const APP_ROBOTS = "User-agent: *\nAllow: /\n";
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
