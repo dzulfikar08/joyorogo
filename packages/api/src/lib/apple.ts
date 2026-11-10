@@ -1,4 +1,4 @@
-import { JOYOFIT_APPLE_BUNDLE_ID, JOYOROGO_APPLE_BUNDLE_ID } from "@joyorogo/auth/apple-audience";
+import { JOYOARTO_APPLE_BUNDLE_ID, JOYOFIT_APPLE_BUNDLE_ID, JOYOROGO_APPLE_BUNDLE_ID } from "@joyorogo/auth/apple-audience";
 import { z } from "zod";
 
 import type { FounderPlan } from "./tiers";
@@ -18,18 +18,21 @@ export const APPLE_ROOT_CA_G3_SHA256 =
  * that sells it and the plan it credits. A transaction is valid only when its
  * product belongs to the bundle the transaction was signed for: a JoyoFit
  * product under JoyoRogo's bundle (or the reverse) is rejected.
- * JoyoRogo's and JoyoFit's products live in separate App Store Connect apps and subscription groups.
+ * JoyoRogo's, JoyoFit's and JoyoArto's products live in separate App Store Connect apps and subscription groups.
  */
 export const APPLE_PRODUCTS: Record<string, { bundleId: string; plan: FounderPlan }> = {
   "com.joyodigitama.joyorogo.founder.monthly": { bundleId: JOYOROGO_APPLE_BUNDLE_ID, plan: "monthly" },
   "com.joyodigitama.joyorogo.founder.yearly": { bundleId: JOYOROGO_APPLE_BUNDLE_ID, plan: "yearly" },
   "com.joyodigitama.joyofit.pro.monthly": { bundleId: JOYOFIT_APPLE_BUNDLE_ID, plan: "monthly" },
   "com.joyodigitama.joyofit.pro.yearly": { bundleId: JOYOFIT_APPLE_BUNDLE_ID, plan: "yearly" },
+  "com.joyodigitama.joyoarto.pro.monthly": { bundleId: JOYOARTO_APPLE_BUNDLE_ID, plan: "monthly" },
+  "com.joyodigitama.joyoarto.pro.yearly": { bundleId: JOYOARTO_APPLE_BUNDLE_ID, plan: "yearly" },
 };
 
 const APPLE_APP_NAMES: Record<string, string> = {
   [JOYOROGO_APPLE_BUNDLE_ID]: "JoyoRogo",
   [JOYOFIT_APPLE_BUNDLE_ID]: "JoyoFit",
+  [JOYOARTO_APPLE_BUNDLE_ID]: "JoyoArto",
 };
 
 /** The product's app (bundle id) and plan; null for anything not in the table. */

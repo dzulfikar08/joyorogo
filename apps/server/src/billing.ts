@@ -1,7 +1,7 @@
 import { and, desc, eq, gt, gte, inArray, like, lte, sql } from "drizzle-orm";
 import type { SendEmail } from "@cloudflare/workers-types";
 import type { JoyoAuth } from "@joyorogo/auth";
-import { appleBundleIds } from "@joyorogo/auth/apple-audience";
+import { JOYOARTO_APPLE_BUNDLE_ID, appleBundleIds } from "@joyorogo/auth/apple-audience";
 import type { Context, Hono } from "hono";
 
 import {
@@ -771,9 +771,10 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     if (typeof body?.signedPayload !== "string" || !body.signedPayload) {
       return c.json({ error: "signedPayload tidak ada." }, 400);
     }
+    // JoyoArto's renewals and refunds come here too (its purchases arrive through /api/internal/joyo-pro/apple).
     const verification = await verifyAppleNotificationJws(body.signedPayload, {
       rootSha256: APPLE_ROOT_CA_G3_SHA256,
-      bundleIds: appleBundleIds(env.APPLE_BUNDLE_IDS),
+      bundleIds: [...appleBundleIds(env.APPLE_BUNDLE_IDS), JOYOARTO_APPLE_BUNDLE_ID],
     });
     if (!verification.ok) {
       console.error(`apple notification rejected: ${verification.reason}`);

@@ -7,6 +7,12 @@
  */
 export const JOYOROGO_APPLE_BUNDLE_ID = "com.joyodigitama.joyorogo";
 export const JOYOFIT_APPLE_BUNDLE_ID = "com.joyodigitama.joyofit";
+/**
+ * JoyoArto has its own accounts and its own server: its App Store purchases reach this server only through
+ * `POST /api/internal/joyo-pro/apple` (and its notifications), never as a Sign in with Apple audience, so it is not in
+ * `appleBundleIds`.
+ */
+export const JOYOARTO_APPLE_BUNDLE_ID = "com.joyodigitama.joyoarto";
 
 /**
  * The enabled bundle ids from `APPLE_BUNDLE_IDS` (comma-separated). Unset or

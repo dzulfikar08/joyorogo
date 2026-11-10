@@ -68,6 +68,41 @@ export async function findJoyoUser(db: Database, lookup: JoyoProLookup): Promise
 }
 
 /**
+ * The JoyoRogo account a JoyoArto buyer's App Store purchase is credited to: the one `findJoyoUser` matches, else a
+ * new account for that email (verified: JoyoArto only signs in with Google or Apple, which both prove the address),
+ * with the Google account linked when JoyoArto knows its id, so signing in to JoyoRogo later with the same Google or
+ * Apple account lands in it. An unverified JoyoRogo account with the same email is taken over and marked verified:
+ * the email's owner proved it in JoyoArto, the account's creator never did. Returns null without an email.
+ */
+export async function findOrCreateJoyoUser(
+  db: Database,
+  lookup: JoyoProLookup & { name?: string | null },
+  now = new Date(),
+): Promise<UserRow | null> {
+  const found = await findJoyoUser(db, lookup);
+  if (found) return found;
+  const email = lookup.email?.trim().toLowerCase();
+  if (!email) return null;
+  const sub = lookup.googleSub?.trim() || null;
+  const name = lookup.name?.trim() || email.split("@")[0] || email;
+  await db.insert(user).values({ id: crypto.randomUUID(), name, email, emailVerified: true }).onConflictDoNothing();
+  const [row] = await db.select({ ...userColumns, emailVerified: user.emailVerified }).from(user).where(eq(user.email, email)).limit(1);
+  if (!row) return null;
+  if (!row.emailVerified) await db.update(user).set({ emailVerified: true }).where(eq(user.id, row.id));
+  if (sub) {
+    const [linked] = await db
+      .select({ id: account.id })
+      .from(account)
+      .where(and(eq(account.providerId, "google"), eq(account.accountId, sub)))
+      .limit(1);
+    if (!linked) {
+      await db.insert(account).values({ id: crypto.randomUUID(), accountId: sub, providerId: "google", userId: row.id, createdAt: now, updatedAt: now });
+    }
+  }
+  return { id: row.id, tier: row.tier, founderUntil: row.founderUntil };
+}
+
+/**
  * Joyo Pro state of one JoyoRogo account, by the rule JoyoRogo applies to itself (`premiumUnlocked`): a manual comp
  * (`tier = 'founder'`), a paid period still running (`founder_until`, written by every gateway: DOKU, Pakasir, Apple,
  * Google Play, Polar), or a server without a paywall. Plan and source come from the newest paid ledger row.

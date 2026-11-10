@@ -55,7 +55,7 @@ import type { McpEnv } from "./mcp";
 import { registerOgRoutes } from "./og";
 import { registerPrivacyRoutes } from "./privacy";
 import { registerFamilyRoutes } from "./family";
-import { registerJoyoProRoutes } from "./joyo-pro";
+import { JOYO_PRO_APPLE_PATH, registerJoyoProRoutes } from "./joyo-pro";
 import { registerCorosRoutes } from "./coros";
 import { registerStravaRoutes } from "./strava";
 import { registerThreadsBotRoutes, runThreadsBotTick } from "./threads-bot";
@@ -593,7 +593,12 @@ registerCorosRoutes(app, { getDb, appOrigin: () => env.APP_URL || env.BETTER_AUT
 // JoyoFit family monitoring asks here for a user's Pro state, name, email and language (same Basic auth).
 registerFamilyRoutes(app, { env, getDb });
 // JoyoArto asks here whether its user has Joyo Pro (x-joyo-internal-key; off while JOYO_INTERNAL_KEY is unset).
-registerJoyoProRoutes(app, { env, getDb });
+// JoyoArto's App Store purchases are credited here too: deliver their ledger events like a billing request's.
+app.use(JOYO_PRO_APPLE_PATH, async (c, next) => {
+  await next();
+  if (revklik.enabled) c.executionCtx.waitUntil(revklik.flush().catch((error: unknown) => console.error("[revklik] flush failed", error)));
+});
+registerJoyoProRoutes(app, { env, getDb, onLedger: revklik.enabled ? (orderId, kind) => revklik.onLedger(orderId, kind) : undefined });
 
 // The Android app only knows the API origin; send its "Kebijakan privasi"
 // link on to the web page (a marketing page: the site origin, not the app's).

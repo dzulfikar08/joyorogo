@@ -58,6 +58,34 @@ Code: `apps/server/src/joyo-pro.ts` (route), `packages/api/src/lib/joyo-pro.ts` 
 ## Buying from JoyoArto
 
 JoyoArto's Upgrade opens `https://app.joyorogo.com/pro?from=joyoarto`.
+That is the web and Android. **On iOS JoyoArto sells Joyo Pro with In-App Purchase** (App Review 3.1.1 refused showing
+Joyo Pro bought elsewhere without it): its own auto-renewable products `com.joyodigitama.joyoarto.pro.monthly` and
+`.yearly` in JoyoArto's App Store Connect app (6830908097), same prices as JoyoRogo's and JoyoFit's.
+
+```
+POST https://api.joyorogo.com/api/internal/joyo-pro/apple
+x-joyo-internal-key: <JOYO_INTERNAL_KEY>
+
+{ "googleSub": "1098..." | null, "email": "person@gmail.com", "name": "Ani" }            // before the purchase
+200 { "appAccountToken": "uuid" }                                                         // pass to StoreKit
+
+{ "googleSub": ..., "email": ..., "signedTransaction": "<StoreKit 2 jwsRepresentation>" } // after it, restore, replay
+200 { "status": "granted" | "already" | "inactive", "sandbox": false, "joyo": { ...status answer above } }
+```
+
+- The JoyoRogo account is found like the status lookup, else **created** (verified email, Google id linked when
+  given): Joyo Pro is per JoyoRogo account, and a JoyoArto user signed in with Apple may have none yet. An unverified
+  JoyoRogo account with the same email is taken over and marked verified (the owner proved the address in JoyoArto).
+- The transaction must be JoyoArto's bundle (`com.joyodigitama.joyoarto`) and one of its two products; it is linked
+  and credited by the same `redeemAppleTransaction` as `/api/billing/apple` (ledger `apple:<txn>`, RevKlik, Sandbox
+  rules). Errors: `400 receipt_invalid | wrong-product`, `403 other-account` (the subscription belongs to another
+  JoyoRogo account), `409 busy`, `404 no_user` (no email).
+- Renewals and refunds: set JoyoArto's App Store Server Notifications URL (Production and Sandbox) to
+  `https://api.joyorogo.com/api/billing/apple/notifications`; that route accepts JoyoArto's bundle. JoyoArto is not
+  in `APPLE_BUNDLE_IDS` (that list is also the Sign in with Apple audience).
+
+Code: `apps/server/src/joyo-pro.ts`, `findOrCreateJoyoUser` in `packages/api/src/lib/joyo-pro.ts`, tests in
+`apps/server/src/joyo-pro-apple.test.ts`.
 
 - Signed out: `/login?redirect=/pro?from=joyoarto` (the `_auth` guard now keeps the query). The login page says to use
   the same Google account as in JoyoArto; a new Google account gets a JoyoRogo account on the spot and lands back on
