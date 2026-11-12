@@ -15,6 +15,7 @@ const FIT_NAMESPACES = [
   "fitWebSleep",
   "fitWebUpload",
   "fitWebConnect",
+  "fitWebIssues",
   "koneksi",
   "place",
 ] as const;

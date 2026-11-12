@@ -6,7 +6,7 @@ import { useTheme } from "@joyorogo/ui/hooks/use-theme";
 import type { Theme } from "@joyorogo/ui/hooks/use-theme";
 import { cn } from "@joyorogo/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Bike,
   ChevronsUpDown,
@@ -22,7 +22,6 @@ import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
 
 import { type Session, signOut } from "@/lib/auth-client";
-import { FEEDBACK_PORTAL_URL, openFeedback } from "@/lib/feedback";
 import { setLocale } from "@/lib/i18n";
 import { orpc } from "@/lib/orpc";
 import { PALETTES, type PaletteInfo, usePalette } from "@/lib/palette";
@@ -95,38 +94,26 @@ function MenuLink({
 const MENU_ROW =
   "flex items-center gap-3 rounded-xl px-2.5 py-2 text-left text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40";
 
-/**
- * Ideas, bug reports and help through Atur's widget (lib/feedback.ts), filed under this account. The menu closes first:
- * the popover is modal and would keep the panel from taking focus.
- */
-function FeedbackRow({ userId, close }: { userId: string; close: () => void }) {
+/** The feedback page (/issues): report a problem, follow the team's replies, back ideas. Closes the menu on the way. */
+function FeedbackRow({ close }: { close: () => void }) {
   const { t } = useTranslation("fitWeb");
   return (
-    <button
-      type="button"
-      className={MENU_ROW}
-      onClick={() => {
-        close();
-        void openFeedback(userId).then((opened) => {
-          if (!opened) window.location.assign(FEEDBACK_PORTAL_URL);
-        });
-      }}
-    >
+    <Link to="/issues" className={MENU_ROW} onClick={close}>
       <MessageSquareWarning className="size-[1.125rem] shrink-0" aria-hidden />
       <span className="min-w-0">
         <span className="block text-sm font-semibold">{t("feedback.title")}</span>
         <span className="block text-xs leading-snug">{t("feedback.description")}</span>
       </span>
-    </button>
+    </Link>
   );
 }
 
 /** Ride game, watch-face Studio and the product site's "what is new": full-page sites of their own, outside the Pro gate. */
-function MenuLinks({ userId, close }: { userId: string; close: () => void }) {
+function MenuLinks({ close }: { close: () => void }) {
   const { t } = useTranslation("fitWeb");
   return (
     <div className="flex flex-col">
-      <FeedbackRow userId={userId} close={close} />
+      <FeedbackRow close={close} />
       <MenuLink
         href={RIDE_URL}
         Icon={Bike}
@@ -268,7 +255,7 @@ function AccountPanel({ session, close }: { session: Session; close: () => void 
       </MenuSection>
 
       <div className="-mx-1 border-t border-border pt-2">
-        <MenuLinks userId={session.user.id} close={close} />
+        <MenuLinks close={close} />
       </div>
 
       <Button

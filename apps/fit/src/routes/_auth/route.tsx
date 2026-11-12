@@ -58,7 +58,8 @@ function AuthLayout() {
       </div>
     );
   }
-  if (!access.data.unlocked) {
+  // The feedback page is for every signed-in account: reporting a problem is not behind the paywall.
+  if (!access.data.unlocked && pathname !== "/issues") {
     return (
       <ProWall
         session={session.data}

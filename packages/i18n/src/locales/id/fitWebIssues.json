@@ -1,0 +1,55 @@
+{
+  "title": "Masukan",
+  "subtitle": "Laporkan masalah, pantau balasan tim, dan dukung ide untuk JoyoFit. Dengan akun JoyoFit-mu, tanpa daftar lagi.",
+  "tabs": {
+    "label": "Bagian",
+    "ide": "Ide",
+    "laporan": "Laporanku",
+    "selesai": "Sudah jadi"
+  },
+  "actions": {
+    "report": "Laporkan masalah",
+    "idea": "Usulkan ide"
+  },
+  "send": "Kirim",
+  "sending": "Mengirim…",
+  "ideas": {
+    "title": "Ide",
+    "empty": "Belum ada ide",
+    "emptyBody": "Jadilah yang pertama mengusulkan fitur untuk JoyoFit.",
+    "vote": "Dukung {{name}}",
+    "unvote": "Batalkan dukungan untuk {{name}}",
+    "comments_one": "{{count}} komentar",
+    "comments_other": "{{count}} komentar",
+    "commentLabel": "Komentar",
+    "commentPlaceholder": "Tulis pendapatmu tentang ide ini",
+    "commentPublic": "Komentar terlihat oleh semua orang, tanpa nama."
+  },
+  "reports": {
+    "empty": "Belum ada laporan",
+    "emptyBody": "Ada yang tidak beres? Laporkan di sini, dan balasan tim muncul di halaman ini.",
+    "tickets": "Laporan dan pertanyaan",
+    "ticketsHint": "Balasan tim muncul di sini. Kamu bisa membalas juga.",
+    "ideas": "Ide yang kamu usulkan",
+    "unverified": "Dikirim tanpa akun",
+    "unverifiedHint": "Laporan yang memakai emailmu tapi dikirim tanpa masuk. Hanya bisa dilihat.",
+    "ticket": "Laporan",
+    "thread": "Percakapan",
+    "noReplies": "Belum ada balasan. Tim akan membalas di sini.",
+    "you": "Kamu",
+    "team": "Tim JoyoFit",
+    "replyLabel": "Balasan",
+    "replyPlaceholder": "Tambahkan info atau balas tim"
+  },
+  "changelog": {
+    "empty": "Belum ada yang selesai",
+    "emptyBody": "Ide yang sudah dikerjakan tim akan muncul di sini.",
+    "votes_one": "{{count}} dukungan",
+    "votes_other": "{{count}} dukungan"
+  },
+  "error": {
+    "send": "Gagal mengirim. Coba lagi.",
+    "widget": "Formulir laporan tidak bisa dibuka (mungkin diblokir ekstensi browser).",
+    "widgetLink": "Buka portal masukan"
+  }
+}

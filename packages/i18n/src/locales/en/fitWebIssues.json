@@ -1,0 +1,55 @@
+{
+  "title": "Feedback",
+  "subtitle": "Report a problem, follow the team's replies and back ideas for JoyoFit. With your JoyoFit account, no extra sign-up.",
+  "tabs": {
+    "label": "Section",
+    "ide": "Ideas",
+    "laporan": "My reports",
+    "selesai": "Shipped"
+  },
+  "actions": {
+    "report": "Report a problem",
+    "idea": "Suggest an idea"
+  },
+  "send": "Send",
+  "sending": "Sending…",
+  "ideas": {
+    "title": "Idea",
+    "empty": "No ideas yet",
+    "emptyBody": "Be the first to suggest a feature for JoyoFit.",
+    "vote": "Back {{name}}",
+    "unvote": "Take back your vote for {{name}}",
+    "comments_one": "{{count}} comment",
+    "comments_other": "{{count}} comments",
+    "commentLabel": "Comment",
+    "commentPlaceholder": "What do you think of this idea?",
+    "commentPublic": "Comments are visible to everyone, without your name."
+  },
+  "reports": {
+    "empty": "No reports yet",
+    "emptyBody": "Something not right? Report it here, and the team's replies show up on this page.",
+    "tickets": "Reports and questions",
+    "ticketsHint": "The team replies here, and you can reply too.",
+    "ideas": "Ideas you suggested",
+    "unverified": "Sent without your account",
+    "unverifiedHint": "Reports that used your email but were sent without signing in. Read only.",
+    "ticket": "Report",
+    "thread": "Conversation",
+    "noReplies": "No replies yet. The team will reply here.",
+    "you": "You",
+    "team": "JoyoFit team",
+    "replyLabel": "Reply",
+    "replyPlaceholder": "Add details or reply to the team"
+  },
+  "changelog": {
+    "empty": "Nothing shipped yet",
+    "emptyBody": "Ideas the team has finished will show up here.",
+    "votes_one": "{{count}} vote",
+    "votes_other": "{{count}} votes"
+  },
+  "error": {
+    "send": "Could not send. Try again.",
+    "widget": "The report form could not open (a browser extension may block it).",
+    "widgetLink": "Open the feedback portal"
+  }
+}

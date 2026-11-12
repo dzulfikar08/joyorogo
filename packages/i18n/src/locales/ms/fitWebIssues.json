@@ -1,0 +1,55 @@
+{
+  "title": "Maklum balas",
+  "subtitle": "Laporkan masalah, ikuti balasan pasukan dan sokong idea untuk JoyoFit. Dengan akaun JoyoFit anda, tanpa daftar lagi.",
+  "tabs": {
+    "label": "Bahagian",
+    "ide": "Idea",
+    "laporan": "Laporan saya",
+    "selesai": "Sudah siap"
+  },
+  "actions": {
+    "report": "Laporkan masalah",
+    "idea": "Cadangkan idea"
+  },
+  "send": "Hantar",
+  "sending": "Menghantar…",
+  "ideas": {
+    "title": "Idea",
+    "empty": "Belum ada idea",
+    "emptyBody": "Jadilah yang pertama mencadangkan ciri untuk JoyoFit.",
+    "vote": "Sokong {{name}}",
+    "unvote": "Tarik balik sokongan untuk {{name}}",
+    "comments_one": "{{count}} komen",
+    "comments_other": "{{count}} komen",
+    "commentLabel": "Komen",
+    "commentPlaceholder": "Apa pendapat anda tentang idea ini?",
+    "commentPublic": "Komen boleh dilihat oleh semua orang, tanpa nama."
+  },
+  "reports": {
+    "empty": "Belum ada laporan",
+    "emptyBody": "Ada yang tidak kena? Laporkan di sini, dan balasan pasukan akan muncul di halaman ini.",
+    "tickets": "Laporan dan soalan",
+    "ticketsHint": "Pasukan membalas di sini, dan anda juga boleh membalas.",
+    "ideas": "Idea yang anda cadangkan",
+    "unverified": "Dihantar tanpa akaun",
+    "unverifiedHint": "Laporan yang menggunakan e-mel anda tetapi dihantar tanpa log masuk. Baca sahaja.",
+    "ticket": "Laporan",
+    "thread": "Perbualan",
+    "noReplies": "Belum ada balasan. Pasukan akan membalas di sini.",
+    "you": "Anda",
+    "team": "Pasukan JoyoFit",
+    "replyLabel": "Balasan",
+    "replyPlaceholder": "Tambah maklumat atau balas pasukan"
+  },
+  "changelog": {
+    "empty": "Belum ada yang siap",
+    "emptyBody": "Idea yang telah disiapkan pasukan akan muncul di sini.",
+    "votes_one": "{{count}} sokongan",
+    "votes_other": "{{count}} sokongan"
+  },
+  "error": {
+    "send": "Gagal menghantar. Cuba lagi.",
+    "widget": "Borang laporan tidak dapat dibuka (mungkin disekat oleh sambungan pelayar).",
+    "widgetLink": "Buka portal maklum balas"
+  }
+}
