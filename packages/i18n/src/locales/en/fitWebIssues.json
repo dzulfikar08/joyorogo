@@ -79,12 +79,12 @@
       "question": "Write your question in full.",
       "idea": "Why would this help you?"
     },
-    "attach": "Attach screenshots",
-    "attachHint": "Images, PDF or text, up to 10 MB, at most 5.",
+    "attach": "Attach screenshots or files",
+    "attachHint": "Images, PDF, text or a workout's .fit file, up to 10 MB, at most 5. If the problem is in one workout, attach its .fit file.",
     "uploading": "{{name}} (uploading…)",
     "remove": "Remove {{name}}",
     "tooMany": "At most {{count}} attachments.",
-    "badFile": "{{name}} can't be attached (images, PDF or text, up to 10 MB).",
+    "badFile": "{{name}} can't be attached (images, PDF, text or .fit, up to 10 MB).",
     "uploadFailed": "Could not upload {{name}}.",
     "waitUpload": "Waiting for uploads…",
     "privacy": "Sent with your account's name and email, plus the page address and browser type. Ideas are public; reports and questions are only for you and the team."
