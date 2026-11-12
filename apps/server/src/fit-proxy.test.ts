@@ -290,6 +290,12 @@ describe("fit proxy", () => {
       ["GET", "/api/fit/studio"],
       ["POST", "/api/fit/feedback/identity"],
       ["GET", "/api/fit/feedback"],
+      ["GET", "/api/fit/feedback/items"],
+      ["GET", "/api/fit/feedback/items/not-a-uuid"],
+      ["POST", "/api/fit/feedback/board"],
+      ["GET", "/api/fit/feedback/tickets/0"],
+      ["DELETE", "/api/fit/feedback/tickets/1"],
+      ["GET", "/api/fit/feedback/me/board"],
     ] as const) {
       const res = await app.request(path, { method, headers });
       expect(res.status).toBe(404);
@@ -311,6 +317,45 @@ describe("fit proxy", () => {
     expect(calls[0]?.method).toBe("GET");
     expect(res.headers.get("cache-control")).toBe("private, no-store");
     expect(res.headers.get("set-cookie")).toBeNull();
+  });
+
+  test("forwards the feedback page's routes with method, query and comment body", async () => {
+    const { app, calls } = setup(() => Response.json({ ok: true }));
+    const ITEM = "0b6f3c2e-1a2b-4c3d-8e9f-0123456789ab";
+    const json = { cookie: GOOD, origin: APP_ORIGIN, "content-type": "application/json" };
+    const body = JSON.stringify({ body: "Setuju" });
+    const len = String(new TextEncoder().encode(body).length);
+    await app.request("/api/fit/feedback/board", { headers: { cookie: GOOD } });
+    await app.request(`/api/fit/feedback/items/${ITEM}`, { headers: { cookie: GOOD } });
+    await app.request(`/api/fit/feedback/items/${ITEM}/votes`, {
+      method: "POST",
+      headers: { cookie: GOOD, origin: APP_ORIGIN },
+    });
+    await app.request(`/api/fit/feedback/items/${ITEM}/comments`, {
+      method: "POST",
+      headers: { ...json, "content-length": len },
+      body,
+    });
+    await app.request("/api/fit/feedback/reports", { headers: { cookie: GOOD } });
+    await app.request(`/api/fit/feedback/tickets/12?project=${ITEM}`, {
+      headers: { cookie: GOOD },
+    });
+    await app.request("/api/fit/feedback/tickets/12/comments", {
+      method: "POST",
+      headers: { ...json, "content-length": len },
+      body,
+    });
+    await app.request("/api/fit/feedback/changelog", { headers: { cookie: GOOD } });
+    expect(calls.map((c) => [c.method, c.url])).toEqual([
+      ["GET", "https://fit.test/v1/feedback/board"],
+      ["GET", `https://fit.test/v1/feedback/items/${ITEM}`],
+      ["POST", `https://fit.test/v1/feedback/items/${ITEM}/votes`],
+      ["POST", `https://fit.test/v1/feedback/items/${ITEM}/comments`],
+      ["GET", "https://fit.test/v1/feedback/reports"],
+      ["GET", `https://fit.test/v1/feedback/tickets/12?project=${ITEM}`],
+      ["POST", "https://fit.test/v1/feedback/tickets/12/comments"],
+      ["GET", "https://fit.test/v1/feedback/changelog"],
+    ]);
   });
 
   describe("studio projects", () => {

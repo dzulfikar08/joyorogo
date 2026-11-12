@@ -39,6 +39,7 @@ import idFitWebWorkouts from "./locales/id/fitWebWorkouts.json";
 import idFitWebSleep from "./locales/id/fitWebSleep.json";
 import idFitWebUpload from "./locales/id/fitWebUpload.json";
 import idFitWebConnect from "./locales/id/fitWebConnect.json";
+import idFitWebIssues from "./locales/id/fitWebIssues.json";
 import idMealPlan from "./locales/id/mealPlan.json";
 import idSumber from "./locales/id/sumber.json";
 import idCoros from "./locales/id/coros.json";
@@ -89,6 +90,7 @@ import enFitWebWorkouts from "./locales/en/fitWebWorkouts.json";
 import enFitWebSleep from "./locales/en/fitWebSleep.json";
 import enFitWebUpload from "./locales/en/fitWebUpload.json";
 import enFitWebConnect from "./locales/en/fitWebConnect.json";
+import enFitWebIssues from "./locales/en/fitWebIssues.json";
 import enMealPlan from "./locales/en/mealPlan.json";
 import enSumber from "./locales/en/sumber.json";
 import enCoros from "./locales/en/coros.json";
@@ -139,6 +141,7 @@ import msFitWebWorkouts from "./locales/ms/fitWebWorkouts.json";
 import msFitWebSleep from "./locales/ms/fitWebSleep.json";
 import msFitWebUpload from "./locales/ms/fitWebUpload.json";
 import msFitWebConnect from "./locales/ms/fitWebConnect.json";
+import msFitWebIssues from "./locales/ms/fitWebIssues.json";
 import msMealPlan from "./locales/ms/mealPlan.json";
 import msSumber from "./locales/ms/sumber.json";
 import msCoros from "./locales/ms/coros.json";
@@ -193,6 +196,7 @@ const id = {
   fitWebSleep: idFitWebSleep,
   fitWebUpload: idFitWebUpload,
   fitWebConnect: idFitWebConnect,
+  fitWebIssues: idFitWebIssues,
   mealPlan: idMealPlan,
   sumber: idSumber,
   coros: idCoros,
@@ -249,6 +253,7 @@ const en: typeof id = {
   fitWebSleep: enFitWebSleep,
   fitWebUpload: enFitWebUpload,
   fitWebConnect: enFitWebConnect,
+  fitWebIssues: enFitWebIssues,
   mealPlan: enMealPlan,
   sumber: enSumber,
   coros: enCoros,
@@ -301,6 +306,7 @@ const ms: typeof id = {
   fitWebSleep: msFitWebSleep,
   fitWebUpload: msFitWebUpload,
   fitWebConnect: msFitWebConnect,
+  fitWebIssues: msFitWebIssues,
   mealPlan: msMealPlan,
   sumber: msSumber,
   coros: msCoros,
