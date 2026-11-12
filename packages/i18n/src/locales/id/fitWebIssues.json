@@ -48,8 +48,45 @@
     "votes_other": "{{count}} dukungan"
   },
   "error": {
-    "send": "Gagal mengirim. Coba lagi.",
-    "widget": "Formulir laporan tidak bisa dibuka (mungkin diblokir ekstensi browser).",
-    "widgetLink": "Buka portal masukan"
+    "send": "Gagal mengirim. Coba lagi."
+  },
+  "compose": {
+    "kind": "Jenis",
+    "kinds": {
+      "bug": "Masalah",
+      "question": "Pertanyaan",
+      "idea": "Ide"
+    },
+    "title": {
+      "bug": "Laporkan masalah",
+      "question": "Ajukan pertanyaan",
+      "idea": "Usulkan ide"
+    },
+    "hint": {
+      "bug": "Tim membalas di Laporanku. Ceritakan apa yang terjadi dan kapan.",
+      "question": "Tim membalas di Laporanku.",
+      "idea": "Idemu muncul di tab Ide, dan orang lain bisa mendukungnya."
+    },
+    "summary": "Ringkasan",
+    "summaryPlaceholder": {
+      "bug": "Contoh: Split km hilang setelah sinkron",
+      "question": "Contoh: Cara menghubungkan ke Strava?",
+      "idea": "Contoh: Ekspor GPX ke Komoot"
+    },
+    "details": "Detail",
+    "detailsPlaceholder": {
+      "bug": "Apa yang kamu lakukan, apa yang terjadi, dan apa yang seharusnya terjadi. Sebutkan jam dan tanggal latihannya kalau ada.",
+      "question": "Tulis pertanyaanmu selengkapnya.",
+      "idea": "Kenapa ide ini berguna untukmu?"
+    },
+    "attach": "Lampirkan tangkapan layar",
+    "attachHint": "Gambar, PDF, atau teks, maksimal 10 MB, paling banyak 5.",
+    "uploading": "{{name}} (mengunggah…)",
+    "remove": "Hapus {{name}}",
+    "tooMany": "Paling banyak {{count}} lampiran.",
+    "badFile": "{{name}} tidak bisa dilampirkan (gambar, PDF, atau teks, maks. 10 MB).",
+    "uploadFailed": "Gagal mengunggah {{name}}.",
+    "waitUpload": "Menunggu unggahan…",
+    "privacy": "Dikirim dengan nama dan email akunmu, plus alamat halaman dan jenis browser. Ide tampil untuk semua orang; laporan dan pertanyaan hanya untukmu dan tim."
   }
 }
