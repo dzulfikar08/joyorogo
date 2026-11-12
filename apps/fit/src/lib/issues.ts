@@ -169,3 +169,62 @@ export const MAX_COMMENT_CHARS = 4000;
 export function isClosed(state: { group: string | null } | null | undefined): boolean {
   return state?.group === "completed" || state?.group === "cancelled";
 }
+
+/** The FIT board's public token: it only opens the board's upload, which needs nothing else (no account). */
+export const FEEDBACK_BOARD_TOKEN = "pk_fb_3d56898896b544949f03abc0f28256cb";
+const ATUR_ORIGIN = "https://app.diatur.com";
+
+export type ReportKind = "bug" | "question" | "idea";
+
+/** What Atur's board upload accepts: images, PDF and text, 10 MB each, at most 5 per report. */
+export const ATTACHMENT_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+  "text/plain",
+];
+export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+export const MAX_ATTACHMENTS = 5;
+
+/**
+ * Uploads a screenshot or file straight to the board (the browser to Atur, CORS-open); the report then carries its id.
+ * An upload no report claims is deleted by Atur after two hours.
+ */
+export async function uploadAttachment(file: File): Promise<{ id: string }> {
+  const form = new FormData();
+  form.append("file", file, file.name || "attachment");
+  const response = await fetch(
+    `${ATUR_ORIGIN}/api/feedback/${encodeURIComponent(FEEDBACK_BOARD_TOKEN)}/attachments`,
+    { method: "POST", body: form },
+  );
+  if (!response.ok) throw new Error(`upload ${response.status}`);
+  return (await response.json()) as { id: string };
+}
+
+/** Files a report or idea as the signed-in account (verified: a bug or question becomes its ticket). */
+export function submitItem(input: {
+  kind: ReportKind;
+  title: string;
+  description?: string;
+  attachment_ids?: string[];
+}) {
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.hash = "";
+  return fitApi<{ id: string; sequence_id: number; url: string }>("/feedback/items", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      ...input,
+      context: {
+        url: url.toString(),
+        user_agent: navigator.userAgent.slice(0, 500),
+        viewport: `${window.innerWidth}x${window.innerHeight}`,
+        app_version: "web",
+        platform: "web",
+      },
+    }),
+  });
+}

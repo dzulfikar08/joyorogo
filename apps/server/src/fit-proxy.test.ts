@@ -288,7 +288,8 @@ describe("fit proxy", () => {
       ["POST", "/api/fit/studio/projects/a1b2c3d4-0000"],
       ["PATCH", "/api/fit/studio/projects/a1b2c3d4-0000"],
       ["GET", "/api/fit/studio"],
-      ["POST", "/api/fit/feedback/identity"],
+      ["GET", "/api/fit/feedback/identity"],
+      ["GET", "/api/fit/feedback/items"],
       ["GET", "/api/fit/feedback"],
       ["GET", "/api/fit/feedback/items"],
       ["GET", "/api/fit/feedback/items/not-a-uuid"],
@@ -303,22 +304,6 @@ describe("fit proxy", () => {
     expect(calls).toHaveLength(0);
   });
 
-  test("forwards the feedback identity with the session and nothing of the other API's headers", async () => {
-    const identity = { id: "u1", email: "a@b.c", name: "A", signature: "f00d" };
-    const { app, calls } = setup(() =>
-      Response.json(identity, {
-        headers: { "cache-control": "private, no-store", "set-cookie": "x=1" },
-      }),
-    );
-    const res = await app.request("/api/fit/feedback/identity", { headers: { cookie: GOOD } });
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual(identity);
-    expect(calls[0]?.url).toBe("https://fit.test/v1/feedback/identity");
-    expect(calls[0]?.method).toBe("GET");
-    expect(res.headers.get("cache-control")).toBe("private, no-store");
-    expect(res.headers.get("set-cookie")).toBeNull();
-  });
-
   test("forwards the feedback page's routes with method, query and comment body", async () => {
     const { app, calls } = setup(() => Response.json({ ok: true }));
     const ITEM = "0b6f3c2e-1a2b-4c3d-8e9f-0123456789ab";
@@ -326,6 +311,11 @@ describe("fit proxy", () => {
     const body = JSON.stringify({ body: "Setuju" });
     const len = String(new TextEncoder().encode(body).length);
     await app.request("/api/fit/feedback/board", { headers: { cookie: GOOD } });
+    await app.request("/api/fit/feedback/items", {
+      method: "POST",
+      headers: { ...json, "content-length": len },
+      body,
+    });
     await app.request(`/api/fit/feedback/items/${ITEM}`, { headers: { cookie: GOOD } });
     await app.request(`/api/fit/feedback/items/${ITEM}/votes`, {
       method: "POST",
@@ -348,6 +338,7 @@ describe("fit proxy", () => {
     await app.request("/api/fit/feedback/changelog", { headers: { cookie: GOOD } });
     expect(calls.map((c) => [c.method, c.url])).toEqual([
       ["GET", "https://fit.test/v1/feedback/board"],
+      ["POST", "https://fit.test/v1/feedback/items"],
       ["GET", `https://fit.test/v1/feedback/items/${ITEM}`],
       ["POST", `https://fit.test/v1/feedback/items/${ITEM}/votes`],
       ["POST", `https://fit.test/v1/feedback/items/${ITEM}/comments`],

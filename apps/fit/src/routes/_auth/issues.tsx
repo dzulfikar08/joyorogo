@@ -6,8 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import { PageHeader, Segmented } from "@/components/kit";
 import { BlockSkeleton } from "@/components/states";
-import { useSession } from "@/lib/auth-client";
-import { FEEDBACK_PORTAL_URL, type FeedbackMode, openFeedback } from "@/lib/feedback";
+import type { ReportKind } from "@/lib/issues";
 import { usePageTitle } from "@/lib/page-title";
 
 const TABS = ["ide", "laporan", "selesai"] as const;
@@ -48,12 +47,15 @@ const IdeaSheet = lazy(() =>
 const TicketSheet = lazy(() =>
   import("@/components/issues/tab-reports").then((m) => ({ default: m.TicketSheet })),
 );
+const ComposeSheet = lazy(() =>
+  import("@/components/issues/compose-sheet").then((m) => ({ default: m.ComposeSheet })),
+);
 
 const TAB_ICON = { ide: Lightbulb, laporan: Inbox, selesai: PartyPopper } as const;
 
 /**
  * Feedback, as the signed-in account (no Atur sign-in): ideas to vote on and discuss, the account's own reports with
- * the team's replies, and what shipped. New reports and ideas go through Atur's widget (lib/feedback.ts). Open to every
+ * the team's replies, and what shipped; new reports and ideas come from the page's own form (compose-sheet.tsx). Open to every
  * signed-in account, Pro or not (_auth/route.tsx lets this page past the wall).
  */
 function IssuesPage() {
@@ -61,8 +63,7 @@ function IssuesPage() {
   usePageTitle(t("title"));
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
-  const session = useSession();
-  const [widgetFailed, setWidgetFailed] = useState(false);
+  const [composing, setComposing] = useState<ReportKind | undefined>();
   const tab: Tab = search.tab ?? "ide";
 
   const setSearch = (next: Partial<Search>) =>
@@ -70,11 +71,14 @@ function IssuesPage() {
   const openIdea = (id: string) => setSearch({ ide: id, tiket: undefined, proyek: undefined });
   const openTicket = (seq: number, project: string) =>
     setSearch({ tiket: seq, proyek: project, ide: undefined });
-  const compose = (mode: FeedbackMode) => {
-    const userId = session.data?.user.id;
-    if (!userId) return;
-    setWidgetFailed(false);
-    void openFeedback(userId, mode).then((opened) => setWidgetFailed(!opened));
+  const compose = (kind: ReportKind) => setComposing(kind);
+  // A problem or question is a ticket: show it in Laporanku with the thread open. An idea opens on the board.
+  const sent = (result: { kind: ReportKind; id: string; sequence_id: number }) => {
+    setComposing(undefined);
+    if (result.kind === "idea")
+      setSearch({ tab: undefined, ide: result.id, tiket: undefined, proyek: undefined });
+    else
+      setSearch({ tab: "laporan", tiket: result.sequence_id, proyek: undefined, ide: undefined });
   };
 
   return (
@@ -95,14 +99,6 @@ function IssuesPage() {
           </>
         }
       />
-      {widgetFailed && (
-        <p role="alert" className="mb-4 text-sm text-destructive">
-          {t("error.widget")}{" "}
-          <a href={FEEDBACK_PORTAL_URL} className="font-semibold underline">
-            {t("error.widgetLink")}
-          </a>
-        </p>
-      )}
       <Segmented<Tab>
         label={t("tabs.label")}
         value={tab}
@@ -143,6 +139,7 @@ function IssuesPage() {
             onClose={() => setSearch({ tiket: undefined, proyek: undefined })}
           />
         )}
+        <ComposeSheet kind={composing} onClose={() => setComposing(undefined)} onSent={sent} />
       </Suspense>
     </div>
   );

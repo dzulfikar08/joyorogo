@@ -48,8 +48,45 @@
     "votes_other": "{{count}} votes"
   },
   "error": {
-    "send": "Could not send. Try again.",
-    "widget": "The report form could not open (a browser extension may block it).",
-    "widgetLink": "Open the feedback portal"
+    "send": "Could not send. Try again."
+  },
+  "compose": {
+    "kind": "Type",
+    "kinds": {
+      "bug": "Problem",
+      "question": "Question",
+      "idea": "Idea"
+    },
+    "title": {
+      "bug": "Report a problem",
+      "question": "Ask a question",
+      "idea": "Suggest an idea"
+    },
+    "hint": {
+      "bug": "The team replies in My reports. Say what happened and when.",
+      "question": "The team replies in My reports.",
+      "idea": "Your idea shows in Ideas, where others can back it."
+    },
+    "summary": "Summary",
+    "summaryPlaceholder": {
+      "bug": "E.g. Km splits missing after sync",
+      "question": "E.g. How do I connect Strava?",
+      "idea": "E.g. Export GPX to Komoot"
+    },
+    "details": "Details",
+    "detailsPlaceholder": {
+      "bug": "What you did, what happened, and what should have happened. Mention the workout's date and time if there is one.",
+      "question": "Write your question in full.",
+      "idea": "Why would this help you?"
+    },
+    "attach": "Attach screenshots",
+    "attachHint": "Images, PDF or text, up to 10 MB, at most 5.",
+    "uploading": "{{name}} (uploading…)",
+    "remove": "Remove {{name}}",
+    "tooMany": "At most {{count}} attachments.",
+    "badFile": "{{name}} can't be attached (images, PDF or text, up to 10 MB).",
+    "uploadFailed": "Could not upload {{name}}.",
+    "waitUpload": "Waiting for uploads…",
+    "privacy": "Sent with your account's name and email, plus the page address and browser type. Ideas are public; reports and questions are only for you and the team."
   }
 }

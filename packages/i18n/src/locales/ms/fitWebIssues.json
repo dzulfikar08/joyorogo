@@ -48,8 +48,45 @@
     "votes_other": "{{count}} sokongan"
   },
   "error": {
-    "send": "Gagal menghantar. Cuba lagi.",
-    "widget": "Borang laporan tidak dapat dibuka (mungkin disekat oleh sambungan pelayar).",
-    "widgetLink": "Buka portal maklum balas"
+    "send": "Gagal menghantar. Cuba lagi."
+  },
+  "compose": {
+    "kind": "Jenis",
+    "kinds": {
+      "bug": "Masalah",
+      "question": "Soalan",
+      "idea": "Idea"
+    },
+    "title": {
+      "bug": "Laporkan masalah",
+      "question": "Tanya soalan",
+      "idea": "Cadangkan idea"
+    },
+    "hint": {
+      "bug": "Pasukan membalas di Laporan saya. Ceritakan apa yang berlaku dan bila.",
+      "question": "Pasukan membalas di Laporan saya.",
+      "idea": "Idea anda muncul di tab Idea, dan orang lain boleh menyokongnya."
+    },
+    "summary": "Ringkasan",
+    "summaryPlaceholder": {
+      "bug": "Contoh: Split km hilang selepas segerak",
+      "question": "Contoh: Cara sambung ke Strava?",
+      "idea": "Contoh: Eksport GPX ke Komoot"
+    },
+    "details": "Butiran",
+    "detailsPlaceholder": {
+      "bug": "Apa yang anda lakukan, apa yang berlaku, dan apa yang sepatutnya berlaku. Nyatakan tarikh dan masa latihan jika ada.",
+      "question": "Tulis soalan anda selengkapnya.",
+      "idea": "Kenapa idea ini berguna untuk anda?"
+    },
+    "attach": "Lampirkan tangkapan skrin",
+    "attachHint": "Gambar, PDF atau teks, maksimum 10 MB, paling banyak 5.",
+    "uploading": "{{name}} (memuat naik…)",
+    "remove": "Buang {{name}}",
+    "tooMany": "Paling banyak {{count}} lampiran.",
+    "badFile": "{{name}} tidak boleh dilampirkan (gambar, PDF atau teks, maks. 10 MB).",
+    "uploadFailed": "Gagal memuat naik {{name}}.",
+    "waitUpload": "Menunggu muat naik…",
+    "privacy": "Dihantar dengan nama dan e-mel akaun anda, serta alamat halaman dan jenis pelayar. Idea dipaparkan kepada semua; laporan dan soalan hanya untuk anda dan pasukan."
   }
 }

@@ -12,8 +12,8 @@ import type { Hono } from "hono";
  * - `GET /api/fit/sleep?from&to`
  * - `GET|POST /api/fit/watchfaces`, `DELETE /api/fit/watchfaces/:id`, `GET /api/fit/watchfaces/:id/file`
  * - `GET|POST /api/fit/studio/projects`, `GET|PUT|DELETE /api/fit/studio/projects/:id` (JoyoFit Studio's cloud projects, JSON bodies)
- * - `GET /api/fit/feedback/identity` (the account signed for Atur's feedback widget, apps/fit/src/lib/feedback.ts)
- * - `GET /api/fit/feedback/{board,items/<uuid>,reports,tickets/<seq>,changelog}`, `POST .../items/<uuid>/{votes,comments}`,
+ * - `GET /api/fit/feedback/{board,items/<uuid>,reports,tickets/<seq>,changelog}`, `POST .../items` (the page's report
+ *   form), `POST .../items/<uuid>/{votes,comments}`,
  *   `POST .../tickets/<seq>/comments` (the feedback page, apps/fit /issues; comment bodies JSON, up to 32 KiB)
  * - `POST /api/fit/imports?filename=` (a Huawei Health import file the web app converted in the browser: gzip NDJSON, `application/x-joyofit-import+gzip`, up to 100 MiB; the phone lists, downloads and deletes these on the JoyoFit API directly)
  *
@@ -38,7 +38,7 @@ export const MAX_IMPORT_BYTES = 100 * 1024 * 1024;
 const WATCHFACE_BODY = { type: "application/octet-stream", max: MAX_UPLOAD_BYTES } as const;
 const STUDIO_BODY = { type: "application/json", max: MAX_STUDIO_BODY_BYTES } as const;
 const IMPORT_BODY = { type: "application/x-joyofit-import+gzip", max: MAX_IMPORT_BYTES } as const;
-/** A feedback comment or reply: `{ body }` of up to 4000 characters (the JoyoFit API and Atur check the exact rule). */
+/** A feedback report, comment or reply (JSON; the JoyoFit API and Atur check the exact rules). */
 const COMMENT_BODY = { type: "application/json", max: 32 * 1024 } as const;
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const SEQ = "[1-9][0-9]{0,8}";
@@ -55,9 +55,9 @@ const ROUTES: readonly { method: string; path: RegExp; body: Body }[] = [
   { method: "PUT", path: new RegExp(`^studio/projects/${ID}$`), body: STUDIO_BODY },
   { method: "DELETE", path: new RegExp(`^studio/projects/${ID}$`), body: "none" },
   { method: "POST", path: /^imports$/, body: IMPORT_BODY },
-  { method: "GET", path: /^feedback\/identity$/, body: "none" },
   // The feedback page (apps/fit /issues): the JoyoFit API relays these to Atur, signed for the account.
   { method: "GET", path: /^feedback\/board$/, body: "none" },
+  { method: "POST", path: /^feedback\/items$/, body: COMMENT_BODY },
   { method: "GET", path: new RegExp(`^feedback/items/${UUID}$`), body: "none" },
   { method: "POST", path: new RegExp(`^feedback/items/${UUID}/votes$`), body: "none" },
   { method: "POST", path: new RegExp(`^feedback/items/${UUID}/comments$`), body: COMMENT_BODY },

@@ -2,7 +2,6 @@ import { queryOptions, useQuery } from "@tanstack/react-query";
 import { createAuthClient } from "better-auth/react";
 
 import { SERVER_URL } from "./env";
-import { forgetFeedbackIdentity } from "./feedback";
 import { queryClient } from "./orpc";
 import { setSessionHint } from "./session-hint";
 
@@ -31,7 +30,6 @@ export function useSession() {
 /** Signs out and wipes every cached query (workouts and sleep included). */
 export async function signOut() {
   await authClient.signOut();
-  forgetFeedbackIdentity();
   setSessionHint(false);
   queryClient.clear();
 }
