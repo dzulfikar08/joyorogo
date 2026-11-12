@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import {
   Navigate,
   Outlet,
@@ -12,6 +13,7 @@ import { ProWall } from "@/components/pro-wall";
 import { Shell, ShellSkeleton } from "@/components/shell";
 import { QueryError } from "@/components/states";
 import { sessionQuery, useSession } from "@/lib/auth-client";
+import { loadFeedbackWidget } from "@/lib/feedback";
 import { hasSessionHint } from "@/lib/session-hint";
 import { orpc } from "@/lib/orpc";
 
@@ -67,8 +69,26 @@ function AuthLayout() {
   }
   return (
     <Shell session={session.data}>
+      <FeedbackPreload />
       <LocaleSync />
       <Outlet />
     </Shell>
   );
+}
+
+/**
+ * Loads the feedback widget once the app is open, while the browser is idle: from then on it keeps the last console
+ * errors and failed requests, which a bug report sends along. It shows nothing until the account menu opens it.
+ */
+function FeedbackPreload() {
+  useEffect(() => {
+    const load = () => void loadFeedbackWidget().catch(() => {});
+    if ("requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(load, { timeout: 5000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = globalThis.setTimeout(load, 2000);
+    return () => globalThis.clearTimeout(id);
+  }, []);
+  return null;
 }

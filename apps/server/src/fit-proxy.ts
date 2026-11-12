@@ -12,6 +12,7 @@ import type { Hono } from "hono";
  * - `GET /api/fit/sleep?from&to`
  * - `GET|POST /api/fit/watchfaces`, `DELETE /api/fit/watchfaces/:id`, `GET /api/fit/watchfaces/:id/file`
  * - `GET|POST /api/fit/studio/projects`, `GET|PUT|DELETE /api/fit/studio/projects/:id` (JoyoFit Studio's cloud projects, JSON bodies)
+ * - `GET /api/fit/feedback/identity` (the account signed for Atur's feedback widget, apps/fit/src/lib/feedback.ts)
  * - `POST /api/fit/imports?filename=` (a Huawei Health import file the web app converted in the browser: gzip NDJSON, `application/x-joyofit-import+gzip`, up to 100 MiB; the phone lists, downloads and deletes these on the JoyoFit API directly)
  *
  * Nothing else is forwarded, so this is not an open relay.
@@ -48,6 +49,7 @@ const ROUTES: readonly { method: string; path: RegExp; body: Body }[] = [
   { method: "PUT", path: new RegExp(`^studio/projects/${ID}$`), body: STUDIO_BODY },
   { method: "DELETE", path: new RegExp(`^studio/projects/${ID}$`), body: "none" },
   { method: "POST", path: /^imports$/, body: IMPORT_BODY },
+  { method: "GET", path: /^feedback\/identity$/, body: "none" },
 ];
 
 /** Response headers worth passing back: the body's description and a download's name. Everything else (CORS, cookies) is this server's. */
