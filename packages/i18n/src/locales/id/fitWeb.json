@@ -102,5 +102,9 @@
   "whatsNew": {
     "title": "Baru di aplikasi",
     "description": "Fitur baru di ponsel dan jam."
+  },
+  "feedback": {
+    "title": "Kirim masukan",
+    "description": "Laporkan masalah, minta bantuan, atau usulkan ide."
   }
 }

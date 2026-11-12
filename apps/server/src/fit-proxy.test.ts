@@ -288,11 +288,29 @@ describe("fit proxy", () => {
       ["POST", "/api/fit/studio/projects/a1b2c3d4-0000"],
       ["PATCH", "/api/fit/studio/projects/a1b2c3d4-0000"],
       ["GET", "/api/fit/studio"],
+      ["POST", "/api/fit/feedback/identity"],
+      ["GET", "/api/fit/feedback"],
     ] as const) {
       const res = await app.request(path, { method, headers });
       expect(res.status).toBe(404);
     }
     expect(calls).toHaveLength(0);
+  });
+
+  test("forwards the feedback identity with the session and nothing of the other API's headers", async () => {
+    const identity = { id: "u1", email: "a@b.c", name: "A", signature: "f00d" };
+    const { app, calls } = setup(() =>
+      Response.json(identity, {
+        headers: { "cache-control": "private, no-store", "set-cookie": "x=1" },
+      }),
+    );
+    const res = await app.request("/api/fit/feedback/identity", { headers: { cookie: GOOD } });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(identity);
+    expect(calls[0]?.url).toBe("https://fit.test/v1/feedback/identity");
+    expect(calls[0]?.method).toBe("GET");
+    expect(res.headers.get("cache-control")).toBe("private, no-store");
+    expect(res.headers.get("set-cookie")).toBeNull();
   });
 
   describe("studio projects", () => {
@@ -390,7 +408,12 @@ describe("fit proxy", () => {
       });
       expect(big.status).toBe(413);
       expect(await big.json()).toEqual({ error: "too_large", maxBytes: max });
-      for (const type of ["text/plain", "application/octet-stream", "multipart/form-data; boundary=x", ""]) {
+      for (const type of [
+        "text/plain",
+        "application/octet-stream",
+        "multipart/form-data; boundary=x",
+        "",
+      ]) {
         const headers: Record<string, string> = { ...base, "content-length": "2" };
         delete headers["content-type"];
         if (type) headers["content-type"] = type;
@@ -404,7 +427,11 @@ describe("fit proxy", () => {
       expect(calls).toHaveLength(0);
       const atCap = await app.request("/api/fit/studio/projects", {
         method: "POST",
-        headers: { ...base, "content-type": "Application/JSON; charset=utf-8", "content-length": "2" },
+        headers: {
+          ...base,
+          "content-type": "Application/JSON; charset=utf-8",
+          "content-length": "2",
+        },
         body: "{}",
       });
       expect(atCap.status).toBe(201);
@@ -441,7 +468,9 @@ describe("fit proxy", () => {
       expect(await conflict.json()).toEqual({ error: "rev_conflict", rev: 4, updatedAt: 9 });
       expect((await put()).status).toBe(402);
       expect((await put()).status).toBe(413);
-      const got = await app.request(`/api/fit/studio/projects/${ID}`, { headers: { cookie: GOOD } });
+      const got = await app.request(`/api/fit/studio/projects/${ID}`, {
+        headers: { cookie: GOOD },
+      });
       expect(got.headers.get("cache-control")).toBe("private, no-store");
     });
   });
@@ -453,13 +482,19 @@ describe("fit proxy", () => {
 
     test("POST /imports forwards the body, its type and length, and the filename query; the answer passes through", async () => {
       const { app, calls } = setup(() =>
-        Response.json({ id: "a1b2c3d4-0000" }, { status: 201, headers: { "cache-control": "private, no-store" } }),
+        Response.json(
+          { id: "a1b2c3d4-0000" },
+          { status: 201, headers: { "cache-control": "private, no-store" } },
+        ),
       );
-      const res = await app.request("/api/fit/imports?filename=joyofit-import-20261029-1200.ndjson.gz", {
-        method: "POST",
-        headers: { cookie: GOOD, ...IMPORT_FROM_APP, "content-length": "5" },
-        body: "hello",
-      });
+      const res = await app.request(
+        "/api/fit/imports?filename=joyofit-import-20261029-1200.ndjson.gz",
+        {
+          method: "POST",
+          headers: { cookie: GOOD, ...IMPORT_FROM_APP, "content-length": "5" },
+          body: "hello",
+        },
+      );
       expect(res.status).toBe(201);
       expect(res.headers.get("cache-control")).toBe("private, no-store");
       expect(calls).toHaveLength(1);
@@ -497,7 +532,12 @@ describe("fit proxy", () => {
       const send = (path: string, method: string, type: string) =>
         app.request(path, {
           method,
-          headers: { cookie: GOOD, origin: APP_ORIGIN, "content-type": type, "content-length": "1" },
+          headers: {
+            cookie: GOOD,
+            origin: APP_ORIGIN,
+            "content-type": type,
+            "content-length": "1",
+          },
           body: "x",
         });
       for (const type of [
@@ -547,7 +587,9 @@ describe("fit proxy", () => {
       expect(calls).toHaveLength(0);
 
       // 8 MiB + 1 is fine for an import, and so is exactly the cap.
-      expect((await post("/api/fit/imports", IMPORT_FROM_APP, 8 * 1024 * 1024 + 1)).status).toBe(201);
+      expect((await post("/api/fit/imports", IMPORT_FROM_APP, 8 * 1024 * 1024 + 1)).status).toBe(
+        201,
+      );
       expect((await post("/api/fit/imports", IMPORT_FROM_APP, MAX)).status).toBe(201);
       expect(calls).toHaveLength(2);
     });
@@ -605,7 +647,10 @@ describe("fit proxy", () => {
         ["GET", "/api/fit/imports/a1b2c3d4-0000/file"],
         ["POST", "/api/fit/imports/a1b2c3d4-0000"],
       ] as const) {
-        const res = await app.request(path, { method, headers: { cookie: GOOD, origin: APP_ORIGIN } });
+        const res = await app.request(path, {
+          method,
+          headers: { cookie: GOOD, origin: APP_ORIGIN },
+        });
         expect(res.status).toBe(404);
       }
       expect(calls).toHaveLength(before);

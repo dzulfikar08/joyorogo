@@ -104,5 +104,9 @@
   "whatsNew": {
     "title": "New in the app",
     "description": "New on phone and watch (Indonesian)."
+  },
+  "feedback": {
+    "title": "Send feedback",
+    "description": "Report a problem, get help or suggest an idea."
   }
 }
