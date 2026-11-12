@@ -79,12 +79,12 @@
       "question": "Tulis soalan anda selengkapnya.",
       "idea": "Kenapa idea ini berguna untuk anda?"
     },
-    "attach": "Lampirkan tangkapan skrin",
-    "attachHint": "Gambar, PDF atau teks, maksimum 10 MB, paling banyak 5.",
+    "attach": "Lampirkan tangkapan skrin atau fail",
+    "attachHint": "Gambar, PDF, teks atau fail .fit latihan, maksimum 10 MB, paling banyak 5. Jika masalahnya pada satu latihan, lampirkan fail .fit-nya.",
     "uploading": "{{name}} (memuat naik…)",
     "remove": "Buang {{name}}",
     "tooMany": "Paling banyak {{count}} lampiran.",
-    "badFile": "{{name}} tidak boleh dilampirkan (gambar, PDF atau teks, maks. 10 MB).",
+    "badFile": "{{name}} tidak boleh dilampirkan (gambar, PDF, teks atau .fit, maks. 10 MB).",
     "uploadFailed": "Gagal memuat naik {{name}}.",
     "waitUpload": "Menunggu muat naik…",
     "privacy": "Dihantar dengan nama dan e-mel akaun anda, serta alamat halaman dan jenis pelayar. Idea dipaparkan kepada semua; laporan dan soalan hanya untuk anda dan pasukan."

@@ -9,10 +9,11 @@ import { useTranslation } from "react-i18next";
 
 import { Segmented } from "@/components/kit";
 import {
-  ATTACHMENT_TYPES,
+  ATTACHMENT_ACCEPT,
   MAX_ATTACHMENTS,
   MAX_ATTACHMENT_BYTES,
   type ReportKind,
+  isAllowedAttachment,
   issuesKeys,
   submitItem,
   uploadAttachment,
@@ -90,7 +91,7 @@ export function ComposeSheet({
         setFileError(t("compose.tooMany", { count: MAX_ATTACHMENTS }));
         break;
       }
-      if (!ATTACHMENT_TYPES.includes(file.type) || file.size > MAX_ATTACHMENT_BYTES) {
+      if (!isAllowedAttachment(file) || file.size > MAX_ATTACHMENT_BYTES) {
         setFileError(t("compose.badFile", { name: file.name }));
         continue;
       }
@@ -172,7 +173,7 @@ export function ComposeSheet({
             ref={picker}
             type="file"
             multiple
-            accept={ATTACHMENT_TYPES.join(",")}
+            accept={ATTACHMENT_ACCEPT}
             hidden
             onChange={(event) => {
               addFiles(event.target.files);

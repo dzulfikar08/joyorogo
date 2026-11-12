@@ -176,7 +176,7 @@ const ATUR_ORIGIN = "https://app.diatur.com";
 
 export type ReportKind = "bug" | "question" | "idea";
 
-/** What Atur's board upload accepts: images, PDF and text, 10 MB each, at most 5 per report. */
+/** What Atur's board upload accepts: images, PDF, text and FIT activity files, 10 MB each, at most 5 per report. */
 export const ATTACHMENT_TYPES = [
   "image/png",
   "image/jpeg",
@@ -185,6 +185,13 @@ export const ATTACHMENT_TYPES = [
   "application/pdf",
   "text/plain",
 ];
+/** For the file picker: the types above plus `.fit` (browsers give FIT files no type, so the name decides). */
+export const ATTACHMENT_ACCEPT = [...ATTACHMENT_TYPES, ".fit"].join(",");
+
+/** A workout's .fit file: Atur checks the FIT header itself; here only the name says it is one. */
+export function isAllowedAttachment(file: File): boolean {
+  return ATTACHMENT_TYPES.includes(file.type) || /\.fit$/i.test(file.name);
+}
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 export const MAX_ATTACHMENTS = 5;
 
