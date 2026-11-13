@@ -29,8 +29,8 @@ full design, with the same reasoning, is in `watch-fit/docs/strava.md` section 1
 
 ## Capacity: free while slots are spare
 
-Strava caps how many athletes may authorize one application, and JoyoRogo and JoyoFit share one (client `287873`, 10
-athletes). Strava stays free for everyone while a slot is open; when every slot is taken nobody new can connect, whatever
+Strava caps how many athletes may authorize one application, and JoyoRogo and JoyoFit share one (client `287873`, 999
+athletes since Strava approved the review on 2026-11-13; 10 before that). Strava stays free for everyone while a slot is open; when every slot is taken nobody new can connect, whatever
 their plan. Strava API Policy 5.8 (<https://www.strava.com/legal/api_policy>): "You may not charge end users, in any
 manner, for access to or use of the Strava API Materials or any services or functionality included in or related to
 ..."; so no code path and no user-facing text ties Strava to Pro or payment. Slots are managed by hand (below); JoyoFit's
@@ -38,8 +38,9 @@ manual upload is the workaround for everyone while capacity is limited. Code: `p
 and `packages/api/src/lib/strava-release.ts`. History: on 2026-10-26 a Pro reserve with automatic idle release shipped
 and was removed the same day for this reason.
 
-- **Setting.** `STRAVA_CAPACITY` (Worker var in `apps/server/wrangler.jsonc`, default `10`): athletes the application may
-  hold. Raise it when Strava raises the limit.
+- **Setting.** `STRAVA_CAPACITY` (Worker var in `apps/server/wrangler.jsonc`, `999` since 2026-11-13; default `10` when
+  unset): athletes the application may hold. Raise it when Strava raises the limit. Strava's approval of 2026-11-13 also
+  set the API rate limits: overall 600 requests per 15 minutes and 6,000 a day, reads 300 per 15 minutes and 3,000 a day.
 - **Who counts.** A slot is one distinct `athlete_id` in `strava_account` (an athlete linked from two accounts is one
   slot). A user who already has a row (re-authorizing, adding JoyoFit's gear scope, linking the other product) or an
   athlete another account already holds needs no new slot and is never refused.
