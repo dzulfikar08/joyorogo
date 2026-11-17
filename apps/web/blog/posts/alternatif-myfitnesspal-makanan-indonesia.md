@@ -59,6 +59,8 @@ Ini yang paling membedakan. Di grup JoyoRogo (sampai 20 orang), anggota bisa sal
 - Kamu diet bareng pasangan, teman kantor, atau keluarga.
 - Kamu puasa intermiten atau puasa Ramadan.
 
+Sedang membandingkan dengan FatSecret juga? Baca [alternatif FatSecret untuk makanan Indonesia](/blog/alternatif-fatsecret-makanan-indonesia/).
+
 ## Pertanyaan yang sering muncul
 
 ### Apakah kalori dari foto JoyoRogo pasti benar?
