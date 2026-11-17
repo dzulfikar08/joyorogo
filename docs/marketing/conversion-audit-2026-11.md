@@ -30,7 +30,8 @@ Findings:
 1. **Revenue cannot be traced to a page or a channel.** All 17 sales show as "direct".
    - The server forwards each paid order (`packages/api/src/lib/revklik.ts`), but nothing ties it to the visit that led to it.
    - Nevo moved Postiz off Plausible to DataFast for exactly this reason: to see which blog pages and free tools make money, then invest in those ([X, Feb 2026](https://x.com/wickedguro/status/2022361200932315279)).
-2. **`checkout_start` from the in-app paywall is probably lost.** It is a plain event, and the inline filter (`apps/web/blog/revklik.ts`, `TRACKED_PATHS`) only passes plain events on marketing paths. `/pro`, where onboarding, quota and banners send people, is not one of them. Read from the code, not confirmed in Revklik.
+   - Checked in the export afterwards: the forwarded sales are App Store purchases (visitor `apple_apple_<transaction>`, path `/apple`). Native Apple and Google purchases carry no web visitor by design (`docs/revklik-forwarding.md`), so "direct" is structural for store sales; only web checkouts (DOKU, Pakasir, Polar) send the tag's ids.
+2. **`checkout_start` from the in-app paywall was lost.** It is a plain event, and the inline filter (`apps/web/blog/revklik.ts`, `TRACKED_PATHS`) only passed plain events on marketing paths. `/pro`, where onboarding, quota and banners send people, is not one of them. Fixed in this branch (section 4).
 3. **The "JoyoRogo" Revklik site is mostly JoyoFit traffic.**
    - fit.joyorogo.com loads the same tag, and the export's `hostname` column is empty, so the two sites can't be split.
    - In the last 1,000 events (12 to 17 Nov), the top click was "JoyoFit untuk Android" on Google Play (44 clicks, counting the Chinese-language page).
@@ -50,22 +51,22 @@ Impact is my estimate of the effect on paying users. Effort: S = under half a da
 
 | # | Change | Surface | Impact | Effort | Status | Source |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Onboarding ends at the first photo scan, not at Beranda | Web onboarding | High | S | Done (web); native: owner | Nevo: push onboarding to the first success, not just "connect" ([X, Nov 2025](https://x.com/wickedguro/status/1995059114465243523)); RevenueCat: "deliver an aha! moment in the first 60 minutes" ([SOSA 2026 summary](https://www.revenuecat.com/blog/growth/subscription-app-trends-benchmarks-2026)) |
+| 1 | Onboarding ends at the first photo scan, not at Beranda | Web onboarding | High | S | Done (web and native) | Nevo: push onboarding to the first success, not just "connect" ([X, Nov 2025](https://x.com/wickedguro/status/1995059114465243523)); RevenueCat: "deliver an aha! moment in the first 60 minutes" ([SOSA 2026 summary](https://www.revenuecat.com/blog/growth/subscription-app-trends-benchmarks-2026)) |
 | 2 | Paywall sells outcomes, not scan counts; trust notes next to the button | `/pro` (web), native paywall subheads | High | S | Done | Nevo: sell outcomes, not the tool ([X, Sep 2026](https://x.com/wickedguro/status/2099802787542638837)); plan and payment on one page with credibility elements ([X, Jan 2026](https://x.com/wickedguro/status/2017216658251673996)); don't separate tiers by one metric ([gitroom](https://gitroom.com/blog/opensource-pricing)) |
-| 3 | Make revenue traceable to its page and channel | Revklik, checkout | High | M | Owner | Nevo on attribution ([X, Feb 2026](https://x.com/wickedguro/status/2022361200932315279)) |
+| 3 | Make revenue traceable to its page and channel | Revklik, checkout | High | M | Partly done (`checkout_start`); store attribution: owner | Nevo on attribution ([X, Feb 2026](https://x.com/wickedguro/status/2022361200932315279)) |
 | 4 | Outcome video on the homepage, and the same video in onboarding and on the paywall | Landing, onboarding | High | M (needs footage) | Owner | Postiz added a homepage video showing what users can achieve, then the same video as an onboarding step; revenue went from $15k to $18k without more traffic ([X, Jan 2026](https://x.com/wickedguro/status/2017216658251673996)) |
 | 5 | Free trial on the store yearly plan (test) | App Store, Play | High | S (console) | Owner | RevenueCat 2026: in Health & Fitness, trial-to-paid median is 37.7%, and 82.1% of trials start on install day; freemium download-to-paid by day 35 is 2.1% against 10.7% for hard paywalls ([SOSA 2026](https://www.revenuecat.com/state-of-subscription-apps)); 5–9-day trials beat 10–16 in fitness ([trial length](https://www.revenuecat.com/blog/growth/free-trial-length)). Nevo: free tier gets more users, trial converts better ([pricing talk](https://www.youtube.com/watch?v=6Mu7JKgegek)) |
-| 6 | "Alternatif X" and "X vs JoyoRogo" pages | Blog | Medium | S each | 1 done | Postiz runs `/alternatives` and `/compare` hubs ([postiz.com/alternatives](https://postiz.com/alternatives)); mirrord sent competitor-keyword ads to a comparison page ([interview](https://www.youtube.com/watch?v=B8TvTSpA44E)); competitors rank "Postiz vs X" content ([X, Jul 2026](https://x.com/wickedguro/status/2072625864685359612)) |
+| 6 | "Alternatif X" and "X vs JoyoRogo" pages | Blog | Medium | S each | 2 done (MyFitnessPal, FatSecret) | Postiz runs `/alternatives` and `/compare` hubs ([postiz.com/alternatives](https://postiz.com/alternatives)); mirrord sent competitor-keyword ads to a comparison page ([interview](https://www.youtube.com/watch?v=B8TvTSpA44E)); competitors rank "Postiz vs X" content ([X, Jul 2026](https://x.com/wickedguro/status/2072625864685359612)) |
 | 7 | Fix stale price and "tanpa batas" claim in a blog post; JoyoRogo Pro → Joyo Pro in posts | Blog | Medium (claim risk) | S | Done | Claim ledger 1.1 |
-| 8 | JoyoFit site: price from `/api/config`, "Joyo Pro" name, JoyoArto in the bundle | fit.joyorogo.com | Medium | S | Done (build-time) | Claim ledger 1.1 ("prices follow the ladder") |
+| 8 | JoyoFit site: price from `/api/config`, "Joyo Pro" name, JoyoArto in the bundle | fit.joyorogo.com | Medium | S | Done (build time, refreshed in the browser) | Claim ledger 1.1 ("prices follow the ladder") |
 | 9 | Cancellation and win-back offer for people who paid at least one month | Profil > Langganan, Polar, stores | Medium | M | Owner | Nevo's Postiz plan: 50% off the next 3 months for anyone who paid a month ([X, Nov 2025](https://x.com/wickedguro/status/1995059114465243523)); RevenueCat: run win-back in the first two months ([SOSA 2026 summary](https://www.revenuecat.com/blog/growth/subscription-app-trends-benchmarks-2026)) |
 | 10 | Google Play grace period and account hold, checked on | Play Console | Medium | S | Owner | RevenueCat 2026: billing failures cause 31% of Play cancellations, and retries and grace periods recover 15–20% of that revenue ([SOSA 2026 summary](https://www.revenuecat.com/blog/growth/subscription-app-trends-benchmarks-2026)) |
 | 11 | Short tutorial clip per feature on each `panduan` page | Blog, `/panduan` | Medium | M | Open | Nevo: proper FAQ and YouTube tutorials for every product section ([X, Nov 2025](https://x.com/wickedguro/status/1995059114465243523)) |
-| 12 | JoyoFit → Joyo Pro path: outcome copy in the JoyoFit onboarding Pro step and the site's Pro card | JoyoFit app, site | Medium | S | Open (app build) | JoyoFit sends most of the traffic (section 1); same sources as #2 |
+| 12 | JoyoFit → Joyo Pro path: outcome copy in the JoyoFit onboarding Pro step and the site's Pro card | JoyoFit app, site | Medium | S | Done (copy; ships with the next JoyoFit build or OTA) | JoyoFit sends most of the traffic (section 1); same sources as #2 |
 | 13 | A second paid tier, e.g. for a group host, PT or family | Pricing | Medium | L | Owner | Nevo: avoid a two-package structure because LTV can't grow; add features per tier ([gitroom](https://gitroom.com/blog/opensource-pricing)) |
 | 14 | Apple custom product pages per audience (diet bareng, Ramadan, warteg) | App Store | Low–Medium | S (no build) | Owner | Up to 70 pages, each with its own screenshots, promotional text and keywords; Apple reports +2.5 points of conversion on average ([Apple](https://developer.apple.com/app-store/custom-product-pages/)) |
-| 15 | Store the App Store subtitle, keywords and description in the repo, like `docs/play-store.md` | Docs | Low | S | Open | Needed to audit or test listing copy at all |
-| 16 | Add fit.joyorogo.com to the API's `CORS_ORIGIN` so the site can show the live price and slot count | Server config | Low | S | Owner (deploy) | Build-time price (item 8) goes stale between deploys |
+| 15 | Store the App Store subtitle, keywords and description in the repo, like `docs/play-store.md` | Docs | Low | S | Done (`docs/store/app-store-listing.md`; subtitle and keywords: owner to paste) | Needed to audit or test listing copy at all |
+| 16 | Let fit.joyorogo.com read `GET /api/config` so the site can show the live price and slot count | Server | Low | S | Done (code; live after the next API deploy) | Build-time price (item 8) goes stale between deploys |
 | 17 | Auto-applied coupon on the paywall | `/pro` | Unknown | S | Owner, not recommended now | Postiz auto-applies 20% for urgency ([X, Jan 2026](https://x.com/wickedguro/status/2017216658251673996)). The buyer ladder already gives honest urgency ("sisa N slot", 31 of 60 taken on 17 Nov), and the ledger bans countdowns not tied to the buyer count |
 
 Already in place, and matching the playbooks (no change needed):
@@ -169,30 +170,34 @@ joyorogo (branch `marketing/conversion-audit-2026-11`):
 2. **Trust notes on `/pro`** for rupiah buyers (`paywall.trust.*`, `apps/web/src/routes/_auth/pro.tsx`): price lock, no ads plus open source, and the refund policy link.
 3. **Onboarding ends at the first scan** (`apps/web/src/routes/_auth/onboarding.tsx`, `ONBOARDING_NEXT` in `apps/web/src/lib/paywall-search.ts`): the button reads "Lanjut: foto makan pertamamu", and after the skippable paywall the user lands on `/makan/ai`. Test: `apps/web/src/lib/paywall-search.test.ts`.
 4. **Landing pricing block:** outcome copy instead of "Pro membantu JoyoRogo tetap independen".
-5. **Blog:** new `alternatif-myfitnesspal-makanan-indonesia` (with FAQPage JSON-LD); stale price and "tanpa batas" removed from `catat-kalori-lewat-foto-dan-cerita`; JoyoRogo Pro → Joyo Pro in two posts.
+5. **Blog:** new `alternatif-myfitnesspal-makanan-indonesia` and `alternatif-fatsecret-makanan-indonesia` (both with FAQPage JSON-LD, linked to each other; FatSecret facts from its Indonesian App Store listing because its site refuses fetches); stale price and "tanpa batas" removed from `catat-kalori-lewat-foto-dan-cerita`; JoyoRogo Pro → Joyo Pro in two posts.
+6. **Revklik `checkout_start` from `/pro`** (`apps/web/blog/revklik.ts`, `FUNNEL_EVENTS`): passes by name from any path, cut down to its name and pathname, no props. The privacy notice already names "langkah seperti daftar atau pembayaran Pro". Test: `apps/web/src/lib/analytics.test.ts`.
+7. **Native onboarding ends at the first scan** (`apps/native/app/onboarding.tsx`): same button label, and the skippable paywall continues to `/makan-ai`. The camera's close button falls back to Beranda when there is no screen underneath (`apps/native/app/makan-ai.tsx`). Ships with the next build or OTA. Release entry `docs/marketing/releases/2026-11-17-onboarding-scan-pertama.md` (atur issue left for the weekly sweep: the JRG project was not visible to the agent).
+8. **Public `/api/config` for fit.joyorogo.com** (`apps/server/src/public-config-cors.ts`): GET only, that origin only, no `Allow-Credentials`; other endpoints and the credentialed list unchanged. Test: `public-config-cors.test.ts`.
+9. **App Store listing in the repo** (`docs/store/app-store-listing.md`): Indonesian and English description and version notes from the public lookup API, with review notes (old Pro name, hardcoded price, scan-first opening line).
 
 joyofit (branch `marketing/site-joyo-pro-price`):
 
 1. **Live price at build time:** `site/src/joyo-price.ts`, read by `site/vite.config.ts`, with a fallback to the 17 Nov values. Test: `site/scripts/joyo-price.test.ts`.
 2. **"Joyo Pro" on the site:** landing, FAQ, Panduan, support line and blog. `Privasi.tsx` is left for you (a versioned legal page).
+3. **Live price in the browser:** the page keeps the build's price and asks `/api/config` again on load; on failure (or before the API deploy) nothing changes.
+4. **JoyoFit app copy:** "Joyo Pro" in every app string, and the onboarding Pro step opens with what Pro is for and names the bundle.
 
-No release entry: none of these adds or changes a feature. They are copy, a marketing page and a price that now follows the existing ladder.
+Release entries: one for the onboarding change (joyorogo). The rest is copy, marketing pages, analytics and a price that follows the existing ladder.
 
 ---
 
 ## 5. Decisions for you
 
-1. **Attribution (#3):**
-   - Allow `checkout_start` through the Revklik filter from `/pro` (event name only, path normalised to `/pro`, no ids).
-   - Find out why forwarded sales lose their visitor (all "direct").
-   - Add `hostname` to the tag or split fit.joyorogo.com into its own Revklik site.
-   - Each of these changes what is collected, so it's your call.
+Done after the go-ahead on 17 Nov: `checkout_start` from `/pro`, native onboarding, CORS for the site's price, the JoyoFit Pro copy, the App Store listing doc and the FatSecret page. Still yours:
+
+1. **Store attribution (#3):** store sales show as "direct" because native purchases carry no web visitor. Options: tag each store link with a campaign (`ct=` on App Store links, `referrer` on Play links; App Store Connect and Play Console then report installs per source), or accept that store revenue is unattributed and judge channels by store-console installs. Splitting fit.joyorogo.com into its own Revklik site is a Revklik setting.
 2. **Homepage and onboarding video (#4):** cut one 30–45 s outcome video from the founder shoot, then place it on the landing hero, the onboarding result screen and `/pro`.
 3. **Trial (#5):** test a 7-day free trial on the store yearly plan only (App Store introductory offer, Play free trial). Rupiah web stays as is. This is a pricing change, so it's yours.
 4. **Cancellation offer (#9):** whether to offer one (e.g. 50% off 3 months to anyone who paid a month), and whether to store the cancellation reason.
 5. **Play grace period and account hold (#10):** a Play Console setting, no code.
-6. **Native onboarding:** the same first-scan change in `apps/native/app/onboarding.tsx` and `founder.tsx` dismissal, in the next build.
+6. **App Store listing, next submission:** "JoyoRogo Pro" → "Joyo Pro", the hardcoded Rp29.000/Rp199.000 (must match the store price), and the scan-first opening line (`docs/store/app-store-listing.md`). Paste the subtitle and keywords into that file.
 7. **Comparison pages naming Pantau Kalori:** yes or no. If yes, quote only their public page with a date.
-8. **A second paid tier (#13):** e.g. a group or PT tier. Nevo's argument is LTV, but with 17 sales a month this can wait until the trial test reads out.
-9. **CORS (#16):** add `https://fit.joyorogo.com` to `CORS_ORIGIN` so the JoyoFit site can show the live price and slots without a rebuild.
+8. **A second paid tier (#13):** e.g. a group or PT tier. With 17 sales a month this can wait until the trial test reads out.
+9. **Deploys:** merge both PRs, deploy the API (the site's live price needs it) and the web, and ship the native and JoyoFit copy by OTA or the next build.
 10. **Coupon (#17):** recommended no while the ladder runs.
