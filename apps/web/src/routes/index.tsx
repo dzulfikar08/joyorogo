@@ -1173,7 +1173,9 @@ function Landing() {
                   Gratis untuk dipakai setiap hari
                 </h2>
                 <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-                  Tanpa iklan. Pro membantu JoyoRogo tetap independen.
+                  Diary, target harian, grup, dan puasa intermiten gratis, tanpa iklan. Pro untuk yang mau
+                  mencatat tiap makan cukup dengan foto, plus menu mingguan dan daftar belanja yang pas dengan
+                  targetnya.
                 </p>
                 <Button
                   variant="outline"

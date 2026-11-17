@@ -13,21 +13,26 @@
     "terms": "Syarat",
     "privacy": "Privasi",
     "subhead": {
-      "onboarding": "Rencana harianmu sudah siap. Pro dapat scan AI jauh lebih banyak tiap hari.",
-      "quota": "Jatah scan AI gratis hari ini habis. Jadi Pro untuk lanjut scan.",
-      "banner": "Scan AI gratis terbatas tiap hari. Pro dapat jatah jauh lebih besar.",
-      "profile": "Dukung JoyoRogo dan dapat jatah scan AI jauh lebih besar.",
+      "onboarding": "Rencana harianmu sudah siap. Dengan Pro, tiap makan cukup difoto, dan menu mingguan plus daftar belanja disusun sesuai targetmu.",
+      "quota": "Jatah scan gratis hari ini habis. Dengan Pro, sisa makan hari ini tetap bisa difoto. Mencatat manual tetap gratis.",
+      "banner": "Catat tiap makan cukup dengan foto, plus menu mingguan dan daftar belanja yang pas dengan target kalori dan proteinmu.",
+      "profile": "Satu langganan untuk mencatat tiap makan pakai foto, menu mingguan dengan daftar belanja, dan cadangan data jam di JoyoFit.",
       "fitness": "Dapat saran porsi dan menu harian dari skor JoyoFit, targetmu, dan makanan yang kamu catat.",
       "challenge": "Pro yang membuat tantangan grup. Kamu tetap bisa ikut tantangan temanmu gratis.",
       "joyofit": "Cadangan cloud JoyoFit termasuk di Pro, satu paket dengan JoyoRogo.",
-      "scanleft": "Scan gratismu hampir habis hari ini. Pro dapat jatah jauh lebih besar.",
+      "scanleft": "Scan gratismu hampir habis hari ini. Dengan Pro, makan berikutnya tetap cukup difoto.",
       "chip": "Satu langganan untuk JoyoRogo, JoyoFit, dan JoyoArto. Ini yang dibuka Pro.",
       "mealplan": "Menu harian dan mingguan yang pas dengan kalori dan proteinmu, plus daftar belanja dan resep.",
       "sleep": "Pola tidur yang dikaitkan dengan kebiasaan makanmu, dihitung dari data jam.",
       "recap": "Refleksi mingguan yang ditulis AI dari angka-angkamu sendiri.",
       "workout": "Grafik, split, dan zona latihan yang dibagikan temanmu.",
-      "streak": "Streak {{days}} hari. Pro memberi jatah scan yang cukup untuk terus mencatat tiap hari.",
+      "streak": "Streak {{days}} hari. Pro menjaga kebiasaan ini tetap ringan: tiap makan cukup difoto.",
       "joyoarto": "Joyo Pro juga membuka JoyoArto. Satu langganan untuk JoyoRogo, JoyoFit, dan JoyoArto."
+    },
+    "trust": {
+      "priceLock": "Harga terkunci: perpanjangan berikutnya tidak lebih mahal dari harga yang kamu bayar sekarang.",
+      "noAds": "Tanpa iklan, dan kode JoyoRogo terbuka untuk dicek siapa saja.",
+      "refund": "Aturan pengembalian dana"
     }
   },
   "plan": {

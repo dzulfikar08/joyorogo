@@ -262,9 +262,30 @@ function FounderPage() {
             {t("usd.paywall.disclosure", { lng: "en" })}
           </p>
         ) : (
-          <p className="mt-2 text-center text-xs text-muted-foreground">
-            {t("paywall.noAutoRenew")}
-          </p>
+          <>
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              {t("paywall.noAutoRenew")}
+            </p>
+            {/* Credibility next to the button (Nevo: plan and payment on one page, with trust elements). Rupiah only: the lock is a web-payment rule. */}
+            <ul className="mt-3 space-y-1.5 text-xs leading-snug text-muted-foreground">
+              <li className="flex gap-2">
+                <CircleCheck className="mt-px size-3.5 shrink-0 text-primary" aria-hidden />
+                {t("paywall.trust.priceLock")}
+              </li>
+              <li className="flex gap-2">
+                <CircleCheck className="mt-px size-3.5 shrink-0 text-primary" aria-hidden />
+                {t("paywall.trust.noAds")}
+              </li>
+              <li className="flex gap-2 pl-5.5">
+                <a
+                  href="/pengembalian-dana"
+                  className="font-semibold underline underline-offset-4 hover:text-foreground"
+                >
+                  {t("paywall.trust.refund")}
+                </a>
+              </li>
+            </ul>
+          </>
         )}
 
         <details className="group mt-2 rounded-2xl bg-muted">
