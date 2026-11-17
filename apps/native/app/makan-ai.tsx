@@ -1692,7 +1692,8 @@ export default function MakanAi() {
         <PressableScale
           accessibilityRole="button"
           accessibilityLabel={t("camera.close")}
-          onPress={() => router.back()}
+          // Opened straight from onboarding (or a link) there is no screen underneath: go to Beranda instead.
+          onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}
           style={[styles.closeButton, adapt && { top: Math.max(insets.top, 12) + 8 }]}
         >
           <Ionicons name="close" size={24} color="#FFFFFF" />
