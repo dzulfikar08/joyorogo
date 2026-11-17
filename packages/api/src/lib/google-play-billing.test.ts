@@ -31,6 +31,7 @@ function sub(overrides: Partial<GoogleSubscription> = {}): GoogleSubscription {
     expiresAt: new Date(NOW.getTime() + 30 * 86_400_000),
     orderId: "GPA.1111-2222-3333-44444",
     priceIdr: 15000,
+    freeTrial: false,
     ...overrides,
   };
 }
@@ -118,6 +119,23 @@ describe("verifyGooglePurchase", () => {
     expect(result).toMatchObject({ ok: true, status: "granted", amountIdr: 199000 });
     expect((await until("u1"))?.toISOString()).toBe("2027-12-01T00:00:00.000Z");
     expect((await ledger())[0]?.months).toBe(12);
+  });
+
+  test("a free-trial order grants Pro until the trial ends at Rp0, and the first paid renewal adds the year", async () => {
+    const trialEnd = new Date(NOW.getTime() + 7 * 86_400_000);
+    fake.subs.set(TOKEN, sub({ basePlanId: "yearly", priceIdr: 199000, freeTrial: true, expiresAt: trialEnd }));
+    const result = await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO });
+    expect(result).toMatchObject({ ok: true, status: "granted", amountIdr: 0 });
+    expect((await until("u1"))?.toISOString()).toBe(trialEnd.toISOString());
+    expect((await ledger())[0]).toMatchObject({ amountIdr: 0, months: 0, status: "paid" });
+
+    fake.subs.set(
+      TOKEN,
+      sub({ basePlanId: "yearly", priceIdr: 199000, orderId: "GPA.1111-2222-3333-44444..0", expiresAt: new Date(trialEnd.getTime() + 365 * 86_400_000) }),
+    );
+    const renewed = await verifyGooglePurchase(deps, { purchaseToken: TOKEN, userId: "u1", packageName: ROGO });
+    expect(renewed).toMatchObject({ ok: true, status: "granted", amountIdr: 199000 });
+    expect((await until("u1"))?.toISOString()).toBe("2027-10-23T03:00:00.000Z");
   });
 
   test("replaying the same token credits once and does not re-acknowledge an acknowledged purchase", async () => {

@@ -188,8 +188,12 @@ describe("createGooglePlayClient", () => {
       expiresAt: new Date("2026-11-16T03:00:00.123Z"),
       orderId: "GPA.1111-2222-3333-44444..0",
       priceIdr: 15000,
+      freeTrial: false,
     });
     const get = calls.find((c) => c.url.includes("subscriptionsv2"))!;
+    const trialItem = { ...subscriptionJson.lineItems[0]!, offerPhase: { freeTrial: {} } };
+    const trial = await setup(() => Response.json({ ...subscriptionJson, lineItems: [trialItem] }));
+    expect((await trial.client.getSubscription("t"))?.freeTrial).toBe(true);
     expect(get.url).toBe(
       "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.joyodigitama.joyorogo/purchases/subscriptionsv2/tokens/tok%2Fen%2B1",
     );

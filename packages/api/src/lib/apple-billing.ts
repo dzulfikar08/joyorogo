@@ -53,7 +53,8 @@ async function creditTransaction(
   const { db, config } = deps;
   const { transaction, plan } = input;
   const ledgerId = appleLedgerId(transaction.transactionId);
-  const months = planMonths(plan);
+  // A free trial buys no months: Founder runs to the trial's expiresDate, and the first paid renewal is its own transaction.
+  const months = transaction.freeTrial ? 0 : planMonths(plan);
   const priceIdr = transaction.priceIdr ?? config.fallbackPriceIdr[plan];
 
   for (let attempt = 0; attempt < CREDIT_ATTEMPTS; attempt++) {
