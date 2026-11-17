@@ -18,7 +18,9 @@ export type PushLink =
   | { t: "rekap" }
   | { t: "beranda" }
   | { t: "rencana" }
-  | { t: "settings" };
+  | { t: "settings" }
+  /** Profil > Langganan (Joyo Keluarga seats). */
+  | { t: "langganan" };
 
 /** `data` of every push this pipeline sends (Expo `data`, and the web payload next to title/body). */
 export type PushData = {
@@ -60,6 +62,8 @@ export function webUrl(link: PushLink): string {
       return "/rencana-makan";
     case "settings":
       return "/profil/notifikasi";
+    case "langganan":
+      return "/profil/langganan";
   }
 }
 
@@ -90,6 +94,8 @@ export function nativeHref(link: PushLink): string {
       return "/rencana-makan";
     case "settings":
       return "/profil/notifikasi";
+    case "langganan":
+      return "/profil/langganan";
   }
 }
 
@@ -123,6 +129,7 @@ function parseLink(raw: unknown): PushLink | null {
     case "beranda":
     case "rencana":
     case "settings":
+    case "langganan":
       return { t: v.t };
     default:
       return null;

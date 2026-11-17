@@ -109,6 +109,24 @@
         "title": "{{n}} more pokes and notes",
         "body": "Open the group inbox to see them."
       }
+    },
+    "household": {
+      "memberJoin": {
+        "title": "{{name}} joined Joyo Keluarga",
+        "body": "One Joyo Keluarga seat is now taken."
+      },
+      "memberLeave": {
+        "title": "{{name}} left Joyo Keluarga",
+        "body": "One seat is free again."
+      },
+      "removed": {
+        "title": "You are no longer in {{owner}}'s Joyo Keluarga",
+        "body": "Pro from Keluarga has stopped. Your own Pro, if any, keeps running."
+      },
+      "closed": {
+        "title": "{{owner}}'s Joyo Keluarga has closed",
+        "body": "The payer deleted their account, so Pro from Keluarga has stopped."
+      }
     }
   }
 }

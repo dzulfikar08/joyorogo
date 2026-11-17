@@ -1,0 +1,113 @@
+{
+  "server": {
+    "error": {
+      "unavailable": "Joyo Keluarga belum tersedia.",
+      "ownerOnly": "Hanya pembayar Joyo Keluarga boleh melakukan ini.",
+      "unpaid": "Tempoh Joyo Keluarga sudah tamat. Perbaharui dahulu untuk menjemput.",
+      "full": "Kesemua {{max}} tempat sudah diambil, termasuk jemputan yang menunggu.",
+      "churn": "Had pertukaran ahli tahun ini sudah dicapai. Hubungi sokongan jika ini silap.",
+      "tooManyAttempts": "Terlalu banyak cubaan. Cuba lagi sebentar lagi.",
+      "invalidCode": "Kod jemputan tidak dijumpai.",
+      "otherHousehold": "Anda sudah dalam keluarga lain; keluar dahulu.",
+      "invite_expired": "Jemputan ini sudah tamat tempoh. Minta pautan baharu.",
+      "invite_used": "Jemputan ini sudah digunakan.",
+      "invite_revoked": "Jemputan ini sudah dibatalkan.",
+      "invite_unpaid": "Tempoh keluarga ini sudah tamat. Minta pembayar memperbaharuinya dahulu.",
+      "ownerCannotLeave": "Pembayar tidak boleh keluar. Buang ahli, atau biarkan tempoh tamat.",
+      "notMember": "Orang ini bukan ahli keluarga anda."
+    }
+  },
+  "paywall": {
+    "switchLabel": "Pakej",
+    "pro": "Pro",
+    "keluarga": "Keluarga",
+    "title": "Joyo Keluarga",
+    "pitch": "Pro untuk sehingga {{count}} orang dalam satu rumah, termasuk anda. Seorang yang bayar.",
+    "benefits": {
+      "seats": "Joyo Pro pada akaun JoyoRogo masing-masing, untuk sehingga {{count}} orang termasuk anda",
+      "invite": "Jemput melalui pautan sekali guna yang sah selama 7 hari",
+      "private": "Catatan setiap orang kekal peribadi: makanan, berat dan tidur tidak dikongsi"
+    },
+    "everyPro": "Setiap ahli mendapat semua isi Joyo Pro:",
+    "ownPro": "Pro anda sendiri masih sehingga {{date}}. Keluarga bermula hari ini; baki hari Pro anda tidak dipindahkan ke Keluarga dan terus berjalan.",
+    "memberElsewhere": "Anda sedang menggunakan Joyo Keluarga {{owner}}. Keluar dahulu di Profil > Langganan untuk membeli Keluarga sendiri.",
+    "buy": "Ambil Joyo Keluarga",
+    "renew": "Perbaharui Joyo Keluarga",
+    "noAutoRenew": "Melalui web (QRIS/pindahan). Tidak diperbaharui secara automatik."
+  },
+  "paid": {
+    "title": "Joyo Keluarga aktif",
+    "body": "Jemput keluarga anda dari Profil > Langganan. Setiap pautan sekali guna.",
+    "cta": "Jemput keluarga"
+  },
+  "screen": {
+    "owner": {
+      "title": "Joyo Keluarga",
+      "until": "Aktif sehingga {{date}}",
+      "lapsed": "Tempoh sudah tamat. Pro daripada Keluarga tidak aktif untuk semua ahli sehingga anda bayar semula.",
+      "seats": "{{used}} daripada {{count}} tempat digunakan",
+      "renew": "Perbaharui",
+      "invite": "Jemput",
+      "inviting": "Membuat pautan...",
+      "cannotLeave": "Sebagai pembayar, anda tidak boleh keluar. Buang ahli, atau biarkan tempoh tamat."
+    },
+    "members": {
+      "title": "Ahli",
+      "you": "Anda",
+      "owner": "Pembayar",
+      "joined": "Menyertai {{date}}",
+      "remove": "Buang",
+      "removeConfirm": "Buang {{name}} daripada Joyo Keluarga? Pro daripada Keluarga terus berhenti untuknya.",
+      "removed": "{{name}} sudah dibuang."
+    },
+    "invites": {
+      "title": "Jemputan menunggu",
+      "expires": "Sah sehingga {{date}}",
+      "cancel": "Batalkan",
+      "canceled": "Jemputan dibatalkan."
+    },
+    "invite": {
+      "shareText": "Sertai Joyo Keluarga saya di JoyoRogo: Joyo Pro pada akaun anda sendiri selagi langganan saya berjalan. Catatan setiap orang kekal peribadi. Pautan ini sekali guna dan sah selama 7 hari.",
+      "copied": "Pautan jemputan disalin."
+    },
+    "member": {
+      "title": "Pro daripada Joyo Keluarga {{owner}}",
+      "until": "Sehingga {{date}}",
+      "lapsed": "Tempoh Keluarga sudah tamat. Pro daripada Keluarga aktif semula jika {{owner}} memperbaharuinya.",
+      "leave": "Keluar daripada keluarga",
+      "leaveConfirm": "Keluar daripada Joyo Keluarga {{owner}}? Pro daripada Keluarga terus berhenti untuk anda. Pro anda sendiri, jika ada, terus berjalan.",
+      "left": "Anda sudah keluar daripada Joyo Keluarga."
+    },
+    "own": "Pro anda sendiri sehingga {{date}}",
+    "upsell": {
+      "title": "Joyo Keluarga",
+      "body": "Pro untuk sehingga {{count}} orang serumah, termasuk anda. {{price}}/bulan.",
+      "cta": "Lihat"
+    },
+    "confirm": "Ya, teruskan",
+    "cancel": "Batal"
+  },
+  "invite": {
+    "invalidTitle": "Pautan jemputan tidak sah",
+    "invalidBody": "Semak pautan, atau minta pautan baharu daripada yang menjemput.",
+    "checking": "Menyemak jemputan",
+    "invitedBy": "{{name}} menjemput anda ke Joyo Keluarga",
+    "seats": "{{used}} daripada {{count}} tempat digunakan",
+    "pitch": "Anda mendapat Joyo Pro pada akaun anda sendiri selagi langganan keluarga ini berjalan. Catatan makanan, berat dan tidur anda kekal peribadi.",
+    "already": "Anda sudah dalam keluarga ini.",
+    "other": "Anda sudah dalam Joyo Keluarga lain. Keluar dahulu di Profil > Langganan.",
+    "ownPro": {
+      "web": "Pro anda sendiri aktif sehingga {{date}} dan tidak diperbaharui secara automatik. Tiada apa yang perlu dibatalkan.",
+      "polar": "Langganan kad anda (Polar) diperbaharui secara automatik. Batalkan di Urus langganan jika Keluarga sudah memadai.",
+      "store": "Langganan App Store/Google Play anda diperbaharui secara automatik. Batalkan di tetapan langganan kedai jika Keluarga sudah memadai.",
+      "manage": "Urus langganan"
+    },
+    "join": "Sertai",
+    "joining": "Menyertai...",
+    "joined": "Anda sudah dalam Joyo Keluarga.",
+    "signIn": "Log masuk untuk menyertai",
+    "signInHint": "Belum ada akaun? Daftar percuma, kemudian buka pautan ini semula.",
+    "openApp": "Buka JoyoRogo",
+    "open": "Buka Langganan"
+  }
+}

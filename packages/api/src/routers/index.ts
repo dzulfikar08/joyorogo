@@ -17,6 +17,7 @@ import { fitnessRouter } from "./fitness";
 import { fitWebRouter } from "./fit-web";
 import { foodRouter } from "./food";
 import { groupRouter } from "./group";
+import { householdRouter } from "./household";
 import { joyoRouter } from "./joyo";
 import { leaderboardRouter } from "./leaderboard";
 import { mcpConnectionRouter } from "./mcp-connection";
@@ -76,6 +77,7 @@ export const appRouter = {
   dishware: dishwareRouter,
   place: placeRouter,
   group: groupRouter,
+  household: householdRouter,
   challenge: challengeRouter,
   social: socialRouter,
   badge: badgeRouter,
