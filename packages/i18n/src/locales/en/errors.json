@@ -62,7 +62,8 @@
     "orderNotFound": "Order not found.",
     "googleUnavailable": "Google Play payments aren't available on this server.",
     "googleUnreachable": "Couldn't reach Google Play. Try again in a moment.",
-    "googleLinkedOtherAccount": "This Google Play subscription is already linked to another JoyoRogo account."
+    "googleLinkedOtherAccount": "This Google Play subscription is already linked to another JoyoRogo account.",
+    "keluargaMemberElsewhere": "You are on someone else's Joyo Keluarga. Leave it first in Profile > Subscription."
   },
   "misc": {
     "avatar": {

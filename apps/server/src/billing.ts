@@ -77,6 +77,16 @@ import {
   promoFor,
 } from "@joyorogo/api/lib/tiers";
 import type { FounderPlan, PaywallEnv } from "@joyorogo/api/lib/tiers";
+import {
+  HOUSEHOLD_MAX_SEATS,
+  ensureOwnedHousehold,
+  householdOf,
+  keluargaAmountIdr,
+  keluargaEnabled,
+  proEquivalentIdr,
+} from "@joyorogo/api/lib/household";
+import type { KeluargaEnv } from "@joyorogo/api/lib/household";
+import { household } from "@joyorogo/db/schema/household";
 import { user } from "@joyorogo/db/schema/auth";
 import { payment, polarSubscription } from "@joyorogo/db/schema/billing";
 import { aiUsage } from "@joyorogo/db/schema/fitness";
@@ -87,7 +97,7 @@ import { requestLocale, requestRegion } from "./context";
 import { runFounderEmails, sendOrderEmails } from "./email";
 import { INTERNAL_EMAILS } from "./internal-accounts";
 
-export type BillingEnv = PaywallEnv & GooglePlayEnv & PolarEnv & AppVersionEnv & {
+export type BillingEnv = PaywallEnv & GooglePlayEnv & PolarEnv & AppVersionEnv & KeluargaEnv & {
   BETTER_AUTH_URL: string;
   /** Public web app origin; defaults to BETTER_AUTH_URL (single-worker deploys). */
   APP_URL?: string;
@@ -194,6 +204,8 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   const appUrl = (env.APP_URL || env.BETTER_AUTH_URL).replace(/\/$/, "");
   const apiUrl = env.BETTER_AUTH_URL.replace(/\/$/, "");
   const dokuNotifyUrl = `${(env.DOKU_NOTIFY_BASE_URL || apiUrl).replace(/\/$/, "")}${DOKU_WEBHOOK_PATH}`;
+  // Joyo Keluarga (docs/pricing/joyo-keluarga.md): web rupiah only for now, behind KELUARGA_ENABLED.
+  const keluargaOn = keluargaEnabled(env);
 
   const ledgerHook: LedgerHook | undefined = deps.revklik
     ? (orderId, kind) => (deps.revklik as Revklik).onLedger(orderId, kind)
@@ -214,11 +226,12 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
    */
   const activateOrder = async (
     db: Database,
-    order: { orderId: string; userId: string; months: number; gateway: string },
+    order: { orderId: string; userId: string; months: number; gateway: string; product?: "keluarga" | null },
     notify: (work: Promise<void>) => void = (work) => {
       work.catch((error) => console.error(`order emails ${order.orderId}:`, error));
     },
   ): Promise<"activated" | "already" | "conflict" | "no-user"> => {
+    if (order.product === "keluarga") return activateKeluargaOrder(db, order, notify);
     const [owner] = await db
       .select({ founderUntil: user.founderUntil })
       .from(user)
@@ -269,6 +282,65 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     return again?.status === "paid" ? "already" : "conflict";
   };
 
+  /**
+   * activateOrder for a Joyo Keluarga order: the months go to the payer's household (created on first payment), with
+   * the same once-only flip and optimistic guard, on household.paid_until instead of user.founder_until. The payer's
+   * own Pro period is not touched (no upgrade credit on web rupiah, owner decision 5).
+   */
+  const activateKeluargaOrder = async (
+    db: Database,
+    order: { orderId: string; userId: string; months: number; gateway: string },
+    notify: (work: Promise<void>) => void,
+  ): Promise<"activated" | "already" | "conflict" | "no-user"> => {
+    const [owner] = await db.select({ id: user.id }).from(user).where(eq(user.id, order.userId)).limit(1);
+    if (!owner) return "no-user";
+    const [already] = await db
+      .select({ status: payment.status })
+      .from(payment)
+      .where(eq(payment.orderId, order.orderId))
+      .limit(1);
+    if (already?.status === "paid") return "already";
+    const home = await ensureOwnedHousehold(db, order.userId);
+    const now = new Date();
+    const previousMs = home.paidUntil?.getTime() ?? null;
+    const until = nextFounderUntil(home.paidUntil, now, order.months);
+    const [flipped] = await db.batch([
+      db
+        .update(payment)
+        .set({ status: "paid", paidAt: now, founderUntil: until })
+        .where(
+          and(
+            eq(payment.orderId, order.orderId),
+            eq(payment.status, "pending"),
+            sql`(select ${household.paidUntil} from ${household} where ${household.id} = ${home.id}) is ${previousMs}`,
+          ),
+        )
+        .returning({ orderId: payment.orderId }),
+      db
+        .update(household)
+        .set({ paidUntil: until })
+        .where(
+          and(
+            eq(household.id, home.id),
+            sql`exists (select 1 from ${payment} where ${payment.orderId} = ${order.orderId} and ${payment.status} = 'paid' and ${payment.paidAt} = ${now.getTime()})`,
+          ),
+        ),
+    ]);
+    if (flipped.length === 1) {
+      await deps.revklik?.onLedger(order.orderId, "paid", order.gateway).catch((error: unknown) =>
+        console.error(`[revklik] enqueue ${order.orderId} failed:`, error),
+      );
+      notify(sendOrderEmails(env, db, order, { founderDailyCap: config.founderDailyCap }));
+      return "activated";
+    }
+    const [again] = await db
+      .select({ status: payment.status })
+      .from(payment)
+      .where(eq(payment.orderId, order.orderId))
+      .limit(1);
+    return again?.status === "paid" ? "already" : "conflict";
+  };
+
   const markFailed = (db: Database, orderId: string) =>
     db
       .update(payment)
@@ -281,7 +353,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   const settle = async (
     c: Context,
     db: Database,
-    order: { orderId: string; userId: string; months: number },
+    order: { orderId: string; userId: string; months: number; product: "keluarga" | null },
     gateway: Provider,
   ) => {
     const result = await activateOrder(db, { ...order, gateway }, (work) =>
@@ -294,7 +366,8 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
   };
 
   // Ladder rung = distinct users with a real (non-zero) paid order. Zero-amount
-  // rows are sandbox/test grants and never take a seat.
+  // rows are sandbox/test grants and never take a seat. A Joyo Keluarga payer counts once like any buyer; household
+  // members never pay, so they never count (owner decision 3).
   const ladderBuyers = async (db: Database) => {
     const [row] = await db
       .select({ taken: sql<number>`count(distinct ${payment.userId})` })
@@ -331,6 +404,16 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       anonScans: config.anonScans,
       // Native update gate: no login needed, so a signed-out user is gated too.
       app: appVersionConfig(env),
+      // Joyo Keluarga: always 2x the current Pro step, for HOUSEHOLD_MAX_SEATS people; null while the plan is off.
+      // A returning buyer's locked price is applied at checkout, as for Pro.
+      keluarga:
+        keluargaOn && provider !== null
+          ? {
+              monthlyIdr: keluargaAmountIdr(step ? step.monthlyIdr : config.founderPriceIdr),
+              yearlyIdr: keluargaAmountIdr(step ? step.yearlyIdr : config.founderYearlyPriceIdr),
+              seats: HOUSEHOLD_MAX_SEATS,
+            }
+          : null,
       // USD option (Polar): prices in cents; `preferred` = the visitor's Cloudflare country is known and not Indonesia.
       usd: polar
         ? {
@@ -353,7 +436,8 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     });
   });
 
-  // Body (optional JSON): { plan: "monthly" | "yearly"; method?: "qris" | "transfer"; source?: "joyoarto" }.
+  // Body (optional JSON): { plan: "monthly" | "yearly"; method?: "qris" | "transfer"; source?: "joyoarto";
+  // product?: "keluarga" }.
   // Default monthly; no method = the default gateway's full page (older apps). `source` tags the order and
   // carries a "back to" link through the return page.
   app.post("/api/billing/checkout", async (c) => {
@@ -364,10 +448,13 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       plan?: unknown;
       method?: unknown;
       source?: unknown;
+      product?: unknown;
       revklikVisitorId?: unknown;
       revklikSessionId?: unknown;
     } | null;
     const plan: FounderPlan = body?.plan === "yearly" ? "yearly" : "monthly";
+    const product = body?.product === "keluarga" ? ("keluarga" as const) : null;
+    if (product === "keluarga" && !keluargaOn) return c.json({ error: t(c)("billing.unavailable") }, 404);
     const method = PAYMENT_METHODS.find((m) => m === body?.method) ?? null;
     const source = orderSource(body?.source);
     const gateway = method ? methodGateway(method, pakasirForNewOrders) : provider;
@@ -376,27 +463,36 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     }
     const months = planMonths(plan);
     const db = deps.getDb();
+    if (product === "keluarga") {
+      // A member of someone else's household leaves it first; the owner renewing their own is fine.
+      const current = await householdOf(db, me.id);
+      if (current && current.role === "member") {
+        return c.json({ error: t(c)("billing.keluargaMemberElsewhere") }, 409);
+      }
+    }
 
     // Urgency ladder price for this buyer, then grandfathering: anyone who
     // has paid before renews at their lowest monthly-equivalent price when
-    // that beats the current rung ("harga terkunci").
-    let amountIdr: number;
+    // that beats the current rung ("harga terkunci"). One lock for Pro and Joyo Keluarga (owner decision 4): a
+    // Keluarga row counts as the Pro step it was 2x of, and Keluarga is always 2x the Pro price this buyer gets.
+    let proAmountIdr: number;
     if (config.founderLadder) {
       const [taken, paid] = await Promise.all([
         ladderBuyers(db),
         db
-          .select({ amountIdr: payment.amountIdr, months: payment.months })
+          .select({ amountIdr: payment.amountIdr, months: payment.months, product: payment.product })
           .from(payment)
           .where(and(eq(payment.userId, me.id), eq(payment.status, "paid"), gt(payment.amountIdr, 0))),
       ]);
-      amountIdr = checkoutAmountIdr(
+      proAmountIdr = checkoutAmountIdr(
         ladderStep(config.founderLadder, taken),
         plan,
-        grandfatheredMonthlyIdr(paid),
+        grandfatheredMonthlyIdr(paid.map((row) => ({ amountIdr: proEquivalentIdr(row), months: row.months }))),
       );
     } else {
-      amountIdr = plan === "yearly" ? config.founderYearlyPriceIdr : config.founderPriceIdr;
+      proAmountIdr = plan === "yearly" ? config.founderYearlyPriceIdr : config.founderPriceIdr;
     }
+    const amountIdr = product === "keluarga" ? keluargaAmountIdr(proAmountIdr) : proAmountIdr;
 
     const orderId = buildOrderId();
     const returnUrl = `${appUrl}/pembayaran?order=${encodeURIComponent(orderId)}${source ? `&from=${source}` : ""}`;
@@ -406,6 +502,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       amountIdr,
       months,
       source,
+      product,
       ...parseRevklikIds({ visitorId: body?.revklikVisitorId, sessionId: body?.revklikSessionId }),
     });
     try {
@@ -420,7 +517,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
           : await createDokuCheckout(doku as DokuConfig, {
               orderId,
               amountIdr,
-              itemName: plan === "yearly" ? "Joyo Pro 1 tahun" : "Joyo Pro 1 bulan",
+              itemName: `${product === "keluarga" ? "Joyo Keluarga" : "Joyo Pro"} ${plan === "yearly" ? "1 tahun" : "1 bulan"}`,
               customerEmail: me.email,
               customerName: me.name,
               notifyUrl: dokuNotifyUrl,
@@ -818,6 +915,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       status: string;
       paymentUrl: string | null;
       months: number;
+      product: "keluarga" | null;
     },
     notify?: (work: Promise<void>) => void,
   ): Promise<string> => {
@@ -868,6 +966,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
         status: payment.status,
         amountIdr: payment.amountIdr,
         founderUntil: payment.founderUntil,
+        product: payment.product,
       })
       .from(payment)
       .where(and(eq(payment.orderId, orderId), eq(payment.userId, userId)))
