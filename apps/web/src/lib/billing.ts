@@ -27,13 +27,20 @@ const localeHeader = () => ({ [LOCALE_HEADER]: i18n.language });
 /** Pro billing period; yearly stacks 12 months on the remaining period. */
 export type CheckoutPlan = "monthly" | "yearly";
 
+/** What a checkout buys: Joyo Pro, or Joyo Keluarga (Pro for up to 5 people, web rupiah only). */
+export type CheckoutProduct = "pro" | "keluarga";
+
 /**
  * Start a Pro checkout, then leave for the gateway's page. `method`
  * picks QRIS or bank transfer (both DOKU); omitted = server default.
  * `source` tags an order started from JoyoArto (its return page then links back).
  * UI goes through useCheckoutPicker, which asks the buyer first.
  */
-export function useFounderCheckout(plan: CheckoutPlan = "monthly", source?: CheckoutSource) {
+export function useFounderCheckout(
+  plan: CheckoutPlan = "monthly",
+  source?: CheckoutSource,
+  product: CheckoutProduct = "pro",
+) {
   const navigate = useNavigate();
   const location = useLocation();
   return useMutation({
@@ -42,7 +49,13 @@ export function useFounderCheckout(plan: CheckoutPlan = "monthly", source?: Chec
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...localeHeader() },
-        body: JSON.stringify({ plan, method, source, ...revklikIds() }),
+        body: JSON.stringify({
+          plan,
+          method,
+          source,
+          ...(product === "keluarga" ? { product } : {}),
+          ...revklikIds(),
+        }),
       });
       if (res.status === 401) {
         // Signed out (e.g. the /harga visitor): let them sign in first, then
@@ -57,7 +70,7 @@ export function useFounderCheckout(plan: CheckoutPlan = "monthly", source?: Chec
       if (!res.ok || !body?.paymentUrl) {
         throw new Error(body?.error ?? i18n.t("billing:error.checkoutFailed"));
       }
-      trackEvent("checkout_start");
+      trackEvent("checkout_start", product === "keluarga" ? { plan: "keluarga" } : undefined);
       window.location.assign(body.paymentUrl);
       return body.paymentUrl;
     },
@@ -138,6 +151,8 @@ export type OrderStatus = {
   status: "pending" | "paid" | "failed";
   amountIdr: number;
   founderUntil: string | null;
+  /** "keluarga" for a Joyo Keluarga order; null/missing = Pro. */
+  product?: "keluarga" | null;
 };
 
 export async function fetchOrder(orderId: string): Promise<OrderStatus> {

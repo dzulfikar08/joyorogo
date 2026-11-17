@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { fmtUsd, useAppConfig } from "@/lib/app-config";
 import type { PaymentMethod } from "@/lib/app-config";
 import { useFounderCheckout, useUsdCheckout } from "@/lib/billing";
-import type { CheckoutPlan } from "@/lib/billing";
+import type { CheckoutPlan, CheckoutProduct } from "@/lib/billing";
 import type { CheckoutSource } from "@/lib/joyoarto";
 
 const ICONS: Record<PaymentMethod | "usd", LucideIcon> = {
@@ -25,15 +25,20 @@ const ICONS: Record<PaymentMethod | "usd", LucideIcon> = {
  * the picker. Render `sheet` once next to the buttons that call `start()`.
  * `source` tags an order started from JoyoArto, whichever gateway it takes.
  */
-export function useCheckoutPicker(plan: CheckoutPlan = "monthly", source?: CheckoutSource) {
+export function useCheckoutPicker(
+  plan: CheckoutPlan = "monthly",
+  source?: CheckoutSource,
+  product: CheckoutProduct = "pro",
+) {
   const { t } = useTranslation("billing");
   const config = useAppConfig();
-  const checkout = useFounderCheckout(plan, source);
+  const checkout = useFounderCheckout(plan, source, product);
   const usdCheckout = useUsdCheckout(plan, source);
   const [open, setOpen] = useState(false);
   const onErrorRef = useRef<((error: Error) => void) | undefined>(undefined);
   const methods = config.data?.paymentMethods ?? [];
-  const usd = config.data?.usd ?? null;
+  // Joyo Keluarga is sold in rupiah only for now (no Polar product yet).
+  const usd = product === "keluarga" ? null : (config.data?.usd ?? null);
   const options: Array<PaymentMethod | "usd"> = usd
     ? usd.preferred
       ? ["usd", ...methods]

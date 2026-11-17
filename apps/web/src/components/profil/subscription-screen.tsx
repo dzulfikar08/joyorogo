@@ -8,6 +8,7 @@ import { Button } from "@joyorogo/ui/components/button";
 import { IconChip, ListGroup, ListRow } from "@/components/kit/surface";
 import { useCheckoutPicker } from "@/components/checkout-picker";
 import { PolarSubscriptionCard } from "@/components/polar-subscription";
+import { KeluargaCard } from "@/components/profil/keluarga-card";
 import { PrioritySupportCard } from "@/components/profil/priority-support";
 import type { ProfilCtx } from "@/components/profil/shared";
 import { useAppConfig } from "@/lib/app-config";
@@ -141,6 +142,7 @@ export function SubscriptionScreen({ ctx }: { ctx: ProfilCtx }) {
         </div>
       )}
 
+      <KeluargaCard ownUntil={founderUntil} />
       {polarSubscription.data && <PolarSubscriptionCard subscription={polarSubscription.data} />}
       {tier === "founder" && <PrioritySupportCard email={ctx.email} />}
     </>

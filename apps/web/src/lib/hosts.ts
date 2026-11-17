@@ -55,7 +55,7 @@ export const SITE_SEGMENTS: readonly string[] = [
 ];
 
 /** Public pages that work on either host. */
-export const SHARED_SEGMENTS: readonly string[] = ["gabung", "u", "p"];
+export const SHARED_SEGMENTS: readonly string[] = ["gabung", "keluarga", "u", "p"];
 
 /** Where `/` goes on the app host. */
 export const APP_HOME = "/beranda";

@@ -48,6 +48,7 @@ export type PublicPath =
   | "/login"
   | "/pembayaran"
   | "/gabung"
+  | "/keluarga"
   | "/u"
   | "/p";
 
@@ -172,6 +173,12 @@ export const PAGES: Record<PublicPath, PageMeta> = {
     title: "Gabung Grup | JoyoRogo",
     description:
       "Kamu diundang ke grup JoyoRogo. Pantau kalori bareng, colek yang malas catat, dan intip perut lewat VAR.",
+    noindex: true,
+  },
+  // Joyo Keluarga seat invites: single-use capability links, kept out of search results.
+  "/keluarga": {
+    title: "Undangan Joyo Keluarga | JoyoRogo",
+    description: "Kamu diundang ke Joyo Keluarga: Joyo Pro di akun JoyoRogo-mu sendiri. Catatan tiap orang tetap pribadi.",
     noindex: true,
   },
   // Profil publik /u/<handle> dan postingan publik /p/<id>; detail dinamis

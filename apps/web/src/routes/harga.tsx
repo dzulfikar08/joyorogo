@@ -207,7 +207,25 @@ function pricingFaq(config: AppConfig): Array<{ q: string; a: string }> {
   const perMonthYearly = Math.round(config.founderYearlyPriceIdr / 12);
   const standardMonthly = config.promo?.nextPriceIdr ?? config.founderPriceIdr;
   const saving = standardMonthly * 12 - config.founderYearlyPriceIdr;
+  // Joyo Keluarga questions only while the server sells it (claim ledger: no store availability claims).
+  const keluargaFaq = config.keluarga
+    ? [
+        {
+          q: "Apakah keluarga bisa melihat catatan makanku di Joyo Keluarga?",
+          a: "Tidak. Joyo Keluarga hanya membagi paket Pro. Catatan makan, berat, tidur, dan latihan tiap orang tetap pribadi. Pembayar hanya melihat nama dan foto anggota. Kalau mau saling pantau makanan, buat grup biasa.",
+        },
+        {
+          q: "Bagaimana kalau aku sudah Pro lalu ikut Joyo Keluarga?",
+          a: "Pro milikmu sendiri tetap berjalan sampai masa aktifnya habis, dan kamu dapat Pro dari keluarga juga; yang berlaku tanggal yang paling akhir. Sisa hari tidak dipindah atau dikembalikan. Kalau Pro-mu diperpanjang otomatis (kartu, App Store, Google Play), batalkan sendiri kalau cukup pakai Keluarga.",
+        },
+        {
+          q: "Kalau yang bayar Joyo Keluarga berhenti?",
+          a: "Pro dari Keluarga berhenti untuk semua anggota saat masa aktifnya habis, dan aktif lagi kalau pembayar memperpanjang. Pembayaran lewat web (QRIS/transfer) tidak diperpanjang otomatis.",
+        },
+      ]
+    : [];
   return [
+    ...keluargaFaq,
     {
       q: "Gratisnya sampai kapan?",
       a: `Selamanya. Diary, tren berat, lingkar perut, grup, ikut tantangan teman, dan latihan bebas dipakai tanpa bayar, dengan ${config.freeDailyScans} scan AI (foto atau cerita) per hari. Pro menambah jatah scan, fitur AI, rencana makan, cadangan cloud JoyoFit, tantangan grup buatanmu sendiri, dan dukungan prioritas; daftar lengkapnya ada di tabel "Isi tiap paket". JoyoFit sendiri tetap gratis dipakai di HP, tanpa akun.`,
@@ -244,6 +262,8 @@ function HargaPage() {
   const config = useAppConfig();
   const checkout = useCheckoutPicker("monthly");
   const checkoutYearly = useCheckoutPicker("yearly");
+  const keluargaYearly = useCheckoutPicker("yearly", undefined, "keluarga");
+  const keluargaMonthly = useCheckoutPicker("monthly", undefined, "keluarga");
   const [showUsd, setShowUsd] = useState(false);
   const usd = config.data?.usd ?? null;
   // The page is Indonesian whatever the UI language is, so the shared Pro list is pinned to it.
@@ -454,6 +474,61 @@ function HargaPage() {
               />
             </div>
 
+            {config.data.keluarga && !usd?.preferred && (
+              <section
+                aria-labelledby="keluarga-title"
+                className="card-lift mt-4 grid gap-6 rounded-3xl bg-card p-6 md:grid-cols-[1fr_auto] md:items-center"
+              >
+                <div>
+                  <h2 id="keluarga-title" className="text-base font-bold tracking-tight">
+                    Joyo Keluarga
+                  </h2>
+                  <p className="mt-1 text-[0.9375rem] leading-relaxed text-muted-foreground">
+                    Pro untuk sampai {config.data.keluarga.seats} orang dalam satu rumah, termasuk kamu. Satu
+                    yang bayar.
+                  </p>
+                  <ul className="mt-4 space-y-2">
+                    {[
+                      `Semua isi Joyo Pro di akun JoyoRogo masing-masing, untuk sampai ${config.data.keluarga.seats} orang`,
+                      "Undang lewat tautan sekali pakai yang berlaku 7 hari",
+                      "Catatan tiap orang tetap pribadi: makanan, berat, dan tidur tidak saling terlihat",
+                      "Lewat web (QRIS/transfer), tidak diperpanjang otomatis",
+                    ].map((feature) => (
+                      <li key={feature} className="flex gap-2.5 text-sm leading-relaxed">
+                        <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="md:min-w-56 md:text-right">
+                  <p className="text-4xl font-extrabold tracking-tight tabular-nums">
+                    {fmtRupiah(config.data.keluarga.yearlyIdr, "id")}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    per tahun, atau {fmtRupiah(config.data.keluarga.monthlyIdr, "id")} per bulan
+                  </p>
+                  {config.data.billing && (
+                    <div className="mt-4 flex flex-col gap-2">
+                      <Button
+                        disabled={keluargaYearly.isPending}
+                        onClick={() => keluargaYearly.start()}
+                      >
+                        {keluargaYearly.isPending ? "Membuka pembayaran..." : "Ambil Keluarga tahunan"}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        disabled={keluargaMonthly.isPending}
+                        onClick={() => keluargaMonthly.start()}
+                      >
+                        {keluargaMonthly.isPending ? "Membuka pembayaran..." : "Keluarga bulanan"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
             {/* What differs, said plainly: the grouped list is the comparison table below. */}
             <p className="mx-auto mt-6 max-w-xl text-center text-sm leading-relaxed text-muted-foreground">
               Diary, tren berat, lingkar perut, grup, ikut tantangan teman, dan latihan bebas dipakai
@@ -464,16 +539,18 @@ function HargaPage() {
           </>
         )}
 
-        {(checkout.error ?? checkoutYearly.error) && (
+        {(checkout.error ?? checkoutYearly.error ?? keluargaYearly.error ?? keluargaMonthly.error) && (
           <p
             role="alert"
             className="mt-4 rounded-2xl bg-card p-4 text-center text-sm text-muted-foreground"
           >
-            {(checkout.error ?? checkoutYearly.error)?.message}
+            {(checkout.error ?? checkoutYearly.error ?? keluargaYearly.error ?? keluargaMonthly.error)?.message}
           </p>
         )}
         {checkout.sheet}
         {checkoutYearly.sheet}
+        {keluargaYearly.sheet}
+        {keluargaMonthly.sheet}
 
         {config.data?.paywall && promo && promo.nextPriceIdr != null && (
           <section aria-label="Daftar harga perkenalan" className="mt-14 md:mt-16">

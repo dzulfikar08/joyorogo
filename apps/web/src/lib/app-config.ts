@@ -42,7 +42,14 @@ export type AppConfig = {
    */
   promo: { slots: number; taken: number; nextPriceIdr?: number | null } | null;
   anonScans: number;
+  /**
+   * Joyo Keluarga (one payer, Pro for up to `seats` people): 2x the current Pro step, web rupiah only. null/missing =
+   * the plan is off on this server: every Keluarga surface stays hidden.
+   */
+  keluarga?: KeluargaConfig | null;
 };
+
+export type KeluargaConfig = { monthlyIdr: number; yearlyIdr: number; seats: number };
 
 /** Buyer-facing payment choice; the server maps each to its gateway. */
 export type PaymentMethod = "qris" | "transfer";

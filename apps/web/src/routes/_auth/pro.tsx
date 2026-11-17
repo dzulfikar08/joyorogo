@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ChevronDown, CircleCheck, CircleHelp, Loader } from "lucide-react";
+import { ChevronDown, CircleCheck, CircleHelp, Home, Loader } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -15,8 +15,8 @@ import { ProBenefitGroups } from "@/components/pro-benefits";
 import { ScreenError } from "@/components/screen-state";
 import { fmtRupiah, fmtUsd, useAppConfig } from "@/lib/app-config";
 import { useSession } from "@/lib/auth-client";
-import { validatePaywallSearch } from "@/lib/billing";
-import type { CheckoutPlan } from "@/lib/billing";
+import { fmtFounderDate, validatePaywallSearch } from "@/lib/billing";
+import type { CheckoutPlan, CheckoutProduct } from "@/lib/billing";
 import { JOYOARTO_RETURN_URL, checkoutSource } from "@/lib/joyoarto";
 import { useEnglishBilling } from "@/lib/usd-copy";
 import { orpc } from "@/utils/orpc";
@@ -115,15 +115,21 @@ function PolarSuccess() {
 
 function FounderPage() {
   const { t } = useTranslation("billing");
+  const { t: tk } = useTranslation("keluarga");
   const navigate = useNavigate();
-  const { next, from } = Route.useSearch();
+  const { next, from, plan: planParam } = Route.useSearch();
   const source = checkoutSource(from);
   const session = useSession();
   const email = session.data?.user.email ?? "";
   const config = useAppConfig();
   const profile = useQuery(profileOptions);
   const [plan, setPlan] = useState<CheckoutPlan>("yearly");
-  const checkout = useCheckoutPicker(plan, source);
+  // Joyo Keluarga is offered next to Pro only while the server sells it, and in rupiah only (no USD product yet).
+  const keluargaOffer = config.data?.usd?.preferred ? null : (config.data?.keluarga ?? null);
+  const [product, setProduct] = useState<CheckoutProduct>(planParam === "keluarga" ? "keluarga" : "pro");
+  const keluarga = product === "keluarga" && keluargaOffer !== null ? keluargaOffer : null;
+  const household = useQuery({ ...orpc.household.get.queryOptions(), enabled: keluargaOffer !== null });
+  const checkout = useCheckoutPicker(plan, source, keluarga ? "keluarga" : "pro");
 
   if (config.isError) {
     return (
@@ -137,14 +143,22 @@ function FounderPage() {
   if (source && profile.data?.tier === "founder") return <JoyoArtoDone alreadyPro email={email} />;
   // Nothing to sell here (billing off) or nothing left to buy (sudah Pro):
   // continue straight away, no flash of the offer.
-  if (!config.data.billing || profile.data?.tier === "founder") {
+  // A Pro account may still buy (or renew) Joyo Keluarga.
+  if (!config.data.billing || (profile.data?.tier === "founder" && !keluarga)) {
     return <RedirectTo to={destination} />;
   }
 
-  const standardMonthly = config.data.promo?.nextPriceIdr ?? config.data.founderPriceIdr;
-  const yearlySaving = standardMonthly * 12 - config.data.founderYearlyPriceIdr;
+  const priceMonthly = keluarga ? keluarga.monthlyIdr : config.data.founderPriceIdr;
+  const priceYearly = keluarga ? keluarga.yearlyIdr : config.data.founderYearlyPriceIdr;
+  const standardMonthly =
+    (config.data.promo?.nextPriceIdr ?? config.data.founderPriceIdr) * (keluarga ? 2 : 1);
+  const yearlySaving = standardMonthly * 12 - priceYearly;
   const yearly = plan === "yearly";
-  const usd = config.data.usd?.preferred ? config.data.usd : null;
+  const usd = !keluarga && config.data.usd?.preferred ? config.data.usd : null;
+  const home = household.data?.household ?? null;
+  // In someone else's household: leave it first (the server answers 409 too).
+  const memberElsewhere = keluarga !== null && home?.role === "member";
+  const ownUntil = profile.data?.founderUntil ?? null;
   const usdSaving = usd ? usd.monthlyCents * 12 - usd.yearlyCents : 0;
   const steps = [
     t("details.step.web.one"),
@@ -172,7 +186,26 @@ function FounderPage() {
             </p>
           </div>
         </div>
-        <p className="mt-2 text-sm font-semibold leading-snug">{t("paywall.bundle")}</p>
+        {keluargaOffer && (
+          <Segmented
+            label={tk("paywall.switchLabel")}
+            className="mt-4"
+            value={product}
+            onChange={setProduct}
+            options={[
+              { value: "pro", label: tk("paywall.pro") },
+              { value: "keluarga", label: tk("paywall.keluarga") },
+            ]}
+          />
+        )}
+        {keluarga ? (
+          <p className="mt-3 flex gap-2 text-sm font-semibold leading-snug">
+            <Home className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            {tk("paywall.pitch", { count: keluarga.seats })}
+          </p>
+        ) : (
+          <p className="mt-2 text-sm font-semibold leading-snug">{t("paywall.bundle")}</p>
+        )}
         {source && email && (
           <p className="mt-2 rounded-2xl bg-muted px-3 py-2 text-sm leading-snug text-muted-foreground">
             {t("joyoarto.account", { email })}
@@ -206,7 +239,7 @@ function FounderPage() {
           <p className="text-3xl font-extrabold tracking-tight tabular-nums">
             {usd
               ? fmtUsd(yearly ? usd.yearlyCents : usd.monthlyCents)
-              : fmtRupiah(yearly ? config.data.founderYearlyPriceIdr : config.data.founderPriceIdr)}
+              : fmtRupiah(yearly ? priceYearly : priceMonthly)}
             <span className="text-sm font-semibold text-muted-foreground">
               {" "}
               {usd
@@ -221,14 +254,33 @@ function FounderPage() {
               {usd
                 ? t("plan.equivalent", { price: fmtUsd(Math.round(usd.yearlyCents / 12)), lng: "en" })
                 : t("plan.equivalent", {
-                    price: fmtRupiah(Math.round(config.data.founderYearlyPriceIdr / 12)),
+                    price: fmtRupiah(Math.round(priceYearly / 12)),
                   })}
             </p>
           )}
         </div>
+        {keluarga && (
+          <>
+            <ul className="mt-4 space-y-1.5 text-sm leading-snug">
+              {[
+                tk("paywall.benefits.seats", { count: keluarga.seats }),
+                tk("paywall.benefits.invite"),
+                tk("paywall.benefits.private"),
+              ].map((line) => (
+                <li key={line} className="flex gap-2">
+                  <CircleCheck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                  {line}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 text-xs font-bold tracking-wide text-muted-foreground uppercase">
+              {tk("paywall.everyPro")}
+            </p>
+          </>
+        )}
         <ProBenefitGroups
           founderDailyCap={config.data.founderDailyCap}
-          className="mt-4"
+          className={keluarga ? "mt-2" : "mt-4"}
         />
         {config.data.freeDailyScans !== null && (
           <p className="mt-3 text-xs leading-snug text-muted-foreground">
@@ -236,12 +288,26 @@ function FounderPage() {
           </p>
         )}
 
+        {keluarga && memberElsewhere && home && (
+          <p role="alert" className="mt-4 rounded-2xl bg-muted px-3 py-2 text-sm leading-snug">
+            {tk("paywall.memberElsewhere", { owner: home.ownerName })}
+          </p>
+        )}
+        {keluarga && !memberElsewhere && ownUntil && new Date(ownUntil).getTime() > Date.now() && (
+          <p className="mt-4 rounded-2xl bg-muted px-3 py-2 text-sm leading-snug text-muted-foreground">
+            {tk("paywall.ownPro", { date: fmtFounderDate(ownUntil) })}
+          </p>
+        )}
         <Button
           className="mt-4 w-full"
-          disabled={checkout.isPending}
+          disabled={checkout.isPending || memberElsewhere}
           onClick={() => checkout.start((error) => toast.error(error.message))}
         >
-          {checkout.isPending ? t("paywall.opening") : t("paywall.buy")}
+          {checkout.isPending
+            ? t("paywall.opening")
+            : keluarga
+              ? tk(home?.role === "owner" ? "paywall.renew" : "paywall.buy")
+              : t("paywall.buy")}
         </Button>
         {checkout.sheet}
         {source ? (
@@ -264,7 +330,7 @@ function FounderPage() {
         ) : (
           <>
             <p className="mt-2 text-center text-xs text-muted-foreground">
-              {t("paywall.noAutoRenew")}
+              {keluarga ? tk("paywall.noAutoRenew") : t("paywall.noAutoRenew")}
             </p>
             {/* Credibility next to the button (Nevo: plan and payment on one page, with trust elements). Rupiah only: the lock is a web-payment rule. */}
             <ul className="mt-3 space-y-1.5 text-xs leading-snug text-muted-foreground">
