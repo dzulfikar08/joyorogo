@@ -81,6 +81,9 @@ type Gender = "male" | "female";
 type StepId = "birth" | "gender" | "maternalEntry" | "maternalForm" | "height" | "weight" | "goal" | "activity";
 type MaternalChoice = "none" | "pregnant" | "breastfeeding";
 
+/** Where onboarding sends a new account after the paywall: the camera, to log the first meal. */
+const ONBOARDING_NEXT = "/makan-ai";
+
 function defaultTargetDate(): string {
   const day = new Date(`${jakartaToday()}T00:00:00Z`);
   day.setUTCDate(day.getUTCDate() + 90);
@@ -277,7 +280,7 @@ function ResultView({
       ) : null}
       <Text style={styles.hint}>{t("guide.later")}</Text>
       <GuideLink label={t("guide.result")} />
-      <Button label={t("action.openHome")} onPress={onStart} />
+      <Button label={t("action.firstScan")} onPress={onStart} />
       <Button
         variant="secondary"
         icon="people-outline"
@@ -719,10 +722,11 @@ export default function Onboarding() {
     go();
   };
 
-  // Skippable Founder paywall; "Later" lands on Beranda.
+  // Skippable Founder paywall, then the first photo scan either way (bought or "Later"): a plan with nothing logged
+  // yet is an empty Beranda. Closing the camera lands on Beranda (makan-ai has no screen to go back to here).
   const startApp = () =>
     openAfterOnboarding(() =>
-      router.replace({ pathname: "/founder", params: { from: "onboarding" } }),
+      router.replace({ pathname: "/founder", params: { from: "onboarding", next: ONBOARDING_NEXT } }),
     );
 
   const goBack = () => {
