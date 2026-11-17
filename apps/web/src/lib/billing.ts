@@ -10,34 +10,8 @@ import type { PaymentMethod } from "./app-config";
 import { fmtDateLong } from "./format";
 import type { CheckoutSource } from "./joyoarto";
 
-/** Where the Pro paywall screen was opened from; picks its subhead. `joyoarto` = JoyoArto's Upgrade link. */
-export type PaywallFrom =
-  | "onboarding"
-  | "quota"
-  | "banner"
-  | "profile"
-  | "fitness"
-  | "challenge"
-  | "joyofit"
-  | "joyoarto";
-
-export type PaywallSearch = { next?: string; from?: PaywallFrom; polar?: "success" };
-
-/** Search params of the paywall route: `next` must be an in-app path. */
-export function validatePaywallSearch(search: Record<string, unknown>): PaywallSearch {
-  return {
-    next:
-      typeof search.next === "string" &&
-      search.next.startsWith("/") &&
-      !search.next.startsWith("//")
-        ? search.next
-        : undefined,
-    from: (["onboarding", "quota", "banner", "profile", "fitness", "challenge", "joyofit", "joyoarto"] as const).find(
-      (value) => search.from === value,
-    ),
-    polar: search.polar === "success" ? ("success" as const) : undefined,
-  };
-}
+export { ONBOARDING_NEXT, validatePaywallSearch } from "./paywall-search";
+export type { PaywallFrom, PaywallSearch } from "./paywall-search";
 
 /**
  * Quota-exhausted AI call: the server throws FORBIDDEN carrying
