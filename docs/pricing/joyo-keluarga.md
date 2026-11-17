@@ -1,6 +1,8 @@
 # Joyo Keluarga: design
 
-Status: design only, nothing built. Written 2026-11-17 against `origin/main` at `e750f24e`.
+Status: phases 1 to 3 built on branch `pricing/joyo-keluarga-design` (PR #42), behind `KELUARGA_ENABLED` (off), not
+deployed. Phases 4 to 7 (Polar, native, Play, App Store, sibling apps) are not started. Written 2026-11-17 against
+`origin/main` at `e750f24e`; section 10 lists what was built and where the code differs from the first draft.
 
 Joyo Keluarga is a second paid plan. One person pays. Up to 5 people in one household get Joyo Pro, the payer included.
 Everything below that is not read from the code or a cited page is marked [INFERENCE] or [TO VERIFY].
@@ -59,7 +61,7 @@ anchor `#joyo-keluarga` for the plan.
 
 ## 2. Data model
 
-New tables in `packages/db/src/schema/household.ts` (new file), one migration (next free number after `0075`).
+New tables in `packages/db/src/schema/household.ts`, migration `0076_keluarga.sql` (built).
 The pattern follows `team` / `team_member` (`packages/db/src/schema/social.ts`) but invites differ (below).
 
 ```
@@ -81,15 +83,20 @@ household_member
 household_invite
   code_hash         text pk                      -- SHA-256 of the code, never the code itself
   household_id      text not null -> household.id (on delete cascade)
-  created_by        text not null -> user.id
+  created_by        text not null -> user.id (on delete cascade)
+  created_at        integer timestamp_ms
   expires_at        integer timestamp_ms         -- created_at + 7 days
-  used_by           text null -> user.id
+  used_by           text null -> user.id (on delete set null)
   used_at           integer timestamp_ms null
   revoked_at        integer timestamp_ms null
 
 household_event                                  -- small audit log for seat churn and support
-  household_id, user_id, kind ('join'|'leave'|'removed'), at
+  id text pk, household_id (cascade), user_id null (on delete set null, so deleting a member's account never
+  hands the household its join back), kind ('join'|'leave'|'removed'), at
 ```
+
+D1 enforces foreign keys, so every reference to `user.id` needs an `on delete` rule or account deletion fails; the
+first draft left `created_by`, `used_by` and the event's `user_id` without one.
 
 `payment` gets one column, `product text` (`null` = Pro for every old row, `'keluarga'` for the new plan). It is
 needed for: the price lock per product, the ladder count, RevKlik props, admin and receipts.
@@ -117,11 +124,11 @@ needed for: the price lock per product, the ladder count, RevKlik props, admin a
 | Max seats | 5 including the owner. Constant `HOUSEHOLD_MAX_SEATS = 5` in one place (owner decision; section 8). |
 | One household per account | `unique(user_id)` on `household_member`. Accepting while in another household answers 409 "Kamu sudah di keluarga lain; keluar dulu". |
 | Member leaves | Row deleted at once. Household Pro ends for them at once. Their own `founder_until` is untouched. Seat frees at once. Owner gets an in-app notice (same `notifyInBackground` pattern as `group.join`). |
-| Owner removes a member | Same as leaving. The member gets an in-app notice and one email ("Kamu tidak lagi di Joyo Keluarga <nama>"). |
+| Owner removes a member | Same as leaving. The member gets an in-app notice. The email ("Kamu tidak lagi di Joyo Keluarga <nama>") is not built: email sending lives in `apps/server`, the router in `packages/api`. |
 | Owner leaves | Not allowed while the household exists: the owner is the payer, and store subscriptions cannot move to another Apple/Google account. The owner can remove everyone, or turn off renewal and let the period end. |
 | Owner deletes their account | `deleteUserSocialData`-style cleanup in `packages/api/src/lib/privacy.ts`: household and invites are deleted (cascade), members lose household Pro at once and get the notice. Unlike groups, there is no heir. The deletion screen must say "Langganan App Store/Google Play tetap jalan sampai kamu batalkan di toko" (as for Pro today). |
 | Paid period ends | The household and its members stay. Pro is off for everyone until the owner pays again. Invites cannot be created while unpaid. |
-| Seat churn | Each household may admit at most 8 joins in a rolling 12 months beyond the first fill [INFERENCE: a guard against selling seats; owner decision]. Counted from `household_event`. |
+| Seat churn | Each household may admit at most 8 joins in a rolling 12 months beyond the first fill (owner decision). Built as: member joins in the last 365 days must stay below 4 (seats minus the owner) + 8 = 12; checked when inviting and when accepting. Counted from `household_event`. |
 | Member already pays Pro | See below. |
 
 ### A member who already pays Pro themselves
@@ -197,16 +204,20 @@ Do not copy household time into each member's `founder_until`. That column stack
 (`nextFounderUntil`) and is guarded by optimistic checks; mixing household time in would make leave/remove/refund
 impossible to undo correctly.
 
-Instead, add one SQL expression in `packages/api/src/lib/tiers.ts` (or a new `lib/household.ts`):
+Instead, add one SQL expression in `packages/api/src/lib/household.ts` (built):
 
 ```ts
-// Later of the person's own paid period and their household's; null when neither.
-export const proUntil = sql<Date | null>`nullif(max(
-  coalesce(${user.founderUntil}, 0),
-  coalesce((select h.paid_until from household_member hm join household h on h.id = hm.household_id
-            where hm.user_id = ${user.id}), 0)
-), 0)`.mapWith(user.founderUntil);
+const HOUSEHOLD_UNTIL_RAW_SQL = `select h.paid_until from household_member hm join household h
+  on h.id = hm.household_id where hm.user_id = "user"."id"`;
+export const PRO_UNTIL_RAW_SQL = `nullif(max(coalesce("user"."founder_until", 0),
+  coalesce((${HOUSEHOLD_UNTIL_RAW_SQL}), 0)), 0)`;
+export const proUntil = sql<Date | null>`${sql.raw(PRO_UNTIL_RAW_SQL)}`.mapWith(user.founderUntil);
 ```
+
+Correction to the first draft: it interpolated `${user.id}` into the subquery. Drizzle writes a bare `"id"` in a
+one-table select, and inside the subquery a bare `"id"` resolves to `household.id`, so the household date was always
+null. The expression names `"user"."id"` explicitly, as `apps/server/src/admin-scans.ts` already does for its
+correlated subqueries; it works as long as the user table is not aliased.
 
 Then, at every site in the first table, replace `founderUntil: user.founderUntil` with `founderUntil: proUntil`.
 `effectiveTier`, `premiumUnlocked`, `canHostChallenge` and `cloudUnlocked` keep their signatures; the row they get
@@ -214,8 +225,14 @@ already carries the later date. The raw-SQL sites (`reminders.ts`, `admin.ts`, `
 expression as a raw fragment exported next to it. The subquery hits `unique(user_id)` on `household_member` and the
 primary key of `household`, so it is one index lookup per row [INFERENCE: cheap on D1; check with `EXPLAIN QUERY PLAN`].
 
-To make sure no site is missed, add a test that greps `packages/api/src` and `apps/server/src` for
-`founderUntil: user.founderUntil` outside an allowlist of billing files, the way `pro-benefits.ts` lists every gate.
+To make sure no site is missed, `packages/api/src/lib/household-sites.test.ts` scans `packages/api/src` and
+`apps/server/src` for `user.founderUntil` or `founder_until` on code lines and compares the count per file with an
+allowlist that says why each raw read is right (billing credit/refund paths, admin edits, receipts, broadcast dates,
+the person's own dates). A new raw read fails the test.
+
+Raw reads that stay on purpose (beyond billing): `myProfile.founderUntil` (own period; the household comes apart as
+`household`), the admin "founders" count (buyers, not members), the broadcast `{date}` merge field, the invite
+screen's "your own Pro" card.
 
 Extra changes beyond the swap:
 
@@ -224,7 +241,9 @@ Extra changes beyond the swap:
   `pro` and `until`, so it should work unchanged [INFERENCE: check `joyoarto/packages/api/src/lib/billing/joyo-pro.ts`]).
 - `profile.ts`: add `household: { role, ownerName, until } | null` to the answer so clients can show "Pro dari Joyo
   Keluarga". Keep `founderUntil` as the person's own date.
-- `founderEmailsDue`: add `and not exists (household covering until > own founder_until)`.
+- `founderEmailsDue`: add `coalesce(householdUntil, 0) <= founder_until` (built).
+- The email "harga terkunci" line (`lockedMonthlyIdr`) counts a Keluarga row as half its amount, matching the shared
+  lock (built).
 
 ### Expiry, renewal, refund, grace per rail
 
@@ -258,14 +277,22 @@ Shared server pieces:
 
 - `POST /api/billing/checkout` takes `product: "keluarga"` next to `plan`. Item name "Joyo Keluarga 1 bulan" /
   "Joyo Keluarga 1 tahun". One period, no auto-renew, as today.
-- Price: new vars `KELUARGA_PRICE_IDR` and `KELUARGA_YEARLY_PRICE_IDR` (or a `KELUARGA_PRICE_LADDER` in the same
-  format as `FOUNDER_PRICE_LADDER` if the owner wants a ladder; `parseLadder` already handles the format).
-- Price lock ("anyone who paid keeps the lowest price they paid"): per product. `grandfatheredMonthlyIdr` is fed only
-  the payer's rows with `product = 'keluarga'`; Pro rows keep feeding Pro checkouts only. Today the query in
-  `billing.ts` (~386) reads every paid row of the user; it must filter by product for **both** plans, or a Pro buyer at
-  Rp15k would get Keluarga at Rp15k.
-- `/api/config` adds `keluarga: { monthlyIdr, yearlyIdr, seats } | null` (null while the plan is off).
-- Feature flag: `KELUARGA_ENABLED` var; off = checkout answers 404 and the UI hides the plan.
+- Price (owner decision 1, 3): no new price vars. Keluarga = 2x the Pro amount this buyer would pay
+  (`keluargaAmountIdr` in `lib/household.ts`), so it follows the `FOUNDER_PRICE_LADDER` step, or the flat
+  `FOUNDER_PRICE_IDR` / `FOUNDER_YEARLY_PRICE_IDR` without a ladder.
+- Price lock (owner decision 4, one lock shared with Pro): `grandfatheredMonthlyIdr` is fed every paid row of the buyer,
+  with a Keluarga row counted as half its amount (`proEquivalentIdr`), for both plans. A Pro buyer at Rp15.000 gets
+  Keluarga at Rp30.000; a Keluarga payer at Rp58.000 gets Pro at Rp29.000. (The first draft said per product; that
+  was the option the owner did not pick.)
+- Ladder count (decision 3): `ladderBuyers` counts distinct paying users, so a Keluarga payer counts once and members
+  (who never pay) never count. No change was needed.
+- No upgrade credit (decision 5): the payer's own `founder_until` is never touched by a Keluarga order.
+- A member of someone else's household gets 409 at checkout; the owner renewing their own household is fine.
+- `/api/config` adds `keluarga: { monthlyIdr, yearlyIdr, seats } | null` (null while the plan is off or no rupiah
+  gateway is configured).
+- Feature flag: `KELUARGA_ENABLED` var ("1"/"on"/"true"; `"off"` in `wrangler.jsonc`); off = checkout and every
+  `household.*` procedure except `get` answer 404, `household.get` answers `enabled: false`, and the web hides every
+  surface, the legal sections included.
 
 ### 4.2 Polar (card, outside Indonesia)
 
@@ -342,7 +369,7 @@ different product id]. No Keluarga products in the JoyoFit Play app in phase 1.
 | App Store Connect (JoyoRogo) | 2 auto-renewable subscriptions in group "JoyoRogo Pro", Family Sharing off, prices, review screenshot, review note explaining seats |
 | Play Console (JoyoRogo) | subscription `keluarga` with base plans `monthly`, `yearly`; prices |
 | Polar | 2 products, prices (USD, optional MYR/SGD), add to the webhook's product scope (same endpoint) |
-| `apps/server/wrangler.jsonc` | `KELUARGA_ENABLED`, `KELUARGA_PRICE_IDR`, `KELUARGA_YEARLY_PRICE_IDR` (or ladder), Polar ids and display prices |
+| `apps/server/wrangler.jsonc` | `KELUARGA_ENABLED` (already there, `"off"`), later the Polar ids and display prices |
 
 ## 5. UI touch points
 
@@ -469,3 +496,23 @@ S = up to 1 day, M = 2 to 4 days, L = 5+ days (one developer).
 | 7 | Sibling apps: JoyoArto copy for `source: "keluarga"`; JoyoFit check that `family/users` reflects household Pro; optional links to JoyoArto household and JoyoFit monitoring. | S |
 
 Total about 3 to 4 weeks of one developer [INFERENCE], with store review time on top.
+
+## 10. What was built (phases 1 to 3)
+
+All behind `KELUARGA_ENABLED` (off). Nothing deployed, no migration run against remote, no store or Polar products.
+
+| Phase | Built | Where |
+| --- | --- | --- |
+| 1 | Schema and migration 0076; `proUntil` / `PRO_UNTIL_RAW_SQL` swapped into every gate of section 3 (quota, cloud, readiness, challenge host, fitness, sleep insights, social, profile scan allowance, plan reminder, Strava release, JoyoFit family, admin tier and scans plan); `joyoProStatus` source `keluarga`; `myProfile.household`; expiry mails skip household-covered people; grep test | `packages/db/src/schema/household.ts`, `packages/api/src/lib/household.ts`, `household-sites.test.ts` |
+| 2 | `household.get / createInvite / cancelInvite / preview / accept / leave / removeMember`; seats (members + pending invites <= 5); churn limit; one household per account; owner cannot leave; in-app notices (push category `group`, link `langganan`); account deletion removes the owner's household and notifies members | `packages/api/src/routers/household.ts`, `routers/privacy.ts` |
+| 3 | Web rupiah checkout with `product: "keluarga"`, shared price lock, household credit with the same optimistic guard as `activateOrder`; `/api/config.keluarga`; receipt and admin mail; RevKlik `plan: "keluarga"` + `period`; admin order label; web `/pro` switch, `/pembayaran`, Profil > Langganan, `/keluarga/$code`, `/harga`, `/privasi#joyo-keluarga`, `/syarat#joyo-keluarga`; invite codes cut out of RevKlik like `/gabung` | `apps/server/src/billing.ts`, `apps/web/src/...` |
+
+Not built in phases 1 to 3, still open:
+
+- The removal email (in-app notice only, see section 2).
+- A reminder mail to the owner 3 days before the household period ends (section 3 table).
+- The deletion screen line about store subscriptions (no store Keluarga exists yet, so it is not needed before phase 5).
+- Admin user detail showing the household role.
+- `/my` legal pages: Keluarga is not sold in ringgit, so nothing there yet.
+- Link previews (OG cards) for `/keluarga/<code>`: the page uses the generic head.
+- Phases 4 to 7.
