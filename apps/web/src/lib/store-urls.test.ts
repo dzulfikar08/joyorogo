@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "bun:test";
 
 import { APP_STORE_URL, PLAY_STORE_URL, appStoreUrl, playStoreUrl } from "./store-urls";
@@ -19,5 +21,11 @@ describe("store links", () => {
     expect(appStoreUrl("footer", "123456")).toBe(
       "https://apps.apple.com/id/app/id6823222101?pt=123456&ct=joyorogo-evergreen-web-footer",
     );
+  });
+
+  test("the no-JavaScript text in index.html uses the same links (place noscript)", () => {
+    const html = readFileSync(fileURLToPath(new URL("../../index.html", import.meta.url)), "utf8").replaceAll("&amp;", "&");
+    expect(html).toContain(`href="${playStoreUrl("noscript")}"`);
+    expect(html).toContain(`href="${appStoreUrl("noscript")}"`);
   });
 });
