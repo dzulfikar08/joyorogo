@@ -187,17 +187,55 @@ Release entries: one for the onboarding change (joyorogo). The rest is copy, mar
 
 ---
 
-## 5. Decisions for you
+## 5. Decisions (round 3, 17 Nov 2026)
 
-Done after the go-ahead on 17 Nov: `checkout_start` from `/pro`, native onboarding, CORS for the site's price, the JoyoFit Pro copy, the App Store listing doc and the FatSecret page. Still yours:
+What the owner answered, and what happened:
 
-1. **Store attribution (#3):** store sales show as "direct" because native purchases carry no web visitor. Options: tag each store link with a campaign (`ct=` on App Store links, `referrer` on Play links; App Store Connect and Play Console then report installs per source), or accept that store revenue is unattributed and judge channels by store-console installs. Splitting fit.joyorogo.com into its own Revklik site is a Revklik setting.
-2. **Homepage and onboarding video (#4):** cut one 30–45 s outcome video from the founder shoot, then place it on the landing hero, the onboarding result screen and `/pro`.
-3. **Trial (#5):** test a 7-day free trial on the store yearly plan only (App Store introductory offer, Play free trial). Rupiah web stays as is. This is a pricing change, so it's yours.
-4. **Cancellation offer (#9):** whether to offer one (e.g. 50% off 3 months to anyone who paid a month), and whether to store the cancellation reason.
-5. **Play grace period and account hold (#10):** a Play Console setting, no code.
-6. **App Store listing, next submission:** "JoyoRogo Pro" → "Joyo Pro", the hardcoded Rp29.000/Rp199.000 (must match the store price), and the scan-first opening line (`docs/store/app-store-listing.md`). Paste the subtitle and keywords into that file.
-7. **Comparison pages naming Pantau Kalori:** yes or no. If yes, quote only their public page with a date.
-8. **A second paid tier (#13):** e.g. a group or PT tier. With 17 sales a month this can wait until the trial test reads out.
-9. **Deploys:** merge both PRs, deploy the API (the site's live price needs it) and the web, and ship the native and JoyoFit copy by OTA or the next build.
-10. **Coupon (#17):** recommended no while the ladder runs.
+| Item | Answer | Done |
+| --- | --- | --- |
+| Store attribution | Add it | Every store button on joyorogo.com and fit.joyorogo.com now carries its place (`ct=joyorogo-evergreen-web-<place>`, Play `utm_campaign=evergreen-web-<place>` / `evergreen-site-<place>`). App Store Connect only reports `ct` next to the team's provider token `pt`: paste it into `APP_STORE_PROVIDER_TOKEN` (`apps/web/src/lib/store-urls.ts`); App Store Connect > Analytics > campaign link generator shows it. |
+| Homepage video | Question | See 5.1. |
+| Trial | No for JoyoRogo, yes for JoyoFit | JoyoFit paywall reads and discloses a yearly free trial (joyofit PR #105, `1d7b5158`; Android by OTA, iOS needs a build: the StoreKit module changed). The JoyoRogo server now credits a free-trial order as its days at Rp0 instead of a paid year (this PR). Store offers are not created yet: **deploy the API first**, then create the Play offer and the App Store intro offer (steps in joyofit `docs/pro-android.md`, `docs/pro-ios.md`), then test one trial per store, then a release entry. |
+| Cancellation offer | Agree | No rail can be intercepted in the app (see 5.2), so it is store and Polar configuration. |
+| Play grace period and account hold | Yes | Already on at Google's recommended values: JoyoRogo monthly 7 + 53 days, yearly 14 + 46; JoyoFit monthly 7 + 53 (read in Play Console 17 Nov). The server already treats grace as entitled and hold as not. |
+| App Store listing | Agree | Ready-to-paste Indonesian and English text in `docs/store/app-store-listing.md`, for the next submission. |
+| Pantau Kalori page | Yes | `alternatif-pantau-kalori` (facts from pantaukalori.com, 17 Nov). |
+| Second tier | Yes | Proposal in 5.3; needs a choice. |
+| Merge and deploy | Agree | Pending the owner's go (deploy order in 5.4). |
+| Coupon | Recommended no | Unchanged. |
+
+### 5.1 The homepage video
+
+Postiz's video showed what a user gets, not who made it. For JoyoRogo that is a 30–45 s screen recording with a voice or captions, no face needed:
+
+1. Photograph a real plate (nasi padang or warteg), the result splits it per item, adjust the rice, save.
+2. Beranda: the day's remaining calories update.
+3. One group moment: a colek or VAR on a friend.
+4. End card: "Gratis 3 scan AI per hari. Joyo Pro untuk lebih." No accuracy word, no kg promise.
+
+Record on a phone with the demo account, or reuse the HyperFrames pipeline in `docs/marketing/video/`. A face (the founder shoot) helps on social, but the landing video works without one. Place: landing hero, onboarding result screen, `/pro`.
+
+### 5.2 Cancellation offer, per rail
+
+- **QRIS / transfer:** never auto-renews, nothing to cancel. Instead, the existing renewal reminder can carry the price-lock line (already true).
+- **App Store:** cancellation happens in iOS Settings. Apple's win-back offers (App Store Connect, per subscription, with eligibility such as paid months and time since lapse) are the place for "50% off 3 months for people who paid at least a month". Configure in App Store Connect; check StoreKit message handling in the app before relying on in-app display.
+- **Google Play:** cancellation happens in Play. Create a developer-determined or win-back style offer on each base plan (Play Console > the base plan > Add offer) with the same terms; the app must then offer it to lapsed users, which needs a small paywall change once the offer exists.
+- **Polar (card, USD):** cancellation happens in Polar's customer portal. A discount needs a Polar discount object (the Polar MCP here is not authorized).
+- Storing a cancellation reason would be new data collection; not done.
+
+### 5.3 Second paid tier: options
+
+Nevo's argument is LTV: a second tier lets a good customer pay more ([gitroom](https://gitroom.com/blog/opensource-pricing)). Three shapes that fit what exists:
+
+1. **Joyo Keluarga (recommended):** one payer, Pro for up to 5 accounts in one household. It matches JoyoArto (family finance), JoyoFit Keluarga (parents' watch summary, draft) and groups (diet bareng). Server work: a household entity, seat invites, entitlement fan-out, store products per platform.
+2. **Joyo Pelatih:** for PTs and group hosts: client roster, consented diary view, branded challenges. Biggest build, smallest audience today.
+3. **Joyo Pro Plus:** more Joyo AI and scans for heavy users. Easiest to build, but it separates tiers by one metric, which Nevo advises against.
+
+Price, seat count and the ladder interaction are the owner's call.
+
+### 5.4 Deploy order
+
+1. Merge joyorogo PR #41, deploy the API (trial fix, `/api/config` CORS, Revklik) and the web.
+2. Merge joyofit PR #105, deploy the site; ship the app copy and Android trial code by OTA, the iOS trial in the next build.
+3. Only then create the JoyoFit trial offers in Play Console and App Store Connect, and test one purchase each.
+4. JoyoRogo native onboarding: OTA or next build.
