@@ -4,7 +4,7 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { AndroidMark } from "@/components/android-mark";
 import { AppleMark } from "@/components/apple-mark";
 
-import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/store-urls";
+import { appStoreUrl, playStoreUrl } from "@/lib/store-urls";
 import { openIosInstall } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
 
@@ -56,7 +56,7 @@ export function AppDownload({
       className={cn(buttonClass, os === "ios" && "order-last")}
       render={
         <a
-          href={PLAY_STORE_URL}
+          href={playStoreUrl(location)}
           target="_blank"
           rel="noopener"
           data-revklik-goal="android_cta_click"
@@ -76,7 +76,7 @@ export function AppDownload({
       className={cn(buttonClass, os === "android" && "order-last")}
       render={
         <a
-          href={APP_STORE_URL}
+          href={appStoreUrl(location)}
           target="_blank"
           rel="noopener"
           data-revklik-goal="ios_app_store_click"

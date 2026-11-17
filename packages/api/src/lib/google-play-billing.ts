@@ -77,7 +77,8 @@ async function creditOrder(
 ): Promise<CreditResult> {
   const { db } = deps;
   const ledgerId = googleLedgerId(input.orderId);
-  const months = planMonths(input.plan);
+  // A free-trial order buys no months: the trial ends at Play's expiry, and the first paid renewal is its own order.
+  const months = input.sub.freeTrial ? 0 : planMonths(input.plan);
 
   for (let attempt = 0; attempt < CREDIT_ATTEMPTS; attempt++) {
     const [existing] = await db
@@ -105,6 +106,8 @@ async function creditOrder(
       priceIdr: input.sub.priceIdr ?? deps.fallbackPriceIdr[input.plan],
       current: owner.founderUntil,
       now,
+      freeTrial: input.sub.freeTrial,
+      expiresAt: input.sub.expiresAt,
     });
 
     const [, flipped] = await db.batch([

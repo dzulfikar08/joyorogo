@@ -13,21 +13,26 @@
     "terms": "Terms",
     "privacy": "Privacy",
     "subhead": {
-      "onboarding": "Your daily plan is ready. Pro gives you far more AI scans every day.",
-      "quota": "You've used today's free AI scans. Go Pro to keep scanning.",
-      "banner": "Free AI scans are limited each day. Pro gives you a much bigger allowance.",
-      "profile": "Support JoyoRogo and get a much bigger AI scan allowance.",
+      "onboarding": "Your daily plan is ready. With Pro, a photo is enough for every meal, and you get a weekly menu and shopping list built around your target.",
+      "quota": "You've used today's free scans. With Pro, you can keep photographing the rest of today's meals. Logging by hand stays free.",
+      "banner": "Log every meal with just a photo, plus a weekly menu and shopping list that fit your calorie and protein targets.",
+      "profile": "One subscription for logging every meal by photo, a weekly menu with a shopping list, and cloud backup for your watch data in JoyoFit.",
       "fitness": "Get daily portion and menu tips based on your JoyoFit score, your targets and what you log.",
       "challenge": "Pro members create group challenges. Joining a friend's challenge is still free.",
       "joyofit": "JoyoFit cloud backup comes with Pro, in one plan with JoyoRogo.",
-      "scanleft": "Your free scans are almost used up today. Pro gives you a much bigger allowance.",
+      "scanleft": "Your free scans are almost used up today. With Pro, your next meal still only needs a photo.",
       "chip": "One plan for JoyoRogo, JoyoFit and JoyoArto. This is what Pro opens.",
       "mealplan": "Daily and weekly menus that fit your calories and protein, plus a shopping list and recipes.",
       "sleep": "Sleep patterns tied to your eating habits, worked out from your watch data.",
       "recap": "A weekly reflection written by AI from your own numbers.",
       "workout": "The charts, splits and zones of workouts your friends share.",
-      "streak": "A {{days}}-day streak. Pro gives you enough scans to keep logging every day.",
+      "streak": "A {{days}}-day streak. Pro keeps the habit easy: every meal only needs a photo.",
       "joyoarto": "Joyo Pro also unlocks JoyoArto. One plan for JoyoRogo, JoyoFit and JoyoArto."
+    },
+    "trust": {
+      "priceLock": "Price lock: your next renewal never costs more than what you pay now.",
+      "noAds": "No ads, and JoyoRogo's code is open for anyone to check.",
+      "refund": "Refund policy"
     }
   },
   "plan": {

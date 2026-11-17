@@ -88,6 +88,8 @@ export type AppleTransaction = {
   signedDate: Date;
   /** JWS price in IDR (App Store sends milliunits); null when currency is not IDR. */
   priceIdr: number | null;
+  /** Starts an introductory free trial: nothing was charged, `expiresDate` is the trial's end. */
+  freeTrial: boolean;
   /** Stable across every renewal of one subscription; equals transactionId on the first purchase. */
   originalTransactionId: string;
   /** End of the paid period; null for non-renewing purchases. */
@@ -134,6 +136,8 @@ const jwsPayloadSchema = z.object({
   appAccountToken: z.string().nullish(),
   currency: z.string().optional(),
   price: z.number().optional(),
+  // "FREE_TRIAL" on the transaction that starts an introductory free trial (JoyoFit's yearly trial).
+  offerDiscountType: z.string().nullish(),
 });
 
 /** Every signed Apple payload carries signedDate; the rest is checked per payload type. */
@@ -167,8 +171,11 @@ async function verify(jws: string, opts: AppleVerifyOptions): Promise<AppleVerif
   if (payload.environment !== "Sandbox" && payload.environment !== "Production") {
     return { ok: false, reason: "environment" };
   }
-  const priceIdr =
-    payload.currency === "IDR" && payload.price !== undefined
+  const freeTrial = payload.offerDiscountType === "FREE_TRIAL";
+  // A free trial charged nothing in any storefront; without this a non-IDR trial would be booked at the fallback price.
+  const priceIdr = freeTrial
+    ? 0
+    : payload.currency === "IDR" && payload.price !== undefined
       ? Math.round(payload.price / 1000)
       : null;
 
@@ -180,6 +187,7 @@ async function verify(jws: string, opts: AppleVerifyOptions): Promise<AppleVerif
       environment: payload.environment,
       signedDate: chain.signedDate,
       priceIdr,
+      freeTrial,
       originalTransactionId: payload.originalTransactionId ?? payload.transactionId,
       expiresDate: payload.expiresDate != null ? new Date(payload.expiresDate) : null,
       revocationDate: payload.revocationDate != null ? new Date(payload.revocationDate) : null,

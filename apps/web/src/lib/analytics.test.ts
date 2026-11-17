@@ -68,6 +68,15 @@ describe("Revklik guard", () => {
     expect(leftWith()).toEqual([batch]);
   });
 
+  test("lets checkout_start through from the in-app paywall, name and path only", async () => {
+    const { track, leftWith } = page();
+    await track([
+      { t: "e", n: "checkout_start", p: "/pro?from=quota", pr: { plan: "yearly" } },
+      { t: "e", n: "click", p: "/pro" },
+    ]);
+    expect(leftWith()).toEqual([[{ t: "e", n: "checkout_start", p: "/pro" }]]);
+  });
+
   test("cuts a mixed batch down and keeps the request options, keepalive included", async () => {
     const { track, sent, leftWith } = page();
     await track(

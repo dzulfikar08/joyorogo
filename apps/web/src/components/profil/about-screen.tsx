@@ -2,7 +2,7 @@ import { Download, FileText, ShieldCheck, Smartphone, Undo2 } from "lucide-react
 import { useTranslation } from "react-i18next";
 
 import { IconChip, ListAnchorRow, ListButtonRow, ListGroup, ListLinkRow, SectionTitle } from "@/components/kit/surface";
-import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/store-urls";
+import { appStoreUrl, playStoreUrl } from "@/lib/store-urls";
 import { openIosInstall } from "@/lib/ios-install";
 import { legalPath } from "@/lib/legal-path";
 import { usePlatform } from "@/lib/platform";
@@ -36,7 +36,7 @@ export function AboutScreen() {
           <SectionTitle>{t("section.appAndroid")}</SectionTitle>
           <ListGroup>
             <ListAnchorRow
-              href={PLAY_STORE_URL}
+              href={playStoreUrl("about")}
               icon={
             <IconChip tone="makan">
               <Download />
@@ -46,7 +46,7 @@ export function AboutScreen() {
               subtitle={t("app.googlePlay.subtitle")}
             />
             <ListAnchorRow
-              href={APP_STORE_URL}
+              href={appStoreUrl("about")}
               icon={
             <IconChip tone="makan">
               <Smartphone />

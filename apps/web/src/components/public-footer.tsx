@@ -10,7 +10,7 @@ import { FooterLandscape } from "@/components/footer-landscape";
 import { ANDROID_ROBOT_CREDIT } from "@/lib/credits";
 import { DISCORD_URL } from "@/lib/discord";
 import { useAppConfig } from "@/lib/app-config";
-import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/store-urls";
+import { appStoreUrl, playStoreUrl } from "@/lib/store-urls";
 
 const SOURCE_URL = "https://github.com/dzulfikar08/joyorogo";
 const JOYOFIT_URL = "https://fit.joyorogo.com";
@@ -110,7 +110,7 @@ export function PublicFooter() {
           <Column title="Unduh">
             <li>
               <a
-                href={PLAY_STORE_URL}
+                href={playStoreUrl("footer")}
                 data-revklik-goal="play_store_click"
                 data-revklik-goal-location="footer"
                 className={linkClass}
@@ -121,7 +121,7 @@ export function PublicFooter() {
             </li>
             <li>
               <a
-                href={APP_STORE_URL}
+                href={appStoreUrl("footer")}
                 target="_blank"
                 rel="noopener"
                 data-revklik-goal="ios_app_store_click"

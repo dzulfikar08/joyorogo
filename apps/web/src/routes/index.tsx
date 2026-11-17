@@ -56,7 +56,7 @@ import { sessionQuery } from "@/lib/auth-client";
 import { openIosInstall } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
 import { DISCORD_URL } from "@/lib/discord";
-import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/store-urls";
+import { appStoreUrl, playStoreUrl } from "@/lib/store-urls";
 import { TESTIMONIALS } from "@/lib/testimonials";
 import { FAQ, IPHONE_FAQ_Q, pageHead } from "@/lib/seo";
 import { CACHE_OWNER_KEY } from "@/utils/orpc";
@@ -195,7 +195,7 @@ function InstallApp() {
                   size="lg"
                   render={
                     <a
-                      href={PLAY_STORE_URL}
+                      href={playStoreUrl("android-section")}
                       target="_blank"
                       rel="noopener"
                       data-revklik-goal="android_play_click"
@@ -233,7 +233,7 @@ function InstallApp() {
                   size="lg"
                   render={
                     <a
-                      href={APP_STORE_URL}
+                      href={appStoreUrl("iphone-section")}
                       target="_blank"
                       rel="noopener"
                       data-revklik-goal="ios_app_store_click"
@@ -1173,7 +1173,9 @@ function Landing() {
                   Gratis untuk dipakai setiap hari
                 </h2>
                 <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-                  Tanpa iklan. Pro membantu JoyoRogo tetap independen.
+                  Diary, target harian, grup, dan puasa intermiten gratis, tanpa iklan. Pro untuk yang mau
+                  mencatat tiap makan cukup dengan foto, plus menu mingguan dan daftar belanja yang pas dengan
+                  targetnya.
                 </p>
                 <Button
                   variant="outline"

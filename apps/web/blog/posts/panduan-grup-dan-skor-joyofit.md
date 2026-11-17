@@ -47,7 +47,7 @@ Untuk pilihan Public, profil publikmu harus menyala dulu di pengaturan feed Joyo
 Ringkasan latihan terlihat oleh semua yang boleh melihat postingannya. Grafik detak jantung dan peta rute punya aturan sendiri:
 
 - Kamu selalu bisa melihat detail latihanmu sendiri.
-- Orang lain bisa melihatnya kalau mereka memakai JoyoRogo Pro. Yang belum Pro melihat kartu yang mengajak berlangganan.
+- Orang lain bisa melihatnya kalau mereka memakai Joyo Pro. Yang belum Pro melihat kartu yang mengajak berlangganan.
 
 Berbagi tetap gratis. Kalau tidak mau rutemu terlihat siapa pun, matikan saklar **Route** sebelum memposting.
 

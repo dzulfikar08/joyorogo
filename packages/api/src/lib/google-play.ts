@@ -203,6 +203,8 @@ export type GoogleSubscription = {
   orderId: string | null;
   /** Recurring price when Play bills in IDR; null for other currencies. */
   priceIdr: number | null;
+  /** The subscription is in a free-trial phase: its order charged nothing. */
+  freeTrial: boolean;
 };
 
 const moneySchema = z.object({
@@ -231,6 +233,8 @@ const subscriptionSchema = z.object({
           .passthrough()
           .optional(),
         offerDetails: z.object({ basePlanId: z.string().optional() }).passthrough().optional(),
+        // Present while the line item is in a free-trial phase of an offer (JoyoFit's yearly trial).
+        offerPhase: z.object({ freeTrial: z.object({}).passthrough().optional() }).passthrough().optional(),
       }),
     )
     .default([]),
@@ -260,6 +264,7 @@ function parseSubscription(json: unknown, packageName: string): GoogleSubscripti
     expiresAt: expiry && Number.isFinite(expiry.getTime()) ? expiry : null,
     orderId: item.latestSuccessfulOrderId ?? data.latestOrderId ?? null,
     priceIdr: priceIdr !== null && Number.isFinite(priceIdr) && priceIdr > 0 ? priceIdr : null,
+    freeTrial: item.offerPhase?.freeTrial !== undefined,
   };
 }
 
@@ -338,8 +343,10 @@ export function createGooglePlayClient(
 /**
  * Founder time one charged Play order grants. A license-tester purchase from
  * an account that is not on the allowlist gets a 24h trial at zero revenue (so
- * testers can see the flow without minting free months). Everything else
- * stacks the plan's months on the current period.
+ * testers can see the flow without minting free months). A free-trial order
+ * charged nothing: it grants Pro until Play's expiry (the trial's end) at zero
+ * revenue, and the first paid renewal then stacks the plan's months. Everything
+ * else stacks the plan's months on the current period.
  */
 export function googleFounderGrant(input: {
   test: boolean;
@@ -349,7 +356,14 @@ export function googleFounderGrant(input: {
   priceIdr: number;
   current: Date | null;
   now: Date;
+  freeTrial?: boolean;
+  expiresAt?: Date | null;
 }): { until: Date; amountIdr: number } {
+  if (input.freeTrial) {
+    const end = input.expiresAt ?? input.now;
+    const until = input.current && input.current.getTime() > end.getTime() ? input.current : end;
+    return { until, amountIdr: 0 };
+  }
   if (input.test && !input.testEmails.includes(input.buyerEmail.toLowerCase())) {
     const base =
       input.current && input.current.getTime() > input.now.getTime() ? input.current : input.now;

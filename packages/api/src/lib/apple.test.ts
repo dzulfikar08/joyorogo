@@ -418,6 +418,13 @@ describe("verifyAppleTransactionJws", () => {
     expect(result.ok && result.transaction.priceIdr).toBe(null);
   });
 
+  test("a free-trial transaction charged nothing, in any storefront", async () => {
+    const jws = await validJws(validPayload({ currency: "USD", price: 0, offerDiscountType: "FREE_TRIAL" }));
+    const result = await verifyAppleTransactionJws(jws, pinned);
+    expect(result.ok && result.transaction.priceIdr).toBe(0);
+    expect(result.ok && result.transaction.freeTrial).toBe(true);
+  });
+
   test("rejects a foreign pinned root", async () => {
     const jws = await validJws();
     expect(await rejectReason(jws, { ...pinned, rootSha256: await sha256Hex(altRoot.der) })).toBe(

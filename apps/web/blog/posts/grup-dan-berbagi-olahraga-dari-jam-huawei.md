@@ -21,7 +21,7 @@ Buka latihan di JoyoFit, ketuk **Share to JoyoRogo**, tulis keterangan, pilih Gr
 
 ## Yang gratis dan yang Pro
 
-Berbagi selalu gratis. Ringkasan latihan terlihat oleh siapa pun yang boleh melihat postinganmu. Grafik detak jantung dan peta rute terbuka untukmu selalu, dan untuk orang lain kalau mereka memakai JoyoRogo Pro. Kalau kamu tidak mau rutemu terlihat, matikan **Route** sebelum memposting.
+Berbagi selalu gratis. Ringkasan latihan terlihat oleh siapa pun yang boleh melihat postinganmu. Grafik detak jantung dan peta rute terbuka untukmu selalu, dan untuk orang lain kalau mereka memakai Joyo Pro. Kalau kamu tidak mau rutemu terlihat, matikan **Route** sebelum memposting.
 
 ## Mulai dari mana
 

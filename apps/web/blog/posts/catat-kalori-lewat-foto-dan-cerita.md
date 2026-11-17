@@ -2,6 +2,7 @@
 title: Catat kalori lewat foto atau cerita, tanpa mengetik satu per satu
 description: Cara memakai JoyoRogo untuk mencatat makanan Indonesia, dari foto piring sampai cerita "siang tadi nasi padang lauk rendang". Data gizi dari TKPI 2019, foto asli tidak disimpan.
 date: 2026-10-17
+updated: 2026-11-17
 category: Tips
 ---
 
@@ -37,6 +38,6 @@ Dari usia, tinggi, berat, aktivitas, dan target beratmu, JoyoRogo menghitung tig
 
 ## Gratis atau Pro
 
-Mencatat manual dan lewat cerita bisa dipakai gratis, dengan 3 scan foto AI per hari. Paket Pro Rp15.000 per bulan membuka scan tanpa batas, dan langganannya membiayai pengembangan JoyoRogo. Kodenya open source, jadi klinik, gym, atau keluarga yang ingin server sendiri juga bisa memasangnya.
+Mencatat manual gratis selamanya, dan akun gratis dapat jatah scan AI tiap hari (foto atau cerita). Joyo Pro menambah jatah scan jauh lebih besar, plus rencana makan mingguan dengan daftar belanja, Joyo AI, dan cadangan cloud JoyoFit. Harga dan jatah yang berlaku hari ini selalu ada di [halaman harga](/harga). Kodenya open source, jadi klinik, gym, atau keluarga yang ingin server sendiri juga bisa memasangnya.
 
 Mulai di [joyorogo.com](https://joyorogo.com). Kalau kamu memakai jam Huawei, sambungkan juga [JoyoFit](/blog/pakai-jam-huawei-tanpa-huawei-health/) supaya tidur dan aktivitas ikut tercatat.

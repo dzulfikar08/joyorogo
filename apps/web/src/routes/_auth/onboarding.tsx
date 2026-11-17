@@ -33,6 +33,7 @@ import { Card, Page } from "@/components/kit/surface";
 import { ManualTdeeForm } from "@/components/manual-tdee";
 import { PlanNumbers } from "@/components/plan-numbers";
 import { trackConversion } from "@/lib/analytics";
+import { ONBOARDING_NEXT } from "@/lib/paywall-search";
 import {
   fmtDateLong,
   fmtDateMedium,
@@ -445,8 +446,9 @@ function OnboardingPage() {
     setStep(step - 1);
   };
 
+  // Push to the first success, not just the home screen: after the (skippable) Pro offer, the first photo scan.
   const openApp = () =>
-    navigate({ to: "/pro", search: { from: "onboarding", next: "/beranda" } });
+    navigate({ to: "/pro", search: { from: "onboarding", next: ONBOARDING_NEXT } });
 
   if (done && save.data?.targets && inviting) {
     const firstName = session.data?.user.name?.trim().split(/\s+/)[0];
@@ -529,7 +531,7 @@ function OnboardingPage() {
           <GuideLink label={t("guide.result")} />
         </div>
         <Button className="mt-6 w-full" onClick={openApp}>
-          {t("action.openHome")}
+          {t("action.firstScan")}
         </Button>
         <Button variant="secondary" className="mt-2 w-full" onClick={() => setInviting(true)}>
           <Users aria-hidden />
