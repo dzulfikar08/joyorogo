@@ -87,6 +87,15 @@ describe("enqueueLedger", () => {
     expect(row?.body).not.toContain("test.id");
   });
 
+  test("a Joyo Keluarga row says plan keluarga with the period apart; nothing about the household", async () => {
+    await insertPayment({ id: "JRG-261117000000-aaaaaaaa", months: 12, idr: 398_000, url: "https://checkout.doku.com/x" });
+    await client.execute(`UPDATE payment SET product = 'keluarga' WHERE order_id = 'JRG-261117000000-aaaaaaaa'`);
+    expect(await enqueueLedger(db, "JRG-261117000000-aaaaaaaa", "paid")).toBe(true);
+    const [row] = await outbox();
+    expect(row?.event.props).toEqual({ plan: "keluarga", period: "yearly", months: 12, environment: "production" });
+    expect(row?.event.product).toBe("joyorogo");
+  });
+
   test("is idempotent per external_id", async () => {
     await insertPayment({ id: "google:GPA.1" });
     expect(await enqueueLedger(db, "google:GPA.1", "paid")).toBe(true);

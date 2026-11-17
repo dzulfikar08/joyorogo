@@ -356,6 +356,8 @@ export interface AdminOrder {
   founderUntil: string | number | null;
   /** 1 = test purchase (not charged: Play tester, Apple/Polar sandbox), 0 real, null unknown. */
   isTest?: number | null;
+  /** "keluarga" = a Joyo Keluarga order; null/missing = Pro. */
+  product?: "keluarga" | null;
 }
 
 /**
@@ -366,9 +368,13 @@ export interface AdminOrder {
  * DOKU's page can still offer other methods). No link = checkout never opened.
  */
 export function orderMethod(
-  o: Pick<AdminOrder, "orderId" | "paymentUrl" | "amountIdr" | "chargedCurrency"> & { isTest?: number | null },
+  o: Pick<AdminOrder, "orderId" | "paymentUrl" | "amountIdr" | "chargedCurrency"> & {
+    isTest?: number | null;
+    product?: "keluarga" | null;
+  },
 ): string {
-  const base = orderGateway(o);
+  const gateway = orderGateway(o);
+  const base = o.product === "keluarga" ? `Keluarga · ${gateway}` : gateway;
   return o.isTest === 1 ? `${base} · TEST` : base;
 }
 

@@ -549,6 +549,7 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
           paidAt: payment.paidAt,
           founderUntil: payment.founderUntil,
           isTest: payment.isTest,
+          product: payment.product,
         })
         .from(payment)
         .innerJoin(user, eq(user.id, payment.userId))
