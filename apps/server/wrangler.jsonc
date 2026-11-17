@@ -124,6 +124,8 @@
     "FOUNDER_PRICE_IDR": "15000",
     "FOUNDER_YEARLY_PRICE_IDR": "199000",
     "FOUNDER_PRICE_LADDER": "10:15000/149000,60:29000/199000,:49000/349000",
+    // Joyo Keluarga stays off until the owner turns it on (docs/pricing/joyo-keluarga.md).
+    "KELUARGA_ENABLED": "off",
     "ADMIN_EMAILS": "dzulfikar.at@gmail.com",
     "REVIEW_LOGIN_EMAILS": "review@joyorogo.com,qa@joyorogo.com,demo@joyorogo.com",
     "EMAIL_FROM": "halo@mail.joyorogo.com",
