@@ -413,6 +413,17 @@ From `docs/marketing/marketing-plan.md` section 1.1, applied to Keluarga:
 
 ## 8. Owner decisions
 
+**Decided by the owner on 2026-11-17:**
+
+| # | Decision |
+| --- | --- |
+| 1, 3 | **Price option C, tied to the ladder:** Keluarga is always 2x the current Pro step (step 2 today: Rp58.000/bulan, Rp398.000/tahun; step 3: Rp98.000 / Rp698.000). No separate Keluarga ladder. Derive it from `FOUNDER_PRICE_LADDER` in code, never a second ladder var. A Keluarga payer counts once in `ladderBuyers`, members never (recommendation, not contested). |
+| 2 | **5 seats** including the payer. |
+| 4 | **One price lock shared with Pro:** whoever has paid for either plan keeps the lowest Pro step they ever paid, and Keluarga is 2x that step. |
+| 5–9 | The owner agreed to the design as written, so the recommendations stand: no upgrade credit on web rupiah (show the warning); churn limit 8 joins per 12 months beyond the first fill; launch order web rupiah, Polar, Google Play, then App Store after App Review answers; store prices Indonesia first; the owner cannot leave in phase 1. |
+
+The options considered are kept below for the record.
+
 1. **Price.** Options, relative to the current ladder (now step 2: Rp29.000 / Rp199.000 for Pro; step 3 Rp49.000 /
    Rp349.000):
 
