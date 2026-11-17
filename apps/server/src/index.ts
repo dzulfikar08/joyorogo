@@ -74,6 +74,7 @@ import { withEggCount } from "@joyorogo/api/lib/egg-count";
 import { analyzeFoodPhoto } from "@joyorogo/api/lib/vision";
 import { scrubExpiredStravaRows } from "@joyorogo/api/lib/strava-retention";
 import { env } from "./env.server";
+import { registerPublicConfigCors } from "./public-config-cors";
 import { createAuth, getDb } from "./services";
 
 const app = new Hono();
@@ -87,6 +88,8 @@ const allowedOrigins = env.CORS_ORIGIN.split(",")
 app.use(logger());
 // Open CORS (no cookies) for the endpoints MCP clients call from a browser; before the credentialed CORS below.
 registerMcpPublicCors(app);
+// The JoyoFit marketing site reads the public price from /api/config in the browser (public-config-cors.ts).
+registerPublicConfigCors(app, allowedOrigins);
 // PUT and DELETE: the JoyoFit web app (docs/fit-web.md) uploads workout documents with PUT /api/watch-workouts/:start and deletes
 // watch faces with DELETE /api/fit/watchfaces/:id from the browser.
 app.use(
