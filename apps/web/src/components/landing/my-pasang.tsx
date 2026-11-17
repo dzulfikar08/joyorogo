@@ -4,7 +4,7 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { AndroidMark } from "@/components/android-mark";
 import { AppLink } from "@/components/app-link";
 import { AppleMark } from "@/components/apple-mark";
-import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/store-urls";
+import { appStoreUrl, playStoreUrl } from "@/lib/store-urls";
 import { ANDROID_LANGKAH, IOS_LANGKAH } from "@/lib/landing-ms";
 import { openIosInstall } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
@@ -60,7 +60,7 @@ export function PasangMy() {
               size="lg"
               render={
                 <a
-                  href={PLAY_STORE_URL}
+                  href={playStoreUrl("my-pasang")}
                   target="_blank"
                   rel="noopener"
                   data-revklik-goal="android_play_click"
@@ -91,7 +91,7 @@ export function PasangMy() {
               size="lg"
               render={
                 <a
-                  href={APP_STORE_URL}
+                  href={appStoreUrl("my-pasang")}
                   target="_blank"
                   rel="noopener"
                   data-revklik-goal="ios_app_store_click"

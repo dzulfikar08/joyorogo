@@ -22,7 +22,7 @@ import { useTranslation } from "react-i18next";
 
 import { AppLink } from "@/components/app-link";
 import { AppleMark } from "@/components/apple-mark";
-import { APP_STORE_URL } from "@/lib/store-urls";
+import { appStoreUrl } from "@/lib/store-urls";
 import { HOSTS } from "@/lib/app-host";
 import { trackConversion } from "@/lib/analytics";
 import {
@@ -207,7 +207,7 @@ function IosInstallSheet() {
           className="mt-4 w-full"
           render={
             <a
-              href={APP_STORE_URL}
+              href={appStoreUrl("ios-sheet")}
               target="_blank"
               rel="noopener"
               data-revklik-goal="ios_app_store_click"

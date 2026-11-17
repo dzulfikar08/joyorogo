@@ -4,7 +4,7 @@ import { cn } from "@joyorogo/ui/lib/utils";
 import { AndroidMark } from "@/components/android-mark";
 import { AppLink } from "@/components/app-link";
 import { AppleMark } from "@/components/apple-mark";
-import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/store-urls";
+import { appStoreUrl, playStoreUrl } from "@/lib/store-urls";
 import { ANDROID_STEPS, IOS_STEPS } from "@/lib/landing-sg";
 import { openIosInstall } from "@/lib/ios-install";
 import { usePlatform } from "@/lib/platform";
@@ -70,7 +70,7 @@ export function InstallSg() {
               size="lg"
               render={
                 <a
-                  href={PLAY_STORE_URL}
+                  href={playStoreUrl("sg-pasang")}
                   target="_blank"
                   rel="noopener"
                   data-revklik-goal="android_play_click"
@@ -101,7 +101,7 @@ export function InstallSg() {
               size="lg"
               render={
                 <a
-                  href={APP_STORE_URL}
+                  href={appStoreUrl("sg-pasang")}
                   target="_blank"
                   rel="noopener"
                   data-revklik-goal="ios_app_store_click"

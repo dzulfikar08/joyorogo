@@ -14,7 +14,7 @@ import { ANDROID_ROBOT_PATH, ANDROID_ROBOT_VIEWBOX } from "../src/lib/android-ro
 import { APPLE_LOGO_PATH, APPLE_LOGO_VIEWBOX } from "../src/lib/apple-logo.ts";
 import { ANDROID_ROBOT_CREDIT } from "../src/lib/credits.ts";
 import { DISCORD_LOGO_PATH, DISCORD_LOGO_VIEWBOX, DISCORD_URL } from "../src/lib/discord.ts";
-import { APP_STORE_URL, PLAY_STORE_URL } from "../src/lib/store-urls.ts";
+import { appStoreUrl, playStoreUrl } from "../src/lib/store-urls.ts";
 import { alternatesFor, ogImageTags, PUBLIC_PATHS, type ShareImage } from "./pages.ts";
 import {
   CATEGORIES,
@@ -411,8 +411,8 @@ ${opts.main}
           <a href="/" class="inline-flex min-h-11 items-center hover:text-primary">JoyoRogo</a>
           <a href="/blog/" class="inline-flex min-h-11 items-center hover:text-primary">Blog</a>
           <a href="/privasi" class="inline-flex min-h-11 items-center hover:text-primary">Privasi</a>
-          <a href="${PLAY_STORE_URL}" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${ANDROID_ICON}Android (Google Play)</a>
-          <a href="${APP_STORE_URL}" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${APPLE_ICON}iPhone (App Store)</a>
+          <a href="${playStoreUrl("blog-footer")}" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${ANDROID_ICON}Android (Google Play)</a>
+          <a href="${appStoreUrl("blog-footer")}" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${APPLE_ICON}iPhone (App Store)</a>
           <a href="${SOURCE_URL}" class="inline-flex min-h-11 items-center hover:text-primary">Kode sumber</a>
           <a href="${DISCORD_URL}" target="_blank" rel="noopener" aria-label="Discord: lapor bug dan diskusi (tab baru)" class="inline-flex min-h-11 items-center gap-1.5 hover:text-primary">${DISCORD_ICON}Discord</a>
         </nav>
@@ -449,7 +449,7 @@ function ctaCard(cfg: BlogConfig): string {
           <a href="${cfg.appUrl ?? ""}/login" data-revklik-goal="signup_click" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 ${FOCUS}">Coba gratis</a>
           <a href="/#coba" data-revklik-goal="try_scan_click" data-revklik-goal-location="blog" class="inline-flex min-h-11 items-center rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">Coba scan tanpa daftar</a>
           <a href="/?pasang=iphone" data-revklik-goal="ios_cta_click" data-revklik-goal-location="blog" class="${ON_ANDROID_HIDE} inline-flex min-h-11 items-center gap-2 rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">${APPLE_ICON}Buka di iPhone</a>
-          <a href="${PLAY_STORE_URL}" data-revklik-goal="android_cta_click" data-revklik-goal-location="blog" class="${ON_IOS_SECONDARY} inline-flex min-h-11 items-center gap-2 rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">${ANDROID_ICON}Unduh di Google Play</a>
+          <a href="${playStoreUrl("blog")}" data-revklik-goal="android_cta_click" data-revklik-goal-location="blog" class="${ON_IOS_SECONDARY} inline-flex min-h-11 items-center gap-2 rounded-full bg-card px-5 text-sm font-semibold hover:bg-muted ${FOCUS}">${ANDROID_ICON}Unduh di Google Play</a>
         </div>
       </aside>`;
 }
