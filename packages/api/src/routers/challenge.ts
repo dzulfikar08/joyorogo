@@ -37,6 +37,7 @@ import { dateSchema } from "../lib/schemas";
 import { userZone } from "../lib/user-zone";
 import { paywallConfig } from "../lib/tiers";
 import { serverT } from "../lib/messages";
+import { proUntil } from "../lib/household";
 import { enqueueMany, notifyInBackground } from "../lib/notify";
 import type { Locale } from "@joyorogo/i18n";
 
@@ -190,7 +191,7 @@ export const challengeRouter = {
       await requireTeamMember(db, input.groupId, userId, context.locale);
 
       const [userRow] = await db
-        .select({ tier: user.tier, founderUntil: user.founderUntil })
+        .select({ tier: user.tier, founderUntil: proUntil })
         .from(user)
         .where(eq(user.id, userId))
         .limit(1);
@@ -392,7 +393,7 @@ export const challengeRouter = {
 
       // Founder gate first, on the server: the client's upsell is only a courtesy.
       const [userRow] = await db
-        .select({ tier: user.tier, founderUntil: user.founderUntil })
+        .select({ tier: user.tier, founderUntil: proUntil })
         .from(user)
         .where(eq(user.id, userId))
         .limit(1);

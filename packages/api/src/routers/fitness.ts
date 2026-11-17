@@ -11,6 +11,7 @@ import { READINESS_LABELS } from "../lib/fitness-hint";
 import { premiumUnlocked } from "../lib/readiness-food";
 import { dateSchema } from "../lib/schemas";
 import { effectiveTier, paywallConfig } from "../lib/tiers";
+import { proUntil } from "../lib/household";
 
 // JoyoFit pushes its last few days after every sync; 14 leaves room for a
 // phone that was offline for a while and still stays well under D1's limits.
@@ -53,7 +54,7 @@ export const fitnessRouter = {
    */
   cloudAccess: protectedProcedure.handler(async ({ context }) => {
     const [row] = await context.db
-      .select({ tier: user.tier, founderUntil: user.founderUntil })
+      .select({ tier: user.tier, founderUntil: proUntil })
       .from(user)
       .where(eq(user.id, context.session.user.id))
       .limit(1);

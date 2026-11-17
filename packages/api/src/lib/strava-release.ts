@@ -6,6 +6,7 @@ import { exerciseLog, stravaAccount, stravaRelease } from "@joyorogo/db/schema/f
 import { D1_MAX_PARAMS, chunk } from "./d1";
 import { type StravaGrantEnv, revoke } from "./strava-grant";
 import { effectiveTier } from "./tiers";
+import { proUntil } from "./household";
 
 /**
  * Freeing Strava slots by hand (docs/strava.md "Capacity"): the owner names athletes whose connection has gone unused,
@@ -104,7 +105,7 @@ export async function releaseAthletes(
       refreshToken: stravaAccount.refreshToken,
       updatedAt: stravaAccount.updatedAt,
       tier: user.tier,
-      founderUntil: user.founderUntil,
+      founderUntil: proUntil,
     })
     .from(stravaAccount)
     .innerJoin(user, eq(user.id, stravaAccount.userId))

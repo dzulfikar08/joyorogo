@@ -1,5 +1,6 @@
 import type { SendEmail } from "@cloudflare/workers-types";
 import { and, eq, gt, isNotNull, lte, or, sql } from "drizzle-orm";
+import { HOUSEHOLD_MAX_SEATS, householdUntil } from "@joyorogo/api/lib/household";
 
 import { emailLog, googlePurchase, payment } from "@joyorogo/db/schema/billing";
 import { realPayment } from "./real-payment";
@@ -112,6 +113,8 @@ const button = (href: string, label: string) =>
 type ReceiptInfo = {
   name: string;
   plan: "monthly" | "yearly";
+  /** Joyo Keluarga order: the period is the household's, shared with up to `seats` people. */
+  keluarga?: { seats: number } | null;
   amountIdr: number;
   founderUntil: Date;
   founderDailyCap: number | null;
@@ -127,13 +130,22 @@ function receiptDraft(info: ReceiptInfo, locale: Locale, zone: DayZone): Draft {
   const t = getT(locale, "email");
   const part = (html: boolean) => {
     const b = bold(html);
+    const until = b(formatWibDate(info.founderUntil, locale, zone));
     return {
-      intro: t("receipt.intro", {
-        name: info.name,
-        amount: b(fmtIdr(info.amountIdr, locale)),
-        plan: b(t(`plan.${info.plan}`)),
-      }),
-      active: t("receipt.active", { until: b(formatWibDate(info.founderUntil, locale, zone)) }),
+      intro: info.keluarga
+        ? t("receipt.introKeluarga", {
+            name: info.name,
+            amount: b(fmtIdr(info.amountIdr, locale)),
+            plan: b(t(info.plan === "yearly" ? "plan.keluargaYearly" : "plan.keluargaMonthly")),
+          })
+        : t("receipt.intro", {
+            name: info.name,
+            amount: b(fmtIdr(info.amountIdr, locale)),
+            plan: b(t(`plan.${info.plan}`)),
+          }),
+      active: info.keluarga
+        ? t("receipt.activeKeluarga", { until, count: info.keluarga.seats })
+        : t("receipt.active", { until }),
       cap:
         info.founderDailyCap === null
           ? t("receipt.capUnlimited")
@@ -148,7 +160,7 @@ function receiptDraft(info: ReceiptInfo, locale: Locale, zone: DayZone): Draft {
   );
   const x = part(false);
   const text = [x.intro, x.active, x.cap, t("receipt.textLink", { url: HOME_URL })].join("\n\n");
-  return { to: "", subject: t("receipt.subject"), html, text };
+  return { to: "", subject: t(info.keluarga ? "receipt.subjectKeluarga" : "receipt.subject"), html, text };
 }
 
 type PaidOrderInfo = {
@@ -158,6 +170,8 @@ type PaidOrderInfo = {
   email: string;
   months: number;
   amountIdr: number;
+  /** "keluarga" for a Joyo Keluarga order, null for Pro. */
+  product?: "keluarga" | null;
   /** What a Polar order charged, before tax, in its own currency (ISO code + minor units); null on IDR gateways and store orders. */
   charged: { currency: string; minor: number } | null;
   founderUntil: Date | null;
@@ -187,7 +201,7 @@ export function adminDraft(info: PaidOrderInfo): Draft {
     ...(info.isTest ? ([["Status", TEST_MARKER]] as [string, string][]) : []),
     ["Pembeli", `${info.name} (${info.email})`],
     ["Jumlah", amountLabel(info)],
-    ["Paket", `Pro ${planLabel}`],
+    ["Paket", `${info.product === "keluarga" ? "Keluarga" : "Pro"} ${planLabel}`],
     ["Gateway", info.gateway],
     ["Order", info.orderId],
     // WIB on purpose: admin notice.
@@ -234,6 +248,7 @@ export async function sendOrderEmails(
       months: payment.months,
       founderUntil: payment.founderUntil,
       isTest: payment.isTest,
+      product: payment.product,
     })
     .from(payment)
     .innerJoin(user, eq(user.id, payment.userId))
@@ -249,6 +264,7 @@ export async function sendOrderEmails(
       amountIdr: row.amountIdr,
       founderUntil: row.founderUntil ?? new Date(),
       founderDailyCap: config.founderDailyCap,
+      keluarga: row.product === "keluarga" ? { seats: HOUSEHOLD_MAX_SEATS } : null,
     };
     const locale = await userLocale(db, order.userId);
     await sendEmail(env, { ...receiptDraft(info, locale, await zoneOfUser(db, order.userId)), to: row.email });
@@ -268,6 +284,7 @@ export async function sendOrderEmails(
       months: row.months,
       amountIdr: row.amountIdr,
       charged: chargedOf(row),
+      product: row.product,
       founderUntil: row.founderUntil,
       isTest: row.isTest === 1,
     });
@@ -279,7 +296,8 @@ export async function sendOrderEmails(
 async function lockedMonthlyIdr(db: Database, userId: string): Promise<number | null> {
   const [row] = await db
     .select({
-      lowest: sql<number | null>`min(case when ${payment.months} >= 12 then ${payment.amountIdr} / 10.0 else ${payment.amountIdr} end)`,
+      // One price lock for Pro and Joyo Keluarga: a Keluarga order counts as the Pro step it was 2x of.
+      lowest: sql<number | null>`min((case when ${payment.months} >= 12 then ${payment.amountIdr} / 10.0 else ${payment.amountIdr} end) / (case when ${payment.product} = 'keluarga' then 2.0 else 1 end))`,
     })
     .from(payment)
     .where(and(eq(payment.userId, userId), eq(payment.status, "paid"), gt(payment.amountIdr, 0), realPayment));
@@ -340,6 +358,8 @@ export function founderEmailsDue(now: number) {
       and(lte(user.founderUntil, new Date(now)), gt(user.founderUntil, new Date(now - day))),
     ),
     sql`not exists (select 1 from ${googlePurchase} where ${googlePurchase.userId} = ${user.id} and ${googlePurchase.state} in ('active', 'grace'))`,
+    // A Joyo Keluarga household that runs past the person's own period keeps them Pro: no "Pro kamu berakhir".
+    sql`coalesce(${householdUntil}, 0) <= ${user.founderUntil}`,
   );
 }
 

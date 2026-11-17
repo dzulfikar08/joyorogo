@@ -1,4 +1,5 @@
 import { and, desc, eq, gt, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
+import { proUntil } from "@joyorogo/api/lib/household";
 import { alias } from "drizzle-orm/sqlite-core";
 import type { JoyoAuth } from "@joyorogo/auth";
 import type { Context, Hono } from "hono";
@@ -180,7 +181,8 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
       email: user.email,
       image: user.image,
       // Effective tier (paid period counts); manualTier is the raw comp column.
-      tier: sql<"free" | "founder">`case when (${user.tier} = 'founder' or ${user.founderUntil} > ${intSql(now)}) then 'founder' else 'free' end`,
+      // A Joyo Keluarga member counts as founder too (proUntil); founderUntil below stays the person's own period.
+      tier: sql<"free" | "founder">`case when (${user.tier} = 'founder' or ${proUntil} > ${intSql(now)}) then 'founder' else 'free' end`,
       plan: scans.plan,
       manualTier: user.tier,
       founderUntil: user.founderUntil,

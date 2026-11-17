@@ -4,7 +4,9 @@
   },
   "plan": {
     "monthly": "bulanan",
-    "yearly": "tahunan"
+    "yearly": "tahunan",
+    "keluargaMonthly": "Joyo Keluarga bulanan",
+    "keluargaYearly": "Joyo Keluarga tahunan"
   },
   "receipt": {
     "subject": "Pembayaran Joyo Pro diterima",
@@ -14,7 +16,10 @@
     "capUnlimited": "Sepanjang menjadi Pro, anda boleh mengimbas makanan tanpa had harian.",
     "capLimited_other": "Sepanjang menjadi Pro, anda boleh mengimbas makanan sehingga {{count}} imbasan AI sehari.",
     "cta": "Mula imbas",
-    "textLink": "Buka {{url}} untuk mula mengimbas."
+    "textLink": "Buka {{url}} untuk mula mengimbas.",
+    "subjectKeluarga": "Bayaran Joyo Keluarga diterima",
+    "introKeluarga": "Hai {{name}}, bayaran {{amount}} untuk {{plan}} sudah kami terima.",
+    "activeKeluarga": "Joyo Keluarga aktif sehingga {{until}} (WIB). Jemput sehingga {{count}} orang serumah dari Profil > Langganan."
   },
   "ending": {
     "subject": "Pro anda berakhir {{until}}",

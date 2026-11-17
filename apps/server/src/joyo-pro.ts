@@ -1,6 +1,8 @@
 import type { Context, Hono } from "hono";
 import { z } from "zod";
 
+import { householdUntil } from "@joyorogo/api/lib/household";
+
 import { JOYOARTO_APPLE_BUNDLE_ID } from "@joyorogo/auth/apple-audience";
 import { APPLE_ROOT_CA_G3_SHA256, appleAccountToken, verifyAppleTransactionJws } from "@joyorogo/api/lib/apple";
 import { redeemAppleTransaction } from "@joyorogo/api/lib/apple-billing";
@@ -136,7 +138,7 @@ export function registerJoyoProRoutes(app: Hono, deps: Deps) {
       const status = result.error === "other-account" ? 403 : result.error === "busy" ? 409 : 400;
       return c.json({ error: result.error }, status);
     }
-    const [fresh] = await db.select({ id: user.id, tier: user.tier, founderUntil: user.founderUntil }).from(user).where(eq(user.id, row.id)).limit(1);
+    const [fresh] = await db.select({ id: user.id, tier: user.tier, founderUntil: user.founderUntil, householdUntil }).from(user).where(eq(user.id, row.id)).limit(1);
     return c.json({
       status: result.status,
       sandbox: transaction.environment === "Sandbox" && result.status === "granted" && result.amountIdr === 0,

@@ -4,7 +4,9 @@
   },
   "plan": {
     "monthly": "monthly",
-    "yearly": "yearly"
+    "yearly": "yearly",
+    "keluargaMonthly": "Joyo Keluarga monthly",
+    "keluargaYearly": "Joyo Keluarga yearly"
   },
   "receipt": {
     "subject": "Your Joyo Pro payment is confirmed",
@@ -15,7 +17,10 @@
     "capLimited_one": "With Pro you can scan up to {{count}} meal a day with AI.",
     "capLimited_other": "With Pro you can scan up to {{count}} meals a day with AI.",
     "cta": "Start scanning",
-    "textLink": "Open {{url}} to start scanning."
+    "textLink": "Open {{url}} to start scanning.",
+    "subjectKeluarga": "Joyo Keluarga payment received",
+    "introKeluarga": "Hi {{name}}, we received your payment of {{amount}} for {{plan}}.",
+    "activeKeluarga": "Joyo Keluarga is active until {{until}} (WIB). Invite up to {{count}} people in your household from Profile > Subscription."
   },
   "ending": {
     "subject": "Your Pro ends on {{until}}",

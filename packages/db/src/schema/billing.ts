@@ -44,6 +44,9 @@ export const payment = sqliteTable(
     // Where a web checkout was started from when it was not JoyoRogo itself: "joyoarto" (the Upgrade link in
     // JoyoArto). Null = JoyoRogo/JoyoFit, the native stores and every order before migration 0075.
     source: text("source"),
+    // What the order buys: null = Joyo Pro (every row before migration 0076), "keluarga" = Joyo Keluarga, whose months
+    // go to the payer's household.paid_until instead of user.founder_until.
+    product: text("product", { enum: ["keluarga"] }),
     // Founder period end this payment produced (set on the paid flip).
     founderUntil: integer("founder_until", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" })

@@ -4,6 +4,7 @@ import type { Database } from "@joyorogo/db";
 import { account, user } from "@joyorogo/db/schema/auth";
 import { payment } from "@joyorogo/db/schema/billing";
 
+import { householdUntil } from "./household";
 import { ledgerRail } from "./revklik";
 import { effectiveTier, paywallEnabled } from "./tiers";
 import type { PaywallConfig, Tier } from "./tiers";
@@ -14,7 +15,7 @@ import type { PaywallConfig, Tier } from "./tiers";
  * person's Google account id (`sub`) is the same in both apps. It asks `POST /api/internal/joyo-pro/status`
  * (apps/server/src/joyo-pro.ts) with that id and the email, and gets this answer back. Contract: docs/joyo-pro.md.
  */
-export type JoyoProPlan = "monthly" | "yearly" | "lifetime";
+export type JoyoProPlan = "monthly" | "yearly" | "lifetime" | "keluarga";
 
 export type JoyoProStatus = {
   pro: boolean;
@@ -24,7 +25,8 @@ export type JoyoProStatus = {
   /**
    * What made the account Pro: "doku", "pakasir", "apple", "google_play", "polar" (the ledger row of the current
    * period), "comp" (granted by hand: tier founder, or a period set in the admin), "no_paywall" (a server that sells
-   * nothing treats everyone as Pro). null when not Pro.
+   * nothing treats everyone as Pro), "keluarga" (a Joyo Keluarga household whose period ends later than the person's
+   * own). null when not Pro.
    */
   source: string | null;
 };
@@ -36,9 +38,10 @@ const NOT_PRO: JoyoProStatus = { pro: false, until: null, plan: null, source: nu
 /** A period end this far past the newest ledger row's was extended by hand (admin), not bought. */
 const LEDGER_SLACK_MS = 24 * 60 * 60 * 1000;
 
-type UserRow = { id: string; tier: Tier; founderUntil: Date | null };
+/** `founderUntil` is the person's own period; `householdUntil` their Joyo Keluarga household's (absent = not read). */
+type UserRow = { id: string; tier: Tier; founderUntil: Date | null; householdUntil?: Date | null };
 
-const userColumns = { id: user.id, tier: user.tier, founderUntil: user.founderUntil };
+const userColumns = { id: user.id, tier: user.tier, founderUntil: user.founderUntil, householdUntil };
 
 /**
  * The JoyoRogo account a sibling app's user is: by Google account id first (better-auth `account`, provider google),
@@ -99,7 +102,7 @@ export async function findOrCreateJoyoUser(
       await db.insert(account).values({ id: crypto.randomUUID(), accountId: sub, providerId: "google", userId: row.id, createdAt: now, updatedAt: now });
     }
   }
-  return { id: row.id, tier: row.tier, founderUntil: row.founderUntil };
+  return { id: row.id, tier: row.tier, founderUntil: row.founderUntil, householdUntil: row.householdUntil };
 }
 
 /**
@@ -115,6 +118,10 @@ export async function joyoProStatus(
 ): Promise<JoyoProStatus> {
   if (!row) return NOT_PRO;
   if (row.tier === "founder") return { pro: true, until: null, plan: "lifetime", source: "comp" };
+  const household = row.householdUntil ?? null;
+  if (household && household.getTime() > now.getTime() && household.getTime() > (row.founderUntil?.getTime() ?? 0)) {
+    return { pro: true, until: household.toISOString(), plan: "keluarga", source: "keluarga" };
+  }
   if (effectiveTier(row, now) === "founder" && row.founderUntil) {
     const [last] = await db
       .select({
