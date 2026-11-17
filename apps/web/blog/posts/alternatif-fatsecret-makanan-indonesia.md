@@ -57,7 +57,7 @@ Di grup JoyoRogo (sampai 20 orang), anggota bisa saling *colek* kalau ada yang l
 - Kamu diet bareng pasangan, teman kantor, atau keluarga.
 - Kamu puasa intermiten atau puasa Ramadan.
 
-Sedang membandingkan dengan MyFitnessPal juga? Baca [alternatif MyFitnessPal untuk makanan Indonesia](/blog/alternatif-myfitnesspal-makanan-indonesia/).
+Sedang membandingkan dengan MyFitnessPal juga? Baca [alternatif MyFitnessPal untuk makanan Indonesia](/blog/alternatif-myfitnesspal-makanan-indonesia/) atau [alternatif Pantau Kalori](/blog/alternatif-pantau-kalori/).
 
 ## Pertanyaan yang sering muncul
 
