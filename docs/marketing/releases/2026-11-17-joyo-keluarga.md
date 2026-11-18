@@ -19,6 +19,9 @@ dari Profil > Langganan; anggota bisa keluar kapan saja.
 **Bukti visual:** /harga (kartu Joyo Keluarga), /pro?plan=keluarga, Profil > Langganan sebagai pembayar dengan 2 anggota,
 dan halaman undangan /keluarga/<kode>. Perlu server dengan KELUARGA_ENABLED=on dan akun demo yang sudah bayar Keluarga.
 
+**Status kode (2026-11-18):** kode untuk kartu (Polar), Google Play dan App Store sudah ada di PR #42, tapi produknya
+belum dibuat, belum ada build toko, dan semuanya masih mati. Untuk konten, yang berlaku tetap hanya web.
+
 **Jangan klaim:** belum ada di App Store atau Google Play (hanya lewat web, QRIS/transfer, tidak diperpanjang otomatis);
 belum ada harga USD/Polar; jangan bilang anggota bisa melihat catatan makan, berat, atau tidur satu sama lain; jangan
 bilang data JoyoArto atau JoyoFit ikut dibagi; jangan "unlimited family" atau "semua keluarga", selalu "sampai 5 orang

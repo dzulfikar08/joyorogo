@@ -1,8 +1,9 @@
 # Joyo Keluarga: design
 
-Status: phases 1 to 3 built on branch `pricing/joyo-keluarga-design` (PR #42), behind `KELUARGA_ENABLED` (off), not
-deployed. Phases 4 to 7 (Polar, native, Play, App Store, sibling apps) are not started. Written 2026-11-17 against
-`origin/main` at `e750f24e`; section 10 lists what was built and where the code differs from the first draft.
+Status: phases 1 to 6 built as code on branch `pricing/joyo-keluarga-design` (PR #42), behind `KELUARGA_ENABLED` (off)
+and, on iOS, `KELUARGA_IOS_ENABLED` (off). Not deployed, no remote migration, no store or Polar products, nothing
+published (native needs a store build). Phase 7 is notes only (section 11). Written 2026-11-17 against `origin/main` at
+`e750f24e`; section 10 lists what was built and where the code differs from the first draft.
 
 Joyo Keluarga is a second paid plan. One person pays. Up to 5 people in one household get Joyo Pro, the payer included.
 Everything below that is not read from the code or a cited page is marked [INFERENCE] or [TO VERIFY].
@@ -124,7 +125,7 @@ needed for: the price lock per product, the ladder count, RevKlik props, admin a
 | Max seats | 5 including the owner. Constant `HOUSEHOLD_MAX_SEATS = 5` in one place (owner decision; section 8). |
 | One household per account | `unique(user_id)` on `household_member`. Accepting while in another household answers 409 "Kamu sudah di keluarga lain; keluar dulu". |
 | Member leaves | Row deleted at once. Household Pro ends for them at once. Their own `founder_until` is untouched. Seat frees at once. Owner gets an in-app notice (same `notifyInBackground` pattern as `group.join`). |
-| Owner removes a member | Same as leaving. The member gets an in-app notice. The email ("Kamu tidak lagi di Joyo Keluarga <nama>") is not built: email sending lives in `apps/server`, the router in `packages/api`. |
+| Owner removes a member | Same as leaving. The member gets an in-app notice, and the email "Kamu tidak lagi di Joyo Keluarga <nama>" from the `apps/server` cron (`runKeluargaEmails`), which reads the `removed` row of `household_event` (the router in `packages/api` cannot send mail). |
 | Owner leaves | Not allowed while the household exists: the owner is the payer, and store subscriptions cannot move to another Apple/Google account. The owner can remove everyone, or turn off renewal and let the period end. |
 | Owner deletes their account | `deleteUserSocialData`-style cleanup in `packages/api/src/lib/privacy.ts`: household and invites are deleted (cascade), members lose household Pro at once and get the notice. Unlike groups, there is no heir. The deletion screen must say "Langganan App Store/Google Play tetap jalan sampai kamu batalkan di toko" (as for Pro today). |
 | Paid period ends | The household and its members stay. Pro is off for everyone until the owner pays again. Invites cannot be created while unpaid. |
@@ -297,13 +298,20 @@ Shared server pieces:
 ### 4.2 Polar (card, outside Indonesia)
 
 - Two new Polar products in org "Joyo Digitama Solusi": "Joyo Keluarga monthly" and "Joyo Keluarga yearly", USD
-  prices (and MYR/SGD if the owner wants them, as for Pro). New vars `POLAR_PRODUCT_KELUARGA_MONTHLY_ID`,
-  `POLAR_PRODUCT_KELUARGA_YEARLY_ID`, `POLAR_PRICE_KELUARGA_*`.
-- `polar-billing.ts` today ignores every product that is not one of the two Pro products; it must map the two new ids
-  to `product: "keluarga"`.
-- The 409 "already has a live Polar subscription" check in `POST /api/billing/polar/checkout` must allow a Pro → Keluarga
-  change through the customer portal instead. Whether the portal can switch between two different products [TO VERIFY
-  in Polar's dashboard]; if not, the buyer cancels Pro and buys Keluarga.
+  prices (and MYR/SGD if the owner wants them, as for Pro). Vars (built): `POLAR_PRODUCT_KELUARGA_MONTHLY_ID`,
+  `POLAR_PRODUCT_KELUARGA_YEARLY_ID` (both or neither; empty = Keluarga not sold by card),
+  `POLAR_PRICE_KELUARGA_MONTHLY_USD_CENTS` / `POLAR_PRICE_KELUARGA_YEARLY_USD_CENTS` (display only, default 2x the Pro
+  USD price; keep equal to the products' real prices).
+- Built: `polarProduct()` in `lib/polar.ts` maps the two ids to `{ product: "keluarga", plan }`; `order.paid` credits
+  the household the payer owns (made on first payment), `order.refunded` takes the months back, an immediate
+  `subscription.revoked` cuts the household to now. Pro and Keluarga subscriptions never hold up or cut each other.
+  Without the ids the webhook ignores those products, as before.
+- Checkout (built): `POST /api/billing/polar/checkout` takes `product: "keluarga"` (404 while `KELUARGA_ENABLED` is
+  off or the ids are unset; 409 for a member of another household). The 409 "already has a live subscription" now
+  applies per product only. Pro → Keluarga opens a new checkout and answers `cancelPro: true`; `/pro` shows "Langganan
+  kartu kamu (Polar) diperpanjang otomatis. Batalkan di Kelola langganan..." while a live Polar Pro subscription
+  exists. We do not rely on the portal switching products [TO VERIFY in Polar's dashboard whether it can; if it can,
+  the client can point there instead].
 - Proration charges already land as `months = 0`, Rp0 (`docs/pricing.md`, Polar ledger).
 
 ### 4.3 App Store
@@ -347,8 +355,27 @@ New products (owner creates in App Store Connect, app 6823222101):
 - JoyoFit and JoyoArto iOS apps: no Keluarga products in phase 1. Members are Pro there anyway. Those apps should show
   "Pro aktif (Joyo Keluarga)" only, with no manage or buy screen for Keluarga [TO VERIFY with review: a household
   member on JoyoArto iOS sees Pro bought elsewhere; JoyoArto already sells Pro via IAP, which 3.1.3(b) asks for].
-- Defensive guard: in `redeemAppleTransaction`, credit only `inAppOwnershipType === "PURCHASED"` transactions, so a
-  Family Sharing toggle switched on by mistake cannot mint time.
+- Defensive guard (built): `inAppOwnershipType` is read from the JWS; `redeemAppleTransaction` refuses anything but
+  `"PURCHASED"` before linking (`family-shared`, HTTP 403), and `creditTransaction` ignores it on server notifications
+  too, so a Family Sharing toggle switched on by mistake cannot mint time. Applies to Pro products as well.
+- iOS paywall switch: `KELUARGA_IOS_ENABLED = false` in `apps/native/src/lib/keluarga.ts`. Turn it on only in a store
+  build submitted with the products (never by OTA: the paywall must match what review saw).
+
+Draft App Review note (paste into App Store Connect > App Review Information > Notes when submitting the products):
+
+> Joyo Keluarga is an auto-renewable subscription in the same group as Joyo Pro ("JoyoRogo Pro"), ranked above it.
+> The person who buys it gets Joyo Pro on their own JoyoRogo account and can invite up to 4 other people (5 accounts in
+> total, the buyer included) from Profile > Subscription. Each invite is a single-use link that expires after 7 days;
+> the invited person signs in with their own JoyoRogo account and gets Pro on that account while the subscription is
+> active. Members can leave at any time; the buyer can remove members. No member can see another member's food diary,
+> weight, sleep or other data. Family Sharing is off for these products; the seats are managed by our own service, so
+> people on Android or the web can be members too. To test: sign in with the demo account [owner account], open
+> Profile > Subscription to see the household, and use the second demo account [member account] to open the invite
+> link. The same plan is also sold on our website (QRIS/bank transfer, not auto-renewing) and through Google Play; a
+> web purchase works in the iOS app under guideline 3.1.3(b) because the same plan is offered here as an in-app
+> purchase.
+
+Before submitting, ask App Review the cross-account question (3.1.1 above) and fill in the two demo accounts.
 
 ### 4.4 Google Play
 
@@ -359,8 +386,13 @@ read 2026-11-17). So Keluarga is our own seat model on Play too.
 New product (owner creates in Play Console, `com.joyodigitama.joyorogo`): subscription `keluarga`, base plans
 `monthly` and `yearly`, auto-renewing, ID price per section 8, same grace and account-hold defaults as `pro`
 (`docs/play-billing.md`). Add `keluarga: { monthly: ..., yearly: ... }` under the package in `GOOGLE_PLAY_PRODUCTS`.
-Pro → Keluarga on Android uses Play's subscription replacement [TO VERIFY: replacement mode and proration with a
-different product id]. No Keluarga products in the JoyoFit Play app in phase 1.
+Pro → Keluarga on Android uses Play's subscription replacement (built): the app passes the live Pro purchase token
+with replacement mode `CHARGE_FULL_PRICE` (the buyer pays the full Keluarga price now; Play turns the unused Pro time
+into extra time on the new subscription). The server credits a full plan period to the household per charged order,
+which matches a full-price charge that starts now; the buyer's own `founder_until` from Pro is left alone, so the
+overlap is in the buyer's favour. [TO VERIFY with a license tester: Play allows the replacement across two different
+product ids in one app, and the new token arrives with `linkedPurchaseToken`.] No Keluarga products in the JoyoFit
+Play app in phase 1.
 
 ### 4.5 Consoles: what the owner creates
 
@@ -497,22 +529,71 @@ S = up to 1 day, M = 2 to 4 days, L = 5+ days (one developer).
 
 Total about 3 to 4 weeks of one developer [INFERENCE], with store review time on top.
 
-## 10. What was built (phases 1 to 3)
+## 10. What was built
 
-All behind `KELUARGA_ENABLED` (off). Nothing deployed, no migration run against remote, no store or Polar products.
+All behind `KELUARGA_ENABLED` (off). Nothing deployed, no migration run against remote, no store or Polar products,
+no OTA (native changes need a store build).
 
 | Phase | Built | Where |
 | --- | --- | --- |
 | 1 | Schema and migration 0076; `proUntil` / `PRO_UNTIL_RAW_SQL` swapped into every gate of section 3 (quota, cloud, readiness, challenge host, fitness, sleep insights, social, profile scan allowance, plan reminder, Strava release, JoyoFit family, admin tier and scans plan); `joyoProStatus` source `keluarga`; `myProfile.household`; expiry mails skip household-covered people; grep test | `packages/db/src/schema/household.ts`, `packages/api/src/lib/household.ts`, `household-sites.test.ts` |
 | 2 | `household.get / createInvite / cancelInvite / preview / accept / leave / removeMember`; seats (members + pending invites <= 5); churn limit; one household per account; owner cannot leave; in-app notices (push category `group`, link `langganan`); account deletion removes the owner's household and notifies members | `packages/api/src/routers/household.ts`, `routers/privacy.ts` |
 | 3 | Web rupiah checkout with `product: "keluarga"`, shared price lock, household credit with the same optimistic guard as `activateOrder`; `/api/config.keluarga`; receipt and admin mail; RevKlik `plan: "keluarga"` + `period`; admin order label; web `/pro` switch, `/pembayaran`, Profil > Langganan, `/keluarga/$code`, `/harga`, `/privasi#joyo-keluarga`, `/syarat#joyo-keluarga`; invite codes cut out of RevKlik like `/gabung` | `apps/server/src/billing.ts`, `apps/web/src/...` |
+| shared | `periodTarget()`: the credit/refund target of a paid order (own `founder_until`, or `household.paid_until` of the household the payer owns, made on first payment) with its optimistic guard. Polar, Google Play and the App Store all write through it; every Keluarga ledger row has `payment.product = 'keluarga'` | `packages/api/src/lib/household.ts` |
+| 4 | Polar: `POLAR_PRODUCT_KELUARGA_*` ids → `product: "keluarga"`; credit, refund, revoke on the household; checkout `product`, per-product 409, `cancelPro`; `/api/config.keluarga.usd`; web paywall and checkout picker sell Keluarga by card once the ids exist, with the "your Polar Pro keeps renewing" note | `lib/polar.ts`, `lib/polar-billing.ts`, `apps/server/src/billing.ts`, `apps/web/src/lib/app-config.ts`, `checkout-picker.tsx`, `routes/_auth/pro.tsx` |
+| 5 | Google Play: `GOOGLE_PLAY_PRODUCTS[com.joyodigitama.joyorogo].keluarga = { monthly, yearly }`; orders credit and voids cut the household; replacement from Pro (`CHARGE_FULL_PRICE`). Native: Profil > Langganan owner and member cards, `/keluarga/<code>` screen and deep link, paywall Pro / Keluarga switch (Android when `/api/config.keluarga` is on and the Play product loads), buy blocked for a member of another household, "Kelola langganan" opens Play's `keluarga` page | `lib/google-play.ts`, `lib/google-play-billing.ts`, `apps/native/...` (`src/lib/keluarga.ts`, `components/profil/keluarga-card.tsx`, `app/keluarga/[code].tsx`, `app/founder.tsx`, `components/billing.tsx`, `src/lib/play-billing.ts`, `src/lib/native-intent-path.ts`) |
+| 6 | App Store: `APPLE_PRODUCTS` `com.joyodigitama.joyorogo.keluarga.monthly` / `.yearly` with `product: "keluarga"`; `PURCHASED`-only guard; refunds cut the household; iOS switch behind `KELUARGA_IOS_ENABLED = false`; review note drafted (4.3) | `lib/apple.ts`, `lib/apple-billing.ts`, `apps/native/src/lib/keluarga.ts` |
+| extra | Owner reminder 3 days before a rupiah-paid household period ends (`keluarga_ending`, once per period; store and Polar households renew by themselves and get none); removal email (`keluarga_removed`, once per removal); both from the cron, behind the flag | `apps/server/src/email.ts` `runKeluargaEmails` |
+| extra | Admin user detail: "Keluarga: pemilik" / "Keluarga: anggota (<owner>)" with the paid period | `apps/server/src/admin.ts`, `apps/admin/src/sections/UserDetail.tsx` |
 
-Not built in phases 1 to 3, still open:
+Tests: `packages/api/src/lib/keluarga-billing.test.ts` (Polar, Play, App Store credit/refund/revoke, Pro → Keluarga on
+Play, a member who buys on Play, Family Sharing refused), `apps/server/src/keluarga-email.test.ts`,
+`apps/server/src/family.test.ts` (a member is Pro for JoyoFit), `native-intent-path.test.ts`.
 
-- The removal email (in-app notice only, see section 2).
-- A reminder mail to the owner 3 days before the household period ends (section 3 table).
-- The deletion screen line about store subscriptions (no store Keluarga exists yet, so it is not needed before phase 5).
-- Admin user detail showing the household role.
+### Env vars and product ids the code expects
+
+| Where | Name / id | Notes |
+| --- | --- | --- |
+| `apps/server` var | `KELUARGA_ENABLED` | `"1"`/`"on"`/`"true"` turns on every surface; `"off"` in `wrangler.jsonc` |
+| `apps/server` var | `POLAR_PRODUCT_KELUARGA_MONTHLY_ID`, `POLAR_PRODUCT_KELUARGA_YEARLY_ID` | Polar product ids; both or neither |
+| `apps/server` var | `POLAR_PRICE_KELUARGA_MONTHLY_USD_CENTS`, `POLAR_PRICE_KELUARGA_YEARLY_USD_CENTS` | optional display prices; default 2x `POLAR_PRICE_*_USD_CENTS` (1998 / 11998 with today's defaults) |
+| Polar | two products in the same org | add them to the existing webhook's events; no new endpoint |
+| Play Console `com.joyodigitama.joyorogo` | subscription `keluarga`, base plans `monthly`, `yearly` | IDR Rp58.000 / Rp398.000 at step 2 (2x Pro), same grace and hold as `pro` |
+| App Store Connect app 6823222101 | `com.joyodigitama.joyorogo.keluarga.monthly`, `com.joyodigitama.joyorogo.keluarga.yearly` | group "JoyoRogo Pro", above `founder.*`, Family Sharing off, IDN Rp58.000 / Rp398.000 if those price points exist [TO VERIFY] |
+| `apps/native` constant | `KELUARGA_IOS_ENABLED` | `false`; flip in the store build that ships with the App Store products |
+
+Store and Polar prices do not follow the ladder by themselves: at each Pro step change, set Keluarga to 2x the new Pro
+price by hand, as for Pro (`docs/pricing.md` runbook). Web rupiah follows automatically.
+
+Not built, still open:
+
+- The deletion screen line about store subscriptions ("Langganan App Store/Google Play tetap jalan sampai kamu batalkan
+  di toko"): needed once store Keluarga is live.
 - `/my` legal pages: Keluarga is not sold in ringgit, so nothing there yet.
 - Link previews (OG cards) for `/keluarga/<code>`: the page uses the generic head.
-- Phases 4 to 7.
+- Native: no `keluarga_invite_sent` / `keluarga_invite_accepted` counters (native has no analytics helper); no App
+  Links / associated-domain entry, so an https invite link opens the app only the way `/gabung` links already do.
+- Nothing has run on a device, with a Play license tester or in App Store sandbox (the replacement flow included).
+- The removal-mail cron query scans `household_event` by kind and time without a dedicated index (the table is small;
+  add `(kind, at)` if it grows).
+- Phase 7 changes in JoyoArto (section 11).
+
+## 11. Phase 7: sibling apps (notes; no code in those repos)
+
+**JoyoFit** (`joyofit/server/src/family/joyorogo.ts` asks `POST /internal/joyofit/family/users`): no change needed.
+That endpoint selects `proUntil`, so an owner and every member of a paid household answer `pro: true` and get
+`MAX_WATCHING_PRO`; tested in `apps/server/src/family.test.ts`.
+
+**JoyoArto** (`joyoarto/packages/api/src/lib/billing/joyo-pro.ts`): works unchanged. It reads `pro` and `until`, so a
+member is Pro in JoyoArto. `plan: "keluarga"` is not in its `JOYO_PRO_PLANS`, so it becomes `null` and the plan line
+reads "Joyo Pro, aktif sampai X" with no plan word. Copy changes worth making there (owner's call, in that repo):
+
+- `apps/mobile/src/lib/billing.ts` `planLine` and `apps/web/src/routes/-billing.tsx`: when `joyo.source ===
+  "keluarga"`, say "Joyo Pro dari Joyo Keluarga, aktif sampai X" / "Joyo Pro from Joyo Keluarga, active until X".
+- The billing explainer "Joyo Pro itu satu langganan per akun ... Anggota rumah tangga lain punya paketnya sendiri" is
+  still true for JoyoArto's own households, but should not contradict Keluarga: add "Joyo Keluarga di JoyoRogo bisa
+  memberi Pro ke sampai 5 akun" or drop the last sentence. Never imply that a JoyoRogo household shares JoyoArto data.
+- "Kelola di JoyoRogo" for a member: they cannot manage the owner's plan; the link to JoyoRogo Profil > Langganan is
+  still right (it shows "Keluar dari keluarga").
+- JoyoArto iOS (store-safe view): show only "Pro aktif (Joyo Keluarga)", no buy or manage link for Keluarga (section
+  4.3).
