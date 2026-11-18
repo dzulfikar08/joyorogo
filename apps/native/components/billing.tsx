@@ -22,6 +22,7 @@ import { errorMessage, fmtDateLong, fmtIdr } from "@/utils/format";
 import { IS_PLAY_BUILD } from "@/src/distribution";
 import { ENV } from "@/src/env";
 import type * as PlayBilling from "@/src/lib/play-billing";
+import { KELUARGA_APPLE_PRODUCT_IDS } from "@/src/lib/keluarga";
 import { queryClient } from "@/utils/orpc";
 
 /** Server-decided paywall/billing settings (GET /api/config). */
@@ -55,6 +56,17 @@ export type AppConfig = {
   app?: unknown;
   /** The visitor's market (ID, MY or SG); picks the equivalence line and the loading-screen facts. Missing on older servers. */
   region?: Region;
+  /**
+   * Joyo Keluarga (docs/pricing/joyo-keluarga.md): rupiah prices (2x the Pro step) and seats; null while the server
+   * has KELUARGA_ENABLED off. Missing on older servers. Stores charge their own prices: only the web checkout uses these.
+   */
+  keluarga?: {
+    monthlyIdr: number;
+    yearlyIdr: number;
+    seats: number;
+    /** Polar card prices; web only, the native app never sells through Polar. */
+    usd?: { monthlyCents: number; yearlyCents: number } | null;
+  } | null;
 };
 
 /** Buyer-facing payment choice; the server maps each to its gateway. */
@@ -147,12 +159,22 @@ export async function checkOrderPaid(orderId: string): Promise<BillingOrder> {
 /** Founder billing period; yearly stacks 12 months on the remaining period. */
 export type CheckoutPlan = "monthly" | "yearly";
 
+/** What a purchase buys: Joyo Pro for this account, or Joyo Keluarga for the payer's household. */
+export type CheckoutProduct = "pro" | "keluarga";
+
+/** A plan alone means Pro (every caller before Keluarga); Keluarga callers pass both. */
+export type PurchaseInput = CheckoutPlan | { plan: CheckoutPlan; product: CheckoutProduct };
+
+function purchaseInput(input: PurchaseInput): { plan: CheckoutPlan; product: CheckoutProduct } {
+  return typeof input === "string" ? { plan: input, product: "pro" } : input;
+}
+
 /**
  * Start a Founder checkout, opened in the browser. `method` picks QRIS
  * or bank transfer (both DOKU); omitted = server default. UI goes
  * through useCheckoutPicker, which asks the buyer first.
  */
-export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
+export function useFounderCheckout(plan: CheckoutPlan = "monthly", product: CheckoutProduct = "pro") {
   return useMutation({
     mutationFn: async (
       method: PaymentMethod | undefined,
@@ -160,7 +182,7 @@ export function useFounderCheckout(plan: CheckoutPlan = "monthly") {
       const res = await fetch(`${serverUrl()}/api/billing/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(await checkoutHeaders()) },
-        body: JSON.stringify({ plan, method }),
+        body: JSON.stringify({ plan, method, ...(product === "keluarga" ? { product } : {}) }),
       });
       const body = (await res.json().catch(() => null)) as {
         orderId?: string;
@@ -199,10 +221,10 @@ const METHOD_ICONS: Record<PaymentMethod, React.ComponentProps<typeof Ionicons>[
  * both, otherwise goes straight to the one gateway (or the server default
  * when the config predates the picker). Render `sheet` once on the screen.
  */
-export function useCheckoutPicker(plan: CheckoutPlan = "monthly") {
+export function useCheckoutPicker(plan: CheckoutPlan = "monthly", product: CheckoutProduct = "pro") {
   const { t } = useTranslation("billing");
   const config = useAppConfig();
-  const checkout = useFounderCheckout(plan);
+  const checkout = useFounderCheckout(plan, product);
   const { theme } = useUnistyles();
   const [open, setOpen] = useState(false);
   const onErrorRef = useRef<((error: Error) => void) | undefined>(undefined);
@@ -388,12 +410,15 @@ async function postAppleJws(signedTransaction: string): Promise<{ sandbox: boole
  */
 export function useAppleFounderPurchase() {
   return useMutation({
-    mutationFn: async (plan: "monthly" | "yearly") => {
+    mutationFn: async (input: PurchaseInput) => {
+      const { plan, product } = purchaseInput(input);
       if (!appleIap) throw new Error(i18n.t("billing:error.appleUnavailable"));
       const userId = (await authClient.getSession()).data?.user.id;
       if (!userId) throw new Error(i18n.t("billing:error.signIn"));
+      // Keluarga sits in the same subscription group, ranked above Pro: StoreKit itself turns Pro -> Keluarga into an
+      // upgrade, so no replacement parameter is needed here (docs/pricing/joyo-keluarga.md section 4.3).
       const result = await appleIap.purchase(
-        FOUNDER_PRODUCT_IDS[plan],
+        (product === "keluarga" ? KELUARGA_APPLE_PRODUCT_IDS : FOUNDER_PRODUCT_IDS)[plan],
         await appleAccountToken(userId),
       );
       if (result.status === "cancelled") return "cancelled";
@@ -450,28 +475,35 @@ export function useAppleRestore() {
   });
 }
 
-/** Google Play's subscription page for JoyoRogo Pro: cancel, change the payment method, see the next charge. */
-export const PLAY_SUBSCRIPTIONS_URL =
-  "https://play.google.com/store/account/subscriptions?sku=pro&package=com.joyodigitama.joyorogo";
+/** Google Play's subscription page for one JoyoRogo subscription: cancel, change the payment method, next charge. */
+export function playSubscriptionsUrl(product: CheckoutProduct = "pro"): string {
+  const sku = product === "keluarga" ? "keluarga" : "pro";
+  return `https://play.google.com/store/account/subscriptions?sku=${sku}&package=com.joyodigitama.joyorogo`;
+}
+export const PLAY_SUBSCRIPTIONS_URL = playSubscriptionsUrl("pro");
 
-/** Opens the store's subscription management ("Kelola langganan"): Play on the Play build, Apple's sheet on iOS. */
-export async function openManageSubscriptions(): Promise<void> {
+/**
+ * Opens the store's subscription management ("Kelola langganan"): Play on the Play build (the page of `product`'s
+ * subscription), Apple's sheet on iOS (one group holds Pro and Keluarga).
+ */
+export async function openManageSubscriptions(product: CheckoutProduct = "pro"): Promise<void> {
   if (PLAY_ACTIVE) {
-    await Linking.openURL(PLAY_SUBSCRIPTIONS_URL);
+    await Linking.openURL(playSubscriptionsUrl(product));
     return;
   }
   if (appleIap && (await appleIap.showManageSubscriptions().catch(() => false))) return;
   await Linking.openURL(APPLE_SUBSCRIPTIONS_URL);
 }
 
-/** StoreKit products for both plans; a plan is null while its product is unavailable. */
-export function useAppleFounderPrice(enabled: boolean) {
+/** StoreKit products for both plans of one product; a plan is null while its product is unavailable. */
+export function useAppleFounderPrice(enabled: boolean, product: CheckoutProduct = "pro") {
+  const ids = product === "keluarga" ? KELUARGA_APPLE_PRODUCT_IDS : FOUNDER_PRODUCT_IDS;
   return useQuery({
-    queryKey: ["apple-founder-products"],
+    queryKey: product === "keluarga" ? ["apple-keluarga-products"] : ["apple-founder-products"],
     queryFn: async () => {
       const [monthly, yearly] = await Promise.all([
-        appleIap?.getProduct(FOUNDER_PRODUCT_IDS.monthly),
-        appleIap?.getProduct(FOUNDER_PRODUCT_IDS.yearly),
+        appleIap?.getProduct(ids.monthly),
+        appleIap?.getProduct(ids.yearly),
       ]);
       return { monthly: monthly ?? null, yearly: yearly ?? null };
     },
@@ -559,13 +591,20 @@ export type PlayBuyResult = "bought" | "pending" | "cancelled";
  */
 export function usePlayPurchase() {
   return useMutation({
-    mutationFn: async (plan: CheckoutPlan): Promise<PlayBuyResult> => {
+    mutationFn: async (input: PurchaseInput): Promise<PlayBuyResult> => {
+      const { plan, product } = purchaseInput(input);
       const play = playBilling();
       const userId = (await authClient.getSession()).data?.user.id;
       if (!userId) throw new Error(i18n.t("billing:error.signIn"));
+      // Pro -> Keluarga: hand Play the live Pro subscription so it replaces it instead of selling a second one.
+      const replace =
+        product === "keluarga"
+          ? ((await play.ownedPurchases()).find((owned) => owned.productId === play.PRO_PRODUCT_ID && !owned.pending) ??
+            null)
+          : null;
       let outcome: PlayBilling.PlayPurchaseOutcome;
       try {
-        outcome = await play.buyPlan(plan, userId);
+        outcome = await play.buyPlan(plan, userId, product, replace);
       } catch (error) {
         if (error instanceof play.AlreadySubscribedError) {
           throw new Error(i18n.t("billing:error.playAlready"));
@@ -590,11 +629,11 @@ export function usePlayPurchase() {
   });
 }
 
-/** Localized Play prices for each plan; empty while Play has no `pro` subscription for this user. */
-export function usePlayPrices(enabled: boolean) {
+/** Localized Play prices for each plan of one product; empty while Play has no such subscription for this user. */
+export function usePlayPrices(enabled: boolean, product: CheckoutProduct = "pro") {
   return useQuery({
-    queryKey: ["play-plans"],
-    queryFn: () => playBilling().loadPlans(),
+    queryKey: product === "keluarga" ? ["play-plans", "keluarga"] : ["play-plans"],
+    queryFn: () => playBilling().loadPlans(product),
     enabled: enabled && PLAY_ACTIVE,
     staleTime: 60 * 60 * 1000,
     retry: 1,

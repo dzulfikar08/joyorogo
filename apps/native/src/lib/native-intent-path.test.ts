@@ -28,6 +28,15 @@ describe("mapNativeIntentPath", () => {
     expect(mapNativeIntentPath("https://joyorogo.com/gabung/XYZ9")).toBe("/gabung/XYZ9");
   });
 
+  test("Joyo Keluarga invite links land on the household invite screen", () => {
+    expect(mapNativeIntentPath("joyorogo://keluarga/AB12cd34")).toBe("/keluarga/AB12cd34");
+    expect(mapNativeIntentPath("https://joyorogo.com/keluarga/XYZ98765?utm_source=app-share")).toBe("/keluarga/XYZ98765");
+  });
+
+  test("JoyoFit's monitoring invites are not taken for Keluarga seats", () => {
+    expect(mapNativeIntentPath("https://fit.joyorogo.com/keluarga/AB12cd34")).toBe("https://fit.joyorogo.com/keluarga/AB12cd34");
+  });
+
   test("removed strength screens fall back to the archive", () => {
     expect(mapNativeIntentPath("/latihan/aktif")).toBe("/latihan");
     expect(mapNativeIntentPath("/latihan/rutinitas")).toBe("/latihan");

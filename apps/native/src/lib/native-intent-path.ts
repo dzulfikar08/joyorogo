@@ -9,6 +9,10 @@ export function mapNativeIntentPath(path: string): string {
   if (camera) return `/makan-ai${camera[1] ?? ""}`;
   const gabung = path.match(/gabung\/([A-Za-z0-9]+)/i);
   if (gabung) return `/gabung/${gabung[1]}`;
+  // Joyo Keluarga seat invites (joyorogo.com/keluarga/<code>). JoyoFit's own monitoring invites live on
+  // fit.joyorogo.com/keluarga/<code> and belong to the JoyoFit app, so that host is left alone.
+  const keluarga = /fit\.joyorogo\.com/i.test(path) ? null : path.match(/keluarga\/([A-Za-z0-9]+)/i);
+  if (keluarga) return `/keluarga/${keluarga[1]}`;
   // Removed strength logger screens now live in JoyoFit; /latihan is the archive.
   if (/latihan\/(aktif|pilih|ringkasan|rutinitas)/i.test(path)) return "/latihan";
   if (path.includes("joyorogo.com/strava")) return "/profil/strava";
