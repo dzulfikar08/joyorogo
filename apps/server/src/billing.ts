@@ -57,6 +57,7 @@ import {
   createCheckout as createPolarCheckout,
   createPortalSession,
   polarConfig,
+  polarProduct,
   verifyWebhook,
 } from "@joyorogo/api/lib/polar";
 import type { PolarEnv } from "@joyorogo/api/lib/polar";
@@ -412,6 +413,10 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
               monthlyIdr: keluargaAmountIdr(step ? step.monthlyIdr : config.founderPriceIdr),
               yearlyIdr: keluargaAmountIdr(step ? step.yearlyIdr : config.founderYearlyPriceIdr),
               seats: HOUSEHOLD_MAX_SEATS,
+              // Card (Polar) prices of the Keluarga products, only once both product ids are set.
+              usd: polar?.keluarga
+                ? { monthlyCents: polar.keluarga.priceUsdCents.monthly, yearlyCents: polar.keluarga.priceUsdCents.yearly }
+                : null,
             }
           : null,
       // USD option (Polar): prices in cents; `preferred` = the visitor's Cloudflare country is known and not Indonesia.
@@ -618,8 +623,12 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     return settle(c, db, order, "pakasir");
   });
 
-  // Polar checkout for the signed-in user. Body: { plan: "monthly" | "yearly" }.
+  // Polar checkout for the signed-in user. Body: { plan: "monthly" | "yearly"; product?: "keluarga" }.
   // external_customer_id = user id, so webhooks and the portal find the account.
+  // One live subscription per product: a second Pro (or a second Keluarga) answers 409 (manage it in the portal).
+  // Pro -> Keluarga opens a new checkout; the answer says `cancelPro: true` so the client tells the buyer to cancel
+  // their Pro subscription in the portal (Polar's portal only switches plans within what the org allows; we do not
+  // rely on a cross-product switch).
   app.post("/api/billing/polar/checkout", async (c) => {
     if (!polar) return c.json({ error: "USD checkout is not available." }, 404);
     const me = await sessionUser(c.req.raw.headers);
@@ -627,24 +636,36 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     const body = (await c.req.json().catch(() => null)) as {
       plan?: unknown;
       source?: unknown;
+      product?: unknown;
       revklikVisitorId?: unknown;
       revklikSessionId?: unknown;
     } | null;
     const plan: FounderPlan = body?.plan === "yearly" ? "yearly" : "monthly";
+    const product = body?.product === "keluarga" ? ("keluarga" as const) : ("pro" as const);
+    if (product === "keluarga" && (!keluargaOn || !polar.keluarga)) {
+      return c.json({ error: t(c)("billing.unavailable") }, 404);
+    }
     const source = orderSource(body?.source);
     const from = source ? `&from=${source}` : "";
     const db = deps.getDb();
-    const [live] = await db
-      .select({ subscriptionId: polarSubscription.subscriptionId })
+    if (product === "keluarga") {
+      const current = await householdOf(db, me.id);
+      if (current && current.role === "member") {
+        return c.json({ error: t(c)("billing.keluargaMemberElsewhere") }, 409);
+      }
+    }
+    const live = await db
+      .select({ productId: polarSubscription.productId })
       .from(polarSubscription)
-      .where(and(eq(polarSubscription.userId, me.id), inArray(polarSubscription.state, ["active", "canceled", "past_due"])))
-      .limit(1);
-    if (live) {
+      .where(and(eq(polarSubscription.userId, me.id), inArray(polarSubscription.state, ["active", "canceled", "past_due"])));
+    const liveProducts = live.map((row) => polarProduct(polar, row.productId)?.product ?? "pro");
+    if (liveProducts.includes(product)) {
       return c.json({ error: "You already have a USD subscription. Manage it from Profile." }, 409);
     }
     try {
       const { url } = await createPolarCheckout(polar, {
         plan,
+        product,
         userId: me.id,
         email: me.email,
         name: me.name,
@@ -656,7 +677,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
           parseRevklikIds({ visitorId: body?.revklikVisitorId, sessionId: body?.revklikSessionId }),
         ),
       });
-      return c.json({ url });
+      return c.json({ url, ...(product === "keluarga" && liveProducts.includes("pro") ? { cancelPro: true } : {}) });
     } catch (error) {
       console.error(`polar checkout for ${me.id} failed:`, error);
       return c.json({ error: "Could not open the checkout. Try again in a moment." }, 502);
@@ -700,6 +721,7 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       subscription: row
         ? {
             plan: row.plan,
+            product: (polar && polarProduct(polar, row.productId)?.product) ?? "pro",
             state: row.state,
             currentPeriodEnd: row.currentPeriodEnd?.getTime() ?? null,
             cancelAtPeriodEnd: row.cancelAtPeriodEnd,
@@ -807,7 +829,8 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
       transaction,
     });
     if (!result.ok) {
-      if (result.error === "other-account") {
+      // A Family Sharing copy is someone else's purchase, like a subscription linked to another account.
+      if (result.error === "other-account" || result.error === "family-shared") {
         return c.json({ error: t(c)("billing.linkedOtherAccount") }, 403);
       }
       if (result.error === "no-user") return c.json({ error: t(c)("billing.userNotFound") }, 404);

@@ -1,4 +1,6 @@
 import { and, eq, gte, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 
 import type { Database } from "@joyorogo/db";
 import { user } from "@joyorogo/db/schema/auth";
@@ -193,4 +195,70 @@ export async function deleteUserHousehold(db: Database, userId: string): Promise
     .where(and(eq(householdMember.householdId, owned.id), eq(householdMember.role, "member")));
   await db.delete(household).where(eq(household.id, owned.id));
   return members.map((m) => m.userId);
+}
+
+/** What a paid order buys: null/"pro" = the payer's own Joyo Pro, "keluarga" = their household's period. */
+export type PaidProduct = "pro" | "keluarga";
+
+/** `payment.product` for a product: null for Pro (as every row before migration 0076). */
+export function ledgerProduct(product: PaidProduct | null | undefined): "keluarga" | null {
+  return product === "keluarga" ? "keluarga" : null;
+}
+
+/**
+ * The period a paid order extends or a refund takes back: the payer's own `user.founder_until` (Pro), or
+ * `household.paid_until` of the household the payer owns (Keluarga). Every rail (web rupiah, Polar, Google Play,
+ * App Store) credits through the same optimistic guard: the write lands only while the stored period still holds
+ * the value it was computed from.
+ */
+export type PeriodTarget = {
+  /** The stored period now. */
+  current: Date | null;
+  /** SQL that is true while the stored period still equals `previousMs`. */
+  holds(previousMs: number | null): SQL;
+  /** Statement for a `db.batch` that writes `until` when `when` is true. */
+  write(until: Date | null, when: SQL): BatchItem<"sqlite">;
+};
+
+/**
+ * Resolves the credit target of a `product` paid by `userId`; null when the account is gone. For Keluarga, `create`
+ * makes the payer's household on first payment (moving them out of another household, see `ensureOwnedHousehold`);
+ * without it (refunds) a payer who owns no household any more gets null.
+ */
+export async function periodTarget(
+  db: Database,
+  userId: string,
+  product: PaidProduct | null | undefined,
+  options: { create: boolean },
+): Promise<PeriodTarget | null> {
+  const [owner] = await db
+    .select({ founderUntil: user.founderUntil })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+  if (!owner) return null;
+  if (product !== "keluarga") {
+    return {
+      current: owner.founderUntil,
+      holds: (previousMs) => sql`(select ${user.founderUntil} from ${user} where ${user.id} = ${userId}) is ${previousMs}`,
+      write: (until, when) => db.update(user).set({ founderUntil: until }).where(and(eq(user.id, userId), when)),
+    };
+  }
+  let home: { id: string; paidUntil: Date | null } | undefined;
+  if (options.create) {
+    home = await ensureOwnedHousehold(db, userId);
+  } else {
+    [home] = await db
+      .select({ id: household.id, paidUntil: household.paidUntil })
+      .from(household)
+      .where(eq(household.ownerId, userId))
+      .limit(1);
+  }
+  if (!home) return null;
+  const id = home.id;
+  return {
+    current: home.paidUntil,
+    holds: (previousMs) => sql`(select ${household.paidUntil} from ${household} where ${household.id} = ${id}) is ${previousMs}`,
+    write: (until, when) => db.update(household).set({ paidUntil: until }).where(and(eq(household.id, id), when)),
+  };
 }

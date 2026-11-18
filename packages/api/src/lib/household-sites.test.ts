@@ -13,11 +13,12 @@ const RAW_READ = /user\.founderUntil|\bfounder_until\b/;
 
 /** File -> raw reads allowed (code lines, comments excluded), with the reason. */
 const ALLOWED: Record<string, { count: number; why: string }> = {
-  "packages/api/src/lib/apple-billing.ts": { count: 5, why: "App Store credit and revoke" },
-  "packages/api/src/lib/google-play-billing.ts": { count: 6, why: "Google Play credit and void" },
-  "packages/api/src/lib/polar-billing.ts": { count: 5, why: "Polar credit, refund and revoke" },
+  "packages/api/src/lib/polar-billing.ts": { count: 1, why: "the account-exists check before a credit" },
   "apps/server/src/billing.ts": { count: 2, why: "activateOrder: rupiah credit with its optimistic guard" },
-  "packages/api/src/lib/household.ts": { count: 3, why: "proUntil itself" },
+  "packages/api/src/lib/household.ts": {
+    count: 5,
+    why: "proUntil itself, and periodTarget: the credit/refund target every store rail writes through",
+  },
   "packages/api/src/routers/household.ts": { count: 1, why: "the invite screen shows the person's own Pro apart" },
   "packages/api/src/lib/joyo-pro.ts": { count: 1, why: "joyoProStatus reads own and household dates apart" },
   "apps/server/src/joyo-pro.ts": { count: 1, why: "same, after a JoyoArto purchase" },
