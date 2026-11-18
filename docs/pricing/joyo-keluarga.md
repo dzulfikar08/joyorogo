@@ -400,11 +400,11 @@ Play app in phase 1.
 
 | Where | State |
 | --- | --- |
-| App Store Connect, app 6823222101 | Subscriptions `com.joyodigitama.joyorogo.keluarga.monthly` (id 6836142472) and `.yearly` (id 6836142473) in group "JoyoRogo Pro" (22482392), Family Sharing off, available in Indonesia only, localizations id and en-US ("Joyo Keluarga Bulanan/Tahunan", "Pro untuk sampai 5 akun JoyoRogo"), review note set. Monthly price Rp58.000. **Yearly has no price yet:** Apple has no Rp398.000 point in Indonesia (nearest Rp395.000, Rp399.000, Rp400.000). Group level: new products sit below Pro; move them above `founder.*` before submitting (changes the level of live Pro products, so do it with the submission). Review screenshot still missing. |
+| App Store Connect, app 6823222101 | Subscriptions `com.joyodigitama.joyorogo.keluarga.monthly` (id 6836142472) and `.yearly` (id 6836142473) in group "JoyoRogo Pro" (22482392), Family Sharing off, available in Indonesia only, localizations id and en-US ("Joyo Keluarga Bulanan/Tahunan", "Pro untuk sampai 5 akun JoyoRogo"), review note set. Monthly price Rp58.000, yearly **Rp399.000** (Apple has no Rp398.000 point in Indonesia; owner chose Rp399.000 on 2026-11-18). Group level: new products sit below Pro; move them above `founder.*` before submitting (changes the level of live Pro products, so do it with the submission). Review screenshot still missing. |
 | Play Console, `com.joyodigitama.joyorogo` | Subscription `keluarga` ("Joyo Keluarga"), base plans `monthly` (Rp58.000, grace 7 days, hold 53) and `yearly` (grace 14, hold 46), Indonesia only, both **Draft** (not active). Play rounded the yearly Rp398.000 to **Rp399.000**. |
-| Polar | Not created: no USD price decided (the code defaults the display to 2x Pro, US$19.98 / US$119.98). |
+| Polar, org "Joyo Digitama Solusi" | "Joyo Keluarga (Monthly)" `e1460148-448c-4e8d-8f4f-f268629e4446` US$19.98 and "Joyo Keluarga (Yearly)" `7f9a77b5-bd98-4c51-8aa9-c82aa90456aa` US$119.98, USD only (no MYR/SGD prices, unlike Pro), metadata `product: keluarga`. Ids set in `apps/server/wrangler.jsonc`; checkout stays closed while `KELUARGA_ENABLED` is off. The org-wide webhook already covers them. |
 
-Open owner decision: the yearly store price (Rp399.000 on both stores while the web says Rp398.000, or Rp399.000 everywhere).
+Decided 2026-11-18: yearly Rp399.000 on both stores while the web stays at Rp398.000 (2x the Pro step); Polar US$19.98 / US$119.98.
 
 
 | Where | What |

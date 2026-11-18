@@ -146,6 +146,9 @@
     "POLAR_PRICE_YEARLY_MYR_SEN": "26499",
     "POLAR_PRICE_MONTHLY_SGD_CENTS": "1398",
     "POLAR_PRICE_YEARLY_SGD_CENTS": "8398",
+    // Joyo Keluarga card products (USD only, 2x Pro). Not sold while KELUARGA_ENABLED is off.
+    "POLAR_PRODUCT_KELUARGA_MONTHLY_ID": "e1460148-448c-4e8d-8f4f-f268629e4446",
+    "POLAR_PRODUCT_KELUARGA_YEARLY_ID": "7f9a77b5-bd98-4c51-8aa9-c82aa90456aa",
     "APPLE_BUNDLE_IDS": "com.joyodigitama.joyorogo,com.joyodigitama.joyofit",
     "APPLE_SANDBOX_EMAILS": "",
     "TESTFLIGHT_PURCHASE_EMAIL": "off",
