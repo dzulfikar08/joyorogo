@@ -145,7 +145,45 @@ export default {
   },
 };
 
+/**
+ * Workers static assets answer every request with the whole file (200, no Accept-Ranges). Safari and iOS play a
+ * <video> only from a server that answers byte ranges with 206, so the MP4s are sliced here.
+ */
+export async function serveVideo(request: Request, env: Env): Promise<Response> {
+  const asset = await env.ASSETS.fetch(new Request(request.url, { method: "GET" }));
+  if (!asset.ok || !asset.headers.get("Content-Type")?.startsWith("video/")) return asset;
+  const body = new Uint8Array(await asset.arrayBuffer());
+  const size = body.byteLength;
+  const headers = new Headers(asset.headers);
+  headers.set("Accept-Ranges", "bytes");
+  headers.delete("Content-Length");
+  const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get("Range")?.trim() ?? "");
+  if (!range || (range[1] === "" && range[2] === "")) {
+    headers.set("Content-Length", String(size));
+    return new Response(request.method === "HEAD" ? null : body, { status: 200, headers });
+  }
+  let start: number;
+  let end: number;
+  if (range[1] === "") {
+    start = Math.max(0, size - Number(range[2]));
+    end = size - 1;
+  } else {
+    start = Number(range[1]);
+    end = range[2] === "" ? size - 1 : Math.min(Number(range[2]), size - 1);
+  }
+  if (start >= size || start > end) {
+    headers.set("Content-Range", `bytes */${size}`);
+    return new Response(null, { status: 416, headers });
+  }
+  headers.set("Content-Range", `bytes ${start}-${end}/${size}`);
+  headers.set("Content-Length", String(end - start + 1));
+  return new Response(request.method === "HEAD" ? null : body.slice(start, end + 1), { status: 206, headers });
+}
+
 async function serve(request: Request, env: Env, ctx: ExecutionContext, url: URL): Promise<Response> {
+  if (url.pathname.endsWith(".mp4") && (request.method === "GET" || request.method === "HEAD")) {
+    return serveVideo(request, env);
+  }
   // A missing hashed chunk (old HTML after a deploy) must 404, not get the
   // SPA's index.html with the immutable asset cache header: browsers would
   // cache HTML as the script for a year and the app would never boot.
