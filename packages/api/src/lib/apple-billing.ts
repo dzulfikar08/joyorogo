@@ -8,6 +8,8 @@ import { appleAccountToken, appleProduct } from "./apple";
 import type { AppleNotification, AppleTransaction } from "./apple";
 import { notifyLedger } from "./revklik";
 import type { LedgerHook } from "./revklik";
+import { keluargaAmountIdr, ledgerProduct, periodTarget } from "./household";
+import type { PaidProduct } from "./household";
 import { appleSubscriptionGrant, planMonths } from "./tiers";
 import type { FounderPlan } from "./tiers";
 
@@ -32,7 +34,7 @@ export function appleLedgerId(transactionId: string): string {
 
 type CreditResult =
   | { outcome: "granted"; until: Date; amountIdr: number }
-  | { outcome: "already" | "refunded" | "expired" | "no-user" | "busy" };
+  | { outcome: "already" | "refunded" | "expired" | "no-user" | "busy" | "shared" };
 
 /**
  * Credits one App Store transaction to the user's Founder period, in one D1
@@ -48,14 +50,19 @@ async function creditTransaction(
     email: string;
     transaction: AppleTransaction;
     plan: FounderPlan;
+    product: PaidProduct;
   },
 ): Promise<CreditResult> {
   const { db, config } = deps;
-  const { transaction, plan } = input;
+  const { transaction, plan, product } = input;
+  // Family Sharing is off on every product; a transaction that reached someone through it anyway (a toggle switched
+  // on by mistake, which Apple says cannot be undone) must not mint Pro or household time.
+  if (transaction.inAppOwnershipType && transaction.inAppOwnershipType !== "PURCHASED") return { outcome: "shared" };
   const ledgerId = appleLedgerId(transaction.transactionId);
   // A free trial buys no months: Founder runs to the trial's expiresDate, and the first paid renewal is its own transaction.
   const months = transaction.freeTrial ? 0 : planMonths(plan);
-  const priceIdr = transaction.priceIdr ?? config.fallbackPriceIdr[plan];
+  const fallbackIdr = config.fallbackPriceIdr[plan];
+  const priceIdr = transaction.priceIdr ?? (product === "keluarga" ? keluargaAmountIdr(fallbackIdr) : fallbackIdr);
 
   for (let attempt = 0; attempt < CREDIT_ATTEMPTS; attempt++) {
     const [existing] = await db
@@ -68,15 +75,12 @@ async function creditTransaction(
       return { outcome: "refunded" };
     }
 
-    const [owner] = await db
-      .select({ founderUntil: user.founderUntil })
-      .from(user)
-      .where(eq(user.id, input.userId))
-      .limit(1);
-    if (!owner) return { outcome: "no-user" };
+    // Keluarga: the household the buyer owns (made on first payment), with the store's period end as for Pro.
+    const target = await periodTarget(db, input.userId, product, { create: Boolean(transaction.expiresDate) });
+    if (!target) return transaction.expiresDate ? { outcome: "no-user" } : { outcome: "expired" };
 
     const now = deps.now?.() ?? new Date();
-    const previousMs = owner.founderUntil?.getTime() ?? null;
+    const previousMs = target.current?.getTime() ?? null;
     const grant = transaction.expiresDate
       ? appleSubscriptionGrant(
           transaction.environment,
@@ -84,7 +88,7 @@ async function creditTransaction(
           config.sandboxAllowlist,
           priceIdr,
           transaction.expiresDate,
-          owner.founderUntil,
+          target.current,
           now,
         )
       : null;
@@ -94,28 +98,24 @@ async function creditTransaction(
     const [, flipped] = await db.batch([
       db
         .insert(payment)
-        .values({ orderId: ledgerId, userId: input.userId, amountIdr, months, isTest: transaction.environment === "Sandbox" ? 1 : 0 })
+        .values({
+          orderId: ledgerId,
+          userId: input.userId,
+          amountIdr,
+          months,
+          isTest: transaction.environment === "Sandbox" ? 1 : 0,
+          product: ledgerProduct(product),
+        })
         .onConflictDoNothing(),
       db
         .update(payment)
         .set({ status: "paid", paidAt: now, founderUntil: until })
-        .where(
-          and(
-            eq(payment.orderId, ledgerId),
-            eq(payment.status, "pending"),
-            sql`(select ${user.founderUntil} from ${user} where ${user.id} = ${input.userId}) is ${previousMs}`,
-          ),
-        )
+        .where(and(eq(payment.orderId, ledgerId), eq(payment.status, "pending"), target.holds(previousMs)))
         .returning({ orderId: payment.orderId }),
-      db
-        .update(user)
-        .set({ founderUntil: until })
-        .where(
-          and(
-            eq(user.id, input.userId),
-            sql`exists (select 1 from ${payment} where ${payment.orderId} = ${ledgerId} and ${payment.status} = 'paid' and ${payment.paidAt} = ${now.getTime()})`,
-          ),
-        ),
+      target.write(
+        until,
+        sql`exists (select 1 from ${payment} where ${payment.orderId} = ${ledgerId} and ${payment.status} = 'paid' and ${payment.paidAt} = ${now.getTime()})`,
+      ),
     ]);
     if (flipped.length === 1) {
       await notifyLedger(deps.onLedger, ledgerId, "paid");
@@ -126,13 +126,9 @@ async function creditTransaction(
   return { outcome: "busy" };
 }
 
-async function founderUntilOf(db: Database, userId: string): Promise<Date | null> {
-  const [row] = await db
-    .select({ founderUntil: user.founderUntil })
-    .from(user)
-    .where(eq(user.id, userId))
-    .limit(1);
-  return row?.founderUntil ?? null;
+/** The period a product's purchase extends: the buyer's own Pro, or the household they own. */
+async function periodOf(db: Database, userId: string, product: PaidProduct): Promise<Date | null> {
+  return (await periodTarget(db, userId, product, { create: false }))?.current ?? null;
 }
 
 async function setSubscriptionState(
@@ -184,7 +180,7 @@ async function linkSubscription(
 export type AppleRedeemResult =
   | { ok: true; status: "granted"; founderUntil: Date; amountIdr: number }
   | { ok: true; status: "already" | "inactive"; founderUntil: Date | null }
-  | { ok: false; error: "wrong-product" | "other-account" | "no-user" | "busy" };
+  | { ok: false; error: "wrong-product" | "other-account" | "no-user" | "busy" | "family-shared" };
 
 /**
  * Client-submitted verified transaction (new purchase, restore, or replay).
@@ -197,8 +193,15 @@ export async function redeemAppleTransaction(
   input: { userId: string; email: string; transaction: AppleTransaction },
 ): Promise<AppleRedeemResult> {
   const { transaction } = input;
-  const plan = appleProduct(transaction.productId)?.plan;
-  if (!plan) return { ok: false, error: "wrong-product" };
+  const sold = appleProduct(transaction.productId);
+  if (!sold) return { ok: false, error: "wrong-product" };
+  const { plan } = sold;
+  const product = sold.product ?? "pro";
+  // Only the Apple account that bought it may redeem it: Family Sharing is off, so a shared copy is refused before it
+  // links the subscription to this account (docs/pricing/joyo-keluarga.md 4.3).
+  if (transaction.inAppOwnershipType && transaction.inAppOwnershipType !== "PURCHASED") {
+    return { ok: false, error: "family-shared" };
+  }
 
   if (
     transaction.appAccountToken &&
@@ -209,9 +212,10 @@ export async function redeemAppleTransaction(
   const linkedUser = await linkSubscription(deps, input.userId, transaction);
   if (linkedUser !== input.userId) return { ok: false, error: "other-account" };
 
-  const credit = await creditTransaction(deps, { ...input, plan });
+  const credit = await creditTransaction(deps, { ...input, plan, product });
   if (credit.outcome === "no-user") return { ok: false, error: "no-user" };
   if (credit.outcome === "busy") return { ok: false, error: "busy" };
+  if (credit.outcome === "shared") return { ok: false, error: "family-shared" };
 
   if (credit.outcome !== "refunded") {
     await setSubscriptionState(
@@ -227,7 +231,7 @@ export async function redeemAppleTransaction(
   return {
     ok: true,
     status: credit.outcome === "already" ? "already" : "inactive",
-    founderUntil: await founderUntilOf(deps.db, input.userId),
+    founderUntil: await periodOf(deps.db, input.userId, product),
   };
 }
 
@@ -250,6 +254,7 @@ export async function revokeAppleTransaction(
         userId: payment.userId,
         amountIdr: payment.amountIdr,
         status: payment.status,
+        product: payment.product,
       })
       .from(payment)
       .where(eq(payment.orderId, ledgerId))
@@ -257,36 +262,26 @@ export async function revokeAppleTransaction(
     if (!row || row.status !== "paid" || row.amountIdr === 0) return "none";
 
     const now = deps.now?.() ?? new Date();
-    const owner = { founderUntil: await founderUntilOf(db, row.userId) };
-    const previousMs = owner.founderUntil?.getTime() ?? null;
-    let reduced: Date | null = owner.founderUntil;
-    if (owner.founderUntil && transaction.expiresDate) {
-      const current = owner.founderUntil.getTime() <= transaction.expiresDate.getTime();
-      if (current && owner.founderUntil.getTime() > now.getTime()) reduced = now;
+    // A Keluarga transaction gives back the household's period; a household deleted since has nothing left to cut.
+    const target = await periodTarget(db, row.userId, row.product === "keluarga" ? "keluarga" : "pro", { create: false });
+    const period = target?.current ?? null;
+    const previousMs = period?.getTime() ?? null;
+    let reduced: Date | null = period;
+    if (period && transaction.expiresDate) {
+      const current = period.getTime() <= transaction.expiresDate.getTime();
+      if (current && period.getTime() > now.getTime()) reduced = now;
     }
+    const failedNow = sql`exists (select 1 from ${payment} where ${payment.orderId} = ${ledgerId} and ${payment.status} = 'failed')`;
 
     const [flipped] = await db.batch([
       db
         .update(payment)
         .set({ status: "failed" })
         .where(
-          and(
-            eq(payment.orderId, ledgerId),
-            eq(payment.status, "paid"),
-            sql`(select ${user.founderUntil} from ${user} where ${user.id} = ${row.userId}) is ${previousMs}`,
-          ),
+          and(eq(payment.orderId, ledgerId), eq(payment.status, "paid"), ...(target ? [target.holds(previousMs)] : [])),
         )
         .returning({ orderId: payment.orderId }),
-      db
-        .update(user)
-        .set({ founderUntil: reduced })
-        .where(
-          and(
-            eq(user.id, row.userId),
-            sql`${user.founderUntil} is ${previousMs}`,
-            sql`exists (select 1 from ${payment} where ${payment.orderId} = ${ledgerId} and ${payment.status} = 'failed')`,
-          ),
-        ),
+      ...(target ? [target.write(reduced, and(target.holds(previousMs), failedNow)!)] : []),
     ]);
     if (flipped.length === 1) {
       await notifyLedger(deps.onLedger, ledgerId, "refund");
@@ -328,8 +323,9 @@ export async function handleAppleNotification(
   const { notificationType: type, subtype, transaction } = notification;
   if (type === "TEST") return { kind: "test", granted: null };
   if (!transaction) return ignored;
-  const plan = appleProduct(transaction.productId)?.plan;
-  if (!plan) return ignored;
+  const sold = appleProduct(transaction.productId);
+  if (!sold) return ignored;
+  const { plan } = sold;
 
   // Refunds hit the ledger by transaction id: no subscription link needed.
   if (REVOKE_TYPES[type] === true) {
@@ -374,11 +370,12 @@ export async function handleAppleNotification(
       email: owner.email,
       transaction,
       plan,
+      product: sold.product ?? "pro",
     });
     // A concurrent credit still settling: let Apple redeliver.
     if (credit.outcome === "busy") throw new Error("apple credit busy");
     if (credit.outcome === "no-user") return { kind: "unmapped", granted: null };
-    if (credit.outcome === "refunded") return ignored;
+    if (credit.outcome === "refunded" || credit.outcome === "shared") return ignored;
     await setSubscriptionState(
       deps,
       original,

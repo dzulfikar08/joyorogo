@@ -135,7 +135,7 @@ export function registerJoyoProRoutes(app: Hono, deps: Deps) {
       { userId: row.id, email: who.email.trim().toLowerCase(), transaction },
     );
     if (!result.ok) {
-      const status = result.error === "other-account" ? 403 : result.error === "busy" ? 409 : 400;
+      const status = result.error === "other-account" || result.error === "family-shared" ? 403 : result.error === "busy" ? 409 : 400;
       return c.json({ error: result.error }, status);
     }
     const [fresh] = await db.select({ id: user.id, tier: user.tier, founderUntil: user.founderUntil, householdUntil }).from(user).where(eq(user.id, row.id)).limit(1);
