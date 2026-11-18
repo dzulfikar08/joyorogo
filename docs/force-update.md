@@ -9,7 +9,7 @@ Written 2026-10-19. Many reports were about bugs we had already fixed; the repor
 
    ```json
    { "android": { "minBuild": 0, "latestBuild": 0, "storeUrl": "https://play.google.com/store/apps/details?id=com.joyodigitama.joyorogo" },
-     "ios":     { "minBuild": 0, "latestBuild": 0, "storeUrl": "https://apps.apple.com/id/app/id6823222101?ct=joyorogo-evergreen-update" },
+     "ios":     { "minBuild": 0, "latestBuild": 0, "storeUrl": "https://apps.apple.com/id/app/id6823222101?pt=128562062&ct=joyorogo-evergreen-update" },
      "message": "optional one-liner" }
    ```
 
