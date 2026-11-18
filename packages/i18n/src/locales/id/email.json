@@ -33,5 +33,18 @@
     "intro": "Halo {{name}}, masa Pro kamu sudah berakhir, jadi scan gizi harian kembali ke batas pengguna gratis.",
     "reactivate": "Aktifkan lagi Pro kapan saja untuk lanjut scan tanpa khawatir.",
     "cta": "Aktifkan Pro"
+  },
+  "keluargaEnding": {
+    "subject": "Joyo Keluarga kamu berakhir {{until}}",
+    "intro": "Halo {{name}}, Joyo Keluarga kamu aktif sampai {{until}} (WIB). Setelah itu Pro berhenti untuk semua orang di keluargamu sampai kamu bayar lagi.",
+    "renew": "Pembayaran lewat QRIS/transfer tidak diperpanjang otomatis. Perpanjang supaya keluargamu tetap Pro. Keanggotaan keluarga tetap tersimpan.",
+    "cta": "Perpanjang Joyo Keluarga"
+  },
+  "keluargaRemoved": {
+    "subject": "Kamu tidak lagi di Joyo Keluarga {{owner}}",
+    "intro": "Halo {{name}}, {{owner}} mengeluarkan kamu dari Joyo Keluarga. Pro dari keluarga itu sudah berhenti di akunmu.",
+    "data": "Catatan makan, berat badan dan tidurmu tetap ada di akunmu dan tetap pribadi.",
+    "pro": "Kalau masih mau Pro, kamu bisa ambil Joyo Pro sendiri kapan saja.",
+    "cta": "Lihat Joyo Pro"
   }
 }

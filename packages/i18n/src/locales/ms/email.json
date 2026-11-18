@@ -33,5 +33,18 @@
     "intro": "Hai {{name}}, tempoh Pro anda sudah berakhir, jadi imbasan pemakanan harian kembali kepada had pengguna percuma.",
     "reactivate": "Aktifkan semula Pro pada bila-bila masa untuk terus mengimbas tanpa bimbang.",
     "cta": "Aktifkan Pro"
+  },
+  "keluargaEnding": {
+    "subject": "Joyo Keluarga anda tamat {{until}}",
+    "intro": "Hai {{name}}, Joyo Keluarga anda aktif sehingga {{until}} (WIB). Selepas itu Pro berhenti untuk semua orang dalam keluarga anda sehingga anda membayar semula.",
+    "renew": "Bayaran QRIS/pindahan bank tidak diperbaharui secara automatik. Perbaharui supaya keluarga anda kekal Pro. Ahli keluarga kekal tersimpan.",
+    "cta": "Perbaharui Joyo Keluarga"
+  },
+  "keluargaRemoved": {
+    "subject": "Anda tidak lagi dalam Joyo Keluarga {{owner}}",
+    "intro": "Hai {{name}}, {{owner}} mengeluarkan anda daripada Joyo Keluarga. Pro daripada keluarga itu sudah berhenti pada akaun anda.",
+    "data": "Catatan makanan, berat badan dan tidur anda kekal dalam akaun anda dan kekal peribadi.",
+    "pro": "Jika masih mahu Pro, anda boleh mendapatkan Joyo Pro sendiri pada bila-bila masa.",
+    "cta": "Lihat Joyo Pro"
   }
 }

@@ -68,6 +68,8 @@ export const payment = sqliteTable(
  * `testflight_notice` (ref = userId) is the once-per-user mail after a TestFlight (Sandbox) purchase.
  * `lifecycle_activate_1` / `lifecycle_activate_2` (ref = userId) nudge accounts that never logged a meal;
  * `lifecycle_winback` (ref = "<userId>:<lastActiveMs>") is one mail per lapse (apps/server/src/lifecycle-email.ts).
+ * Joyo Keluarga (apps/server/src/email.ts `runKeluargaEmails`): `keluarga_ending` (ref = "<householdId>:<paidUntilMs>")
+ * is the owner's reminder once per period; `keluarga_removed` (ref = the household_event id) once per removal.
  */
 export type EmailLogKind =
   | "receipt"
@@ -79,6 +81,8 @@ export type EmailLogKind =
   | "lifecycle_activate_1"
   | "lifecycle_activate_2"
   | "lifecycle_winback"
+  | "keluarga_ending"
+  | "keluarga_removed"
   | `broadcast:${string}`
   | `broadcast_test:${string}`;
 

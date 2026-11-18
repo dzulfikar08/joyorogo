@@ -95,7 +95,7 @@ import type { Database } from "@joyorogo/db";
 import { appVersionConfig } from "./app-version";
 import type { AppVersionEnv } from "./app-version";
 import { requestLocale, requestRegion } from "./context";
-import { runFounderEmails, sendOrderEmails } from "./email";
+import { runFounderEmails, runKeluargaEmails, sendOrderEmails } from "./email";
 import { INTERNAL_EMAILS } from "./internal-accounts";
 
 export type BillingEnv = PaywallEnv & GooglePlayEnv & PolarEnv & AppVersionEnv & KeluargaEnv & {
@@ -1076,8 +1076,12 @@ export function registerBillingRoutes(app: Hono, deps: Deps) {
     for (const work of emails) await work;
   };
 
-  /** Cron: founder expiry + expired reminder emails (bounded, deduped). */
-  const runEmails = (): Promise<void> => runFounderEmails(env, deps.getDb());
+  /** Cron: founder expiry + expired reminder emails, and the Joyo Keluarga mails (bounded, deduped). */
+  const runEmails = async (): Promise<void> => {
+    const db = deps.getDb();
+    await runFounderEmails(env, db);
+    await runKeluargaEmails(env, db, keluargaOn);
+  };
 
   /** Admin: verify one order with its gateway now. */
   const reconcileById = async (orderId: string): Promise<string> => {

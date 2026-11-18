@@ -34,5 +34,18 @@
     "intro": "Hi {{name}}, your Pro plan has ended, so daily scans are back to the free limit.",
     "reactivate": "You can turn Pro back on anytime to keep scanning without worrying about the limit.",
     "cta": "Reactivate Pro"
+  },
+  "keluargaEnding": {
+    "subject": "Your Joyo Keluarga ends {{until}}",
+    "intro": "Hi {{name}}, your Joyo Keluarga runs until {{until}} (WIB). After that Pro stops for everyone in your household until you pay again.",
+    "renew": "QRIS/bank transfer payments do not renew automatically. Renew to keep your household on Pro. The members stay saved.",
+    "cta": "Renew Joyo Keluarga"
+  },
+  "keluargaRemoved": {
+    "subject": "You are no longer in {{owner}}'s Joyo Keluarga",
+    "intro": "Hi {{name}}, {{owner}} removed you from their Joyo Keluarga. Pro from that household has stopped on your account.",
+    "data": "Your food, weight and sleep logs stay on your account and stay private.",
+    "pro": "If you still want Pro, you can get Joyo Pro yourself at any time.",
+    "cta": "See Joyo Pro"
   }
 }

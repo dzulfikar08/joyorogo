@@ -1,6 +1,7 @@
 import type { SendEmail } from "@cloudflare/workers-types";
 import { and, eq, gt, isNotNull, lte, or, sql } from "drizzle-orm";
 import { HOUSEHOLD_MAX_SEATS, householdUntil } from "@joyorogo/api/lib/household";
+import { household, householdEvent } from "@joyorogo/db/schema/household";
 
 import { emailLog, googlePurchase, payment } from "@joyorogo/db/schema/billing";
 import { realPayment } from "./real-payment";
@@ -393,6 +394,112 @@ export async function runFounderEmails(env: EmailEnv, db: Database): Promise<voi
       : endingDraft(row.name, new Date(untilMs), locked, locale, await zoneOfUser(db, row.id));
     await sendEmail(env, { ...draft, to: row.email });
     if (++sends >= 50) break;
+  }
+}
+
+const KELUARGA_RENEW_URL = "https://app.joyorogo.com/pro?plan=keluarga&from=profile&next=/profil/langganan";
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export function keluargaEndingDraft(name: string, until: Date, locale: Locale, zone: DayZone): Draft {
+  const t = getT(locale, "email");
+  const date = formatWibDate(until, locale, zone);
+  const intro = (html: boolean) => t("keluargaEnding.intro", { name, until: bold(html)(date) });
+  const html = shell(
+    t("keluargaEnding.subject", { until: date }),
+    p(intro(true)) + p(t("keluargaEnding.renew")) + button(KELUARGA_RENEW_URL, t("keluargaEnding.cta")),
+    locale,
+  );
+  const text = [intro(false), t("keluargaEnding.renew"), KELUARGA_RENEW_URL].join("\n\n");
+  return { to: "", subject: t("keluargaEnding.subject", { until: date }), html, text };
+}
+
+export function keluargaRemovedDraft(name: string, owner: string, locale: Locale): Draft {
+  const t = getT(locale, "email");
+  const intro = t("keluargaRemoved.intro", { name, owner });
+  const html = shell(
+    t("keluargaRemoved.subject", { owner }),
+    p(intro) + p(t("keluargaRemoved.data")) + p(t("keluargaRemoved.pro")) + button(RENEW_URL, t("keluargaRemoved.cta")),
+    locale,
+  );
+  const text = [intro, t("keluargaRemoved.data"), t("keluargaRemoved.pro"), RENEW_URL].join("\n\n");
+  return { to: "", subject: t("keluargaRemoved.subject", { owner }), html, text };
+}
+
+/**
+ * Households whose paid period ends within 3 days and was last paid in rupiah (DOKU/Pakasir: one period, no
+ * auto-renew). A household last paid by Polar, Google Play or the App Store renews by itself, as `founderEmailsDue`
+ * skips Play subscribers.
+ */
+export function keluargaEndingDue(now: number) {
+  return and(
+    gt(household.paidUntil, new Date(now)),
+    lte(household.paidUntil, new Date(now + 3 * DAY_MS)),
+    sql`coalesce((select ${payment.orderId} from ${payment} where ${payment.userId} = ${household.ownerId} and ${payment.product} = 'keluarga' and ${payment.status} = 'paid' order by ${payment.paidAt} desc limit 1), '') not glob '[a-z]*:*'`,
+  );
+}
+
+/**
+ * Cron, Joyo Keluarga mails (docs/pricing/joyo-keluarga.md section 2 and 3), only while KELUARGA_ENABLED is on:
+ * - the owner's reminder 3 days before a rupiah-paid household period ends, once per period;
+ * - "Kamu tidak lagi di Joyo Keluarga <owner>" to a member the owner removed in the last 2 days, once per removal
+ *   (the household router lives in packages/api and cannot send mail; it writes the household_event this reads).
+ * Bounded at 50 sends per tick, like runFounderEmails.
+ */
+export async function runKeluargaEmails(env: EmailEnv, db: Database, enabled: boolean): Promise<void> {
+  if (!enabled || !env.EMAIL || !env.EMAIL_FROM) return;
+  const now = Date.now();
+  let sends = 0;
+
+  const ending = await db
+    .select({
+      householdId: household.id,
+      paidUntil: household.paidUntil,
+      ownerId: user.id,
+      name: user.name,
+      email: user.email,
+    })
+    .from(household)
+    .innerJoin(user, eq(user.id, household.ownerId))
+    .where(keluargaEndingDue(now))
+    .limit(50);
+  for (const row of ending) {
+    const untilMs = row.paidUntil?.getTime();
+    if (untilMs === undefined) continue;
+    if (!(await claimEmail(db, row.ownerId, "keluarga_ending", `${row.householdId}:${untilMs}`))) continue;
+    const locale = await userLocale(db, row.ownerId);
+    const draft = keluargaEndingDraft(row.name, new Date(untilMs), locale, await zoneOfUser(db, row.ownerId));
+    await sendEmail(env, { ...draft, to: row.email });
+    if (++sends >= 50) return;
+  }
+
+  const removed = await db
+    .select({
+      eventId: householdEvent.id,
+      userId: householdEvent.userId,
+      ownerName: sql<string>`(select ${user.name} from ${user} where ${user.id} = ${household.ownerId})`,
+    })
+    .from(householdEvent)
+    .innerJoin(household, eq(household.id, householdEvent.householdId))
+    .where(
+      and(
+        eq(householdEvent.kind, "removed"),
+        isNotNull(householdEvent.userId),
+        gt(householdEvent.at, new Date(now - 2 * DAY_MS)),
+      ),
+    )
+    .limit(50);
+  for (const row of removed) {
+    if (!row.userId) continue;
+    const [member] = await db
+      .select({ name: user.name, email: user.email })
+      .from(user)
+      .where(eq(user.id, row.userId))
+      .limit(1);
+    if (!member) continue;
+    if (!(await claimEmail(db, row.userId, "keluarga_removed", row.eventId))) continue;
+    const draft = keluargaRemovedDraft(member.name, row.ownerName.split(" ")[0] || row.ownerName, await userLocale(db, row.userId));
+    await sendEmail(env, { ...draft, to: member.email });
+    if (++sends >= 50) return;
   }
 }
 
