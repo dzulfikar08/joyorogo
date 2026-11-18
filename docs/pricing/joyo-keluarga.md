@@ -396,6 +396,17 @@ Play app in phase 1.
 
 ### 4.5 Consoles: what the owner creates
 
+**Created 2026-11-18 (drafts, nothing on sale):**
+
+| Where | State |
+| --- | --- |
+| App Store Connect, app 6823222101 | Subscriptions `com.joyodigitama.joyorogo.keluarga.monthly` (id 6836142472) and `.yearly` (id 6836142473) in group "JoyoRogo Pro" (22482392), Family Sharing off, available in Indonesia only, localizations id and en-US ("Joyo Keluarga Bulanan/Tahunan", "Pro untuk sampai 5 akun JoyoRogo"), review note set. Monthly price Rp58.000. **Yearly has no price yet:** Apple has no Rp398.000 point in Indonesia (nearest Rp395.000, Rp399.000, Rp400.000). Group level: new products sit below Pro; move them above `founder.*` before submitting (changes the level of live Pro products, so do it with the submission). Review screenshot still missing. |
+| Play Console, `com.joyodigitama.joyorogo` | Subscription `keluarga` ("Joyo Keluarga"), base plans `monthly` (Rp58.000, grace 7 days, hold 53) and `yearly` (grace 14, hold 46), Indonesia only, both **Draft** (not active). Play rounded the yearly Rp398.000 to **Rp399.000**. |
+| Polar | Not created: no USD price decided (the code defaults the display to 2x Pro, US$19.98 / US$119.98). |
+
+Open owner decision: the yearly store price (Rp399.000 on both stores while the web says Rp398.000, or Rp399.000 everywhere).
+
+
 | Where | What |
 | --- | --- |
 | App Store Connect (JoyoRogo) | 2 auto-renewable subscriptions in group "JoyoRogo Pro", Family Sharing off, prices, review screenshot, review note explaining seats |
