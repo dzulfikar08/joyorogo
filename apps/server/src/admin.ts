@@ -1,5 +1,5 @@
 import { and, desc, eq, gt, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
-import { proUntil } from "@joyorogo/api/lib/household";
+import { householdOf, proUntil } from "@joyorogo/api/lib/household";
 import { alias } from "drizzle-orm/sqlite-core";
 import type { JoyoAuth } from "@joyorogo/auth";
 import type { Context, Hono } from "hono";
@@ -377,7 +377,7 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
     const scans = scanSql(now);
     const db = deps.getDb();
     const firstDay = shiftDate(scans.today, 1 - THIRTY_DAYS);
-    const [[row], counts] = await Promise.all([
+    const [[row], counts, home] = await Promise.all([
       db.select(userColumns(scans, now)).from(user).where(eq(user.id, id)).limit(1),
       db
         .select({ day: wibDay(aiUsage.createdAt), scans: sql<number>`count(*)` })
@@ -390,6 +390,7 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
           ),
         )
         .groupBy(wibDay(aiUsage.createdAt)),
+      householdOf(db, id),
     ]);
     if (!row) return c.json({ error: "user not found" }, 404);
     const byDay = new Map(counts.map((r) => [r.day, r.scans]));
@@ -397,7 +398,16 @@ export function registerAdminRoutes(app: Hono, deps: Deps) {
       const day = shiftDate(firstDay, i);
       return { day, scans: byDay.get(day) ?? 0 };
     });
-    return c.json({ user: row, perDay });
+    // Joyo Keluarga role, for support: owner or member, whose household, and its paid period. No member list here.
+    const household = home
+      ? {
+          role: home.role,
+          ownerId: home.ownerId,
+          ownerName: home.ownerName,
+          paidUntil: home.paidUntil?.getTime() ?? null,
+        }
+      : null;
+    return c.json({ user: row, perDay, household });
   });
 
   // Paged per-user lists, newest first (id as the tiebreak): page, pageSize.

@@ -204,7 +204,9 @@ describe("user detail lists", () => {
   test("detail no longer embeds the long lists", async () => {
     const res = await call("/api/admin/users/u03");
     expect(res.status).toBe(200);
-    expect(Object.keys(res.body).sort()).toEqual(["perDay", "user"]);
+    expect(Object.keys(res.body).sort()).toEqual(["household", "perDay", "user"]);
+    // Joyo Keluarga role only (null here); never a member list.
+    expect(res.body.household).toBeNull();
     expect((await call("/api/admin/users/missing")).status).toBe(404);
   });
 

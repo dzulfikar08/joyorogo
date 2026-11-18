@@ -411,6 +411,14 @@ export type UserOrder = Omit<AdminOrder, "name" | "email">;
 export interface UserDetail {
   user: AdminUser;
   perDay: { day: string; scans: number }[];
+  /** Joyo Keluarga: the household this account is in; null/missing = none (or a server before Keluarga). */
+  household?: {
+    role: "owner" | "member";
+    ownerId: string;
+    ownerName: string;
+    /** Epoch ms of the household's paid period end; null = never paid. */
+    paidUntil: number | null;
+  } | null;
 }
 
 export const get = <T>(path: string) => api<T>(path);
