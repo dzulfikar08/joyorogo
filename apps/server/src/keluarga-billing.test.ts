@@ -129,7 +129,7 @@ describe("Joyo Keluarga web rupiah", () => {
     await buyers(10); // step 2: Rp29.000 / Rp199.000
     const c = await config(on);
     expect(c.founderPriceIdr).toBe(29_000);
-    expect(c.keluarga).toEqual({ monthlyIdr: 58_000, yearlyIdr: 398_000, seats: 5 });
+    expect(c.keluarga).toEqual({ monthlyIdr: 58_000, yearlyIdr: 398_000, seats: 5, usd: null });
   });
 
   test("checkout is 404 while the flag is off", async () => {
