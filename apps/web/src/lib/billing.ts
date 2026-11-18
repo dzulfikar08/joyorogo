@@ -81,7 +81,11 @@ export function useFounderCheckout(
  * Start a Polar (USD, card, auto-renewing) checkout. Same sign-in handling
  * as useFounderCheckout. Messages stay English: the USD flow is English-only.
  */
-export function useUsdCheckout(plan: CheckoutPlan = "monthly", source?: CheckoutSource) {
+export function useUsdCheckout(
+  plan: CheckoutPlan = "monthly",
+  source?: CheckoutSource,
+  product: CheckoutProduct = "pro",
+) {
   const navigate = useNavigate();
   const location = useLocation();
   return useMutation({
@@ -90,7 +94,7 @@ export function useUsdCheckout(plan: CheckoutPlan = "monthly", source?: Checkout
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...localeHeader() },
-        body: JSON.stringify({ plan, source, ...revklikIds() }),
+        body: JSON.stringify({ plan, source, ...(product === "keluarga" ? { product } : {}), ...revklikIds() }),
       });
       if (res.status === 401) {
         navigate({ to: "/login", search: { redirect: location.href } });
@@ -100,7 +104,7 @@ export function useUsdCheckout(plan: CheckoutPlan = "monthly", source?: Checkout
       if (!res.ok || !body?.url) {
         throw new Error(body?.error ?? i18n.t("billing:usd.error.checkoutFailed", { lng: "en" }));
       }
-      trackEvent("checkout_start");
+      trackEvent("checkout_start", product === "keluarga" ? { plan: "keluarga" } : undefined);
       window.location.assign(body.url);
       return body.url;
     },
@@ -109,6 +113,8 @@ export function useUsdCheckout(plan: CheckoutPlan = "monthly", source?: Checkout
 
 export type PolarSubscription = {
   plan: CheckoutPlan;
+  /** Which product it sells; missing on servers before Joyo Keluarga = Pro. */
+  product?: CheckoutProduct;
   /** "active" | "canceled" (still Pro until period end) | "past_due" | "revoked" */
   state: string;
   /** Epoch ms. */

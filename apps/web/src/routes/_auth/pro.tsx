@@ -13,9 +13,9 @@ import { FounderPromo } from "@/components/founder-promo";
 import { Page, Segmented } from "@/components/kit/surface";
 import { ProBenefitGroups } from "@/components/pro-benefits";
 import { ScreenError } from "@/components/screen-state";
-import { fmtRupiah, fmtUsd, useAppConfig } from "@/lib/app-config";
+import { fmtRupiah, fmtUsd, useAppConfig, usdFor } from "@/lib/app-config";
 import { useSession } from "@/lib/auth-client";
-import { fmtFounderDate, validatePaywallSearch } from "@/lib/billing";
+import { fetchPolarSubscription, fmtFounderDate, validatePaywallSearch } from "@/lib/billing";
 import type { CheckoutPlan, CheckoutProduct } from "@/lib/billing";
 import { JOYOARTO_RETURN_URL, checkoutSource } from "@/lib/joyoarto";
 import { useEnglishBilling } from "@/lib/usd-copy";
@@ -124,12 +124,20 @@ function FounderPage() {
   const config = useAppConfig();
   const profile = useQuery(profileOptions);
   const [plan, setPlan] = useState<CheckoutPlan>("yearly");
-  // Joyo Keluarga is offered next to Pro only while the server sells it, and in rupiah only (no USD product yet).
-  const keluargaOffer = config.data?.usd?.preferred ? null : (config.data?.keluarga ?? null);
+  // Joyo Keluarga is offered next to Pro only while the server sells it; to card (USD) visitors only once its Polar
+  // products exist.
+  const keluargaOffer =
+    config.data?.usd?.preferred && !config.data.keluarga?.usd ? null : (config.data?.keluarga ?? null);
   const [product, setProduct] = useState<CheckoutProduct>(planParam === "keluarga" ? "keluarga" : "pro");
   const keluarga = product === "keluarga" && keluargaOffer !== null ? keluargaOffer : null;
   const household = useQuery({ ...orpc.household.get.queryOptions(), enabled: keluargaOffer !== null });
   const checkout = useCheckoutPicker(plan, source, keluarga ? "keluarga" : "pro");
+  // A live Polar Pro subscription keeps renewing next to Keluarga: say so before the card checkout.
+  const polarSub = useQuery({
+    queryKey: ["billing", "polar-subscription"],
+    queryFn: fetchPolarSubscription,
+    enabled: keluarga !== null && Boolean(config.data?.keluarga?.usd),
+  });
 
   if (config.isError) {
     return (
@@ -154,7 +162,12 @@ function FounderPage() {
     (config.data.promo?.nextPriceIdr ?? config.data.founderPriceIdr) * (keluarga ? 2 : 1);
   const yearlySaving = standardMonthly * 12 - priceYearly;
   const yearly = plan === "yearly";
-  const usd = !keluarga && config.data.usd?.preferred ? config.data.usd : null;
+  const usdOption = usdFor(config.data, keluarga ? "keluarga" : "pro");
+  const usd = usdOption?.preferred ? usdOption : null;
+  const polarProRenews =
+    keluarga !== null &&
+    (polarSub.data?.product ?? "pro") === "pro" &&
+    (polarSub.data?.state === "active" || polarSub.data?.state === "past_due");
   const home = household.data?.household ?? null;
   // In someone else's household: leave it first (the server answers 409 too).
   const memberElsewhere = keluarga !== null && home?.role === "member";
@@ -291,6 +304,11 @@ function FounderPage() {
         {keluarga && memberElsewhere && home && (
           <p role="alert" className="mt-4 rounded-2xl bg-muted px-3 py-2 text-sm leading-snug">
             {tk("paywall.memberElsewhere", { owner: home.ownerName })}
+          </p>
+        )}
+        {polarProRenews && !memberElsewhere && (
+          <p className="mt-2 rounded-2xl bg-muted px-4 py-3 text-sm leading-snug text-muted-foreground">
+            {tk("invite.ownPro.polar")}
           </p>
         )}
         {keluarga && !memberElsewhere && ownUntil && new Date(ownUntil).getTime() > Date.now() && (

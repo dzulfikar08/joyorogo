@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { fmtUsd, useAppConfig } from "@/lib/app-config";
+import { fmtUsd, useAppConfig, usdFor } from "@/lib/app-config";
 import type { PaymentMethod } from "@/lib/app-config";
 import { useFounderCheckout, useUsdCheckout } from "@/lib/billing";
 import type { CheckoutPlan, CheckoutProduct } from "@/lib/billing";
@@ -33,12 +33,12 @@ export function useCheckoutPicker(
   const { t } = useTranslation("billing");
   const config = useAppConfig();
   const checkout = useFounderCheckout(plan, source, product);
-  const usdCheckout = useUsdCheckout(plan, source);
+  const usdCheckout = useUsdCheckout(plan, source, product);
   const [open, setOpen] = useState(false);
   const onErrorRef = useRef<((error: Error) => void) | undefined>(undefined);
   const methods = config.data?.paymentMethods ?? [];
-  // Joyo Keluarga is sold in rupiah only for now (no Polar product yet).
-  const usd = product === "keluarga" ? null : (config.data?.usd ?? null);
+  // Joyo Keluarga is offered by card only once its own Polar products exist (/api/config.keluarga.usd).
+  const usd = usdFor(config.data, product);
   const options: Array<PaymentMethod | "usd"> = usd
     ? usd.preferred
       ? ["usd", ...methods]

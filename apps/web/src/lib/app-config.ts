@@ -43,13 +43,29 @@ export type AppConfig = {
   promo: { slots: number; taken: number; nextPriceIdr?: number | null } | null;
   anonScans: number;
   /**
-   * Joyo Keluarga (one payer, Pro for up to `seats` people): 2x the current Pro step, web rupiah only. null/missing =
-   * the plan is off on this server: every Keluarga surface stays hidden.
+   * Joyo Keluarga (one payer, Pro for up to `seats` people): 2x the current Pro step in rupiah, plus card (Polar)
+   * prices once its Polar products exist. null/missing = the plan is off on this server: every Keluarga surface stays
+   * hidden.
    */
   keluarga?: KeluargaConfig | null;
 };
 
-export type KeluargaConfig = { monthlyIdr: number; yearlyIdr: number; seats: number };
+export type KeluargaConfig = {
+  monthlyIdr: number;
+  yearlyIdr: number;
+  seats: number;
+  /** Polar (USD, card) prices of the Keluarga products; null/missing = Keluarga is not sold by card. */
+  usd?: { monthlyCents: number; yearlyCents: number } | null;
+};
+
+/** The USD option for a product: Pro's Polar config, or Keluarga's own card prices with the visitor's preference. */
+export function usdFor(config: AppConfig | undefined, product: "pro" | "keluarga"): UsdConfig | null {
+  const usd = config?.usd ?? null;
+  if (product !== "keluarga") return usd;
+  const prices = config?.keluarga?.usd ?? null;
+  if (!usd || !prices) return null;
+  return { ...prices, preferred: usd.preferred, country: usd.country };
+}
 
 /** Buyer-facing payment choice; the server maps each to its gateway. */
 export type PaymentMethod = "qris" | "transfer";
