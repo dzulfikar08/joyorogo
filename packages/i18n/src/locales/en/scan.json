@@ -80,6 +80,17 @@
     "saved_one": "{{count}} item logged.",
     "saved_other": "{{count}} items logged."
   },
+  "describe": {
+    "open": "Add a note",
+    "set": "“{{text}}”",
+    "editLabel": "Edit note: {{text}}",
+    "clear": "Remove note",
+    "title": "Note about the photo",
+    "body": "Food that's hard to tell apart? Write it first and the scan will use it.",
+    "placeholder": "E.g. siomay not batagor, half rice, tea without sugar",
+    "done": "Done",
+    "sent": "Note: “{{text}}”"
+  },
   "analyzing": {
     "title": "Analyzing photo",
     "contextMic": "Hold & tell us the food",
@@ -88,6 +99,9 @@
     "contextApplying": "Applying your context…",
     "contextApplied": "Your context was applied.",
     "contextRemove": "Remove context",
+    "contextTypePlaceholder": "Or type: half rice, no sugar…",
+    "contextTypeLabel": "Type a note about the food",
+    "contextTypeSend": "Send note",
     "subtitle": "Hang on, usually 8 to 15 seconds.",
     "photoAlt": "Food photo being analyzed",
     "cancel": "Cancel",

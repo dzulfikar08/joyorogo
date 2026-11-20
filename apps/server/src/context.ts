@@ -1,4 +1,5 @@
 import type { ApiEnv } from "@joyorogo/api/context";
+import { withGateway } from "@joyorogo/api/lib/ai-gateway";
 import type { Context as ApiContext } from "@joyorogo/api/context";
 import { DEFAULT_LOCALE, LOCALE_HEADER, matchLocale, resolveRegion } from "@joyorogo/i18n";
 import type { Region } from "@joyorogo/i18n";
@@ -37,11 +38,25 @@ export async function createContext({ context }: CreateContextOptions): Promise<
   ).api.getSession({
     headers: context.req.raw.headers,
   });
+  const baseEnv = workerEnv as unknown as ApiEnv;
+  // Every model call of this request through AI Gateway, tagged with the user and the procedure (AI_GATEWAY_ID unset = as before).
+  const routedAi =
+    baseEnv.AI && baseEnv.AI_GATEWAY_ID
+      ? withGateway(baseEnv.AI, baseEnv.AI_GATEWAY_ID, {
+          app: "joyorogo",
+          route: new URL(context.req.url).pathname.slice(0, 80),
+          ...(session?.user.id ? { user: session.user.id } : {}),
+        })
+      : null;
+  // Only AI is swapped; every other binding is read from the worker's env as before.
+  const env: ApiEnv = routedAi
+    ? new Proxy(baseEnv, { get: (target, prop) => (prop === "AI" ? routedAi : Reflect.get(target, prop)) })
+    : baseEnv;
   return {
     db: getDb(),
     auth: null,
     session,
-    env: workerEnv as unknown as ApiEnv,
+    env,
     locale: requestLocale(context),
     region: requestRegion(context),
     clientIp: context.req.header("CF-Connecting-IP") ?? null,
