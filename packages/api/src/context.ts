@@ -14,6 +14,8 @@ export type AiBinding = {
 /** Worker bindings the API layer may read. All optional: features degrade loudly. */
 export type ApiEnv = PaywallEnv & ShadowEnv & {
   AI?: AiBinding;
+  /** Cloudflare AI Gateway every model call of a request goes through (lib/ai-gateway.ts); unset = straight to Workers AI. */
+  AI_GATEWAY_ID?: string;
   AI_VISION_MODEL?: string;
   /** Text model for ai.correctScan; unset = the vision model (Gemma 4, thinking off). */
   AI_CORRECT_MODEL?: string;

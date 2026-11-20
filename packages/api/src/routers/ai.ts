@@ -200,6 +200,8 @@ const analyzeFoodInput = z.object({
   // Clients that crop per item from the boxes (and save via
   // food.addScan) skip the legacy whole-plate sticker.
   crops: z.boolean().optional(),
+  // "Tulis keterangan": what the user wrote about the photo before scanning it ("ini siomay, bukan batagor").
+  hint: z.string().trim().min(1).max(200).optional(),
   // Phase timings (ms) the client measured, stored in ai_usage.usage_json
   // so prod data shows where the felt latency goes. Prev* describe the
   // previous scan of this session, which finished after its own request.
@@ -527,6 +529,7 @@ async function runAnalyzeFood(
           userContext: (await userNote) ?? undefined,
           dishware: (plate ? baseReference?.withMeasured(plate) : baseReference)?.instruction,
           memory: (await memory)?.block,
+          hint: input.hint,
           onEvent: emit,
         }),
     });
@@ -556,7 +559,8 @@ async function runAnalyzeFood(
   // reading, what became of it and the model's own grams for the rows it changed.
   const scaleCall = await scalePending;
   const scale = scaleCall ? applyScaleReading(analysis.items, scaleCall.reading) : null;
-  const items: AnalyzeFoodResult["items"] = scale?.items ?? analysis.items;
+  // A count the user wrote before the scan ("telurnya 3") is put on its row whatever the model made of it.
+  const items: AnalyzeFoodResult["items"] = applyHintCounts(scale?.items ?? analysis.items, input.hint);
   // "Seperti biasanya": what the user sees (and what the session ledger keeps as the answer they looked at) carries
   // their own kcal per gram for a food they logged before; the owner dataset below keeps the model's own numbers.
   const usualMap = await usualDensities;
@@ -602,6 +606,7 @@ async function runAnalyzeFood(
     ...(analysis.repaired ? { repaired: true } : {}),
     serverTiming,
     ...(input.clientTiming ? { clientTiming: input.clientTiming } : {}),
+    ...(input.hint ? { hint: input.hint } : {}),
     // Implicit outcome labels (lib/scan-outcome.ts) build on these two.
     ...(storedPhotoId ? { photoId: storedPhotoId, aiItems: compactItems(shown) } : {}),
     ...(scaleCall ? { scale: scaleLedger(scaleCall, scale?.outcome ?? null) } : {}),
@@ -628,7 +633,8 @@ async function runAnalyzeFood(
   // Shadow test (lib/shadow-scan.ts): after the response, a sample of scans is
   // answered again with the shadow variant and stored in this scan's session.
   // No ledger row, no quota, no effect on the result above.
-  if (storedPhotoId && sampledForShadow(context.env)) {
+  // A described scan is left out: the shadow prompt never sees the user's words, so the two answers would not compare.
+  if (storedPhotoId && !input.hint && sampledForShadow(context.env)) {
     context.waitUntil(
       runShadowScan({
         db: context.db,
@@ -728,7 +734,10 @@ async function runAnalyzeFood(
   // typical portion alone.
   const usual = await priors;
   return {
-    items: withAskGrams(shown.map((item) => (item.scaleRead ? item : withUsualPortion(item, usual))), context.region),
+    // A described scan already carries the user's words about the plate: no "how many grams?" on top.
+    items: ((rows) => (input.hint ? rows : withAskGrams(rows, context.region)))(
+      shown.map((item) => (item.scaleRead ? item : withUsualPortion(item, usual))),
+    ),
     tooMany: analysis.tooMany,
     scanId,
     plateScanId,
@@ -1138,6 +1147,9 @@ export const aiRouter = {
         // Set when the text comes from a tap on an alternate-name chip ("Mungkin juga"): the name it
         // replaced and the alternate. Only logged (ledger rows and the scan session), never read as an instruction.
         altTap: z.object({ from: z.string().trim().min(1).max(120), to: z.string().trim().min(1).max(120) }).optional(),
+        // Set when the words were given while the photo was still being analyzed (spoken or typed on the analyzing
+        // screen) and applied once the rows arrived. Only logged, so mid-scan context can be counted.
+        queued: z.literal(true).optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -1214,6 +1226,7 @@ export const aiRouter = {
               ...(input.photoId ? { photoId: input.photoId } : {}),
               outcome: failure ? failure.reason : "ok",
               ...(input.altTap ? { altTap: input.altTap } : {}),
+              ...(input.queued ? { queued: true } : {}),
               itemCount: input.items.length,
               ...(run ? { usage: run.usage } : {}),
               ...(via === "voice" ? { transcribe: { model: TRANSCRIBE_MODEL, ...transcribeUsage } } : {}),

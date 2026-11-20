@@ -15,7 +15,7 @@ import { foodKind } from "./food-kind";
 import { applyCorrection } from "./scan-correct";
 import type { CorrectionItemInput } from "./scan-correct";
 import { calibrateItems } from "./tkpi";
-import { analyzeFoodPhoto, parseAnswer, previewItem, retryInstruction, visionPrompt } from "./vision";
+import { analyzeFoodPhoto, hintInstruction, parseAnswer, previewItem, retryInstruction, visionPrompt } from "./vision";
 import type { AiRunner } from "./vision";
 
 // Drinks (owner report 2026-10-18): neither a typed "coke zero" nor a photo of a
@@ -156,6 +156,24 @@ describe("a branded cup whose contents are hidden", () => {
   test("a retry hint naming the contents overrides the cup guess", () => {
     expect(retryInstruction("coke zero")).toContain("Coke Zero");
     expect(retryInstruction("coke zero")).toContain("tanpa field");
+  });
+
+  test("a scan described before it ran sends the user's words, and a retry's own hint replaces them", async () => {
+    const prompts: string[] = [];
+    const capture: AiRunner = {
+      run: (_model, input) => {
+        prompts.push(JSON.stringify(input));
+        return Promise.resolve({
+          choices: [{ message: { content: JSON.stringify({ items: [{ name: "Siomay", kcal: 300, grams: 200 }] }) }, finish_reason: "stop" }],
+        });
+      },
+    };
+    await analyzeFoodPhoto(capture, { ...OPTS, hint: "ini siomay, bukan batagor" });
+    expect(prompts[0]).toContain("ini siomay, bukan batagor");
+    expect(prompts[0]).not.toContain("dinilai tidak akurat");
+    await analyzeFoodPhoto(capture, { ...OPTS, hint: "ini siomay", retry: { hint: "telurnya 3" } });
+    expect(prompts[1]).toContain("telurnya 3");
+    expect(prompts[1]).not.toContain(hintInstruction("ini siomay").slice(0, 40));
   });
 
   test("a genuine not-food answer is still not food", async () => {

@@ -326,6 +326,14 @@ export function retryInstruction(hint?: string): string {
     : base;
 }
 
+/**
+ * Prompt note for a first scan the user described before it ran ("Tulis keterangan" on the camera screen): their
+ * words outrank the photo for names, counts and weights, as in a hinted retry, without the "you were wrong" preamble.
+ */
+export function hintInstruction(hint: string): string {
+  return `Catatan pengguna tentang foto ini: "${hint}". Nama, jumlah, berat, dan isi yang disebut pengguna dipakai apa adanya dan menang atas foto (mis. gelas yang kata pengguna Coke Zero adalah Coke Zero, tanpa field "cup"). Makanan lain yang terlihat di foto tetap ditulis seperti biasa.`;
+}
+
 type VisionRunOptions = {
   imageBase64: string;
   mimeType: string;
@@ -809,6 +817,8 @@ export async function analyzeFoodPhoto(
     model?: string;
     /** Present when this run re-checks a photo the user judged inaccurate. */
     retry?: { hint?: string };
+    /** The user's own description of a first scan (hintInstruction); ignored on a retry, which carries its own hint. */
+    hint?: string;
     /** Language of the item names and portions in the result; default Indonesian. */
     locale?: Locale;
     /** The user's market: dish names, serving defaults and the nutrient table (default Indonesia). */
@@ -858,7 +868,9 @@ export async function analyzeFoodPhoto(
         imageBase64: opts.imageBase64,
         mimeType: opts.mimeType,
         instruction:
-          [opts.retry ? retryInstruction(opts.retry.hint) : undefined, opts.userContext, opts.dishware, opts.memory]
+          [
+            opts.retry ? retryInstruction(opts.retry.hint) : opts.hint ? hintInstruction(opts.hint) : undefined,
+            opts.userContext,, opts.dishware, opts.memory]
             .filter(Boolean)
             .join("\n\n") || undefined,
         locale: opts.locale,
