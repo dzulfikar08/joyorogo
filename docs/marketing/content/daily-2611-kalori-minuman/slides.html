@@ -1,0 +1,49 @@
+<!doctype html>
+<!-- Numbers: tip kalori-cair-es-teh-kopi (packages/i18n/src/locales/id/tips.json: es teh manis 60-100, kopi susu gula aren 200-300 kkal per gelas, "kisaran takaran umum").
+     Gula: TKPI 2019 MP007 Gula putih 394 kkal/100 g x contoh 12 g per sdm = 47 kkal.
+     Slide 2: _shots/rogo-cup-ask.webp, web app, demo account "Rina"; the scan answer is mocked in shoot-content.mjs (Coca-Cola 148 kkal is a fixed answer, not a measurement). -->
+<html lang="id"><head><meta charset="utf-8"><link rel="stylesheet" href="@content/_base.css">
+<style>
+  .rowx { display:flex; align-items:center; gap:24px; padding:22px 0; border-top:2px solid var(--line); }
+  .rowx:last-child { border-bottom:2px solid var(--line); }
+  .rowx .nm { width:330px; flex:none; font-size:36px; font-weight:700; line-height:1.15; }
+  .rowx .nm small { display:block; font-size:27px; font-weight:500; color:var(--muted); margin-top:4px; }
+  .rowx .track { flex:1; height:64px; position:relative; }
+  .rowx .fill { position:absolute; left:0; top:0; bottom:0; border-radius:18px; background:var(--primary); }
+  .rowx .fill.lite { background:color-mix(in oklch, var(--primary) 30%, white); }
+  .rowx .fill.hot { background:var(--bakar); }
+  .rowx .val { width:240px; white-space:nowrap; flex:none; text-align:right; font-size:44px; font-weight:800; letter-spacing:-0.02em; }
+</style>
+</head><body>
+
+<section class="slide rogo" style="padding-top:88px">
+  <div class="k">Kalori minuman</div>
+  <div class="gap-s"></div>
+  <h1 class="h s" style="font-size:80px">Es teh manis bisa 100 kkal. Kopi susu gula aren bisa 300.</h1>
+  <p class="lead" style="margin-top:20px;font-size:40px">Masuknya cepat, kenyangnya nggak kerasa.</p>
+  <div class="gap-m"></div>
+  <div class="rows">
+    <div class="rowx"><div class="nm">Es teh tawar<small>1 gelas</small></div><div class="track"><div class="fill" style="width:1.5%"></div></div><div class="val">0</div></div>
+    <div class="rowx"><div class="nm">Es teh manis<small>1 gelas</small></div><div class="track"><div class="fill lite" style="width:33%"></div><div class="fill" style="width:20%"></div></div><div class="val">60–100</div></div>
+    <div class="rowx"><div class="nm">Kopi susu gula aren<small>1 gelas</small></div><div class="track"><div class="fill lite hot" style="width:100%;opacity:.35"></div><div class="fill hot" style="width:67%"></div></div><div class="val">200–300</div></div>
+    <div class="rowx"><div class="nm">Gula pasir<small>1 sdm (12 g)</small></div><div class="track"><div class="fill" style="width:16%"></div></div><div class="val">47</div></div>
+  </div>
+  <div class="gap-m"></div>
+  <p class="p" style="font-size:38px">Tiga gelas manis sehari bisa ngabisin defisit tanpa terasa makan banyak.</p>
+  <div class="grow"></div>
+  <p class="note" style="font-size:27px;margin-top:30px">Perkiraan, kisaran takaran umum; gula dan ukuran gelas beda-beda. Gula: TKPI 2019 (Kemenkes).</p>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+
+<section class="slide rogo soft" style="padding-top:84px">
+  <div class="k">Catat di JoyoRogo</div>
+  <div class="gap-s"></div>
+  <h1 class="h s" style="font-size:68px">Gelasnya tertutup? JoyoRogo tanya isinya apa.</h1>
+  <div class="gap-m"></div>
+  <div class="snap" style="--s:.72;--cx:45;--cy:380;--cw:1240;--ch:800;align-self:center"><img src="@content/_shots/rogo-cup-ask.webp" alt="">
+    <span class="callout" style="--rx:80;--ry:790;--rw:630;--rh:140"></span></div>
+  <div class="gap-s"></div>
+  <p class="note" style="font-size:28px">Layar asli, akun demo. Angka di layar contoh, bukan hasil scan.</p>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span style="font-size:40px;font-weight:800;color:var(--ink)">joyorogo.com</span></footer>
+</section>
+</body></html>
