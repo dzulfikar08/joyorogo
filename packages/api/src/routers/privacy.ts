@@ -12,6 +12,8 @@ import { disconnectCoros } from "../lib/coros-grant";
 import { revokeGrant } from "../lib/strava-grant";
 
 import { serverT } from "../lib/messages";
+import { deleteUserHousehold } from "../lib/household";
+import { notifyInBackground } from "../lib/notify";
 
 import { protectedProcedure } from "../index";
 
@@ -107,6 +109,18 @@ export const privacyRouter = {
 
       const stickerKeys = await userStickerKeys(context.db, userId);
       await deleteUserSocialData(context.db, userId);
+      // Joyo Keluarga: the owner's household goes with them (no heir), so its members lose household Pro now.
+      const seatsLost = await deleteUserHousehold(context.db, userId);
+      for (const memberId of seatsLost) {
+        notifyInBackground(context, memberId, {
+          category: "group",
+          kind: "household_closed",
+          title: { key: "notify.household.closed.title", params: { owner: context.session.user.name } },
+          body: { key: "notify.household.closed.body" },
+          link: { t: "langganan" },
+          dedupeKey: `household_closed:${userId}`,
+        });
+      }
       await revokeGrant(context.db, context.env, userId);
       await disconnectCoros(context.db, context.env, userId);
       await deleteAllUserData(context.db, userId);

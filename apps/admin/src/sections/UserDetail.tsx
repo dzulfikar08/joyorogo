@@ -244,6 +244,20 @@ export function UserDetail({ userId, onClose }: { userId: string; onClose: () =>
           <div className="flex flex-wrap gap-2">
             <PlanBadge user={u} />
             {founderUntilNote(u) && <Badge>{founderUntilNote(u)}</Badge>}
+            {d?.household && (
+              <Badge
+                tone={
+                  d.household.paidUntil !== null && d.household.paidUntil > Date.now() ? "green" : undefined
+                }
+              >
+                {d.household.role === "owner"
+                  ? "Keluarga: pemilik"
+                  : `Keluarga: anggota (${d.household.ownerName})`}
+                {d.household.paidUntil !== null
+                  ? `, sampai ${fmtDate(d.household.paidUntil)}`
+                  : ", belum dibayar"}
+              </Badge>
+            )}
             {u.onboarded ? (
               <Badge tone="green">sudah onboarding</Badge>
             ) : (

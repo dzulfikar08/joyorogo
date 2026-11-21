@@ -8,6 +8,7 @@ import { user } from "@joyorogo/db/schema/auth";
 import { dailyActivity, foodLog, profile, weightLog } from "@joyorogo/db/schema/fitness";
 
 import { deleteUserMedia } from "../lib/privacy";
+import { householdOf, proUntil } from "../lib/household";
 
 import type { Database } from "@joyorogo/db";
 import type { Targets } from "../lib/engine";
@@ -97,20 +98,31 @@ function settleTarget(
   return { goal, goalStartKg, targetWeightKg: args.targetWeightKg, targetDate: args.targetDate };
 }
 
+/**
+ * Pro from a Joyo Keluarga household, for "Pro dari Joyo Keluarga <owner> sampai X": role, the owner's name and the
+ * household's period end (epoch ms). null when the account is in no household.
+ */
+async function householdSummary(db: Database, userId: string) {
+  const found = await householdOf(db, userId);
+  if (!found) return null;
+  return { role: found.role, ownerName: found.ownerName, until: found.paidUntil };
+}
+
 /** Today's plan exactly as day.summary computes it (latest weigh-in + measured TDEE). */
 async function loadPlan(db: Database, userId: string, zone: DayZone) {
   const today = jakartaToday(undefined, zone);
   const [[userRow], [row], [latest], weighIns, intake, exercise, prefRows] = await db.batch([
     db
-      .select({ tier: user.tier, founderUntil: user.founderUntil })
+      .select({ tier: user.tier, ownUntil: user.founderUntil, founderUntil: proUntil })
       .from(user)
       .where(eq(user.id, userId))
       .limit(1),
     ...planQueries(db, userId, today),
   ]);
   const tier = effectiveTier(userRow);
-  // Only a paid period has an end date; manual comps never expire.
-  const founderUntil = userRow?.tier === "free" ? (userRow.founderUntil ?? null) : null;
+  // Only a paid period has an end date; manual comps never expire. This stays the person's OWN period: Pro from a
+  // Joyo Keluarga household is reported apart (`household`), so clients can show both rows.
+  const founderUntil = userRow?.tier === "free" ? (userRow.ownUntil ?? null) : null;
   if (!row) return { row: null, plan: null, tier, founderUntil };
   const plan = buildPlan(
     row,
@@ -123,9 +135,12 @@ async function loadPlan(db: Database, userId: string, zone: DayZone) {
 export const profileRouter = {
   myProfile: protectedProcedure.handler(async ({ context }) => {
     const zone = await userZone(context);
-    const { row, plan, tier, founderUntil } = await loadPlan(context.db, context.session.user.id, zone);
+    const [{ row, plan, tier, founderUntil }, household] = await Promise.all([
+      loadPlan(context.db, context.session.user.id, zone),
+      householdSummary(context.db, context.session.user.id),
+    ]);
     if (!row || !plan) {
-      return { profile: null, targets: null, latestWeightKg: null, tier, founderUntil };
+      return { profile: null, targets: null, latestWeightKg: null, tier, founderUntil, household };
     }
     return {
       profile: row,
@@ -133,6 +148,7 @@ export const profileRouter = {
       latestWeightKg: plan.weightNowKg,
       tier,
       founderUntil,
+      household,
     };
   }),
 
@@ -155,7 +171,7 @@ export const profileRouter = {
     const userId = context.session.user.id;
     const [[userRow], used] = await Promise.all([
       context.db
-        .select({ tier: user.tier, founderUntil: user.founderUntil, aiUnlimited: user.aiUnlimited })
+        .select({ tier: user.tier, founderUntil: proUntil, aiUnlimited: user.aiUnlimited })
         .from(user)
         .where(eq(user.id, userId))
         .limit(1),

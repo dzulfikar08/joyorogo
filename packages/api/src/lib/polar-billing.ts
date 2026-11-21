@@ -1,4 +1,4 @@
-import { and, eq, like, ne, inArray, sql } from "drizzle-orm";
+import { and, eq, isNull, like, ne, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { user } from "@joyorogo/db/schema/auth";
@@ -9,7 +9,9 @@ import { idrQuote, minorToIdr } from "./fx";
 import type { FxQuote, FxRateSource } from "./fx";
 import { notifyLedger, parseRevklikIds } from "./revklik";
 import type { LedgerHook } from "./revklik";
-import { POLAR_SANDBOX_URL, polarLedgerId, polarProductPlan } from "./polar";
+import { keluargaAmountIdr, ledgerProduct, periodTarget } from "./household";
+import type { PaidProduct } from "./household";
+import { POLAR_SANDBOX_URL, polarLedgerId, polarProduct } from "./polar";
 import type { PolarConfig } from "./polar";
 import { addMonths, nextFounderUntil, planMonths } from "./tiers";
 import type { FounderPlan } from "./tiers";
@@ -18,8 +20,11 @@ const CREDIT_ATTEMPTS = 3;
 
 export type PolarBillingDeps = {
   db: Database;
-  config: Pick<PolarConfig, "productIds" | "priceUsdCents"> & Partial<Pick<PolarConfig, "baseUrl">>;
-  /** Plan prices in IDR: the ledger's equivalent of a USD order, as for non-IDR Apple transactions. */
+  config: Pick<PolarConfig, "productIds" | "priceUsdCents"> & Partial<Pick<PolarConfig, "baseUrl" | "keluarga">>;
+  /**
+   * Pro plan prices in IDR: the ledger's equivalent of a USD order, as for non-IDR Apple transactions. A Keluarga
+   * order counts as 2x (decision C).
+   */
   fallbackPriceIdr: Record<FounderPlan, number>;
   /** IDR rate for a MYR/SGD order (see fx.ts); without it only the in-code fallback table prices those. */
   fxRate?: FxRateSource;
@@ -60,6 +65,9 @@ const orderSchema = z.object({
   subscription: subscriptionSchema.nullish(),
 });
 type PolarOrder = z.infer<typeof orderSchema>;
+
+/** What a Polar order or subscription sells. */
+type Sold = { product: PaidProduct; plan: FounderPlan };
 
 const envelopeSchema = z.object({ type: z.string(), data: z.unknown() });
 
@@ -172,11 +180,15 @@ async function founderUntilOf(db: Database, userId: string): Promise<{ founderUn
  * - Any currency with a rate (MYR, SGD): what was really charged (net of tax) at the recorded rate.
  * - A currency with no rate at all: the plan's IDR price, as before.
  */
-function ledgerAmountIdr(deps: PolarBillingDeps, order: PolarOrder, plan: FounderPlan, fx: FxQuote | null): number {
+function ledgerAmountIdr(deps: PolarBillingDeps, order: PolarOrder, sold: Sold, fx: FxQuote | null): number {
   if (order.net_amount <= 0) return 0;
-  const fallback = deps.fallbackPriceIdr[plan];
+  const { plan } = sold;
+  const keluarga = sold.product === "keluarga";
+  const fallback = keluarga ? keluargaAmountIdr(deps.fallbackPriceIdr[plan]) : deps.fallbackPriceIdr[plan];
   if (order.currency.toLowerCase() === "usd") {
-    const share = Math.min(1, order.net_amount / deps.config.priceUsdCents[plan]);
+    const listCents =
+      keluarga && deps.config.keluarga ? deps.config.keluarga.priceUsdCents[plan] : deps.config.priceUsdCents[plan];
+    const share = Math.min(1, order.net_amount / listCents);
     return Math.max(1, Math.round(fallback * share));
   }
   if (!fx) return fallback;
@@ -190,8 +202,8 @@ function orderDate(deps: PolarBillingDeps, order: PolarOrder): Date {
 }
 
 async function handleOrderPaid(deps: PolarBillingDeps, order: PolarOrder): Promise<PolarEventResult> {
-  const plan = polarProductPlan(deps.config, order.product_id);
-  if (!plan) return { outcome: "ignored" };
+  const sold = polarProduct(deps.config, order.product_id);
+  if (!sold) return { outcome: "ignored" };
   if (order.status !== "paid") return { outcome: "ignored" };
   const userId = await resolveUserId(deps.db, {
     customer: order.customer,
@@ -203,7 +215,7 @@ async function handleOrderPaid(deps: PolarBillingDeps, order: PolarOrder): Promi
     return { outcome: "no-user" };
   }
 
-  const result = await creditOrder(deps, order, plan, userId);
+  const result = await creditOrder(deps, order, sold, userId);
   if (order.subscription && order.subscription.status !== "incomplete") {
     await syncSubscription(deps, "order.paid", order.subscription, userId);
   }
@@ -211,9 +223,9 @@ async function handleOrderPaid(deps: PolarBillingDeps, order: PolarOrder): Promi
 }
 
 /**
- * Credits one paid Polar order to the account's Pro period, in one D1 batch:
- * the pending ledger row, the paid flip, and the user update. The flip lands
- * only while founder_until still holds the value we extended from, so
+ * Credits one paid Polar order to the account's Pro period (a Keluarga order: the household the payer owns, made on
+ * first payment), in one D1 batch: the pending ledger row, the paid flip, and the period update. The flip lands
+ * only while the period still holds the value we extended from, so
  * redelivery and concurrent deliveries extend exactly once. Months stack on
  * the remaining period like the web gateways. A plan-change proration charge
  * (billing_reason subscription_update) is recorded but grants no time: the
@@ -222,18 +234,20 @@ async function handleOrderPaid(deps: PolarBillingDeps, order: PolarOrder): Promi
 async function creditOrder(
   deps: PolarBillingDeps,
   order: PolarOrder,
-  plan: FounderPlan,
+  sold: Sold,
   userId: string,
 ): Promise<PolarEventResult> {
   const { db } = deps;
+  const { plan } = sold;
   const ledgerId = polarLedgerId(order.id);
   const prorationOnly = order.billing_reason === "subscription_update";
   const months = prorationOnly ? 0 : planMonths(plan);
   const isUsd = order.currency.toLowerCase() === "usd";
   const needsRate = !prorationOnly && !isUsd && order.net_amount > 0;
   const fx = needsRate ? await idrQuote(deps.fxRate, order.currency, orderDate(deps, order)) : null;
-  const amountIdr = prorationOnly ? 0 : ledgerAmountIdr(deps, order, plan, fx);
+  const amountIdr = prorationOnly ? 0 : ledgerAmountIdr(deps, order, sold, fx);
   const charged = {
+    product: ledgerProduct(sold.product),
     amountUsdCents: isUsd ? order.net_amount : null,
     chargedCurrency: order.currency.toUpperCase(),
     chargedAmountMinor: order.net_amount,
@@ -256,8 +270,6 @@ async function creditOrder(
     if (existing?.status === "paid") return { outcome: "already" };
     if (existing?.status === "failed") return { outcome: "refunded" };
 
-    const owner = await founderUntilOf(db, userId);
-    if (!owner) return { outcome: "no-user" };
     const now = deps.now?.() ?? new Date();
 
     if (months === 0) {
@@ -269,8 +281,10 @@ async function creditOrder(
       return { outcome: "recorded" };
     }
 
-    const previousMs = owner.founderUntil?.getTime() ?? null;
-    const until = nextFounderUntil(owner.founderUntil, now, months);
+    const target = await periodTarget(db, userId, sold.product, { create: true });
+    if (!target) return { outcome: "no-user" };
+    const previousMs = target.current?.getTime() ?? null;
+    const until = nextFounderUntil(target.current, now, months);
     const [, flipped] = await db.batch([
       db
         .insert(payment)
@@ -280,22 +294,13 @@ async function creditOrder(
         .update(payment)
         .set({ status: "paid", paidAt: now, founderUntil: until })
         .where(
-          and(
-            eq(payment.orderId, ledgerId),
-            eq(payment.status, "pending"),
-            sql`(select ${user.founderUntil} from ${user} where ${user.id} = ${userId}) is ${previousMs}`,
-          ),
+          and(eq(payment.orderId, ledgerId), eq(payment.status, "pending"), target.holds(previousMs)),
         )
         .returning({ orderId: payment.orderId }),
-      db
-        .update(user)
-        .set({ founderUntil: until })
-        .where(
-          and(
-            eq(user.id, userId),
-            sql`exists (select 1 from ${payment} where ${payment.orderId} = ${ledgerId} and ${payment.status} = 'paid' and ${payment.paidAt} = ${now.getTime()})`,
-          ),
-        ),
+      target.write(
+        until,
+        sql`exists (select 1 from ${payment} where ${payment.orderId} = ${ledgerId} and ${payment.status} = 'paid' and ${payment.paidAt} = ${now.getTime()})`,
+      ),
     ]);
     if (flipped.length === 1) {
       await notifyLedger(deps.onLedger, ledgerId, "paid");
@@ -314,13 +319,13 @@ async function creditOrder(
  */
 async function handleOrderRefunded(deps: PolarBillingDeps, order: PolarOrder): Promise<PolarEventResult> {
   const { db } = deps;
-  if (!polarProductPlan(deps.config, order.product_id)) return { outcome: "ignored" };
+  if (!polarProduct(deps.config, order.product_id)) return { outcome: "ignored" };
   if (order.status !== "refunded") return { outcome: "ignored" };
   const ledgerId = polarLedgerId(order.id);
 
   for (let attempt = 0; attempt < CREDIT_ATTEMPTS; attempt++) {
     const [row] = await db
-      .select({ userId: payment.userId, status: payment.status, months: payment.months })
+      .select({ userId: payment.userId, status: payment.status, months: payment.months, product: payment.product })
       .from(payment)
       .where(eq(payment.orderId, ledgerId))
       .limit(1);
@@ -342,9 +347,19 @@ async function handleOrderRefunded(deps: PolarBillingDeps, order: PolarOrder): P
     if (row.status !== "paid") return { outcome: row.status === "failed" ? "already" : "ignored" };
 
     const now = deps.now?.() ?? new Date();
-    const owner = await founderUntilOf(db, row.userId);
-    const previousMs = owner?.founderUntil?.getTime() ?? null;
-    let reduced = owner?.founderUntil ?? null;
+    // A Keluarga refund takes the months off the household; a household deleted since has nothing to take back.
+    const target = await periodTarget(db, row.userId, row.product === "keluarga" ? "keluarga" : "pro", { create: false });
+    if (!target) {
+      const gone = await db
+        .update(payment)
+        .set({ status: "failed" })
+        .where(and(eq(payment.orderId, ledgerId), eq(payment.status, "paid")))
+        .returning({ orderId: payment.orderId });
+      if (gone.length === 1) await notifyLedger(deps.onLedger, ledgerId, "refund");
+      return { outcome: "refunded" };
+    }
+    const previousMs = target.current?.getTime() ?? null;
+    let reduced = target.current;
     if (reduced && row.months > 0 && reduced.getTime() > now.getTime()) {
       const back = addMonths(reduced, -row.months);
       reduced = back.getTime() > now.getTime() ? back : now;
@@ -354,24 +369,15 @@ async function handleOrderRefunded(deps: PolarBillingDeps, order: PolarOrder): P
       db
         .update(payment)
         .set({ status: "failed" })
-        .where(
-          and(
-            eq(payment.orderId, ledgerId),
-            eq(payment.status, "paid"),
-            sql`(select ${user.founderUntil} from ${user} where ${user.id} = ${row.userId}) is ${previousMs}`,
-          ),
-        )
+        .where(and(eq(payment.orderId, ledgerId), eq(payment.status, "paid"), target.holds(previousMs)))
         .returning({ orderId: payment.orderId }),
-      db
-        .update(user)
-        .set({ founderUntil: reduced })
-        .where(
-          and(
-            eq(user.id, row.userId),
-            sql`${user.founderUntil} is ${previousMs}`,
-            sql`exists (select 1 from ${payment} where ${payment.orderId} = ${ledgerId} and ${payment.status} = 'failed')`,
-          ),
-        ),
+      target.write(
+        reduced,
+        and(
+          target.holds(previousMs),
+          sql`exists (select 1 from ${payment} where ${payment.orderId} = ${ledgerId} and ${payment.status} = 'failed')`,
+        )!,
+      ),
     ]);
     if (flipped.length === 1) {
       await notifyLedger(deps.onLedger, ledgerId, "refund");
@@ -406,7 +412,8 @@ async function handleSubscription(
   type: string,
   sub: PolarSubscription,
 ): Promise<PolarEventResult> {
-  if (!polarProductPlan(deps.config, sub.product_id)) return { outcome: "ignored" };
+  const sold = polarProduct(deps.config, sub.product_id);
+  if (!sold) return { outcome: "ignored" };
   const userId = await resolveUserId(deps.db, {
     customer: sub.customer,
     metadata: sub.metadata,
@@ -417,7 +424,7 @@ async function handleSubscription(
     return { outcome: "no-user" };
   }
   await syncSubscription(deps, type, sub, userId);
-  if (type === "subscription.revoked") return endAccess(deps, userId, sub.id);
+  if (type === "subscription.revoked") return endAccess(deps, userId, sub.id, sold.product);
   return { outcome: "synced" };
 }
 
@@ -431,7 +438,7 @@ async function syncSubscription(
   sub: PolarSubscription,
   userId: string,
 ): Promise<void> {
-  const plan = polarProductPlan(deps.config, sub.product_id);
+  const plan = polarProduct(deps.config, sub.product_id)?.plan;
   if (!plan) return;
   const modifiedMs = Date.parse(sub.modified_at ?? sub.created_at);
   const periodEnd = sub.current_period_end ? new Date(sub.current_period_end) : null;
@@ -460,12 +467,19 @@ async function syncSubscription(
  * An immediate revocation by the merchant cuts the remaining Polar-bought time
  * to now. Time that came from another purchase (founder_until beyond the last
  * Polar grant) and accounts with another live Polar subscription are left alone.
+ * Pro and Keluarga are separate: a revoked Keluarga subscription cuts the household the payer owns, compared with
+ * Keluarga grants only, and a live Pro subscription does not hold it up (nor the reverse).
  */
-async function endAccess(deps: PolarBillingDeps, userId: string, subscriptionId: string): Promise<PolarEventResult> {
+async function endAccess(
+  deps: PolarBillingDeps,
+  userId: string,
+  subscriptionId: string,
+  product: PaidProduct,
+): Promise<PolarEventResult> {
   const { db } = deps;
   const now = deps.now?.() ?? new Date();
-  const [others] = await db
-    .select({ n: sql<number>`count(*)` })
+  const others = await db
+    .select({ productId: polarSubscription.productId })
     .from(polarSubscription)
     .where(
       and(
@@ -474,20 +488,26 @@ async function endAccess(deps: PolarBillingDeps, userId: string, subscriptionId:
         inArray(polarSubscription.state, LIVE_STATES),
       ),
     );
-  if ((others?.n ?? 0) > 0) return { outcome: "synced" };
+  if (others.some((other) => polarProduct(deps.config, other.productId)?.product === product)) {
+    return { outcome: "synced" };
+  }
 
   const [grant] = await db
     .select({ latest: sql<number | null>`max(${payment.founderUntil})` })
     .from(payment)
-    .where(and(eq(payment.userId, userId), eq(payment.status, "paid"), like(payment.orderId, "polar:%")));
-  const owner = await founderUntilOf(db, userId);
-  const current = owner?.founderUntil ?? null;
-  if (!current || grant?.latest == null) return { outcome: "synced" };
+    .where(
+      and(
+        eq(payment.userId, userId),
+        eq(payment.status, "paid"),
+        like(payment.orderId, "polar:%"),
+        product === "keluarga" ? eq(payment.product, "keluarga") : isNull(payment.product),
+      ),
+    );
+  const target = await periodTarget(db, userId, product, { create: false });
+  const current = target?.current ?? null;
+  if (!target || !current || grant?.latest == null) return { outcome: "synced" };
   if (current.getTime() <= now.getTime() || current.getTime() > grant.latest) return { outcome: "synced" };
 
-  await db
-    .update(user)
-    .set({ founderUntil: now })
-    .where(and(eq(user.id, userId), sql`${user.founderUntil} is ${current.getTime()}`));
+  await db.batch([target.write(now, target.holds(current.getTime()))]);
   return { outcome: "revoked" };
 }

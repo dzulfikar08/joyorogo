@@ -109,6 +109,24 @@
         "title": "{{n}} lagi cuitan dan catatan",
         "body": "Buka peti masuk kumpulan untuk melihatnya."
       }
+    },
+    "household": {
+      "memberJoin": {
+        "title": "{{name}} menyertai Joyo Keluarga",
+        "body": "Satu tempat Joyo Keluarga sudah diambil."
+      },
+      "memberLeave": {
+        "title": "{{name}} keluar daripada Joyo Keluarga",
+        "body": "Satu tempat kosong semula."
+      },
+      "removed": {
+        "title": "Anda tidak lagi dalam Joyo Keluarga {{owner}}",
+        "body": "Pro daripada Keluarga sudah berhenti. Pro anda sendiri, jika ada, terus berjalan."
+      },
+      "closed": {
+        "title": "Joyo Keluarga {{owner}} ditutup",
+        "body": "Pembayar memadam akaunnya, jadi Pro daripada Keluarga berhenti."
+      }
     }
   }
 }

@@ -16,6 +16,7 @@ import { SLEEP_CONSENT_VERSION, SLEEP_MAX_NIGHTS_PER_PUSH, SLEEP_RETENTION_NIGHT
 import type { SleepInsightsStatus } from "../lib/sleep-insights-types";
 import { buildSleepView } from "../lib/sleep-insights-view";
 import { paywallConfig } from "../lib/tiers";
+import { proUntil } from "../lib/household";
 
 const HOUR_S = 3600;
 
@@ -168,7 +169,7 @@ export const sleepInsightsRouter = {
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
       const [row] = await context.db
-        .select({ tier: user.tier, founderUntil: user.founderUntil })
+        .select({ tier: user.tier, founderUntil: proUntil })
         .from(user)
         .where(eq(user.id, userId))
         .limit(1);

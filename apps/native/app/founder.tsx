@@ -17,6 +17,7 @@ import {
   Card,
   PageHeader,
   Screen,
+  Segmented,
   Text,
 } from "@/components/ui";
 import {
@@ -32,7 +33,9 @@ import {
   usePlayPurchase,
   usePlayReplay,
   usePlayRestore,
+  fmtFounderDate,
   type CheckoutPlan,
+  type CheckoutProduct,
 } from "@/components/billing";
 import { Disclosure } from "@/components/disclosure";
 import { useToast } from "@/components/toast";
@@ -42,6 +45,7 @@ import { PressableScale, useEnter } from "@/components/motion";
 import { benefitOrder, paywallMoment } from "@/src/lib/pro-nudge";
 import { privacyUrl, termsUrl } from "@/src/lib/legal-url";
 import { formatStorePrice, yearlySaving, type StorePrice } from "@/src/lib/pro-plans";
+import { keluargaPlatformAllowed } from "@/src/lib/keluarga";
 import { orpc } from "@/utils/orpc";
 
 /** BCP-47 tags for Intl, by the app languages. */
@@ -121,9 +125,16 @@ function PlanOption({
 
 export default function FounderPaywall() {
   const { t, i18n } = useTranslation("billing");
+  const { t: tk } = useTranslation("keluarga");
   const gate = useSessionGate();
   const toast = useToast();
-  const { next, from, days } = useLocalSearchParams<{ next?: string; from?: string; days?: string }>();
+  const { next, from, days, plan: planParam } = useLocalSearchParams<{
+    next?: string;
+    from?: string;
+    days?: string;
+    /** "keluarga" preselects Joyo Keluarga (links from Profil > Langganan). */
+    plan?: string;
+  }>();
   // Callers only pass internal routes here ("/", "/makan", "/profil").
   const hasNext = typeof next === "string" && next !== "";
   const destination = (hasNext ? next : "/") as Href;
@@ -134,16 +145,30 @@ export default function FounderPaywall() {
   const purchase = useAppleFounderPurchase();
   const appleRestore = useAppleRestore();
   const [plan, setPlan] = useState<CheckoutPlan>("yearly");
-  const checkout = useCheckoutPicker(ios ? "monthly" : plan);
   const appleBilling = config.data?.appleBilling === true;
   const billing = ios ? appleBilling : config.data?.billing === true;
+  // Joyo Keluarga: offered only while the server sells it (config.keluarga) and this platform may show it (iOS stays
+  // off until phase 6, KELUARGA_IOS_ENABLED). Stores then need their own Keluarga product to load before the switch shows.
+  const keluargaOffer = billing && keluargaPlatformAllowed() ? (config.data?.keluarga ?? null) : null;
+  const [product, setProduct] = useState<CheckoutProduct>(planParam === "keluarga" ? "keluarga" : "pro");
+  const keluarga = product === "keluarga" && keluargaOffer !== null;
+  const selected: CheckoutProduct = keluarga ? "keluarga" : "pro";
+  const checkout = useCheckoutPicker(ios ? "monthly" : plan, selected);
   const price = useAppleFounderPrice(ios && appleBilling);
-  // Play build: JoyoRogo Pro subscription (monthly / yearly) through Google Play.
+  const keluargaApple = useAppleFounderPrice(ios && appleBilling && keluargaOffer !== null, "keluarga");
+  // Play build: JoyoRogo Pro and Joyo Keluarga subscriptions (monthly / yearly) through Google Play.
   const playBuy = usePlayPurchase();
   const playRestore = usePlayRestore();
   const playPrices = usePlayPrices(PLAY_ACTIVE && billing);
+  const keluargaPlay = usePlayPrices(PLAY_ACTIVE && billing && keluargaOffer !== null, "keluarga");
   usePlayReplay(PLAY_ACTIVE && billing);
+  const household = useQuery({
+    ...orpc.household.get.queryOptions(),
+    enabled: keluargaOffer !== null,
+  });
   const tier = profileQuery.data?.tier ?? null;
+  // A Pro account (own or household) lands here only to buy or renew Keluarga.
+  const keluargaOnly = tier === "founder" && planParam === "keluarga" && keluargaOffer !== null;
   const heroEnter = useEnter(0);
   const priceEnter = useEnter(1);
   const detailsEnter = useEnter(5);
@@ -163,10 +188,10 @@ export default function FounderPaywall() {
   // straight to the destination instead of flashing the paywall.
   useEffect(() => {
     if (config.isPending || profileQuery.isPending) return;
-    if (!config.isSuccess || !profileQuery.isSuccess || !billing || tier === "founder") {
+    if (!config.isSuccess || !profileQuery.isSuccess || !billing || (tier === "founder" && !keluargaOnly)) {
       router.replace(destination);
     }
-  }, [config, profileQuery, billing, tier, destination]);
+  }, [config, profileQuery, billing, tier, keluargaOnly, destination]);
 
   if (gate === "loading" || config.isPending || profileQuery.isPending) {
     return <BootLoader />;
@@ -174,7 +199,7 @@ export default function FounderPaywall() {
   if (gate === "anon") {
     return <Redirect href="/login" />;
   }
-  if (!config.data || !billing || tier === "founder") {
+  if (!config.data || !billing || (tier === "founder" && !keluargaOnly)) {
     // The replace above is in flight; show nothing flashable meanwhile.
     return <BootLoader />;
   }
@@ -187,7 +212,7 @@ export default function FounderPaywall() {
   const buy = async () => {
     if (PLAY_ACTIVE) {
       try {
-        const result = await playBuy.mutateAsync(plan);
+        const result = await playBuy.mutateAsync({ plan, product: selected });
         if (result === "bought") toast.success(t("toast.subscribedTitle"), t("toast.subscribedBody"));
         else if (result === "pending") toast.info(t("toast.waitingTitle"), t("toast.waitingPlay"));
       } catch (e) {
@@ -200,7 +225,7 @@ export default function FounderPaywall() {
       return;
     }
     try {
-      await purchase.mutateAsync(plan);
+      await purchase.mutateAsync({ plan, product: selected });
     } catch (e) {
       toast.error(t("toast.payFailed"), errorMessage(e));
     }
@@ -243,13 +268,28 @@ export default function FounderPaywall() {
   const localeTag = INTL_TAG[i18n.language as keyof typeof INTL_TAG] ?? INTL_TAG.id;
 
   // What each store charges is its own localized price; the web price is the server's. Never show the web price for a store.
-  const play = playPrices.data;
-  const apple = price.data;
+  const play = keluarga ? keluargaPlay.data : playPrices.data;
+  const apple = keluarga ? keluargaApple.data : price.data;
+  const webMonthlyIdr = keluarga && keluargaOffer ? keluargaOffer.monthlyIdr : cfg.founderPriceIdr;
+  const webYearlyIdr = keluarga && keluargaOffer ? keluargaOffer.yearlyIdr : cfg.founderYearlyPriceIdr;
   const priceOf = (which: CheckoutPlan): string => {
     if (PLAY_ACTIVE) return play?.[which]?.displayPrice ?? "...";
     if (ios && apple?.[which]?.displayPrice) return apple[which].displayPrice;
-    return fmtIdr(which === "yearly" ? cfg.founderYearlyPriceIdr : cfg.founderPriceIdr);
+    return fmtIdr(which === "yearly" ? webYearlyIdr : webMonthlyIdr);
   };
+  // The switch shows once the selected rail can really sell Keluarga: Play/App Store need their product loaded.
+  const keluargaSellable =
+    keluargaOffer !== null &&
+    (PLAY_ACTIVE
+      ? Boolean(keluargaPlay.data?.monthly || keluargaPlay.data?.yearly)
+      : ios
+        ? Boolean(keluargaApple.data?.monthly || keluargaApple.data?.yearly)
+        : true);
+  const showSwitch = keluargaSellable && !keluargaOnly;
+  const home = household.data?.enabled ? household.data.household : null;
+  // In someone else's household: leave it first (the server refuses too, and moves a store buyer out if it must).
+  const memberElsewhere = keluarga && home?.role === "member";
+  const ownUntil = profileQuery.data?.founderUntil ?? null;
   // The saving is worked out from the same amounts the buyer is charged. Apple reports no currency code, so only the
   // percentage (currency-free) is claimed there, never a per-month figure.
   const appleAmount = (which: CheckoutPlan): StorePrice | null => {
@@ -260,17 +300,21 @@ export default function FounderPaywall() {
     ? yearlySaving(play?.monthly?.price, play?.yearly?.price)
     : ios
       ? yearlySaving(appleAmount("monthly"), appleAmount("yearly"))
-      : yearlySaving(idrPrice(cfg.founderPriceIdr), idrPrice(cfg.founderYearlyPriceIdr));
+      : yearlySaving(idrPrice(webMonthlyIdr), idrPrice(webYearlyIdr));
   const perMonth = saving && !ios ? formatStorePrice(saving.perMonth, localeTag) : null;
 
   // Play needs the offer for the chosen plan: without it Play has nothing to sell.
-  const playUnavailable = PLAY_ACTIVE && playPrices.isSuccess && !play?.[plan]?.displayPrice;
-  const playLoading = PLAY_ACTIVE && playPrices.isPending;
+  const playQuery = keluarga ? keluargaPlay : playPrices;
+  const playUnavailable = PLAY_ACTIVE && playQuery.isSuccess && !play?.[plan]?.displayPrice;
+  const playLoading = PLAY_ACTIVE && playQuery.isPending;
+  const appleUnavailable = ios && keluarga && keluargaApple.isSuccess && !apple?.[plan]?.displayPrice;
   const renewalNote = PLAY_ACTIVE
     ? t("renewal.play")
     : ios
       ? t("renewal.apple")
-      : t("paywall.noAutoRenew");
+      : keluarga
+        ? tk("paywall.noAutoRenew")
+        : t("paywall.noAutoRenew");
   const renewalDetail = PLAY_ACTIVE
     ? t(yearly ? "details.renewal.playYearly" : "details.renewal.playMonthly")
     : ios
@@ -303,11 +347,20 @@ export default function FounderPaywall() {
       footer={
         <View style={styles.footer}>
           <Text style={styles.chargeLine}>{chargeLine}</Text>
+          {memberElsewhere && home ? (
+            <Text style={styles.skipHint}>{tk("paywall.memberElsewhere", { owner: home.ownerName })}</Text>
+          ) : null}
           <Button
-            label={PLAY_ACTIVE || ios ? t("paywall.buyStore") : t("paywall.buy")}
+            label={
+              keluarga
+                ? tk(home?.role === "owner" ? "paywall.renew" : "paywall.buy")
+                : PLAY_ACTIVE || ios
+                  ? t("paywall.buyStore")
+                  : t("paywall.buy")
+            }
             onPress={() => void buy()}
             loading={buying}
-            disabled={playUnavailable || playLoading}
+            disabled={playUnavailable || playLoading || appleUnavailable || memberElsewhere}
           />
           {playUnavailable ? <Text style={styles.skipHint}>{t("paywall.playUnavailable")}</Text> : null}
           <View style={styles.footerRow}>
@@ -333,7 +386,36 @@ export default function FounderPaywall() {
         />
       </Animated.View>
 
-      {!ios && <FounderPromoCard />}
+      {showSwitch ? (
+        <Segmented
+          value={selected}
+          onChange={setProduct}
+          options={[
+            { value: "pro", label: tk("paywall.pro") },
+            { value: "keluarga", label: tk("paywall.keluarga") },
+          ]}
+        />
+      ) : null}
+
+      {!ios && !keluarga && <FounderPromoCard />}
+
+      {keluarga && keluargaOffer ? (
+        <Card style={styles.benefitsCard}>
+          <Text style={styles.bundle}>{tk("paywall.title")}</Text>
+          <Text style={styles.benefitText}>{tk("paywall.pitch", { count: keluargaOffer.seats })}</Text>
+          {[
+            tk("paywall.benefits.seats", { count: keluargaOffer.seats }),
+            tk("paywall.benefits.invite"),
+            tk("paywall.benefits.private"),
+          ].map((line, index) => (
+            <BenefitRow key={line} index={index + 1} text={line} />
+          ))}
+          {/* Web rupiah only: on the stores, Pro -> Keluarga is the store's own upgrade with its own proration. */}
+          {!PLAY_ACTIVE && !ios && !memberElsewhere && ownUntil && new Date(ownUntil).getTime() > Date.now() ? (
+            <Text style={styles.freeNote}>{tk("paywall.ownPro", { date: fmtFounderDate(ownUntil) })}</Text>
+          ) : null}
+        </Card>
+      ) : null}
 
       <Animated.View entering={priceEnter} style={styles.plans} accessibilityRole="radiogroup">
         <PlanOption
@@ -357,7 +439,7 @@ export default function FounderPaywall() {
       </Animated.View>
 
       <Card style={styles.benefitsCard}>
-        <Text style={styles.bundle}>{t("pro.title")}</Text>
+        <Text style={styles.bundle}>{keluarga ? tk("paywall.everyPro") : t("pro.title")}</Text>
         {benefitOrder(moment).map((group, groupIndex) => (
           <View key={group} style={styles.benefitGroup}>
             <Text style={styles.groupTitle}>{t(`pro.groups.${group}`)}</Text>

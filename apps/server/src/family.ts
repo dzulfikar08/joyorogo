@@ -11,6 +11,7 @@ import { profile } from "@joyorogo/db/schema/fitness";
 import { DEFAULT_LOCALE, isLocale } from "@joyorogo/i18n";
 
 import { sameSecret } from "./strava";
+import { proUntil } from "@joyorogo/api/lib/household";
 
 type Deps = {
   env: StravaGrantEnv & Parameters<typeof paywallConfig>[0];
@@ -40,7 +41,7 @@ export function registerFamilyRoutes(app: Hono, deps: Deps) {
     const ids = [...new Set(parsed.data.userIds)];
     const db = deps.getDb();
     const rows = await db
-      .select({ id: user.id, name: user.name, email: user.email, tier: user.tier, founderUntil: user.founderUntil })
+      .select({ id: user.id, name: user.name, email: user.email, tier: user.tier, founderUntil: proUntil })
       .from(user)
       .where(inArray(user.id, ids));
     const locales = await db.select({ userId: profile.userId, locale: profile.locale }).from(profile).where(inArray(profile.userId, ids));

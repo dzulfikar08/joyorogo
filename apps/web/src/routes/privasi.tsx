@@ -2,6 +2,7 @@ import { Check } from "lucide-react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 
 import { PublicHeader } from "@/components/public-header";
+import { useAppConfig } from "@/lib/app-config";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/privasi")({
@@ -515,6 +516,8 @@ function PrivasiPage() {
             </p>
           </section>
 
+          <JoyoKeluargaPrivacy />
+
           <section className="rounded-3xl bg-card p-5" id="notifikasi">
             <h2 className="text-base font-bold tracking-tight">Notifikasi push</h2>
             <p className="mt-3 text-sm leading-relaxed">
@@ -755,5 +758,34 @@ function PrivasiPage() {
         </p>
       </main>
     </div>
+  );
+}
+
+/**
+ * Joyo Keluarga, the shared Pro plan (not JoyoFit's monitoring, which is #keluarga above). Shown only while the server
+ * sells the plan (KELUARGA_ENABLED), like every other Keluarga surface.
+ */
+function JoyoKeluargaPrivacy() {
+  const config = useAppConfig();
+  const keluarga = config.data?.keluarga;
+  if (!keluarga) return null;
+  return (
+    <section className="rounded-3xl bg-card p-5" id="joyo-keluarga">
+      <h2 className="text-base font-bold tracking-tight">Joyo Keluarga (paket Pro bersama)</h2>
+      <p className="mt-3 text-sm leading-relaxed">
+        Joyo Keluarga membagi satu paket Pro untuk sampai {keluarga.seats} akun JoyoRogo dalam satu rumah. Ini bukan
+        fitur pantau: tidak ada yang melihat catatan orang lain karena satu keluarga.
+      </p>
+      <CheckList
+        items={[
+          "Yang kami simpan: siapa pembayarnya, siapa anggotanya dan kapan bergabung, masa aktif paket, undangan (hanya sidik SHA-256 kodenya, bukan kodenya), dan catatan kapan orang bergabung, keluar, atau dihapus untuk menjaga batas pergantian anggota.",
+          "Yang dilihat pembayar: nama dan foto profil tiap anggota, tanggal bergabung, dan undangan yang menunggu. Pembayar tidak melihat email anggota, catatan makan, berat, tidur, latihan, chat, pemakaian scan, atau apakah anggota juga membayar Pro sendiri.",
+          "Yang dilihat anggota: nama pembayar dan sampai kapan paket berlaku. Anggota tidak melihat anggota lain.",
+          "Halaman undangan bisa dibuka tanpa masuk dan hanya menampilkan nama depan pembayar serta jumlah kursi terpakai.",
+          "Keluar atau dihapus dari keluarga berlaku saat itu juga. Menghapus akun pembayar menghapus keluarganya, jadi Pro dari Keluarga berhenti untuk semua anggota. Langganan App Store atau Google Play tetap jalan sampai kamu batalkan di toko.",
+          "Joyo Keluarga tidak membuat atau menggabungkan rumah tangga di JoyoArto dan tidak membuat tautan pantau di JoyoFit.",
+        ]}
+      />
+    </section>
   );
 }

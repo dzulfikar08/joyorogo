@@ -51,6 +51,7 @@ import { fastLossNote } from "../lib/safety";
 import { STREAK_WINDOW_DAYS } from "../lib/streak";
 import { loadStreak } from "../lib/streak-store";
 import { paywallConfig } from "../lib/tiers";
+import { proUntil } from "../lib/household";
 import { userZone } from "../lib/user-zone";
 
 const ZERO_MEALS: Record<Meal, number> = {
@@ -504,7 +505,7 @@ export const dayRouter = {
     const userId = context.session.user.id;
     const zone = await userZone(context);
     const [userRow] = await context.db
-      .select({ tier: user.tier, founderUntil: user.founderUntil })
+      .select({ tier: user.tier, founderUntil: proUntil })
       .from(user)
       .where(eq(user.id, userId))
       .limit(1);

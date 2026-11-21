@@ -1,6 +1,7 @@
 import { JOYOARTO_APPLE_BUNDLE_ID, JOYOFIT_APPLE_BUNDLE_ID, JOYOROGO_APPLE_BUNDLE_ID } from "@joyorogo/auth/apple-audience";
 import { z } from "zod";
 
+import type { PaidProduct } from "./household";
 import type { FounderPlan } from "./tiers";
 
 // App Store Server JWS (StoreKit 2 `Transaction.jwsRepresentation`) trust
@@ -19,10 +20,14 @@ export const APPLE_ROOT_CA_G3_SHA256 =
  * product belongs to the bundle the transaction was signed for: a JoyoFit
  * product under JoyoRogo's bundle (or the reverse) is rejected.
  * JoyoRogo's, JoyoFit's and JoyoArto's products live in separate App Store Connect apps and subscription groups.
+ * `product: "keluarga"` (Joyo Keluarga, docs/pricing/joyo-keluarga.md 4.3) credits the payer's household instead of
+ * their own Pro period; those two sit in JoyoRogo's "JoyoRogo Pro" group above `founder.*`, Family Sharing off.
  */
-export const APPLE_PRODUCTS: Record<string, { bundleId: string; plan: FounderPlan }> = {
+export const APPLE_PRODUCTS: Record<string, { bundleId: string; plan: FounderPlan; product?: PaidProduct }> = {
   "com.joyodigitama.joyorogo.founder.monthly": { bundleId: JOYOROGO_APPLE_BUNDLE_ID, plan: "monthly" },
   "com.joyodigitama.joyorogo.founder.yearly": { bundleId: JOYOROGO_APPLE_BUNDLE_ID, plan: "yearly" },
+  "com.joyodigitama.joyorogo.keluarga.monthly": { bundleId: JOYOROGO_APPLE_BUNDLE_ID, plan: "monthly", product: "keluarga" },
+  "com.joyodigitama.joyorogo.keluarga.yearly": { bundleId: JOYOROGO_APPLE_BUNDLE_ID, plan: "yearly", product: "keluarga" },
   "com.joyodigitama.joyofit.pro.monthly": { bundleId: JOYOFIT_APPLE_BUNDLE_ID, plan: "monthly" },
   "com.joyodigitama.joyofit.pro.yearly": { bundleId: JOYOFIT_APPLE_BUNDLE_ID, plan: "yearly" },
   "com.joyodigitama.joyoarto.pro.monthly": { bundleId: JOYOARTO_APPLE_BUNDLE_ID, plan: "monthly" },
@@ -36,7 +41,7 @@ const APPLE_APP_NAMES: Record<string, string> = {
 };
 
 /** The product's app (bundle id) and plan; null for anything not in the table. */
-export function appleProduct(productId: string): { bundleId: string; plan: FounderPlan } | null {
+export function appleProduct(productId: string): { bundleId: string; plan: FounderPlan; product?: PaidProduct } | null {
   return Object.hasOwn(APPLE_PRODUCTS, productId) ? APPLE_PRODUCTS[productId]! : null;
 }
 
@@ -98,6 +103,11 @@ export type AppleTransaction = {
   revocationDate: Date | null;
   /** The UUID the app passed at purchase (see appleAccountToken); null on legacy purchases. */
   appAccountToken: string | null;
+  /**
+   * "PURCHASED" (bought by this Apple account) or "FAMILY_SHARED" (reached through Apple Family Sharing); null when
+   * the payload has none (older test fixtures). Only purchased transactions are credited.
+   */
+  inAppOwnershipType: string | null;
 };
 
 export type AppleVerification =
@@ -134,6 +144,7 @@ const jwsPayloadSchema = z.object({
   expiresDate: z.number().finite().nullish(),
   revocationDate: z.number().nullish(),
   appAccountToken: z.string().nullish(),
+  inAppOwnershipType: z.string().nullish(),
   currency: z.string().optional(),
   price: z.number().optional(),
   // "FREE_TRIAL" on the transaction that starts an introductory free trial (JoyoFit's yearly trial).
@@ -192,6 +203,7 @@ async function verify(jws: string, opts: AppleVerifyOptions): Promise<AppleVerif
       expiresDate: payload.expiresDate != null ? new Date(payload.expiresDate) : null,
       revocationDate: payload.revocationDate != null ? new Date(payload.revocationDate) : null,
       appAccountToken: payload.appAccountToken ?? null,
+      inAppOwnershipType: payload.inAppOwnershipType ?? null,
     },
   };
 }

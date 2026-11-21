@@ -67,6 +67,8 @@ type LedgerRow = {
   paidAt: Date | null;
   revklikVisitorId: string | null;
   revklikSessionId: string | null;
+  /** "keluarga" = a Joyo Keluarga order; null/absent = Pro. */
+  product?: "keluarga" | null;
 };
 
 export type RevklikEventBody = {
@@ -126,11 +128,13 @@ export function buildLedgerEvent(
   const money = ledgerMoney(row, rail);
   if (!money) return null;
   const refund = kind === "refund";
-  const props: Record<string, string | number> = {
-    plan: row.months >= 12 ? "yearly" : row.months > 0 ? "monthly" : "proration",
-    months: row.months,
-    environment: "production",
-  };
+  const period = row.months >= 12 ? "yearly" : row.months > 0 ? "monthly" : "proration";
+  // Pro rows stay exactly as before; a Joyo Keluarga row says plan "keluarga" and carries the period apart. No seat
+  // count, member ids or household id (docs/pricing/joyo-keluarga.md section 6).
+  const props: Record<string, string | number> =
+    row.product === "keluarga"
+      ? { plan: "keluarga", period, months: row.months, environment: "production" }
+      : { plan: period, months: row.months, environment: "production" };
   if (rail === "polar" && row.chargedTaxMinor) props.tax_minor = row.chargedTaxMinor;
   return {
     name: refund ? "refund" : options.renewal ? "renewal" : "purchase",
@@ -161,6 +165,7 @@ const ledgerColumns = {
   paidAt: payment.paidAt,
   revklikVisitorId: payment.revklikVisitorId,
   revklikSessionId: payment.revklikSessionId,
+  product: payment.product,
 };
 
 const realMoneyRow = or(isNull(payment.isTest), ne(payment.isTest, 1));

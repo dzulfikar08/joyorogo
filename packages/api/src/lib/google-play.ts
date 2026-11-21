@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { nextFounderUntil } from "./tiers";
+import type { PaidProduct } from "./household";
 import type { FounderPlan } from "./tiers";
 
 // Google Play Billing, server side: service-account auth, the Android
@@ -13,10 +14,14 @@ import type { FounderPlan } from "./tiers";
 export const DEFAULT_GOOGLE_PLAY_PACKAGE = "com.joyodigitama.joyorogo";
 export const JOYOFIT_GOOGLE_PLAY_PACKAGE = "com.joyodigitama.joyofit";
 
+/** JoyoRogo's Joyo Keluarga subscription (docs/pricing/joyo-keluarga.md 4.4): credits the payer's household. */
+export const GOOGLE_PLAY_KELUARGA_PRODUCT_ID = "keluarga";
+
 /** Play package -> subscription product id -> base plan id -> Founder plan it sells. */
 export const GOOGLE_PLAY_PRODUCTS: Record<string, Record<string, Record<string, FounderPlan>>> = {
   [DEFAULT_GOOGLE_PLAY_PACKAGE]: {
     pro: { monthly: "monthly", yearly: "yearly" },
+    [GOOGLE_PLAY_KELUARGA_PRODUCT_ID]: { monthly: "monthly", yearly: "yearly" },
   },
   [JOYOFIT_GOOGLE_PLAY_PACKAGE]: {
     "com.joyodigitama.joyofit.pro.monthly": { monthly: "monthly" },
@@ -39,6 +44,11 @@ export function googlePlanFor(
   const plans =
     products && Object.hasOwn(products, productId) ? products[productId] : undefined;
   return plans && Object.hasOwn(plans, basePlanId) ? plans[basePlanId]! : null;
+}
+
+/** Which product a Play subscription sells: Joyo Keluarga only from JoyoRogo's own package. */
+export function googleProductKind(packageName: string, productId: string): PaidProduct {
+  return packageName === DEFAULT_GOOGLE_PLAY_PACKAGE && productId === GOOGLE_PLAY_KELUARGA_PRODUCT_ID ? "keluarga" : "pro";
 }
 
 const DEFAULT_TOKEN_URI = "https://oauth2.googleapis.com/token";

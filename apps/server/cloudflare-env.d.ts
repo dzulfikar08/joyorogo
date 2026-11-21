@@ -50,6 +50,8 @@ declare module "cloudflare:workers" {
       FOUNDER_PRICE_IDR?: string;
       FOUNDER_YEARLY_PRICE_IDR?: string;
       FOUNDER_PRICE_LADDER?: string;
+      // Joyo Keluarga on/off (docs/pricing/joyo-keluarga.md); default off.
+      KELUARGA_ENABLED?: string;
       ADMIN_EMAILS?: string;
       // RevKlik revenue forwarding (docs/revklik-forwarding.md); REVKLIK_TOKEN is a secret, unset = off.
       REVKLIK_API_URL?: string;

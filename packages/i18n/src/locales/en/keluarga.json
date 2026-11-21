@@ -1,0 +1,113 @@
+{
+  "server": {
+    "error": {
+      "unavailable": "Joyo Keluarga is not available yet.",
+      "ownerOnly": "Only the Joyo Keluarga payer can do this.",
+      "unpaid": "Joyo Keluarga has ended. Renew it first to invite people.",
+      "full": "All {{max}} seats are taken, pending invites included.",
+      "churn": "This household reached its member change limit for the year. Contact support if this is wrong.",
+      "tooManyAttempts": "Too many attempts. Try again in a moment.",
+      "invalidCode": "Invite code not found.",
+      "otherHousehold": "You are already in another household; leave it first.",
+      "invite_expired": "This invite has expired. Ask for a new link.",
+      "invite_used": "This invite was already used.",
+      "invite_revoked": "This invite was canceled.",
+      "invite_unpaid": "This household's plan has ended. Ask the payer to renew it first.",
+      "ownerCannotLeave": "The payer cannot leave. Remove members, or let the plan run out.",
+      "notMember": "This person is not in your household."
+    }
+  },
+  "paywall": {
+    "switchLabel": "Plan",
+    "pro": "Pro",
+    "keluarga": "Keluarga",
+    "title": "Joyo Keluarga",
+    "pitch": "Pro for up to {{count}} people in one household, you included. One person pays.",
+    "benefits": {
+      "seats": "Joyo Pro on each person's own JoyoRogo account, for up to {{count}} people including you",
+      "invite": "Invite with single-use links that work for 7 days",
+      "private": "Everyone's log stays private: food, weight and sleep are not shared"
+    },
+    "everyPro": "Every member gets all of Joyo Pro:",
+    "ownPro": "Your own Pro runs until {{date}}. Keluarga starts today; your remaining Pro days are not moved to Keluarga and keep running.",
+    "memberElsewhere": "You are on {{owner}}'s Joyo Keluarga. Leave it first in Profile > Subscription to buy your own.",
+    "buy": "Get Joyo Keluarga",
+    "renew": "Renew Joyo Keluarga",
+    "noAutoRenew": "On the web (QRIS/transfer). Does not renew automatically."
+  },
+  "paid": {
+    "title": "Joyo Keluarga is on",
+    "body": "Invite your family from Profile > Subscription. Each link works once.",
+    "cta": "Invite family"
+  },
+  "screen": {
+    "owner": {
+      "title": "Joyo Keluarga",
+      "until": "Active until {{date}}",
+      "lapsed": "The plan has ended. Pro from Keluarga is off for every member until you pay again.",
+      "seats": "{{used}} of {{count}} seats used",
+      "renew": "Renew",
+      "invite": "Invite",
+      "inviting": "Creating link...",
+      "cannotLeave": "As the payer you cannot leave. Remove members, or let the plan run out."
+    },
+    "members": {
+      "title": "Members",
+      "you": "You",
+      "owner": "Payer",
+      "joined": "Joined {{date}}",
+      "remove": "Remove",
+      "removeConfirm": "Remove {{name}} from Joyo Keluarga? Their Pro from Keluarga stops right away.",
+      "removed": "{{name}} was removed."
+    },
+    "invites": {
+      "title": "Pending invites",
+      "expires": "Valid until {{date}}",
+      "cancel": "Cancel",
+      "canceled": "Invite canceled."
+    },
+    "invite": {
+      "shareText": "Join my Joyo Keluarga on JoyoRogo: Joyo Pro on your own account while my plan runs. Everyone's log stays private. This link works once, for 7 days.",
+      "copied": "Invite link copied."
+    },
+    "member": {
+      "title": "Pro from {{owner}}'s Joyo Keluarga",
+      "until": "Until {{date}}",
+      "lapsed": "The Keluarga plan has ended. Pro from Keluarga comes back when {{owner}} renews.",
+      "leave": "Leave household",
+      "leaveConfirm": "Leave {{owner}}'s Joyo Keluarga? Your Pro from Keluarga stops right away. Your own Pro, if any, keeps running.",
+      "left": "You left Joyo Keluarga."
+    },
+    "own": "Your own Pro until {{date}}",
+    "upsell": {
+      "title": "Joyo Keluarga",
+      "body": "Pro for up to {{count}} people in one household, you included. {{price}}/month.",
+      "cta": "See"
+    },
+    "confirm": "Yes, continue",
+    "cancel": "Cancel"
+  },
+  "invite": {
+    "invalidTitle": "Invalid invite link",
+    "invalidBody": "Check the link, or ask the person who invited you for a new one.",
+    "checking": "Checking invite",
+    "invitedBy": "{{name}} invites you to Joyo Keluarga",
+    "seats": "{{used}} of {{count}} seats used",
+    "pitch": "You get Joyo Pro on your own account while this household's plan runs. Your food, weight and sleep logs stay private.",
+    "already": "You are already in this household.",
+    "other": "You are already in another Joyo Keluarga. Leave it first in Profile > Subscription.",
+    "ownPro": {
+      "web": "Your own Pro runs until {{date}} and does not renew automatically. Nothing to cancel.",
+      "polar": "Your card subscription (Polar) renews automatically. Cancel it in Manage subscription if Keluarga is enough.",
+      "store": "Your App Store/Google Play subscription renews automatically. Cancel it in the store's subscription settings if Keluarga is enough.",
+      "manage": "Manage subscription"
+    },
+    "join": "Join",
+    "joining": "Joining...",
+    "joined": "You are in Joyo Keluarga.",
+    "signIn": "Sign in to join",
+    "signInHint": "No account yet? Sign up for free, then open this link again.",
+    "openApp": "Open JoyoRogo",
+    "open": "Open Subscription"
+  }
+}

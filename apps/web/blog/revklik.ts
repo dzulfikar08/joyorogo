@@ -18,11 +18,11 @@ export const FUNNEL_EVENTS = ["checkout_start"];
 export const TRACKED_PATHS = /^\/(?:$|my(?:\/|$)|sg(?:\/|$)|harga|login|pembayaran|privasi|syarat|pengembalian-dana|blog|u\/|p\/)/;
 
 // /gabung/<kode> is a capability link: whoever holds the code can join the
-// group. /gabung pageviews are dropped by TRACKED_PATHS; this also covers the
+// group. /keluarga/<kode> (a Joyo Keluarga seat) is one too, and is cut the same way. /gabung pageviews are dropped by TRACKED_PATHS; this also covers the
 // pieces that survive (conversions fired on that page, /login?redirect=... and
 // referrers that carry it, plain or URL-encoded) by cutting the code out of
 // anything that leaves the page.
-export const INVITE_PATH = /(\/|%2F)gabung(?:\/|%2F)[A-Za-z0-9]+/gi;
+export const INVITE_PATH = /(\/|%2F)(gabung|keluarga)(?:\/|%2F)[A-Za-z0-9]+/gi;
 
 /**
  * Wraps window.fetch, the one place the tag's batches leave the page (flush,
@@ -50,6 +50,6 @@ try{batch=JSON.parse(init.body)}catch(e){return original.apply(window,arguments)
 if(!Array.isArray(batch))return original.apply(window,arguments);
 const kept=batch.filter((item)=>item&&(item.t==="c"||TRACKED.test(String(item.p==null?"":item.p))||(item.t==="e"&&FUNNEL.includes(item.n)))).map((item)=>item.t==="e"&&FUNNEL.includes(item.n)&&!TRACKED.test(String(item.p==null?"":item.p))?{t:"e",n:item.n,p:String(item.p==null?"":item.p).split(/[?#]/)[0]}:item);
 if(!kept.length)return Promise.resolve(new Response("{}",{headers:{"Content-Type":"application/json"}}));
-return original.call(window,input,Object.assign({},init,{body:JSON.stringify(kept).replace(INVITE,"$1gabung")}));
+return original.call(window,input,Object.assign({},init,{body:JSON.stringify(kept).replace(INVITE,"$1$2")}));
 };
 })();`;

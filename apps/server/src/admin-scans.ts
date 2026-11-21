@@ -1,4 +1,5 @@
 import { sql, type SQL } from "drizzle-orm";
+import { PRO_UNTIL_RAW_SQL } from "@joyorogo/api/lib/household";
 
 import { jakartaToday } from "@joyorogo/api/lib/engine";
 import { wibDayBounds } from "@joyorogo/api/lib/tiers";
@@ -28,7 +29,8 @@ export const intSql = (n: number) => sql.raw(String(Math.trunc(n)));
 /** Correlated subqueries must name the outer table: a bare column ref would resolve to the inner FROM. */
 const uid = sql.raw(`"user"."id"`);
 const tierCol = sql.raw(`"user"."tier"`);
-const founderUntilCol = sql.raw(`"user"."founder_until"`);
+// Pro until, own period or a Joyo Keluarga household's (lib/household.ts).
+const founderUntilCol = sql.raw(`(${PRO_UNTIL_RAW_SQL})`);
 
 /** Per-user scan activity as SQL fragments, all anchored to one instant. */
 export interface ScanSql {

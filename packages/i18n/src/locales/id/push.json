@@ -109,6 +109,24 @@
         "title": "{{n}} colekan dan catatan lainnya",
         "body": "Buka kotak masuk grup untuk melihatnya."
       }
+    },
+    "household": {
+      "memberJoin": {
+        "title": "{{name}} bergabung ke Joyo Keluarga",
+        "body": "Satu kursi Joyo Keluarga terpakai."
+      },
+      "memberLeave": {
+        "title": "{{name}} keluar dari Joyo Keluarga",
+        "body": "Satu kursi kembali kosong."
+      },
+      "removed": {
+        "title": "Kamu tidak lagi di Joyo Keluarga {{owner}}",
+        "body": "Pro dari Keluarga sudah berhenti. Pro milikmu sendiri, kalau ada, tetap jalan."
+      },
+      "closed": {
+        "title": "Joyo Keluarga {{owner}} ditutup",
+        "body": "Pembayarnya menghapus akun, jadi Pro dari Keluarga berhenti."
+      }
     }
   }
 }

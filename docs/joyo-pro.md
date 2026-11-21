@@ -28,10 +28,14 @@ content-type: application/json
 
 | Field | Values |
 | --- | --- |
-| `pro` | the same rule JoyoRogo applies to itself: a manual comp (`tier = 'founder'`), a paid period still running (`founder_until` > now; DOKU, Pakasir, Apple, Google Play and Polar all write it), or a server without a paywall |
+| `pro` | the same rule JoyoRogo applies to itself: a manual comp (`tier = 'founder'`), a paid period still running (`founder_until` > now; DOKU, Pakasir, Apple, Google Play and Polar all write it), a Joyo Keluarga household whose paid period runs (`proUntil`, `packages/api/src/lib/household.ts`), or a server without a paywall |
 | `until` | ISO time the paid period ends; `null` when not Pro, for a comp, or without a paywall |
-| `plan` | `"monthly"`, `"yearly"` (from the newest paid ledger row of the period), `"lifetime"` (comp tier), or `null` (not Pro, a period set by hand in the admin, no paywall) |
-| `source` | `"doku"`, `"pakasir"`, `"apple"`, `"google_play"`, `"polar"`, `"comp"`, `"no_paywall"`, or `null` when not Pro |
+| `plan` | `"monthly"`, `"yearly"` (from the newest paid ledger row of the period), `"lifetime"` (comp tier), `"keluarga"` (Pro from a Joyo Keluarga household whose period ends later than the person's own), or `null` (not Pro, a period set by hand in the admin, no paywall) |
+| `source` | `"doku"`, `"pakasir"`, `"apple"`, `"google_play"`, `"polar"`, `"comp"`, `"keluarga"`, `"no_paywall"`, or `null` when not Pro |
+
+Joyo Keluarga (`docs/pricing/joyo-keluarga.md`, behind `KELUARGA_ENABLED`): `until` is then the household's period end.
+JoyoArto should treat `"keluarga"` like any other Pro source; its `answerIsPro` reads `pro` and `until`, so it should work
+unchanged, but its copy for `source: "keluarga"` is phase 7 of the Keluarga plan.
 
 Lookup: the better-auth `account` row with `provider_id = 'google'` and `account_id = googleSub` first, then
 `user.email` (lowercased) **only if `email_verified`**. An unknown person and a free account get the same answer
