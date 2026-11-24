@@ -22,6 +22,7 @@ import { premiumUnlocked } from "./readiness-food";
 import type { StreakState } from "./streak";
 import { loadStreaks, streakPlanOf } from "./streak-store";
 import { paywallConfig } from "./tiers";
+import { PRO_UNTIL_RAW_SQL } from "./household";
 import type { PaywallEnv } from "./tiers";
 import { ZONE_GROUPS, profileInZone } from "./zone-sql";
 
@@ -358,7 +359,7 @@ async function runSlot(
         tier: "free" | "founder";
         founderUntil: number | null;
       }>(sql`
-        SELECT profile.user_id AS id, "user".tier AS tier, "user".founder_until AS founderUntil
+        SELECT profile.user_id AS id, "user".tier AS tier, ${sql.raw(PRO_UNTIL_RAW_SQL)} AS founderUntil
         FROM profile JOIN "user" ON "user".id = profile.user_id
         WHERE ${reachable} AND ${profileInZone(zone)} AND ${prefOn("recap")} AND ${notYetSent(`plan:${today}`)}
           AND EXISTS (SELECT 1 FROM meal_plan mp WHERE mp.user_id = profile.user_id

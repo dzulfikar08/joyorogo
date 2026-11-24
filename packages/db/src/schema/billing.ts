@@ -44,6 +44,9 @@ export const payment = sqliteTable(
     // Where a web checkout was started from when it was not JoyoRogo itself: "joyoarto" (the Upgrade link in
     // JoyoArto). Null = JoyoRogo/JoyoFit, the native stores and every order before migration 0075.
     source: text("source"),
+    // What the order buys: null = Joyo Pro (every row before migration 0076), "keluarga" = Joyo Keluarga, whose months
+    // go to the payer's household.paid_until instead of user.founder_until.
+    product: text("product", { enum: ["keluarga"] }),
     // Founder period end this payment produced (set on the paid flip).
     founderUntil: integer("founder_until", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
@@ -65,6 +68,8 @@ export const payment = sqliteTable(
  * `testflight_notice` (ref = userId) is the once-per-user mail after a TestFlight (Sandbox) purchase.
  * `lifecycle_activate_1` / `lifecycle_activate_2` (ref = userId) nudge accounts that never logged a meal;
  * `lifecycle_winback` (ref = "<userId>:<lastActiveMs>") is one mail per lapse (apps/server/src/lifecycle-email.ts).
+ * Joyo Keluarga (apps/server/src/email.ts `runKeluargaEmails`): `keluarga_ending` (ref = "<householdId>:<paidUntilMs>")
+ * is the owner's reminder once per period; `keluarga_removed` (ref = the household_event id) once per removal.
  */
 export type EmailLogKind =
   | "receipt"
@@ -76,6 +81,8 @@ export type EmailLogKind =
   | "lifecycle_activate_1"
   | "lifecycle_activate_2"
   | "lifecycle_winback"
+  | "keluarga_ending"
+  | "keluarga_removed"
   | `broadcast:${string}`
   | `broadcast_test:${string}`;
 

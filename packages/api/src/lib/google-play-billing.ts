@@ -12,6 +12,7 @@ import {
   VOIDED_PRODUCT_TYPE_SUBSCRIPTION,
   googleFounderGrant,
   googlePlanFor,
+  googleProductKind,
 } from "./google-play";
 import type {
   GoogleNotification,
@@ -19,6 +20,8 @@ import type {
   GooglePlayConfig,
   GoogleSubscription,
 } from "./google-play";
+import { keluargaAmountIdr, ledgerProduct, periodTarget } from "./household";
+import type { PaidProduct } from "./household";
 import { addMonths, planMonths } from "./tiers";
 import type { FounderPlan } from "./tiers";
 
@@ -35,7 +38,7 @@ export type GoogleBillingDeps = {
   /** The Android Publisher client of an enabled package; null for any other package. */
   clientFor: (packageName: string) => GooglePlayClient | null;
   config: Pick<GooglePlayConfig, "testEmails">;
-  /** Plan prices in IDR for orders Play does not bill in IDR. */
+  /** Pro plan prices in IDR for orders Play does not bill in IDR (Keluarga: 2x). */
   fallbackPriceIdr: Record<FounderPlan, number>;
   now?: () => Date;
   /** Queues the ledger event for RevKlik after a paid flip or a refund. */
@@ -59,9 +62,9 @@ type CreditResult =
   | { outcome: "already" | "refunded" | "no-user" | "busy" };
 
 /**
- * Credits one charged Play order to the user's Founder period, in one D1
- * batch: the pending ledger row, the paid flip, and the user update. The flip
- * lands only while founder_until still holds the value we extended from, so a
+ * Credits one charged Play order to the user's Founder period (a `keluarga` order: the household the buyer owns,
+ * made on first payment), in one D1 batch: the pending ledger row, the paid flip, and the period update. The flip
+ * lands only while the period still holds the value we extended from, so a
  * replayed token or two concurrent syncs extend exactly once. A row that was
  * refunded ("failed") is never credited again.
  */
@@ -73,6 +76,7 @@ async function creditOrder(
     email: string;
     sub: GoogleSubscription;
     plan: FounderPlan;
+    product: PaidProduct;
   },
 ): Promise<CreditResult> {
   const { db } = deps;
@@ -89,22 +93,19 @@ async function creditOrder(
     if (existing?.status === "paid") return { outcome: "already" };
     if (existing?.status === "failed") return { outcome: "refunded" };
 
-    const [owner] = await db
-      .select({ founderUntil: user.founderUntil })
-      .from(user)
-      .where(eq(user.id, input.userId))
-      .limit(1);
-    if (!owner) return { outcome: "no-user" };
+    const target = await periodTarget(db, input.userId, input.product, { create: true });
+    if (!target) return { outcome: "no-user" };
 
     const now = deps.now?.() ?? new Date();
-    const previousMs = owner.founderUntil?.getTime() ?? null;
+    const previousMs = target.current?.getTime() ?? null;
+    const fallbackIdr = deps.fallbackPriceIdr[input.plan];
     const { until, amountIdr } = googleFounderGrant({
       test: input.sub.test,
       buyerEmail: input.email,
       testEmails: deps.config.testEmails,
       months,
-      priceIdr: input.sub.priceIdr ?? deps.fallbackPriceIdr[input.plan],
-      current: owner.founderUntil,
+      priceIdr: input.sub.priceIdr ?? (input.product === "keluarga" ? keluargaAmountIdr(fallbackIdr) : fallbackIdr),
+      current: target.current,
       now,
       freeTrial: input.sub.freeTrial,
       expiresAt: input.sub.expiresAt,
@@ -113,28 +114,24 @@ async function creditOrder(
     const [, flipped] = await db.batch([
       db
         .insert(payment)
-        .values({ orderId: ledgerId, userId: input.userId, amountIdr, months, isTest: input.sub.test ? 1 : 0 })
+        .values({
+          orderId: ledgerId,
+          userId: input.userId,
+          amountIdr,
+          months,
+          isTest: input.sub.test ? 1 : 0,
+          product: ledgerProduct(input.product),
+        })
         .onConflictDoNothing(),
       db
         .update(payment)
         .set({ status: "paid", paidAt: now, founderUntil: until })
-        .where(
-          and(
-            eq(payment.orderId, ledgerId),
-            eq(payment.status, "pending"),
-            sql`(select ${user.founderUntil} from ${user} where ${user.id} = ${input.userId}) is ${previousMs}`,
-          ),
-        )
+        .where(and(eq(payment.orderId, ledgerId), eq(payment.status, "pending"), target.holds(previousMs)))
         .returning({ orderId: payment.orderId }),
-      db
-        .update(user)
-        .set({ founderUntil: until })
-        .where(
-          and(
-            eq(user.id, input.userId),
-            sql`exists (select 1 from ${payment} where ${payment.orderId} = ${ledgerId} and ${payment.status} = 'paid' and ${payment.paidAt} = ${now.getTime()})`,
-          ),
-        ),
+      target.write(
+        until,
+        sql`exists (select 1 from ${payment} where ${payment.orderId} = ${ledgerId} and ${payment.status} = 'paid' and ${payment.paidAt} = ${now.getTime()})`,
+      ),
     ]);
     if (flipped.length === 1) {
       await notifyLedger(deps.onLedger, ledgerId, "paid");
@@ -145,13 +142,9 @@ async function creditOrder(
   return { outcome: "busy" };
 }
 
-async function founderUntilOf(db: Database, userId: string): Promise<Date | null> {
-  const [row] = await db
-    .select({ founderUntil: user.founderUntil })
-    .from(user)
-    .where(eq(user.id, userId))
-    .limit(1);
-  return row?.founderUntil ?? null;
+/** The period a product's purchase extends: the buyer's own Pro, or the household they own. */
+async function periodOf(db: Database, userId: string, product: PaidProduct): Promise<Date | null> {
+  return (await periodTarget(db, userId, product, { create: false }))?.current ?? null;
 }
 
 /**
@@ -162,7 +155,7 @@ async function founderUntilOf(db: Database, userId: string): Promise<Date | null
  */
 async function applySubscription(
   deps: GoogleBillingDeps,
-  link: { purchaseToken: string; userId: string },
+  link: { purchaseToken: string; userId: string; packageName: string },
   client: GooglePlayClient,
   sub: GoogleSubscription,
   plan: FounderPlan,
@@ -202,6 +195,7 @@ async function applySubscription(
     email: owner.email,
     sub,
     plan,
+    product: googleProductKind(link.packageName, sub.productId),
   });
   if (credit.outcome === "no-user") return { ok: false, error: "no-user" };
   if (credit.outcome === "busy") return { ok: false, error: "busy" };
@@ -225,7 +219,7 @@ async function applySubscription(
   return {
     ok: true,
     status: "already",
-    founderUntil: await founderUntilOf(deps.db, link.userId),
+    founderUntil: await periodOf(deps.db, link.userId, googleProductKind(link.packageName, sub.productId)),
     orderId: sub.orderId,
   };
 }
@@ -287,7 +281,7 @@ export async function verifyGooglePurchase(
 
   return applySubscription(
     deps,
-    { purchaseToken: input.purchaseToken, userId: input.userId },
+    { purchaseToken: input.purchaseToken, userId: input.userId, packageName: input.packageName },
     client,
     sub,
     plan,
@@ -318,42 +312,28 @@ export async function revokeGoogleOrder(
         months: payment.months,
         amountIdr: payment.amountIdr,
         status: payment.status,
+        product: payment.product,
       })
       .from(payment)
       .where(eq(payment.orderId, ledgerId))
       .limit(1);
     if (!row || row.status !== "paid" || row.amountIdr === 0) return "none";
 
-    const [owner] = await db
-      .select({ founderUntil: user.founderUntil })
-      .from(user)
-      .where(eq(user.id, row.userId))
-      .limit(1);
-    const previousMs = owner?.founderUntil?.getTime() ?? null;
-    const reduced = owner?.founderUntil ? addMonths(owner.founderUntil, -row.months) : null;
+    // A Keluarga order's months come off the household the buyer owns; a household deleted since has nothing left.
+    const target = await periodTarget(db, row.userId, row.product === "keluarga" ? "keluarga" : "pro", { create: false });
+    const previousMs = target?.current?.getTime() ?? null;
+    const reduced = target?.current ? addMonths(target.current, -row.months) : null;
+    const failedNow = sql`exists (select 1 from ${payment} where ${payment.orderId} = ${ledgerId} and ${payment.status} = 'failed')`;
 
     const [flipped] = await db.batch([
       db
         .update(payment)
         .set({ status: "failed" })
         .where(
-          and(
-            eq(payment.orderId, ledgerId),
-            eq(payment.status, "paid"),
-            sql`(select ${user.founderUntil} from ${user} where ${user.id} = ${row.userId}) is ${previousMs}`,
-          ),
+          and(eq(payment.orderId, ledgerId), eq(payment.status, "paid"), ...(target ? [target.holds(previousMs)] : [])),
         )
         .returning({ orderId: payment.orderId }),
-      db
-        .update(user)
-        .set({ founderUntil: reduced })
-        .where(
-          and(
-            eq(user.id, row.userId),
-            sql`${user.founderUntil} is ${previousMs}`,
-            sql`exists (select 1 from ${payment} where ${payment.orderId} = ${ledgerId} and ${payment.status} = 'failed')`,
-          ),
-        ),
+      ...(target ? [target.write(reduced, and(target.holds(previousMs), failedNow)!)] : []),
     ]);
     if (flipped.length === 1) {
       await notifyLedger(deps.onLedger, ledgerId, "refund");
@@ -407,7 +387,7 @@ export async function handleGoogleNotification(
     await revokeGoogleOrder(deps, sub.orderId);
     return { kind: "revoked", granted: null };
   }
-  const result = await applySubscription(deps, link, client, sub, plan);
+  const result = await applySubscription(deps, { ...link, packageName }, client, sub, plan);
   // A concurrent credit still settling: let Pub/Sub redeliver.
   if (!result.ok && result.error === "busy") throw new Error("google credit busy");
   const granted =

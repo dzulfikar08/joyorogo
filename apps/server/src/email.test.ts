@@ -23,6 +23,8 @@ describe("founderEmailsDue", () => {
     const db = new Database(":memory:");
     db.run('create table "user" (id text primary key, tier text not null, founder_until integer)');
     db.run("create table google_purchase (purchase_token text primary key, user_id text not null, state text not null)");
+    db.run("create table household (id text primary key, owner_id text not null, paid_until integer)");
+    db.run("create table household_member (household_id text not null, user_id text not null, role text not null)");
     const rows: [string, string, number | null][] = [
       ["ending", "free", NOW + DAY],
       ["edge-3d", "free", NOW + 3 * DAY],

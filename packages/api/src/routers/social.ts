@@ -52,6 +52,7 @@ import { publicBadges } from "./badge";
 import { premiumUnlocked } from "../lib/readiness-food";
 import { paywallConfig } from "../lib/tiers";
 import { userZone } from "../lib/user-zone";
+import { proUntil } from "../lib/household";
 import {
   buildFeedMapLine,
   feedMapPoints,
@@ -1106,7 +1107,7 @@ export const socialRouter = {
       let analysis = parseStoredAnalysis(detail.analysisJson);
       if (post.userId !== me) {
         const [viewer] = await db
-          .select({ tier: user.tier, founderUntil: user.founderUntil })
+          .select({ tier: user.tier, founderUntil: proUntil })
           .from(user)
           .where(eq(user.id, me))
           .limit(1);

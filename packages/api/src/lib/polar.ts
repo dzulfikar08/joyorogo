@@ -2,6 +2,7 @@
 // Checkout session + customer portal over the REST API, and Standard Webhooks
 // signature verification. No SDK: three calls and one HMAC.
 
+import type { PaidProduct } from "./household";
 import type { FounderPlan } from "./tiers";
 
 export const WEBHOOK_PATH = "/api/billing/polar/webhook";
@@ -32,6 +33,15 @@ export type PolarEnv = {
   /** Singapore dollar prices in cents, same rule as MYR: both or neither, only after the SGD prices exist on the two Polar products. */
   POLAR_PRICE_MONTHLY_SGD_CENTS?: string;
   POLAR_PRICE_YEARLY_SGD_CENTS?: string;
+  /**
+   * Joyo Keluarga products (docs/pricing/joyo-keluarga.md 4.2). Both ids or neither: empty = Keluarga is not sold by
+   * card. Their orders credit the payer's household instead of their own Pro period.
+   */
+  POLAR_PRODUCT_KELUARGA_MONTHLY_ID?: string;
+  POLAR_PRODUCT_KELUARGA_YEARLY_ID?: string;
+  /** Displayed Keluarga prices in US cents; default 2x the Pro price (keep equal to the Polar products' prices). */
+  POLAR_PRICE_KELUARGA_MONTHLY_USD_CENTS?: string;
+  POLAR_PRICE_KELUARGA_YEARLY_USD_CENTS?: string;
 };
 
 export type PolarConfig = {
@@ -44,6 +54,8 @@ export type PolarConfig = {
   priceMyrSen?: Record<FounderPlan, number> | null;
   /** Advertised SGD prices in cents; null = none (both env vars must be set). */
   priceSgdCents?: Record<FounderPlan, number> | null;
+  /** Joyo Keluarga products and displayed USD prices; null = not sold by card (both ids must be set). */
+  keluarga?: { productIds: Record<FounderPlan, string>; priceUsdCents: Record<FounderPlan, number> } | null;
 };
 
 function cents(name: string, raw: string | undefined, fallback: number): number {
@@ -83,26 +95,57 @@ export function polarConfig(env: PolarEnv): PolarConfig | null {
   const monthly = env.POLAR_PRODUCT_MONTHLY_ID?.trim();
   const yearly = env.POLAR_PRODUCT_YEARLY_ID?.trim();
   if (!accessToken || !webhookSecret || !monthly || !yearly) return null;
+  const priceUsdCents = {
+    monthly: cents("POLAR_PRICE_MONTHLY_USD_CENTS", env.POLAR_PRICE_MONTHLY_USD_CENTS, DEFAULT_MONTHLY_USD_CENTS),
+    yearly: cents("POLAR_PRICE_YEARLY_USD_CENTS", env.POLAR_PRICE_YEARLY_USD_CENTS, DEFAULT_YEARLY_USD_CENTS),
+  };
   return {
     accessToken,
     webhookSecret,
     baseUrl: env.POLAR_SERVER?.trim() === "sandbox" ? POLAR_SANDBOX_URL : POLAR_PRODUCTION_URL,
     productIds: { monthly, yearly },
-    priceUsdCents: {
-      monthly: cents("POLAR_PRICE_MONTHLY_USD_CENTS", env.POLAR_PRICE_MONTHLY_USD_CENTS, DEFAULT_MONTHLY_USD_CENTS),
-      yearly: cents("POLAR_PRICE_YEARLY_USD_CENTS", env.POLAR_PRICE_YEARLY_USD_CENTS, DEFAULT_YEARLY_USD_CENTS),
-    },
+    priceUsdCents,
     priceMyrSen: myrPrices(env),
     priceSgdCents: sgdPrices(env),
+    keluarga: keluargaProducts(env, priceUsdCents),
   };
 }
 
-/** Which plan a Polar product sells; null = not a Joyo Pro product (the org may sell other apps). */
-export function polarProductPlan(config: Pick<PolarConfig, "productIds">, productId: string | null | undefined): FounderPlan | null {
+/** Both Keluarga product ids or neither; prices default to 2x Pro's (decision C: Keluarga is 2x the Pro step). */
+function keluargaProducts(env: PolarEnv, pro: Record<FounderPlan, number>): PolarConfig["keluarga"] {
+  const monthly = env.POLAR_PRODUCT_KELUARGA_MONTHLY_ID?.trim();
+  const yearly = env.POLAR_PRODUCT_KELUARGA_YEARLY_ID?.trim();
+  if (!monthly || !yearly) return null;
+  return {
+    productIds: { monthly, yearly },
+    priceUsdCents: {
+      monthly: cents("POLAR_PRICE_KELUARGA_MONTHLY_USD_CENTS", env.POLAR_PRICE_KELUARGA_MONTHLY_USD_CENTS, pro.monthly * 2),
+      yearly: cents("POLAR_PRICE_KELUARGA_YEARLY_USD_CENTS", env.POLAR_PRICE_KELUARGA_YEARLY_USD_CENTS, pro.yearly * 2),
+    },
+  };
+}
+
+/** Which product and plan a Polar product sells; null = neither Joyo Pro nor Joyo Keluarga (the org sells other apps). */
+export function polarProduct(
+  config: Pick<PolarConfig, "productIds" | "keluarga">,
+  productId: string | null | undefined,
+): { product: PaidProduct; plan: FounderPlan } | null {
   if (!productId) return null;
-  if (productId === config.productIds.monthly) return "monthly";
-  if (productId === config.productIds.yearly) return "yearly";
+  if (productId === config.productIds.monthly) return { product: "pro", plan: "monthly" };
+  if (productId === config.productIds.yearly) return { product: "pro", plan: "yearly" };
+  if (config.keluarga) {
+    if (productId === config.keluarga.productIds.monthly) return { product: "keluarga", plan: "monthly" };
+    if (productId === config.keluarga.productIds.yearly) return { product: "keluarga", plan: "yearly" };
+  }
   return null;
+}
+
+/** Which plan a Polar product sells (Pro or Keluarga); null = not ours. */
+export function polarProductPlan(
+  config: Pick<PolarConfig, "productIds" | "keluarga">,
+  productId: string | null | undefined,
+): FounderPlan | null {
+  return polarProduct(config, productId)?.plan ?? null;
 }
 
 /** Order id of a Polar order in the shared payment ledger. */
@@ -204,6 +247,8 @@ export async function createCheckout(
   config: PolarConfig,
   params: {
     plan: FounderPlan;
+    /** "keluarga" sells the Joyo Keluarga product of that plan; the caller checks it is configured. */
+    product?: PaidProduct;
     userId: string;
     email: string;
     name: string;
@@ -221,7 +266,11 @@ export async function createCheckout(
   },
 ): Promise<{ url: string }> {
   const checkout = await call<{ url?: unknown }>(config, "/v1/checkouts/", {
-    products: [config.productIds[params.plan]],
+    products: [
+      params.product === "keluarga" && config.keluarga
+        ? config.keluarga.productIds[params.plan]
+        : config.productIds[params.plan],
+    ],
     external_customer_id: params.userId,
     customer_email: params.email,
     customer_name: params.name,
@@ -233,6 +282,7 @@ export async function createCheckout(
       app: "joyorogo",
       user_id: params.userId,
       plan: params.plan,
+      ...(params.product === "keluarga" ? { product: "keluarga" } : {}),
       ...(params.source ? { source: params.source } : {}),
       ...(params.revklik?.visitorId ? { revklik_vid: params.revklik.visitorId } : {}),
       ...(params.revklik?.sessionId ? { revklik_sid: params.revklik.sessionId } : {}),

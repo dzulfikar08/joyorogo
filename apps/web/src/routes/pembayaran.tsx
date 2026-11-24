@@ -32,6 +32,7 @@ const POLL_WINDOW_MS = 3 * 60 * 1000;
 
 function PembayaranPage() {
   const { t } = useTranslation("billing");
+  const { t: tk } = useTranslation("keluarga");
   const { order, from } = Route.useSearch();
   const queryClient = useQueryClient();
   const checkout = useCheckoutPicker("monthly", from);
@@ -70,8 +71,12 @@ function PembayaranPage() {
     const key = `jrg-kp-paid-${order}`;
     if (localStorage.getItem(key)) return;
     localStorage.setItem(key, "1");
-    trackConversion("founder_purchase", { order, ...fromProps() });
-  }, [paid, order, queryClient]);
+    trackConversion("founder_purchase", {
+      order,
+      ...(status.data?.product === "keluarga" ? { plan: "keluarga" } : {}),
+      ...fromProps(),
+    });
+  }, [paid, order, queryClient, status.data?.product]);
 
   let body: React.ReactNode;
   if (!order) {
@@ -105,6 +110,20 @@ function PembayaranPage() {
             <Button render={<Link to="/login" />}>{t("order.error.signIn")}</Button>
           </div>
         }
+      />
+    );
+  } else if (status.data.status === "paid" && status.data.product === "keluarga") {
+    body = (
+      <State
+        icon={<CircleCheck className="size-7 text-primary" aria-hidden />}
+        title={tk("paid.title")}
+        text={[
+          status.data.founderUntil ? t("order.paid.until", { date: fmtFounderDate(status.data.founderUntil) }) : "",
+          tk("paid.body"),
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        action={<Button render={<Link to="/profil/langganan" />}>{tk("paid.cta")}</Button>}
       />
     );
   } else if (status.data.status === "paid") {

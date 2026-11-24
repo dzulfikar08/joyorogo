@@ -12,6 +12,7 @@ import { jakartaToday } from "./engine";
 import { serverT } from "./messages";
 import { dailyScanQuota, effectiveTier, paywallConfig, scansUsedToday } from "./tiers";
 import type { PaywallEnv } from "./tiers";
+import { proUntil } from "./household";
 
 export type QuotaEnv = PaywallEnv & { AI?: AiBinding };
 
@@ -46,7 +47,7 @@ export async function requireAiQuota(
     db
       .select({
         tier: user.tier,
-        founderUntil: user.founderUntil,
+        founderUntil: proUntil,
         aiUnlimited: user.aiUnlimited,
       })
       .from(user)

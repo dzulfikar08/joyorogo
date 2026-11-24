@@ -118,6 +118,18 @@ describe("Revklik guard", () => {
     expect(out).toContain("/gabung?utm_source=app-share");
   });
 
+  test("cuts Joyo Keluarga invite codes too", async () => {
+    const { track, leftWith } = page();
+    await track([
+      { t: "c", n: "google_signin", p: "/keluarga/RUMAH234" },
+      { t: "p", p: "/login", pr: { href: "https://joyorogo.com/login?redirect=%2Fkeluarga%2FRUMAH234" } },
+    ]);
+    const out = JSON.stringify(leftWith());
+    expect(out).not.toContain("RUMAH234");
+    expect(out).toContain('"/keluarga"');
+    expect(out).toContain("redirect=%2Fkeluarga");
+  });
+
   test("leaves other paths alone", async () => {
     const { track, leftWith } = page();
     const batch = [

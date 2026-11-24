@@ -19,3 +19,4 @@ export * from "./sleep-insights";
 export * from "./dishware";
 export * from "./threads";
 export * from "./badges";
+export * from "./household";

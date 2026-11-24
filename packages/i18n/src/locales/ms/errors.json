@@ -61,7 +61,8 @@
     "orderNotFound": "Pesanan tidak ditemui.",
     "googleUnavailable": "Pembayaran Google Play tidak tersedia pada pelayan ini.",
     "googleUnreachable": "Google Play belum dapat dihubungi. Cuba lagi sebentar.",
-    "googleLinkedOtherAccount": "Langganan Google Play ini sudah dipautkan ke akaun JoyoRogo lain."
+    "googleLinkedOtherAccount": "Langganan Google Play ini sudah dipautkan ke akaun JoyoRogo lain.",
+    "keluargaMemberElsewhere": "Anda sedang menggunakan Joyo Keluarga orang lain. Keluar dahulu di Profil > Langganan."
   },
   "misc": {
     "avatar": {

@@ -4,6 +4,7 @@ import type { Locale, Region } from "@joyorogo/i18n";
 import type { RateLimitBinding } from "./lib/group-preview";
 import type { ImagesBinding, StickersBucket } from "./lib/sticker";
 import type { ShadowEnv } from "./lib/shadow-scan";
+import type { KeluargaEnv } from "./lib/household";
 import type { PaywallEnv } from "./lib/tiers";
 
 /** Minimal Workers AI surface — keeps this package usable outside Workers. */
@@ -12,7 +13,7 @@ export type AiBinding = {
 };
 
 /** Worker bindings the API layer may read. All optional: features degrade loudly. */
-export type ApiEnv = PaywallEnv & ShadowEnv & {
+export type ApiEnv = PaywallEnv & ShadowEnv & KeluargaEnv & {
   AI?: AiBinding;
   /** Cloudflare AI Gateway every model call of a request goes through (lib/ai-gateway.ts); unset = straight to Workers AI. */
   AI_GATEWAY_ID?: string;

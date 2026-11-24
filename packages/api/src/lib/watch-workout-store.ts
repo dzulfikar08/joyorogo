@@ -16,6 +16,7 @@ import type { StickersBucket } from "./sticker";
 import { premiumUnlocked } from "./readiness-food";
 import { paywallConfig } from "./tiers";
 import type { PaywallEnv } from "./tiers";
+import { proUntil } from "./household";
 import {
   WATCH_WORKOUT_LIMITS,
   WatchWorkoutDocError,
@@ -96,7 +97,7 @@ export function toListItem(row: WatchWorkoutRow): WatchWorkoutListItem {
 /** Same rule as `fitness.cloudAccess`: Pro, or any account on a server without a paywall. */
 export async function cloudUnlocked(db: Database, env: PaywallEnv, userId: string): Promise<boolean> {
   const [row] = await db
-    .select({ tier: user.tier, founderUntil: user.founderUntil })
+    .select({ tier: user.tier, founderUntil: proUntil })
     .from(user)
     .where(eq(user.id, userId))
     .limit(1);

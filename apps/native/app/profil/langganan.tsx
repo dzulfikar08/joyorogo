@@ -5,12 +5,16 @@ import { StyleSheet } from "react-native-unistyles";
 
 import { FounderCards, useAppConfig } from "@/components/billing";
 import { ProfilDataPage, type ProfileData } from "@/components/profil/page";
+import { KeluargaCard } from "@/components/profil/keluarga-card";
 import { PrioritySupportCard } from "@/components/profil/priority-support";
 import { usePlanStatus } from "@/components/profil/status";
 import { Card, ErrorState, Skeleton, Text } from "@/components/ui";
 import { errorMessage } from "@/utils/format";
 
-/** Langganan: free scan quota and Pro (FounderCards); a status card when there is nothing to buy. */
+/**
+ * Langganan: free scan quota and Pro (FounderCards); a status card when there is nothing to buy; Joyo Keluarga (owner
+ * or member card, hidden while the server has the plan off).
+ */
 export default function Langganan() {
   const { t } = useTranslation("settings");
   return (
@@ -38,6 +42,7 @@ function LanggananContent({ profile }: { profile: ProfileData }) {
           <Text style={styles.status}>{status.text}</Text>
         </Card>
       ) : null}
+      <KeluargaCard ownUntil={profile.founderUntil ?? null} />
       {profile.tier === "founder" ? <PrioritySupportCard /> : null}
     </>
   );

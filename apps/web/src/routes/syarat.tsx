@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 
 import { LegalList, LegalPage, LegalSection } from "@/components/legal-page";
+import { useAppConfig } from "@/lib/app-config";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/syarat")({
@@ -64,6 +65,8 @@ function SyaratPage() {
         </p>
       </LegalSection>
 
+      <JoyoKeluargaTerms />
+
       <LegalSection title="Pembelian lewat App Store dan Google Play">
         <p>
           Di aplikasi, Pro adalah langganan otomatis yang ditagih, diperpanjang, dan dibatalkan
@@ -117,5 +120,30 @@ function SyaratPage() {
         JoyoRogo · dibuat di Malang, Indonesia
       </p>
     </LegalPage>
+  );
+}
+
+/** Joyo Keluarga seat rules; shown only while the server sells the plan (KELUARGA_ENABLED). */
+function JoyoKeluargaTerms() {
+  const config = useAppConfig();
+  const keluarga = config.data?.keluarga;
+  if (!keluarga) return null;
+  return (
+    <LegalSection title="Joyo Keluarga" id="joyo-keluarga">
+      <p>
+        Joyo Keluarga adalah paket Pro untuk sampai {keluarga.seats} akun JoyoRogo dalam satu rumah, termasuk
+        pembayarnya. Satu orang membayar, lalu mengundang anggota.
+      </p>
+      <LegalList
+        items={[
+          "Pembayar: membayar paket dan mengatur kursi. Selama keluarga ada, pembayar tidak bisa keluar; ia bisa menghapus anggota atau membiarkan masa aktif habis.",
+          "Undangan: tiap tautan hanya bisa dipakai sekali dan berlaku 7 hari. Undangan yang menunggu ikut memakai kursi. Satu akun hanya bisa berada di satu keluarga.",
+          "Anggota: mendapat Pro di akunnya sendiri selama masa aktif keluarga berjalan, bisa keluar kapan saja, dan Pro dari Keluarga berhenti saat itu juga. Pro yang dibayar anggota sendiri tidak terpengaruh.",
+          "Masa aktif: kalau pembayar berhenti membayar, Pro dari Keluarga berhenti untuk semua anggota saat masa aktifnya habis. Di web (QRIS/transfer) paket ini tidak diperpanjang otomatis.",
+          "Harga: dua kali harga Pro yang berlaku untukmu. Sisa masa Pro milikmu sendiri tidak dipindah ke Keluarga dan tidak dikembalikan; Pro-mu tetap berjalan sampai habis.",
+          "Batas pergantian: satu keluarga bisa menerima paling banyak 8 anggota baru dalam 12 bulan di luar pengisian pertama. Kursi tidak boleh dijual atau dibagikan ke orang di luar rumah.",
+        ]}
+      />
+    </LegalSection>
   );
 }

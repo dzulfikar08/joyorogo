@@ -9,7 +9,8 @@ export type PaywallFrom =
   | "joyofit"
   | "joyoarto";
 
-export type PaywallSearch = { next?: string; from?: PaywallFrom; polar?: "success" };
+/** `plan=keluarga` preselects Joyo Keluarga on the paywall (links from the Keluarga screen and /harga). */
+export type PaywallSearch = { next?: string; from?: PaywallFrom; polar?: "success"; plan?: "keluarga" };
 
 /** Where a new account lands after onboarding and the skippable Pro offer: the first photo scan (first success), not the home screen. */
 export const ONBOARDING_NEXT = "/makan/ai";
@@ -27,5 +28,6 @@ export function validatePaywallSearch(search: Record<string, unknown>): PaywallS
       (value) => search.from === value,
     ),
     polar: search.polar === "success" ? ("success" as const) : undefined,
+    plan: search.plan === "keluarga" ? ("keluarga" as const) : undefined,
   };
 }
