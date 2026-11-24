@@ -22,7 +22,7 @@ import {
   View,
 } from "react-native";
 import type { StyleProp, TextStyle, ViewStyle } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
@@ -102,6 +102,8 @@ import { MacroLine } from "@/components/macro-line";
 import { MetaLine } from "@/components/meta-line";
 import { ContextualTip } from "@/components/tips/contextual-tip";
 import { FoodSafetyNotes } from "@/components/maternal/flag-notes";
+import { ContextType } from "@/components/scan/context-type";
+import { DescribePhoto } from "@/components/scan/describe-photo";
 import { CorrectBox } from "@/components/scan/correct-box";
 import { CupChoices } from "@/components/scan/cup-choices";
 import { BoneChips, PieceCountChip } from "@/components/scan/piece-chips";
@@ -493,11 +495,19 @@ function AnalyzingOverlay({
   rows,
   onCancel,
   mic,
+  typed,
+  applying,
+  described,
 }: {
   previewUri: string;
   rows: LiveRow[];
+  /** "Tulis keterangan" sent with this photo; shown so the user sees the scan has it. */
+  described: string;
+  /** The scan is done and the user's words are being applied: the first answer's rows stay hidden. */
+  applying: boolean;
   onCancel: () => void;
   mic: React.ReactNode;
+  typed: React.ReactNode;
 }) {
   const { t } = useTranslation("scan");
   const [stage, setStage] = useState(0);
@@ -514,13 +524,25 @@ function AnalyzingOverlay({
       style={styles.analyzingOverlay}
     >
       <Image source={{ uri: previewUri }} style={styles.analyzingPreview} resizeMode="cover" />
-      <View style={styles.analyzingShade}>
+      <KeyboardAvoidingView behavior="padding" style={styles.analyzingShade}>
         <ActivityIndicator size="large" color="#FFFFFF" />
         <Text accessibilityLiveRegion="polite" style={styles.analyzingText}>
-          {t(`analyzing.stage.${ANALYZE_STAGES[stage]}`)}
+          {applying ? t("analyzing.contextApplying") : t(`analyzing.stage.${ANALYZE_STAGES[stage]}`)}
         </Text>
-        <LiveRows rows={rows} />
-        <View style={styles.analyzingMic}>{mic}</View>
+        {described && !applying ? (
+          <Text style={styles.analyzingDescribed} numberOfLines={2}>
+            {t("describe.sent", { text: described })}
+          </Text>
+        ) : null}
+        {applying ? null : (
+          <>
+            <LiveRows rows={rows} />
+            <View style={styles.analyzingMic}>
+              {mic}
+              {typed}
+            </View>
+          </>
+        )}
         <PressableScale
           accessibilityRole="button"
           accessibilityLabel={t("analyzing.cancelLabel")}
@@ -531,7 +553,7 @@ function AnalyzingOverlay({
         >
           <Text style={styles.analyzingCancelText}>{t("analyzing.cancel")}</Text>
         </PressableScale>
-      </View>
+      </KeyboardAvoidingView>
     </Reanimated.View>
   );
 }
@@ -584,6 +606,9 @@ export default function MakanAi() {
   const [analyzing, setAnalyzing] = useState(false);
   const [flashTick, setFlashTick] = useState(0);
   const [liveRows, setLiveRows] = useState<LiveRow[]>([]);
+  // "Tulis keterangan": the user's words about the next photo, sent with it as the scan's hint. Kept across a cancel
+  // or a failed scan (the same food is usually shot again), cleared once a scan with it answered.
+  const [describe, setDescribe] = useState("");
   const scanRunRef = useRef(0);
   // Context spoken while the photo is analyzed: queued here (ref for the async scan code, state for the screen),
   // run as a correction once the rows arrive, or as the hint of one automatic "Hitung ulang" when the scan fails.
@@ -591,7 +616,8 @@ export default function MakanAi() {
   const queuedRef = useRef<CorrectInput | null>(null);
   const analyzingRef = useRef(false);
   analyzingRef.current = analyzing;
-  const contextActiveRef = useRef(false);
+  // A take being spoken or a line being typed on the analyzing screen: the result waits until neither is.
+  const contextActiveRef = useRef({ voice: false, typing: false });
   const contextIdleRef = useRef<Array<() => void>>([]);
   const [applyContext, setApplyContext] = useState<CorrectInput | null>(null);
   const [contextRun, setContextRun] = useState<
@@ -612,13 +638,16 @@ export default function MakanAi() {
     setQueuedContext(input);
     return null;
   };
-  const markContextActive = useRef((active: boolean) => {
-    contextActiveRef.current = active;
-    if (!active) contextIdleRef.current.splice(0).forEach((resolve) => resolve());
+  const markContextActive = useRef((source: "voice" | "typing", active: boolean) => {
+    contextActiveRef.current[source] = active;
+    const { voice, typing } = contextActiveRef.current;
+    if (!voice && !typing) contextIdleRef.current.splice(0).forEach((resolve) => resolve());
   }).current;
-  /** A take still being spoken or read when the rows arrive: the mic stays on screen until it is queued. */
+  const markVoiceActive = useRef((active: boolean) => markContextActive("voice", active)).current;
+  const markTypingActive = useRef((active: boolean) => markContextActive("typing", active)).current;
+  /** A take still being spoken or a line still being typed when the rows arrive: the overlay stays until it is queued. */
   const waitContextIdle = () =>
-    contextActiveRef.current
+    contextActiveRef.current.voice || contextActiveRef.current.typing
       ? new Promise<void>((resolve) => contextIdleRef.current.push(resolve))
       : Promise.resolve();
   const scanAbortRef = useRef<AbortController | null>(null);
@@ -739,20 +768,30 @@ export default function MakanAi() {
     };
   }, [plateScanId]);
 
-  // The context spoken while the photo was analyzed runs as a normal correction once its rows are on screen.
+  // The context given while the photo was analyzed runs as a normal correction as soon as the first answer's rows are
+  // in state (set in the same commit as applyContext), behind the analyzing overlay; the result screen opens once it
+  // settles. A correction that fails opens the first answer with the error line.
   useEffect(() => {
-    if (!applyContext || phase !== "confirm") return;
+    if (!applyContext) return;
+    const scanRun = scanRunRef.current;
     setApplyContext(null);
     setContextRun({ status: "applying" });
-    submitCorrection(applyContext)
-      .then((outcome) => setContextRun(outcome ? { status: "applied" } : null))
-      .catch((err: unknown) =>
+    submitCorrection({ ...applyContext, queued: true })
+      .then((outcome) => {
+        if (scanRunRef.current !== scanRun) return;
+        setContextRun(outcome ? { status: "applied" } : null);
+      })
+      .catch((err: unknown) => {
+        if (scanRunRef.current !== scanRun) return;
         setContextRun({
           status: "error",
           message: err instanceof Error && err.message ? err.message : t("correct.error.failed"),
-        }),
-      );
-  }, [applyContext, phase]);
+        });
+      })
+      .finally(() => {
+        if (scanRunRef.current === scanRun) setPhase("confirm");
+      });
+  }, [applyContext]);
 
   if (gate === "loading") {
     return <BootLoader />;
@@ -944,6 +983,7 @@ export default function MakanAi() {
         imageBase64: saved.base64,
         mimeType: "image/jpeg" as const,
         crops: true,
+        ...(describe.trim() ? { hint: describe.trim().slice(0, 200) } : {}),
         clientTiming: {
           ...(captureMs !== undefined ? { captureMs } : {}),
           resizeMs,
@@ -1038,11 +1078,17 @@ export default function MakanAi() {
       );
       setKinds({});
       setFullPortion(null);
-      setPhase("confirm");
+      setDescribe("");
       const spoken = queuedRef.current;
       queuedRef.current = null;
       setQueuedContext(null);
-      if (spoken) setApplyContext(spoken);
+      // Words given during the scan: the overlay stays up (without the first answer's rows) until the correction is
+      // in, so the user only ever sees the corrected list. Without any, straight to the result.
+      if (spoken) {
+        // Same commit as the end of `analyzing`, so the overlay never drops for a frame.
+        setContextRun({ status: "applying" });
+        setApplyContext(spoken);
+      } else setPhase("confirm");
       // The state commit is on screen after two frames; record how long that
       // took, then cut the per-item tiles in the background.
       const respondedAt = performance.now();
@@ -1698,10 +1744,12 @@ export default function MakanAi() {
         >
           <Ionicons name="close" size={24} color="#FFFFFF" />
         </PressableScale>
-        {analyzing && previewUri ? (
+        {(analyzing || contextRun?.status === "applying") && previewUri ? (
           <AnalyzingOverlay
             previewUri={previewUri}
             rows={liveRows}
+            described={describe.trim()}
+            applying={contextRun?.status === "applying"}
             onCancel={resetToCamera}
             mic={
               <SimpleMic
@@ -1715,9 +1763,12 @@ export default function MakanAi() {
                     queuedRef.current = null;
                     setQueuedContext(null);
                   },
-                  onActive: markContextActive,
+                  onActive: markVoiceActive,
                 }}
               />
+            }
+            typed={
+              <ContextType queued={queuedContext} onQueue={queueContext} onActive={markTypingActive} />
             }
           />
         ) : (
@@ -1755,6 +1806,7 @@ export default function MakanAi() {
                 <Ionicons name="barcode-outline" size={18} color="#FFFFFF" />
                 <Text style={styles.barcodeLinkText}>{t("camera.barcode")}</Text>
               </PressableScale>
+              <DescribePhoto value={describe} onChange={setDescribe} disabled={analyzing} />
               <View style={styles.shutterActions}>
                 <PressableScale
                   accessibilityRole="button"
@@ -2742,10 +2794,17 @@ const styles = StyleSheet.create((theme) => ({
     width: "100%",
     maxWidth: 560,
     paddingHorizontal: theme.spacing.lg,
+    gap: theme.spacing.md,
   },
   contextStatus: {
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
+  },
+  analyzingDescribed: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: theme.fontSize.sm,
+    textAlign: "center",
+    paddingHorizontal: theme.spacing.xl,
   },
   analyzingText: {
     color: "#FFFFFF",

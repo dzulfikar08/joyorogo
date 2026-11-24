@@ -13,9 +13,9 @@ const APP_STORE_ID = "6823222101";
 /**
  * App Store Connect counts a campaign link only when it carries the team's provider token (`pt`) next to `ct`
  * (App Store Connect Help, "View campaign data"). It is not secret: it shows in every campaign link the generator in
- * App Store Connect > Analytics makes. Empty = links keep `ct` only, which App Store Connect does not report.
+ * App Store Connect > Analytics makes. It is the provider id of the account (App Store Connect session, `provider.providerId`, read 2026-11-18).
  */
-export const APP_STORE_PROVIDER_TOKEN = "";
+export const APP_STORE_PROVIDER_TOKEN = "128562062";
 
 /** Place names become part of the campaign: lowercase letters, digits and hyphens only. */
 function slug(place: string): string {

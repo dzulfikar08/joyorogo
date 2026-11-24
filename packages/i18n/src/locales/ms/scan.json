@@ -79,6 +79,17 @@
   "toast": {
     "saved_other": "{{count}} makanan dicatat."
   },
+  "describe": {
+    "open": "Tulis keterangan",
+    "set": "“{{text}}”",
+    "editLabel": "Ubah keterangan: {{text}}",
+    "clear": "Buang keterangan",
+    "title": "Keterangan foto",
+    "body": "Makanan sukar dibezakan? Tulis dahulu, ia akan digunakan semasa foto dianalisis.",
+    "placeholder": "Cth. ini siomay bukan batagor, nasi separuh, teh tanpa gula",
+    "done": "Selesai",
+    "sent": "Keterangan: “{{text}}”"
+  },
   "analyzing": {
     "title": "Menganalisis foto",
     "contextMic": "Tahan & beritahu makanannya",
@@ -87,6 +98,9 @@
     "contextApplying": "Menerapkan konteks anda…",
     "contextApplied": "Konteks anda sudah diterapkan.",
     "contextRemove": "Buang konteks",
+    "contextTypePlaceholder": "Atau taip: nasi separuh, tanpa gula…",
+    "contextTypeLabel": "Taip keterangan makanan",
+    "contextTypeSend": "Hantar keterangan",
     "subtitle": "Tunggu sebentar, biasanya 8 hingga 15 saat.",
     "photoAlt": "Foto makanan yang sedang dianalisis",
     "cancel": "Batalkan",

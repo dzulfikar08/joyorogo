@@ -4,7 +4,7 @@ feature: Barcode lebih teliti
 shipped: 2026-10-22
 available: store
 tier: free
-post: todo
+post: planned 2026-11-28 (Personal @dzulfikar.at, siar post_95091deab3bd492b)
 atur: JRG-388
 ---
 

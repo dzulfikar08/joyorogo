@@ -41,6 +41,7 @@ import { AppleMark } from "@/components/apple-mark";
 import { DiscordMark } from "@/components/discord-mark";
 import { Roadmap } from "@/components/landing/roadmap";
 import { ScanDemo } from "@/components/landing/scan-demo";
+import { DemoVideoButton } from "@/components/landing/demo-video";
 import { BrowserShot, HeroShot, PhoneShot } from "@/components/landing/phone-frame";
 import { GITHUB_URL, GithubMark, PublicHeader } from "@/components/public-header";
 import { MyNotice } from "@/components/landing/my-notice";
@@ -469,6 +470,7 @@ function Landing() {
               {config.data?.anonScans ? `${config.data.anonScans} foto pertama tanpa daftar. ` : ""}
               Foto tidak disimpan.
             </p>
+            <DemoVideoButton className="mt-4" />
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <AppDownload location="hero" />
             </div>

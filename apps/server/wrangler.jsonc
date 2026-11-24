@@ -99,6 +99,7 @@
     "GOOGLE_CLIENT_ID": "915036968874-0ne1edkq0laljg6cdlnksor1hqpj9gfr.apps.googleusercontent.com",
     "DEV_LOGIN": "",
     "AI_VISION_MODEL": "@cf/google/gemma-4-26b-a4b-it",
+    "AI_GATEWAY_ID": "default",
     "DATASET_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
     "DISHWARE_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",
     "CORRECTION_MEMORY_USER_IDS": "CVSNDwC3Fx2V5KuNtJ0jwzl29KhbkMjc",

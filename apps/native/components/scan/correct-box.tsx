@@ -21,7 +21,8 @@ export type CorrectOutcome = {
   correctionsLeft: number | null;
 };
 
-export type CorrectInput = { text: string } | { audioBase64: string };
+/** `queued`: given on the analyzing screen and applied once the rows arrived (logged only). */
+export type CorrectInput = ({ text: string } | { audioBase64: string }) & { queued?: true };
 
 function fmtClock(ms: number): string {
   const s = Math.floor(ms / 1000);

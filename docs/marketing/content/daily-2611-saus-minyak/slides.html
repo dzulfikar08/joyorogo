@@ -1,0 +1,35 @@
+<!doctype html>
+<!-- Numbers per sendok makan, TKPI 2019 kkal/100 g x contoh berat: Minyak kelapa sawit KR012 884 x 13 g = 115; Margarin KP001 720 x 14 g = 101;
+     Kecap NP005 71 x 18 g = 13. Mayones ±90 kkal per sdm: USDA FoodData Central (same figure as tip saus-minyak-porsi-kecil). Nasi AP001 180 x 130 g = 234. -->
+<html lang="id"><head><meta charset="utf-8"><link rel="stylesheet" href="@content/_base.css">
+<style>
+  .rowx { display:flex; align-items:center; gap:24px; padding:22px 0; border-top:2px solid var(--line); }
+  .rowx:last-child { border-bottom:2px solid var(--line); }
+  .rowx .nm { width:330px; flex:none; font-size:36px; font-weight:700; line-height:1.15; }
+  .rowx .nm small { display:block; font-size:27px; font-weight:500; color:var(--muted); margin-top:4px; }
+  .rowx .track { flex:1; height:64px; position:relative; }
+  .rowx .fill { position:absolute; left:0; top:0; bottom:0; border-radius:18px; background:var(--primary); }
+  .rowx .fill.lite { background:color-mix(in oklch, var(--primary) 30%, white); }
+  .rowx .fill.hot { background:var(--bakar); }
+  .rowx .val { width:200px; flex:none; text-align:right; font-size:44px; font-weight:800; letter-spacing:-0.02em; }
+</style>
+</head><body>
+<section class="slide rogo" style="padding-top:88px">
+  <div class="k">Kalori yang nggak kelihatan</div>
+  <div class="gap-s"></div>
+  <h1 class="h s" style="font-size:84px">1 sendok minyak = 115 kkal.</h1>
+  <p class="lead" style="margin-top:20px;font-size:40px">Lauknya biasa aja. Minyak dan sausnya yang nambah.</p>
+  <div class="gap-m"></div>
+  <div class="rows">
+    <div class="rowx"><div class="nm">Minyak goreng<small>1 sdm (13 g)</small></div><div class="track"><div class="fill hot" style="width:100%"></div></div><div class="val">115</div></div>
+    <div class="rowx"><div class="nm">Margarin<small>1 sdm (14 g)</small></div><div class="track"><div class="fill hot" style="width:88%"></div></div><div class="val">101</div></div>
+    <div class="rowx"><div class="nm">Mayones<small>1 sdm</small></div><div class="track"><div class="fill hot" style="width:78%"></div></div><div class="val">±90</div></div>
+    <div class="rowx"><div class="nm">Kecap<small>1 sdm (18 g)</small></div><div class="track"><div class="fill" style="width:11%"></div></div><div class="val">13</div></div>
+  </div>
+  <div class="gap-m"></div>
+  <div class="card"><p class="p" style="font-size:38px"><b>2 sendok minyak ekstra</b> waktu numis ≈ 230 kkal, sama kayak <b>130 g nasi putih</b>.</p></div>
+  <div class="grow"></div>
+  <p class="note" style="font-size:27px;margin-top:30px">Perkiraan, pakai berat contoh per sendok. Sumber: TKPI 2019 (Kemenkes); mayones: USDA FoodData Central.</p>
+  <footer class="foot"><span class="brand"><img src="@joyorogo/apps/web/public/brand/logo-mark.svg" alt="">JoyoRogo</span><span class="pg"></span></footer>
+</section>
+</body></html>

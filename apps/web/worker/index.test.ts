@@ -88,3 +88,37 @@ describe("without a split", () => {
     expect(res.status).toBe(200);
   });
 });
+
+describe("videos", () => {
+  const bytes = new Uint8Array(100).map((_, i) => i);
+  const videoEnv = {
+    ASSETS: {
+      fetch: async () => new Response(bytes, { headers: { "Content-Type": "video/mp4", "Content-Length": "100" } }),
+    },
+  };
+  const get = (range?: string) =>
+    call("https://joyorogo.com/landing/demo/scan-16x9.mp4", range ? { headers: { Range: range } } : undefined, videoEnv as never);
+
+  test("a byte range answers 206 with Content-Range (Safari needs it to play)", async () => {
+    const res = await get("bytes=0-1");
+    expect(res.status).toBe(206);
+    expect(res.headers.get("Content-Range")).toBe("bytes 0-1/100");
+    expect(res.headers.get("Accept-Ranges")).toBe("bytes");
+    expect([...new Uint8Array(await res.arrayBuffer())]).toEqual([0, 1]);
+  });
+
+  test("open-ended and suffix ranges", async () => {
+    expect((await get("bytes=90-")).headers.get("Content-Range")).toBe("bytes 90-99/100");
+    const tail = await get("bytes=-5");
+    expect(tail.headers.get("Content-Range")).toBe("bytes 95-99/100");
+    expect(tail.headers.get("Content-Length")).toBe("5");
+  });
+
+  test("no range is the whole file, an impossible one is 416", async () => {
+    const full = await get();
+    expect(full.status).toBe(200);
+    expect(full.headers.get("Accept-Ranges")).toBe("bytes");
+    expect((await full.arrayBuffer()).byteLength).toBe(100);
+    expect((await get("bytes=200-300")).status).toBe(416);
+  });
+});
