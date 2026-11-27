@@ -242,8 +242,8 @@ describe("paid check-ins", () => {
     await runLifecycleEmails(deps, config, NOW + 3 * DAY);
     expect(await due(NOW + 6 * DAY)).toEqual([]);
     expect(outbox.map((m) => m.subject)).toEqual([
-      "Cara paling ringan memakai Pro-mu",
-      "Cara paling ringan memakai Pro-mu",
+      "Cara paling simpel mulai pakai Pro",
+      "Cara paling simpel mulai pakai Pro",
       "Ada yang bisa saya bantu?",
     ]);
   });

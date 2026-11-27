@@ -215,30 +215,30 @@ Dzulfikar, JoyoRogo`,
   [PAID_1_KIND]: {
     id: {
       id: "lifecycle-paid-1",
-      subject: "Cara paling ringan memakai Pro-mu",
+      subject: "Cara paling simpel mulai pakai Pro",
       body: `Halo {nama},
 
-Makasih sudah berlangganan JoyoRogo Pro! Beberapa hari ini belum ada makan yang tercatat, jadi ini dua cara paling ringan untuk mulai:
+Makasih sudah berlangganan JoyoRogo Pro! Beberapa hari ini belum ada catatan makan baru, jadi coba dua cara paling simpel ini untuk mulai:
 
 1. Foto makanan berikutnya. Kalau angkanya meleset, koreksi pakai kata-kata, misalnya "nasinya setengah".
 2. Ajak satu teman ke grup. Diet bareng lebih awet: kalian bisa saling colek kalau ada yang lupa mencatat. [Buat grup](${GROUP_URL})
 
 [Buka JoyoRogo](${APP_URL})
 
-Ada yang bikin ribet, atau angkanya terasa salah? Balas email ini. Saya baca sendiri.
+Ada yang bikin ribet, atau angkanya terasa meleset? Balas email ini. Saya baca sendiri.
 
 Salam,
 Dzulfikar, JoyoRogo`,
     },
     en: {
       id: "lifecycle-paid-1",
-      subject: "The easiest way to use your Pro",
+      subject: "The easiest way to use JoyoRogo Pro",
       body: `Hi {nama},
 
-Thanks for subscribing to JoyoRogo Pro! No meals have been logged for a few days, so here are the two easiest ways to start:
+Thanks for subscribing to JoyoRogo Pro! Since there haven't been any meal logs for a few days, here are two easy ways to get started:
 
 1. Snap your next meal. If a number looks off, correct it in words, like "half the rice".
-2. Bring one friend into a group. Dieting together lasts longer: you can nudge each other when someone forgets to log. [Create a group](${GROUP_URL})
+2. Invite a friend to a group. It's easier to stick with it together: you can nudge each other when someone forgets to log. [Create a group](${GROUP_URL})
 
 [Open JoyoRogo](${APP_URL})
 
@@ -252,14 +252,14 @@ Dzulfikar, JoyoRogo`,
       subject: "Cara paling mudah menggunakan Pro anda",
       body: `Hai {nama},
 
-Terima kasih kerana melanggan JoyoRogo Pro! Sudah beberapa hari tiada makanan yang dicatat, jadi ini dua cara paling mudah untuk mula:
+Terima kasih kerana melanggan JoyoRogo Pro! Sudah beberapa hari tiada catatan makanan, jadi cuba dua cara paling mudah ini untuk mula:
 
 1. Ambil gambar makanan seterusnya. Kalau angkanya tersasar, betulkan dengan kata-kata, contohnya "nasi separuh".
-2. Ajak seorang kawan ke dalam kumpulan. Diet bersama lebih tahan lama: anda boleh saling mengingatkan kalau ada yang terlupa mencatat. [Buat kumpulan](${GROUP_URL})
+2. Ajak seorang kawan ke dalam kumpulan. Lebih mudah kekal konsisten kalau berdua: anda boleh saling mengingatkan kalau ada yang terlupa mencatat. [Buat kumpulan](${GROUP_URL})
 
 [Buka JoyoRogo](${APP_URL})
 
-Ada yang menyusahkan, atau angkanya terasa salah? Balas sahaja e-mel ini. Saya baca sendiri.
+Ada bahagian yang rumit, atau angkanya rasa tersasar? Balas sahaja e-mel ini. Saya baca sendiri.
 
 Salam,
 Dzulfikar, JoyoRogo`,
@@ -271,9 +271,9 @@ Dzulfikar, JoyoRogo`,
       subject: "Ada yang bisa saya bantu?",
       body: `Halo {nama},
 
-Sudah seminggu sejak kamu berlangganan Pro, dan beberapa hari terakhir belum ada catatan makan. Saya ingin tahu apa yang menghambat, supaya bisa saya perbaiki.
+Sudah seminggu kamu berlangganan Pro, dan beberapa hari terakhir belum ada catatan makan baru. Saya ingin tahu kalau ada yang bikin susah atau mengganjal, supaya bisa saya perbaiki.
 
-Balas email ini dengan satu kalimat saja, misalnya "lupa", "angkanya meleset", atau "fitur yang saya butuhkan belum ada".
+Balas email ini satu baris saja, misalnya "lupa", "angkanya meleset", atau "fitur yang saya cari belum ada".
 
 Kalau mau lanjut, cukup foto makanan berikutnya. Tidak perlu mengejar hari yang terlewat.
 
@@ -287,9 +287,9 @@ Dzulfikar, JoyoRogo`,
       subject: "Can I help with anything?",
       body: `Hi {nama},
 
-It has been a week since you subscribed to Pro, and no meals have been logged for the last few days. I would like to know what is getting in the way, so I can fix it.
+It's been a week since you subscribed to Pro, and there haven't been any meal logs for the last few days. I'd like to know what's getting in the way, so I can fix it.
 
-Just reply with one sentence, like "I forget", "the numbers are off" or "a feature I need is missing".
+Just reply with one line, like "I keep forgetting", "the numbers are off" or "a feature I need is missing".
 
 If you want to carry on, just snap your next meal. No need to catch up on the days you missed.
 
@@ -303,9 +303,9 @@ Dzulfikar, JoyoRogo`,
       subject: "Ada apa-apa yang boleh saya bantu?",
       body: `Hai {nama},
 
-Sudah seminggu sejak anda melanggan Pro, dan beberapa hari kebelakangan ini tiada catatan makanan. Saya ingin tahu apa yang menghalang, supaya boleh saya perbaiki.
+Sudah seminggu anda melanggan Pro, dan beberapa hari kebelakangan ini tiada catatan makanan. Saya ingin tahu jika ada apa-apa yang menyukarkan, supaya dapat saya perbaiki.
 
-Balas sahaja dengan satu ayat, contohnya "terlupa", "angkanya tersasar" atau "ciri yang saya perlukan belum ada".
+Balas sahaja satu baris ringkas, contohnya "terlupa", "angkanya tersasar" atau "ciri yang saya perlukan belum ada".
 
 Kalau mahu teruskan, ambil sahaja gambar makanan seterusnya. Tidak perlu mengejar hari yang tertinggal.
 
