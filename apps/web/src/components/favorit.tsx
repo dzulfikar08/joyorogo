@@ -1,6 +1,8 @@
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import { fitKnownGood } from "@joyorogo/api/lib/known-good";
+import type { KnownGoodDay, KnownGoodMeal } from "@joyorogo/api/lib/known-good";
 import { foodSavedKey, moveId, plateSavedKey } from "@joyorogo/api/lib/saved-foods";
 import { kcalUnit } from "@joyorogo/i18n";
 import type { TFunction } from "@joyorogo/i18n";
@@ -84,6 +86,7 @@ export function useFavorites() {
   type RecentData = { items: FoodRecentItem[]; hiddenCount: number };
   const offerQuery = useQuery(orpc.savedFood.offer.queryOptions());
   const recentQuery = useQuery(orpc.food.recent.queryOptions());
+  const knownGoodQuery = useQuery(orpc.savedFood.knownGood.queryOptions());
 
   // Catat cepat > Atur: the user's own order of the favorites, shown at once and confirmed by the server.
   const arrange = useOptimisticMutation<{ ids: string[] }, unknown>({
@@ -247,6 +250,7 @@ export function useFavorites() {
     isPending: query.isPending,
     recent: recentQuery.data?.items ?? [],
     hiddenCount: recentQuery.data?.hiddenCount ?? 0,
+    knownGood: knownGoodQuery.data?.meals ?? [],
     offer,
     isFoodSaved: (row: FoodItem) => byKey.has(foodSavedKey(row.name, row.kcal)),
     isPlateSaved: (plate: FavoritPlate, rows: ReadonlyArray<FoodItem>) =>
@@ -299,6 +303,8 @@ export interface Favorites {
   recent: FoodRecentItem[];
   /** How many of the newest names the user hid from the recent chips. */
   hiddenCount: number;
+  /** Foods and favorites logged on 3+ days in 60 (savedFood.knownGood); fitKnownGood picks the ones for a slot. */
+  knownGood: KnownGoodMeal[];
   /** The food or combo logged 3+ times in 14 days that is worth saving; null = nothing to offer. */
   offer: FavoriteOffer | null;
   isFoodSaved: (row: FoodItem) => boolean;
@@ -384,6 +390,75 @@ export function FavoritChips({
         </Chip>
       )}
     </div>
+  );
+}
+
+/**
+ * "Menu biasa yang muat": up to three of the user's own habits usually eaten in `meal` that still fit its share of the
+ * day. One tap logs it: a favorite through relog, a single food through `onAddFood` (the recent-chip path). Renders
+ * nothing when none fits; a habit that does not fit is left out, never labelled.
+ */
+export function KnownGoodChips({
+  favorites,
+  day,
+  date,
+  meal,
+  eatenAt,
+  disabled,
+  onAddFood,
+  onLogged,
+  className,
+}: {
+  favorites: Favorites;
+  /** The viewed day's budget and intake (day.summary); undefined while it loads. */
+  day: KnownGoodDay | undefined;
+  date: string;
+  meal: Meal;
+  eatenAt?: number | null;
+  disabled?: boolean;
+  onAddFood: (food: KnownGoodMeal) => void;
+  onLogged?: () => void;
+  className?: string;
+}) {
+  const { t } = useTranslation("makan");
+  if (!day) return null;
+  const byId = new Map(favorites.items.map((saved) => [saved.id, saved]));
+  // A favorite the list has not loaded (or just removed) cannot be relogged: it is left out.
+  const fitting = fitKnownGood(
+    favorites.knownGood.filter((habit) => habit.savedFoodId === null || byId.has(habit.savedFoodId)),
+    meal,
+    day,
+  );
+  if (fitting.length === 0) return null;
+  return (
+    <section aria-label={t("favorites.knownGood.title")} className={className}>
+      <p className="px-1 text-sm font-bold">{t("favorites.knownGood.title")}</p>
+      <p className="mt-0.5 px-1 text-xs text-muted-foreground">
+        {t("favorites.knownGood.hint", { meal: MEAL_LABELS[meal] })}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {fitting.map((habit) => {
+          const saved = habit.savedFoodId ? byId.get(habit.savedFoodId) : undefined;
+          return (
+            <Chip
+              key={habit.key}
+              className={`max-w-full ${habit.scanId ? "gap-2 pl-1.5" : ""}`}
+              disabled={disabled || favorites.relogPending}
+              onClick={() =>
+                saved ? favorites.relog(saved, date, meal, eatenAt, onLogged) : onAddFood(habit)
+              }
+            >
+              {habit.scanId ? (
+                <CutoutTile scanId={habit.scanId} className="size-8 rounded-lg" iconClassName="size-4" />
+              ) : null}
+              <span className="truncate">
+                {habit.name} · {fmtKcalLabel(habit.kcal)}
+              </span>
+            </Chip>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

@@ -386,6 +386,10 @@
       "save": "Simpan sebagai kegemaran",
       "later": "Nanti"
     },
+    "knownGood": {
+      "title": "Pilihan biasa yang muat",
+      "hint": "Yang kerap anda makan & masih muat dalam bajet {{meal}} · ketik untuk catat"
+    },
     "quick": {
       "manage": "Urus Catat pantas",
       "empty": "Belum ada kegemaran. Simpan makanan yang kerap anda catat supaya cukup sekali ketik."

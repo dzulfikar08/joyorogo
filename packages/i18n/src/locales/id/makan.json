@@ -386,6 +386,10 @@
       "save": "Simpan sebagai favorit",
       "later": "Nanti"
     },
+    "knownGood": {
+      "title": "Menu biasa yang muat",
+      "hint": "Sering kamu makan dan masih muat di jatah {{meal}} · tap untuk catat"
+    },
     "quick": {
       "manage": "Atur Catat cepat",
       "empty": "Belum ada favorit. Simpan makanan yang sering kamu catat biar cukup sekali tap."

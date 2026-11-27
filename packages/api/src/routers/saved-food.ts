@@ -15,6 +15,7 @@ import { dateSchema, mealSchema } from "../lib/schemas";
 import { assertEatenAt, eatenAtSchema } from "../lib/eaten-at";
 import { insertFoodRows } from "../lib/food-rows";
 import { habitKey, findOffer, OFFER_WINDOW_DAYS } from "../lib/favorite-offer";
+import { KNOWN_GOOD_WINDOW_DAYS, findKnownGood } from "../lib/known-good";
 import { estimateMacros } from "../lib/macro-estimate";
 import { MAX_GRAMS, MAX_KCAL, macrosForTypedKcal } from "../lib/portion";
 import { carriesMoreNutrition, foodSavedKey, parseSavedItems, plateSavedKey } from "../lib/saved-foods";
@@ -111,6 +112,9 @@ const toItem = (row: typeof foodLog.$inferSelect): SavedItem => ({
 
 /** Favorites the quick-add list and the manage sheet hold; `list` reads the same number. */
 export const MAX_FAVORITES = 100;
+
+/** Diary rows knownGood reads, newest first: 60 days of a heavy logger (about 30 a day). */
+const KNOWN_GOOD_ROWS = 2000;
 
 const macroField = z.number().min(0).max(500).optional();
 
@@ -342,6 +346,56 @@ export const savedFoodRouter = {
       if (owner?.name) return { offer: { ...offer, name: owner.name } };
     }
     return { offer };
+  }),
+
+  // "Menu biasa yang muat": foods and favorites the user logged on 3+ days in the last 60 (imports left out), most-eaten
+  // first. The clients keep the ones usually eaten in the slot that still fit its share of the day (lib/known-good).
+  knownGood: protectedProcedure.handler(async ({ context }) => {
+    const userId = context.session.user.id;
+    const zone = await userZone(context);
+    const since = shiftDate(jakartaToday(undefined, zone), -KNOWN_GOOD_WINDOW_DAYS);
+    const [rows, saved, marks] = await Promise.all([
+      context.db
+        .select({
+          id: foodLog.id,
+          name: foodLog.name,
+          kcal: foodLog.kcal,
+          plateId: foodLog.plateId,
+          createdAt: foodLog.createdAt,
+          date: foodLog.date,
+          meal: foodLog.meal,
+          grams: foodLog.grams,
+          protein: foodLog.protein,
+          carbs: foodLog.carbs,
+          fat: foodLog.fat,
+          fiber: foodLog.fiber,
+          scanId: foodLog.scanId,
+        })
+        .from(foodLog)
+        .where(and(eq(foodLog.userId, userId), gte(foodLog.date, since), ne(foodLog.source, "huawei")))
+        .orderBy(desc(foodLog.createdAt))
+        .limit(KNOWN_GOOD_ROWS),
+      context.db
+        .select({ id: savedFood.id, name: savedFood.name, kcal: savedFood.kcal, itemsJson: savedFood.itemsJson })
+        .from(savedFood)
+        .where(eq(savedFood.userId, userId))
+        .limit(MAX_FAVORITES),
+      context.db
+        .select({ key: foodQuickMark.key })
+        .from(foodQuickMark)
+        .where(and(eq(foodQuickMark.userId, userId), eq(foodQuickMark.kind, "recent_hidden"))),
+    ]);
+    const meals = findKnownGood(
+      rows.map((row) => ({ ...row, createdAt: row.createdAt.getTime() })),
+      saved.map((row) => ({
+        id: row.id,
+        name: row.name,
+        kcal: row.kcal,
+        itemNames: parseSavedItems(row.itemsJson).map((item) => item.name),
+      })),
+      new Set(marks.map((mark) => mark.key)),
+    );
+    return { meals };
   }),
 
   // "Nanti" on the offer: this habit is not offered again.

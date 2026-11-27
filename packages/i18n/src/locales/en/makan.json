@@ -396,6 +396,10 @@
       "save": "Save as favorite",
       "later": "Not now"
     },
+    "knownGood": {
+      "title": "Your usuals that fit",
+      "hint": "You eat these often and they still fit your {{meal}} budget · tap to log"
+    },
     "quick": {
       "manage": "Edit Quick add",
       "empty": "No favorites yet. Save the foods you log often so one tap is enough."

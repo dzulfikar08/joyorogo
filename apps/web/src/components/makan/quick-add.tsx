@@ -1,12 +1,13 @@
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import type { KnownGoodDay } from "@joyorogo/api/lib/known-good";
 import { Link } from "@tanstack/react-router";
 import { Camera, Mic, Pencil, ScanBarcode } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Chip } from "@/components/chip";
-import { FavoritChips, FavoritOffer } from "@/components/favorit";
+import { FavoritChips, FavoritOffer, KnownGoodChips } from "@/components/favorit";
 import type { Favorites } from "@/components/favorit";
 import { Card } from "@/components/kit/surface";
 import { CutoutTile } from "@/components/sticker";
@@ -14,7 +15,9 @@ import type { FoodAddInput, FoodRecentItem } from "@/lib/api-types";
 import { fmtDateLong, fmtInt } from "@/lib/format";
 
 /** food.add fields that repeat a recent food as it was logged: kcal and P/K/L (null = never filled in, left out). */
-export function recentAddFields(food: FoodRecentItem): Pick<FoodAddInput, "name" | "kcal" | "source" | "grams" | "protein" | "carbs" | "fat" | "fiber"> {
+export function recentAddFields(
+  food: Pick<FoodRecentItem, "name" | "kcal" | "grams" | "protein" | "carbs" | "fat" | "fiber">,
+): Pick<FoodAddInput, "name" | "kcal" | "source" | "grams" | "protein" | "carbs" | "fat" | "fiber"> {
   return {
     name: food.name,
     kcal: food.kcal,
@@ -52,6 +55,7 @@ export function QuickAddCard({
   isToday,
   meal,
   favorites,
+  day,
   recent,
   addPending,
   onAdd,
@@ -63,6 +67,8 @@ export function QuickAddCard({
   /** Slot the chips log to (suggestMealNow). */
   meal: Meal;
   favorites: Favorites;
+  /** The viewed day's budget and intake for "Menu biasa yang muat"; undefined while day.summary loads. */
+  day: KnownGoodDay | undefined;
   recent: FoodRecentItem[];
   addPending: boolean;
   onAdd: (input: FoodAddInput) => void;
@@ -100,6 +106,16 @@ export function QuickAddCard({
           <Action icon={<Mic className="size-5" />}>{t("diary.quick.story")}</Action>
         </button>
       </div>
+
+      <KnownGoodChips
+        className="mt-4"
+        favorites={favorites}
+        day={day}
+        date={date}
+        meal={meal}
+        disabled={addPending}
+        onAddFood={(food) => onAdd({ date, meal, ...recentAddFields(food) })}
+      />
 
       <FavoritOffer favorites={favorites} />
 
