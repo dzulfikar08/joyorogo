@@ -125,7 +125,7 @@ const due = async (now = NOW) =>
 beforeEach(async () => {
   outbox = [];
   failSends = false;
-  for (const table of ["email_log", "payment", "ai_usage", "food_log", "profile", "user"])
+  for (const table of ["email_log", "payment", "fitness_score", "ai_usage", "food_log", "profile", "user"])
     await client.execute(`DELETE FROM "${table}"`);
 });
 
@@ -201,6 +201,13 @@ describe("paid check-ins", () => {
     await pay("expired", 5, { untilDays: -1 });
     await pay("old", 20);
     for (const id of ["day2", "busy", "trial", "tester", "expired", "old"]) await scan(id, 0.5);
+    // Pays, logs no meals, but JoyoFit syncs a score every day: not idle.
+    await addUser("runner", 40);
+    await pay("runner", 5);
+    await client.execute({
+      sql: `INSERT INTO fitness_score (id, user_id, date, updated_at) VALUES ('fs1', 'runner', '2026-10-30', ?)`,
+      args: [NOW - 0.5 * DAY],
+    });
     expect(await due()).toEqual(["lifecycle_paid_1:fresh", "lifecycle_paid_1:quiet"]);
   });
 

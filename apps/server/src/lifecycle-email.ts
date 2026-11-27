@@ -31,6 +31,7 @@ import { listOptedOut } from "./unsubscribe";
  *   of the payment and their last activity); `paid_2` from day 7, again 3+ idle
  *   days and nothing logged since `paid_1`, at least 3 days after it. Ref = user
  *   id, so once per person. A paying account in this window gets no activation mail.
+ *   JoyoFit counts here (a fitness_score synced), so a Pro user who only uses the watch side is not "idle".
  *   Why: most October web buyers stopped logging in their first two weeks and let
  *   the month run out (docs/lifecycle-email.md).
  * - Promotional, so it goes out from the broadcast sender with the one-click
@@ -370,6 +371,9 @@ export async function lifecycleDue(
     number | null
   >`(select min(p.paid_at) from payment p where p.user_id = "user"."id"
     and p.status = 'paid' and coalesce(p.is_test, 0) = 0 and p.amount_idr > 0 and p.months > 0)`;
+  // JoyoFit use (a daily score synced from the watch). Only the paid check-in reads it: a Pro user who still opens
+  // JoyoFit every day is using what they paid for, even without logging meals.
+  const fitActive = sql<number>`coalesce((select max(s.updated_at) from fitness_score s where s.user_id = "user"."id"), 0)`;
   const people = await db
     .select({
       id: user.id,
@@ -378,6 +382,7 @@ export async function lifecycleDue(
       createdAt: user.createdAt,
       founderUntil: user.founderUntil,
       lastActive,
+      fitActive,
       firstPaid,
     })
     .from(user)
@@ -412,14 +417,15 @@ export async function lifecycleDue(
     const stillPro = (person.founderUntil?.getTime() ?? 0) > now;
     if (paidAt > 0 && stillPro && paidDays < PAID_WINDOW_DAYS) {
       // Paying and in the first two weeks: the paid check-in replaces the activation drip.
-      const idleDays = (now - Math.max(active, paidAt)) / DAY;
+      const used = Math.max(active, Number(person.fitActive) || 0);
+      const idleDays = (now - Math.max(used, paidAt)) / DAY;
       if (paidDays < PAID_1_MIN_DAYS || idleDays < PAID_IDLE_DAYS) continue;
       const first = lastSent.get(`${PAID_1_KIND}:${person.id}`);
       if (first === undefined) {
         due.push({ ...who, kind: PAID_1_KIND, ref: person.id });
       } else if (
         paidDays >= PAID_2_MIN_DAYS &&
-        active < first &&
+        used < first &&
         now - first >= PAID_2_GAP_DAYS * DAY &&
         !lastSent.has(`${PAID_2_KIND}:${person.id}`)
       ) {
