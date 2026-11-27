@@ -21,6 +21,7 @@ import { buildPlan, planQueries } from "./plan";
 import { premiumUnlocked } from "./readiness-food";
 import type { StreakState } from "./streak";
 import { loadStreaks, streakPlanOf } from "./streak-store";
+import { spotCheckOnSql } from "./spot-check";
 import { paywallConfig } from "./tiers";
 import { PRO_UNTIL_RAW_SQL } from "./household";
 import type { PaywallEnv } from "./tiers";
@@ -173,6 +174,9 @@ const engaged = (today: string, zone: DayZone) =>
   sql`(EXISTS (SELECT 1 FROM food_log f2 WHERE f2.user_id = profile.user_id AND f2.date >= ${shiftDate(today, -ENGAGED_DAYS)})
     OR profile.created_at > ${dayBoundsIn(shiftDate(today, -ENGAGED_DAYS), zone).startMs})`;
 
+/** "Cek sesekali" (lib/spot-check): a day without a log is their normal, so no meal or streak push. */
+const notSpotCheck = sql.raw(`NOT ${spotCheckOnSql("profile.user_id")}`);
+
 type MealCandidate = {
   id: string;
   pattern: string | null;
@@ -198,7 +202,7 @@ async function mealCandidates(
            profile.ramadan_mode AS ramadan, profile.maternal_mode AS maternal, profile.goal AS goal
     FROM profile
     WHERE ${reachable} AND ${profileInZone(zone)} AND ${prefOn("meal")} AND ${local} AND ${notYetSent(`meal:${slot === "meal_noon" ? "noon" : "evening"}:${today}`)}
-      AND ${engaged(today, zone)}
+      AND ${engaged(today, zone)} AND ${notSpotCheck}
       AND NOT EXISTS (SELECT 1 FROM food_log f WHERE f.user_id = profile.user_id AND f.date = ${today})
     LIMIT ${CANDIDATE_LIMIT}`);
 }

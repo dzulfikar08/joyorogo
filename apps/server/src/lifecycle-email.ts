@@ -6,6 +6,7 @@ import type { Database } from "@joyorogo/db";
 import type { Locale } from "@joyorogo/i18n";
 import { proUntil } from "@joyorogo/api/lib/household";
 import { userLocale } from "@joyorogo/api/lib/messages";
+import { spotCheckOnSql } from "@joyorogo/api/lib/spot-check";
 
 import { deliver, renderFor } from "./broadcast";
 import type { BroadcastDeps } from "./broadcast";
@@ -25,7 +26,8 @@ import { listOptedOut } from "./unsubscribe";
  *   `activate_1` sent at least 2 days ago. Ref = user id.
  * - `lifecycle_winback`: last active 14-45 days ago (meal push reminders stop at
  *   14 idle days), once per lapse (ref = "<userId>:<lastActiveMs>") and at most
- *   one per 30 days.
+ *   one per 30 days. Not for people in "Cek sesekali" (spot-check mode, api lib/spot-check): weeks without a log are
+ *   how they chose to use the app.
  * - `lifecycle_paid_1` / `lifecycle_paid_2`: check-ins in the first 14 days after
  *   someone's first real payment (not a test or Rp0 trial), while Pro is still on.
  *   `paid_1` from day 3 when they have been idle 3+ days (counting from the later
@@ -375,6 +377,7 @@ export async function lifecycleDue(
   // JoyoFit use (a daily score synced from the watch). A JoyoFit-only account gets no meal drip, someone still syncing
   // is not lapsed, and a Pro user who opens JoyoFit every day is using what they paid for.
   const fitActive = sql<number>`coalesce((select max(s.updated_at) from fitness_score s where s.user_id = "user"."id"), 0)`;
+  const spotCheck = sql<number>`${sql.raw(spotCheckOnSql('"user"."id"'))}`;
   const people = await db
     .select({
       id: user.id,
@@ -386,6 +389,7 @@ export async function lifecycleDue(
       lastActive,
       fitActive,
       firstPaid,
+      spotCheck,
     })
     .from(user)
     .where(and(eq(user.emailVerified, true), sql`instr(${user.email}, '@') > 0`))
@@ -452,6 +456,8 @@ export async function lifecycleDue(
       }
       continue;
     }
+    // Spot-check mode: logging now and then is the plan, not a lapse.
+    if (Number(person.spotCheck) === 1) continue;
     // Still syncing JoyoFit: not lapsed, even with no meals logged.
     const idleDays = (now - Math.max(active, fit)) / DAY;
     if (idleDays < WINBACK_MIN_IDLE_DAYS || idleDays >= WINBACK_MAX_IDLE_DAYS) continue;

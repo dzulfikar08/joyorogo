@@ -22,6 +22,7 @@ import { notePrefChanged } from "@joyorogo/api/lib/rogo-prefs-sync";
 import { dayZoneOffsetMs, i18n } from "@joyorogo/i18n";
 
 import { zoneToLocalMinutes } from "@/src/lib/reminder-time";
+import { loadSpotCheck } from "@/src/lib/spot-check";
 
 // --- Storage keys -------------------------------------------------------------
 
@@ -299,6 +300,7 @@ async function schedulePlan(
   config: ReminderConfig,
   ctx: ReminderContext,
   fastingOn: boolean,
+  spotCheck: boolean,
 ): Promise<void> {
   // IF mode on → its schedule REPLACES the fixed meal reminders.
   if (fastingOn) {
@@ -310,7 +312,8 @@ async function schedulePlan(
         body: reminder.body,
       });
     }
-  } else {
+  } else if (!spotCheck) {
+    // Cek sesekali (lib/spot-check): a day without a log is normal for them, so no "log your meal" nudges.
     for (const key of MEAL_REMINDER_KEYS) {
       const meal = config.meals[key];
       const minutes = parseHHMM(meal.time);
@@ -340,7 +343,7 @@ async function schedulePlan(
   // Naikin BB: one evening nudge, only while the target is still not reached today. Skipped
   // for today (when its time is still ahead) as soon as the day reaches the target.
   const gainMinutes = parseHHMM(config.gainEvening.time);
-  if (config.gainEvening.enabled && gainMinutes !== null && ctx.gain) {
+  if (config.gainEvening.enabled && gainMinutes !== null && ctx.gain && !spotCheck) {
     // Same state rule as the day ring: remaining = target - eaten, so (remaining, 0) classifies alike.
     const left = gainRemaining(ctx.gain.remainingKcal, 0);
     const short = left.state === "short";
@@ -459,11 +462,12 @@ async function doReschedule(): Promise<void> {
   if ((await getNotificationPermission()) !== "granted") return;
   try {
     await ensureNotificationChannels();
-    const [config, fastingOn] = await Promise.all([
+    const [config, fastingOn, spotCheck] = await Promise.all([
       loadReminderConfig(),
       readFlag(FASTING_KEY),
+      loadSpotCheck(),
     ]);
-    await schedulePlan(config, lastContext, fastingOn);
+    await schedulePlan(config, lastContext, fastingOn, spotCheck);
   } catch {
     // Scheduling is best-effort; the choice is already persisted.
   }

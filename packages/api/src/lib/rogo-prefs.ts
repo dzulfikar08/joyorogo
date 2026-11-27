@@ -8,6 +8,7 @@ import { ADD_BACK_SANITIZERS, DEFAULT_ADD_BACK_SETTINGS } from "./exercise-credi
 import { DEFAULT_MAKAN_VIEW, parseMakanView } from "./diary-view";
 import { parseFoodKindFilter } from "./food-kind";
 import { DEFAULT_REMINDER_CONFIG, sanitizeConfig } from "./reminder-config";
+import { SPOT_CHECK_PREF_KEY } from "./spot-check";
 
 // The preferences that follow a JoyoRogo account to every phone and browser (sync namespace `rogo`, kind `pref`, record
 // id = the key below, document `{ "value": ... }`). Contract: docs/multi-device.md. One sanitizer per key decides what
@@ -99,6 +100,13 @@ const SPECS = {
   // "Mode simpel" after a scan (lib/scan-simple): the food list, one mic and Simpan; the rest behind "Detail". Off by
   // default: only `true` is stored.
   "scan.simple": {
+    sanitize: (value) => (typeof value === "boolean" ? value : undefined),
+    isDefault: (value) => value === false,
+  },
+  // "Cek sesekali" (spot-check mode, lib/spot-check): the person logs now and then, not every day. The server reads it
+  // to leave out meal and streak pushes and the win-back mail; Beranda stops counting days without a log. Off by
+  // default: only `true` is stored.
+  [SPOT_CHECK_PREF_KEY]: {
     sanitize: (value) => (typeof value === "boolean" ? value : undefined),
     isDefault: (value) => value === false,
   },

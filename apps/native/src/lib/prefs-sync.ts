@@ -21,6 +21,7 @@ import { readAddBackPref, writeAddBackPref } from "./exercise-credit-prefs";
 import { setLocale } from "./i18n";
 import { loadMakanPrefs, writeMakanPref } from "./makan-prefs";
 import { loadScanSimple, writeScanSimple } from "./scan-prefs";
+import { loadSpotCheck, writeSpotCheck } from "./spot-check";
 import { readStoredReminderConfig, rescheduleAll, writeReminderConfig } from "./notifications";
 import { applyThemePref, loadThemePref, writeThemePref } from "./theme-pref";
 
@@ -96,6 +97,8 @@ async function readDevice(key: RogoPrefKey, userId: string): Promise<unknown | u
       return (await loadMakanPrefs()).kind;
     case "scan.simple":
       return (await loadScanSimple()) ? true : undefined;
+    case "logging.spotCheck":
+      return (await loadSpotCheck()) ? true : undefined;
     case "sticker":
       return loadStickerPrefs();
     case "exercise.addBack.enabled":
@@ -125,6 +128,8 @@ async function writeDevice(key: RogoPrefKey, userId: string, value: unknown | un
       return writeMakanPref("kind", value as string | undefined);
     case "scan.simple":
       return writeScanSimple(value);
+    case "logging.spotCheck":
+      return writeSpotCheck(value);
     case "sticker":
       return writeStickerPrefs((value as typeof DEFAULT_STICKER_PREFS | undefined) ?? DEFAULT_STICKER_PREFS);
     case "exercise.addBack.enabled":
@@ -147,10 +152,10 @@ function backend(userId: string): PrefsBackend {
     write: (key, value) => writeDevice(key, userId, value),
     async applied(keys) {
       // The theme is on screen right now; the reminder choices need new notifications. Everything else (makan view,
-      // sticker options, dismissals) is read when its screen mounts next.
+      // sticker options, dismissals) is read when its screen mounts next. Spot-check mode drops the meal reminders.
       if (keys.includes("theme")) applyThemePref(await loadThemePref());
       // Never asks for permission: without it nothing is scheduled and the choices wait.
-      if (keys.includes("reminders")) await rescheduleAll();
+      if (keys.includes("reminders") || keys.includes("logging.spotCheck")) await rescheduleAll();
     },
   };
 }

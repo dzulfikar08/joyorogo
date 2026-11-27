@@ -564,6 +564,11 @@
     "on": "After a scan you only see the food list, one mic button to fix it, and Save. Everything else is under Details.",
     "off": "The full scan result screen with every option."
   },
+  "spotCheck": {
+    "title": "Spot-check mode",
+    "on": "Log only new foods or things you rarely eat. Meal and streak reminders are off; weigh-in reminders stay on.",
+    "off": "Turn this on once you know your everyday meals and don't need to log every day."
+  },
   "privacy": {
     "policy": "Privacy policy",
     "share": {

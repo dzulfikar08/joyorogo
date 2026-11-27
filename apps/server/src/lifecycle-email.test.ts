@@ -125,7 +125,7 @@ const due = async (now = NOW) =>
 beforeEach(async () => {
   outbox = [];
   failSends = false;
-  for (const table of ["email_log", "payment", "fitness_score", "ai_usage", "food_log", "profile", "user"])
+  for (const table of ["sync_record", "email_log", "payment", "fitness_score", "ai_usage", "food_log", "profile", "user"])
     await client.execute(`DELETE FROM "${table}"`);
 });
 
@@ -199,6 +199,24 @@ describe("lifecycleDue", () => {
     await scan("lapsed", -2);
     expect(await due(NOW + 20 * DAY)).toEqual([]);
     expect(await due(NOW + 31 * DAY)).toEqual(["lifecycle_winback:lapsed"]);
+  });
+});
+
+describe("Cek sesekali (spot-check mode)", () => {
+  const spotCheck = (userId: string, json: string, deletedAt: number | null = null) =>
+    client.execute({
+      sql: `INSERT INTO sync_record (user_id, ns, kind, id, json, updated_at, deleted_at, server_at) VALUES (?, 'rogo', 'pref', 'logging.spotCheck', ?, 1, ?, 1)`,
+      args: [userId, json, deletedAt],
+    });
+
+  test("no win-back while it is on; turned off (a tombstone) the lapse counts again", async () => {
+    for (const id of ["spot", "wasSpot", "lapsed"]) {
+      await addUser(id, 100);
+      await scan(id, 20);
+    }
+    await spotCheck("spot", JSON.stringify({ value: true }));
+    await spotCheck("wasSpot", JSON.stringify({ value: null }), NOW);
+    expect(await due()).toEqual(["lifecycle_winback:lapsed", "lifecycle_winback:wasSpot"]);
   });
 });
 

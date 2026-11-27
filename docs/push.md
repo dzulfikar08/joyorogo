@@ -101,6 +101,9 @@ Reminder rules (`reminders.ts`, pure pieces are unit tested):
   tick only delays it, and a reminder delivered more than 30 minutes after its window closed is dropped as stale.
 - Only people who still use the app: food logged within 14 days, or an account younger than that. Nobody is nagged after
   two weeks of silence.
+- "Cek sesekali" (spot-check mode, synced pref `logging.spotCheck`, `packages/api/src/lib/spot-check.ts`): no lunch,
+  evening or streak push; the weigh-in and the weekly ones stay. The native app also schedules no local meal or Naikin BB
+  evening reminder for them.
 - Intermittent fasting (not Ramadan, not Hamil/Menyusui): no food reminder outside the eating window (a lunch nudge to an
   18:00 OMAD window, an evening one after a 12:00-20:00 window closed). Ramadan: no lunch reminder, the evening one stays.
   Hamil/Menyusui never fast, so a leftover pattern setting is ignored; they get no weigh-in reminder (the plan has no

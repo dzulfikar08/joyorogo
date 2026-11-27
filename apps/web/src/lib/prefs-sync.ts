@@ -21,6 +21,7 @@ import { readCalibrationPref, writeCalibrationPref } from "./calibration-prefs";
 import { readAddBackPref, writeAddBackPref } from "./exercise-credit-prefs";
 import { storedKind, storedMakanView, writeMakanPref } from "./makan-prefs";
 import { storedScanSimple, writeScanSimplePref } from "./scan-simple";
+import { storedSpotCheck, writeSpotCheckPref } from "./spot-check";
 import { STORY_PREFS_KEY } from "./story-prefs";
 
 // Account preferences in this browser (what is synced and what is not: packages/api/src/lib/rogo-prefs.ts). The
@@ -100,6 +101,8 @@ function readDevice(key: RogoPrefKey, userId: string): unknown | undefined {
       return storedKind();
     case "scan.simple":
       return storedScanSimple() ? true : undefined;
+    case "logging.spotCheck":
+      return storedSpotCheck() ? true : undefined;
     case "sticker":
       return readJson(STORY_PREFS_KEY) ?? undefined;
     case "dismissed.handlePrompt":
@@ -133,6 +136,9 @@ function writeDevice(key: RogoPrefKey, userId: string, value: unknown | undefine
         return;
       case "scan.simple":
         writeScanSimplePref(value);
+        return;
+      case "logging.spotCheck":
+        writeSpotCheckPref(value);
         return;
       case "sticker":
         if (value === undefined) localStorage.removeItem(STORY_PREFS_KEY);

@@ -17,6 +17,8 @@ import { setLocale } from "@/src/lib/i18n";
 import { applyThemePref, saveThemePref } from "@/src/lib/theme-pref";
 import { syncPrefs } from "@/src/lib/prefs-sync";
 import { loadScanSimple, saveScanSimple } from "@/src/lib/scan-prefs";
+import { rescheduleAll } from "@/src/lib/notifications";
+import { saveSpotCheck, useSpotCheck } from "@/src/lib/spot-check";
 import { errorMessage } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
@@ -344,6 +346,39 @@ export function ScanSimpleCard() {
         />
       </View>
       <Text style={styles.note}>{enabled ? t("scanSimple.on") : t("scanSimple.off")}</Text>
+    </Card>
+  );
+}
+
+/** "Cek sesekali" (synced pref logging.spotCheck, off by default): no meal or streak reminders, no lapse count on Beranda. */
+export function SpotCheckCard() {
+  const { t } = useTranslation("settings");
+  const { theme } = useUnistyles();
+  const enabled = useSpotCheck();
+
+  if (enabled === null) return null;
+
+  const change = async (value: boolean) => {
+    await saveSpotCheck(value);
+    await rescheduleAll();
+    await syncPrefs().catch(() => null);
+  };
+
+  return (
+    <Card>
+      <View style={styles.switchRow}>
+        <View style={styles.switchText}>
+          <Text style={styles.cardTitle}>{t("spotCheck.title")}</Text>
+        </View>
+        <Switch
+          value={enabled}
+          onValueChange={(value) => void change(value)}
+          trackColor={{ false: theme.colors.mutedForeground, true: theme.colors.primary }}
+          thumbColor={theme.colors.background}
+          accessibilityLabel={t("spotCheck.title")}
+        />
+      </View>
+      <Text style={styles.note}>{enabled ? t("spotCheck.on") : t("spotCheck.off")}</Text>
     </Card>
   );
 }
