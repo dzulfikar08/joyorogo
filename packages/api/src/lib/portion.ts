@@ -161,3 +161,16 @@ export function gramsForTypedKcal(
   }
   return Math.max(1, Math.min(5000, Math.round((grams * typedKcal) / item.kcal)));
 }
+
+/**
+ * The items_json of a Cerita row whose grams are a weight the user wrote ("nasi 100 g", the item's `statedGrams`),
+ * saved unchanged: the portion prior (portion-prior.ts) counts it as the user's own weight. Undefined when the row's
+ * grams moved away from the stated weight (a typed kcal) or the item had none.
+ */
+export function storyStatedItemsJson(
+  item: { statedGrams?: boolean; grams?: number | null },
+  row: { name: string; grams: number | undefined; kcal: number },
+): string | undefined {
+  if (item.statedGrams !== true || row.grams === undefined || row.grams !== item.grams) return undefined;
+  return JSON.stringify([{ from: "story", stated: true, name: row.name, grams: row.grams, kcal: row.kcal }]);
+}

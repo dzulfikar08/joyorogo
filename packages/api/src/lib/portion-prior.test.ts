@@ -12,10 +12,12 @@ import {
   countOf,
   priorFood,
   priorOf,
+  statedGrams,
   userSetSamples,
   withPortionPrior,
 } from "./portion-prior";
 import type { HistoryRow } from "./portion-prior";
+import { storyStatedItemsJson } from "./portion";
 import { canonicalFood } from "./tkpi";
 
 const typed = (name: string, grams: number): HistoryRow => ({ name, grams, source: "manual", itemsJson: null });
@@ -71,9 +73,10 @@ describe("userSetSamples: only grams the user set", () => {
 });
 
 describe("consistency gate", () => {
-  test("two entries are enough for the chip, fewer are no history", () => {
-    expect(priorOf([100])).toBeNull();
-    expect(priorOf([100, 100])).toEqual({ grams: 100, n: PRIOR_SUGGEST_ENTRIES, tight: true });
+  test("one entry is enough, none is no history", () => {
+    expect(priorOf([])).toBeNull();
+    expect(priorOf([100])).toEqual({ grams: 100, n: PRIOR_SUGGEST_ENTRIES, tight: true });
+    expect(priorOf([100, 100])).toEqual({ grams: 100, n: 2, tight: true });
     expect(priorOf([100, 100], 5)).toBeNull();
     expect(priorOf([100, 100, 100, 100, 100], 5)).toEqual({ grams: 100, n: 5, tight: true });
   });
@@ -197,8 +200,9 @@ describe("withPortionPrior: a solid history starts at the usual grams", () => {
 
   test("the big-plate ratio is a parameter", () => {
     const plate = { ...rice, grams: 150, kcal: 195 };
-    expect(withPortionPrior(plate, priors).grams).toBe(150);
-    expect(withPortionPrior(plate, priors, { bigPlate: 1.6 }).grams).toBe(100);
+    // The model's 150 g against a 100 g usual: the default starts at the usual, a stricter ratio keeps the model's.
+    expect(withPortionPrior(plate, priors).grams).toBe(100);
+    expect(withPortionPrior(plate, priors, { bigPlate: 1.4 }).grams).toBe(150);
   });
 
   test("the personal history wins over the typical portion", () => {
@@ -278,5 +282,47 @@ describe("withPortionPrior: left alone", () => {
     expect(priorLabelKey({})).toBe("result.items.priorUsual");
     expect(priorLabelKey({ source: "you" })).toBe("result.items.priorUsual");
     expect(priorLabelKey({ source: "typical" })).toBe("result.items.priorTypical");
+  });
+});
+
+describe("weights written in Cerita", () => {
+  test("a weight in the user's words and in the item's portion is stated; a scoop or a piece is not", () => {
+    expect(statedGrams({ portion: "100 g", grams: 100 }, "ayam 1 potong, nasi 100 g")).toBe(true);
+    expect(statedGrams({ portion: "100 gram", grams: 100 }, "nasi 100gram")).toBe(true);
+    expect(statedGrams({ portion: "250 ml", grams: 250 }, "susu 250 ml")).toBe(true);
+    expect(statedGrams({ portion: "1 centong", grams: 100 }, "nasi 1 centong")).toBe(false);
+    expect(statedGrams({ portion: "1 potong", grams: 90 }, "ayam 1 potong, nasi 100 g")).toBe(false);
+    // The model wrote a weight the user never said.
+    expect(statedGrams({ portion: "150 g", grams: 150 }, "nasi sepiring")).toBe(false);
+    // The weight said, but the item's grams are another number.
+    expect(statedGrams({ portion: "100 g", grams: 150 }, "nasi 100 g")).toBe(false);
+  });
+
+  test("the save keeps a stated weight only while the row still has it", () => {
+    const item = { statedGrams: true, grams: 100 };
+    expect(storyStatedItemsJson(item, { name: "Nasi putih", grams: 100, kcal: 130 })).toBe(
+      '[{"from":"story","stated":true,"name":"Nasi putih","grams":100,"kcal":130}]',
+    );
+    expect(storyStatedItemsJson(item, { name: "Nasi putih", grams: 120, kcal: 156 })).toBeUndefined();
+    expect(storyStatedItemsJson({ grams: 100 }, { name: "Nasi putih", grams: 100, kcal: 130 })).toBeUndefined();
+  });
+
+  test("one Cerita 'nasi 100 g' makes the next photo of rice start at 100 g, the model's 150 g one tap away", () => {
+    const itemsJson = storyStatedItemsJson({ statedGrams: true, grams: 100 }, { name: "Nasi putih", grams: 100, kcal: 130 })!;
+    const rows: HistoryRow[] = [
+      { name: "Nasi putih", grams: 100, source: "ai", itemsJson },
+      // A Cerita row the model weighed (no items_json) and an unedited photo row never count.
+      { name: "Nasi putih", grams: 150, source: "ai", itemsJson: null },
+      { name: "Nasi putih", grams: 150, source: "ai", itemsJson: '[{"name":"Nasi putih","grams":150,"kcal":195}]' },
+    ];
+    const priors = buildPriors(userSetSamples(rows));
+    expect(priors.get("nasi")).toMatchObject({ grams: 100, n: 1 });
+    const shown = withPortionPrior({ name: "Nasi putih", grams: 150, kcal: 195, protein: 4, carbs: 42, fat: 0.4 }, priors);
+    expect(shown).toMatchObject({ grams: 100, portionPrior: { active: "prior", source: "you", other: { grams: 150 } } });
+  });
+
+  test("a stated row whose grams the user changed later counts at the new weight", () => {
+    const itemsJson = storyStatedItemsJson({ statedGrams: true, grams: 100 }, { name: "Nasi putih", grams: 100, kcal: 130 })!;
+    expect(userSetSamples([{ name: "Nasi putih", grams: 120, source: "ai", itemsJson }])).toEqual([{ food: "nasi", grams: 120 }]);
   });
 });
