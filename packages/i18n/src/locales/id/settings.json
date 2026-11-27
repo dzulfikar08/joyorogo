@@ -551,6 +551,11 @@
     "on": "Setelah scan cuma daftar makanan, satu tombol mic untuk koreksi, dan Simpan. Pilihan lain ada di Detail.",
     "off": "Layar hasil scan lengkap dengan semua pilihan."
   },
+  "spotCheck": {
+    "title": "Cek sesekali",
+    "on": "Cukup catat makanan baru atau yang jarang kamu makan. Pengingat makan dan streak dimatikan, pengingat timbang tetap jalan.",
+    "off": "Nyalakan kalau kamu sudah hafal makanan sehari-harimu dan tidak perlu catat tiap hari."
+  },
   "privacy": {
     "policy": "Kebijakan privasi",
     "share": {

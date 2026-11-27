@@ -353,6 +353,45 @@ describe("evening reminder and streak", () => {
   });
 });
 
+describe("Cek sesekali (spot-check mode)", () => {
+  const spotCheck = (client: TestClient, id: string, json = JSON.stringify({ value: true }), deletedAt: number | null = null) =>
+    client.execute({
+      sql: `INSERT INTO sync_record (user_id, ns, kind, id, json, updated_at, deleted_at, server_at) VALUES (?, 'rogo', 'pref', 'logging.spotCheck', ?, 1, ?, 1)`,
+      args: [id, json, deletedAt],
+    });
+
+  test("no lunch, evening or streak push; turned off again (a tombstone) the reminders come back", async () => {
+    const { client, deps, outbox } = await world();
+    const run = Array.from({ length: 5 }, (_, i) => shiftDate(MONDAY, -i));
+    await person(client, "spot", { foodOn: run });
+    await spotCheck(client, "spot");
+    await person(client, "off", { foodOn: run });
+    await spotCheck(client, "off", JSON.stringify({ value: null }), 2);
+    await person(client, "daily", { foodOn: run });
+
+    expect(await runReminders(deps(wib(TUESDAY, "13:10")))).toBe(2);
+    expect(await runReminders(deps(wib(TUESDAY, "20:05")))).toBe(2);
+    const rows = await outbox();
+    expect(rows.map((r) => `${String(r.user_id)}:${String(r.kind)}`).sort()).toEqual([
+      "daily:meal_noon",
+      "daily:streak",
+      "off:meal_noon",
+      "off:streak",
+    ]);
+  });
+
+  test("the weigh-in reminder stays", async () => {
+    const { client, deps, outbox } = await world();
+    await person(client, "spot");
+    await spotCheck(client, "spot");
+    await client.execute(
+      `INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES ('w-spot', 'spot', '2026-10-11', 70)`,
+    );
+    expect(await runReminders(deps(wib(TUESDAY, "07:45")))).toBe(1);
+    expect((await outbox("weigh")).map((r) => r.user_id)).toEqual(["spot"]);
+  });
+});
+
 describe("weigh-in reminder", () => {
   test("after a week without one, then only weekly; never for pregnant accounts", async () => {
     const { client, deps, outbox } = await world();

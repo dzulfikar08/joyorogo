@@ -23,6 +23,7 @@ describe("the registry", () => {
       "makan.kind",
       "sticker",
       "scan.simple",
+      "logging.spotCheck",
       "dismissed.handlePrompt",
       "dismissed.stravaRetention7d",
       "dismissed.energyModel",
@@ -38,6 +39,16 @@ describe("the registry", () => {
     expect(isRogoPrefKey("constructor")).toBe(false);
     expect(isRogoPrefKey("__proto__")).toBe(false);
     expect(sanitizeRogoPref("toString", "x")).toBeUndefined();
+  });
+});
+
+describe("logging.spotCheck", () => {
+  test("a boolean, off by default", () => {
+    expect(sanitizeRogoPref("logging.spotCheck", true)).toBe(true);
+    expect(sanitizeRogoPref("logging.spotCheck", false)).toBe(false);
+    for (const value of [...GARBAGE, "true"]) expect(sanitizeRogoPref("logging.spotCheck", value)).toBeUndefined();
+    expect(isRogoPrefDefault("logging.spotCheck", false)).toBe(true);
+    expect(isRogoPrefDefault("logging.spotCheck", true)).toBe(false);
   });
 });
 

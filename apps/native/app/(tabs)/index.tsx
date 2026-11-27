@@ -88,6 +88,7 @@ import { useSessionGate } from "@/lib/use-session-gate";
 import { pushDaySnapshot, pushSignedOutSnapshot } from "@/src/lib/widgets/push";
 import { useJakartaClock } from "@/src/lib/use-jakarta-clock";
 import { useSelectedDay } from "@/src/lib/selected-day";
+import { useSpotCheck } from "@/src/lib/spot-check";
 import { useHealthAutoSync } from "@/src/lib/use-health-sync";
 import { TargetPaceNotice } from "@/components/target-pace-notice";
 import { errorMessage, fmtDateMedium, fmtInt, fmtKg, kcalUnit, weeklyRateLabel } from "@/utils/format";
@@ -315,6 +316,7 @@ export default function Dashboard() {
     }
   };
   const [streakOpen, setStreakOpen] = useState(false);
+  const spotCheck = useSpotCheck() === true;
   const [weightOpen, setWeightOpen] = useState(false);
   const [recapStory, setRecapStory] = useState<StorySpec | null>(null);
   const [viewer, setViewer] = useState<StickerViewerTarget | null>(null);
@@ -1067,7 +1069,8 @@ export default function Dashboard() {
       {/* Status chips under the greeting, so the name keeps the full width above. */}
       <View style={styles.chipRow}>
         {/* One streak, as the home-screen widget shows it: a lit flame with the run (hollow while today is still blank), or, once it broke, a cold flame with the days since the last log that opens the scan camera. */}
-        {!maternal && data.streak && data.streak.status === "broken" ? (
+        {/* Cek sesekali (lib/spot-check): days without a log are their normal, so no lapse count and no "log today" line. */}
+        {!maternal && !spotCheck && data.streak && data.streak.status === "broken" ? (
           <Link href="/makan-ai" asChild>
             <Pressable
               hitSlop={{ top: 2, bottom: 2 }}
@@ -1087,7 +1090,7 @@ export default function Dashboard() {
             accessibilityRole="button"
             style={({ pressed }) => [styles.streakChip, pressed && styles.pressedSoft]}
             accessibilityLabel={
-              data.streak?.status === "at_risk"
+              data.streak?.status === "at_risk" && !spotCheck
                 ? t(gain ? "header.streakAtRiskGainLabel" : "header.streakAtRiskLabel", { count: data.streakDays })
                 : gain
                   ? t("gain:today.streak", { count: data.streakDays })

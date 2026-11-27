@@ -5,9 +5,9 @@ import { FastingSettingsCard } from "@/components/fasting/settings-card";
 import { DishwareSection } from "@/components/dishware/dishware-section";
 import { BudgetSetting } from "@/components/plate/budget-setting";
 import { ProfilDataPage } from "@/components/profil/page";
-import { RamadanList, ScanSimpleCard } from "@/components/profil/sections";
+import { RamadanList, ScanSimpleCard, SpotCheckCard } from "@/components/profil/sections";
 
-/** Makan & puasa: Ramadan mode, intermittent fasting, shopping budget, simple scan result, dishware. */
+/** Makan & puasa: Ramadan mode, intermittent fasting, shopping budget, simple scan result, Cek sesekali, dishware. */
 export default function Makan() {
   const { t } = useTranslation("settings");
   return (
@@ -21,6 +21,7 @@ export default function Makan() {
             {prof && !maternal ? <FastingSettingsCard /> : null}
             <BudgetSetting />
             <ScanSimpleCard />
+            <SpotCheckCard />
             <DishwareSection />
           </>
         );
