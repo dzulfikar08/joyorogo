@@ -17,7 +17,7 @@
   },
   "text": {
     "winsIntro": "Berita baiknya:",
-    "sparseIntro": "Apa yang kelihatan minggu ini:",
+    "sparseIntro": "Yang kelihatan minggu ini:",
     "focusIntro": "Yang perlu diberi perhatian:",
     "closing": "Fokus minggu depan:",
     "keepGoing": "Kekalkan rentak ini minggu depan.",
@@ -43,8 +43,8 @@
         "text": "Anda mencatat makanan {{loggedDays}} hari minggu ini. Permulaan yang baik."
       },
       "spot": {
-        "title": "Semakan makanan sekali-sekala",
-        "text_other": "Anda mencatat makanan pada {{loggedDays}} hari minggu ini. Angka makanan minggu ini hanya dikira daripada hari yang anda catat; hari tanpa catatan tidak diambil kira."
+        "title": "Catatan makan sekali-sekala",
+        "text_other": "Anda mencatat makanan pada {{loggedDays}} hari minggu ini. Angka pemakanannya hanya dikira daripada hari yang anda catat; hari tanpa catatan tidak diambil kira."
       }
     },
     "WEIGHT_PACE": {
@@ -71,7 +71,7 @@
         "title": "Berat belum bergerak",
         "text": "Trend berat badan anda hampir mendatar, kira-kira {{kgPerWeek}} kg seminggu.",
         "advice": "Semak dahulu sama ada catatan makanan anda sudah lengkap, termasuk snek dan minuman. Jika sudah, kurangkan sedikit hidangan atau tambah berjalan kaki.",
-        "advice_partial": "Kurangkan sedikit hidangan atau tambah berjalan kaki, kemudian lihat semula arah trendnya minggu depan."
+        "advice_partial": "Kurangkan sedikit saiz hidangan atau lebihkan berjalan kaki, kemudian lihat semula arah trendnya minggu depan."
       },
       "too_fast": {
         "title": "Penurunan terlalu cepat",
@@ -126,7 +126,7 @@
       }
     },
     "INTAKE_AVG_VS_TARGET": {
-      "partial": "Purata ini hanya daripada {{loggedDays}} hari yang anda catat.",
+      "partial_other": "Purata ini hanya daripada {{loggedDays}} hari yang anda catat.",
       "on_target": {
         "title": "Makan mengikut sasaran",
         "text": "Purata pemakanan anda {{avgKcal}} kcal sehari, hampir dengan sasaran {{targetKcal}} kcal."

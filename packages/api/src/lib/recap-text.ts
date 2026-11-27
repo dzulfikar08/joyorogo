@@ -72,7 +72,7 @@ export function renderFact(fact: Fact, locale: Locale): FactView {
   if (fact.code === "RUN_INTENSITY" && fact.params.loadRatio != null) text += ` ${t("facts.RUN_INTENSITY.load", options)}`;
   const partial = fact.params.partial === true;
   // The average of a week logged on some days says plainly which days it is of.
-  if (fact.code === "INTAKE_AVG_VS_TARGET" && partial) text += ` ${t("facts.INTAKE_AVG_VS_TARGET.partial", options)}`;
+  if (fact.code === "INTAKE_AVG_VS_TARGET" && partial) text += ` ${t("facts.INTAKE_AVG_VS_TARGET.partial", { ...options, count: Number(fact.params.loggedDays) })}`;
   const adviceKey = partial && PARTIAL_ADVICE.has(`${fact.code}/${fact.variant}`) ? `${base}.advice_partial` : `${base}.advice`;
   let advice = fact.role === "focus" ? t(adviceKey, options) : null;
   if (advice !== null && fact.code === "RUN_INTENSITY" && fact.params.loadRatio != null) advice += ` ${t("facts.RUN_INTENSITY.loadAdvice", options)}`;

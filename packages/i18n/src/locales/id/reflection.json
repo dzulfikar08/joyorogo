@@ -44,7 +44,7 @@
       },
       "spot": {
         "title": "Cek makan sesekali",
-        "text_other": "Kamu mencatat makan di {{loggedDays}} hari minggu ini. Angka makan minggu ini hanya dihitung dari hari yang kamu catat; hari tanpa catatan tidak ikut dihitung."
+        "text_other": "Kamu mencatat makan {{loggedDays}} hari minggu ini. Angka makannya hanya diambil dari hari yang kamu catat; hari tanpa catatan tidak masuk hitungan."
       }
     },
     "WEIGHT_PACE": {
@@ -71,7 +71,7 @@
         "title": "Berat belum bergerak",
         "text": "Tren berat badanmu hampir datar, sekitar {{kgPerWeek}} kg per minggu.",
         "advice": "Cek dulu apakah catatan makanmu sudah lengkap, termasuk camilan dan minuman. Kalau sudah, kurangi sedikit porsi atau tambah jalan kaki.",
-        "advice_partial": "Kurangi sedikit porsi atau tambah jalan kaki, lalu lihat lagi arah tren-nya minggu depan."
+        "advice_partial": "Kurangi sedikit porsi atau tambah jalan kaki, lalu lihat lagi arah trennya minggu depan."
       },
       "too_fast": {
         "title": "Turunnya terlalu cepat",
@@ -126,7 +126,7 @@
       }
     },
     "INTAKE_AVG_VS_TARGET": {
-      "partial": "Rata-rata ini hanya dari {{loggedDays}} hari yang kamu catat.",
+      "partial_other": "Rata-rata ini hanya dari {{loggedDays}} hari yang kamu catat.",
       "on_target": {
         "title": "Makan sesuai target",
         "text": "Rata-rata makanmu {{avgKcal}} kkal per hari, dekat dengan target {{targetKcal}} kkal."

@@ -43,9 +43,9 @@
         "text": "You logged your food on {{loggedDays}} days this week. A good start."
       },
       "spot": {
-        "title": "Spot checks on food",
-        "text_one": "You logged food on {{loggedDays}} day this week. Food numbers this week come only from the days you logged; days without a log are left out.",
-        "text_other": "You logged food on {{loggedDays}} days this week. Food numbers this week come only from the days you logged; days without a log are left out."
+        "title": "Spot-checking meals",
+        "text_one": "You logged food on {{loggedDays}} day this week. This week's food numbers come only from that day; days without a log are left out.",
+        "text_other": "You logged food on {{loggedDays}} days this week. This week's food numbers come only from the days you logged; days without a log are left out."
       }
     },
     "WEIGHT_PACE": {
@@ -130,7 +130,8 @@
       }
     },
     "INTAKE_AVG_VS_TARGET": {
-      "partial": "This average covers only the {{loggedDays}} days you logged.",
+      "partial_one": "This average covers only the {{loggedDays}} day you logged.",
+      "partial_other": "This average covers only the {{loggedDays}} days you logged.",
       "on_target": {
         "title": "Eating on target",
         "text": "You averaged {{avgKcal}} kcal a day, close to your {{targetKcal}} kcal target."
@@ -143,7 +144,7 @@
       "under": {
         "title": "Eating far below target",
         "text": "You averaged {{avgKcal}} kcal a day, far below your {{targetKcal}} kcal target. Some food may not be logged, or you may really be eating too little.",
-        "advice": "Log every meal and drink, snacks included. If you really eat little, do not push below your target, your body needs fuel to move and recover.",
+        "advice": "Log every meal and drink, snacks included. If you really are eating that little, do not push below your target: your body needs fuel to move and recover.",
         "advice_partial": "On the days you log, include snacks and drinks too. If you really eat little, do not push below your target, your body needs fuel to move and recover."
       },
       "under_gain": {
