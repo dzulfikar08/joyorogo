@@ -4,6 +4,7 @@ import { user } from "@joyorogo/db/schema/auth";
 import { emailLog } from "@joyorogo/db/schema/billing";
 import type { Database } from "@joyorogo/db";
 import type { Locale } from "@joyorogo/i18n";
+import { proUntil } from "@joyorogo/api/lib/household";
 import { userLocale } from "@joyorogo/api/lib/messages";
 
 import { deliver, renderFor } from "./broadcast";
@@ -380,7 +381,8 @@ export async function lifecycleDue(
       name: user.name,
       email: user.email,
       createdAt: user.createdAt,
-      founderUntil: user.founderUntil,
+      // Own period or a paid household (Joyo Keluarga): either way Pro is on.
+      proUntil,
       lastActive,
       fitActive,
       firstPaid,
@@ -414,7 +416,7 @@ export async function lifecycleDue(
     const active = Number(person.lastActive) || 0;
     const paidAt = Number(person.firstPaid) || 0;
     const paidDays = (now - paidAt) / DAY;
-    const stillPro = (person.founderUntil?.getTime() ?? 0) > now;
+    const stillPro = (person.proUntil?.getTime() ?? 0) > now;
     if (paidAt > 0 && stillPro && paidDays < PAID_WINDOW_DAYS) {
       // Paying and in the first two weeks: the paid check-in replaces the activation drip.
       const used = Math.max(active, Number(person.fitActive) || 0);
