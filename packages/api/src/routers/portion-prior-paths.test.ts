@@ -33,12 +33,14 @@ for (const [index, row] of rows.entries()) {
 const WHITE = { name: "putih telur", kind: "makanan", portion: "1 buah", grams: 50, kcal: 25, protein: 5, carbs: 1, fat: 0, confidence: 0.9, box: [119, 103, 672, 546] };
 const ANSWER = JSON.stringify({ items: [WHITE] });
 const STORY = JSON.stringify({ items: [{ name: "putih telur", portion: "1 buah", grams: 50, kcal: 25, protein: 5, carbs: 1, fat: 0, meal: "snack", day: null }] });
+/** What the story model answers next; a test that has the user write a weight swaps it. */
+let story = STORY;
 
 /** Workers AI fake: a plain chat completion, or a chat stream when asked to stream. */
 const fakeAi = {
   run: (_model: string, body: { stream?: boolean; messages: Array<{ content: unknown }> }) => {
     // A photo scan sends content parts, a story a plain string.
-    const text = typeof body.messages[0]?.content === "string" ? STORY : ANSWER;
+    const text = typeof body.messages[0]?.content === "string" ? story : ANSWER;
     if (body.stream !== true) {
       return Promise.resolve({ choices: [{ message: { content: text }, finish_reason: "stop" }], usage: { prompt_tokens: 300, completion_tokens: 9 } });
     }
@@ -135,6 +137,17 @@ describe("the owner's egg white starts at 100 g on every path", () => {
   test("Cerita", async () => {
     const story = await call(aiRouter.describeFood, { text: "makan putih telur", meal: "snack", date: today, slots: ["sarapan", "makan_siang", "makan_malam", "snack"] }, { context: ctx("owner") });
     expect(story.items[0]).toMatchObject(startsAtUsual);
+  });
+
+  test("Cerita with a weight the user wrote keeps it: no usual portion over it, flagged for the save", async () => {
+    story = JSON.stringify({ items: [{ name: "putih telur", portion: "60 g", grams: 60, kcal: 30, protein: 6, carbs: 1, fat: 0, meal: "snack", day: null }] });
+    try {
+      const told = await call(aiRouter.describeFood, { text: "makan putih telur 60 g", meal: "snack", date: today, slots: ["sarapan", "makan_siang", "makan_malam", "snack"] }, { context: ctx("owner") });
+      expect(told.items[0]).toMatchObject({ grams: 60, statedGrams: true });
+      expect("portionPrior" in told.items[0]!).toBe(false);
+    } finally {
+      story = STORY;
+    }
   });
 
   test("a user without that history gets the model's 50 g untouched, on every path", async () => {
