@@ -566,7 +566,7 @@
   },
   "spotCheck": {
     "title": "Spot-check mode",
-    "on": "Log only new or unusual food. Meal and streak reminders are off; weigh-in reminders stay on.",
+    "on": "Log only new foods or things you rarely eat. Meal and streak reminders are off; weigh-in reminders stay on.",
     "off": "Turn this on once you know your everyday meals and don't need to log every day."
   },
   "privacy": {

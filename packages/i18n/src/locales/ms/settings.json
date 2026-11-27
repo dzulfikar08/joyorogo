@@ -593,8 +593,8 @@
   },
   "spotCheck": {
     "title": "Semak sekali-sekala",
-    "on": "Catat makanan baharu atau yang jarang anda makan sahaja. Peringatan makan dan streak dimatikan, peringatan timbang kekal.",
-    "off": "Hidupkan apabila anda sudah tahu makanan harian anda dan tidak perlu mencatat setiap hari."
+    "on": "Cukup catat makanan baharu atau yang jarang anda makan. Peringatan makan dan streak dimatikan; peringatan timbang kekal aktif.",
+    "off": "Hidupkan apabila anda sudah biasa dengan makanan harian anda dan tidak perlu mencatat setiap hari."
   },
   "privacy": {
     "policy": "Dasar privasi",
