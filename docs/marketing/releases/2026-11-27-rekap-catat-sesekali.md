@@ -5,7 +5,7 @@ shipped: 2026-11-27
 available: code
 tier: mixed
 post: todo
-atur:
+atur: JRG-505
 ---
 
 **Apa:** Rekap mingguan sekarang tetap enak dibaca walau kamu cuma mencatat makan 1 sampai 3 hari seminggu. Refleksinya
