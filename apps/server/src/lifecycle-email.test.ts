@@ -3,7 +3,12 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import type { StickersBucket } from "@joyorogo/api/lib/sticker";
 
 import type { BroadcastDeps } from "./broadcast";
-import { lifecycleConfig, lifecycleDue, lifecycleSendHour, runLifecycleEmails } from "./lifecycle-email";
+import {
+  lifecycleConfig,
+  lifecycleDue,
+  lifecycleSendHour,
+  runLifecycleEmails,
+} from "./lifecycle-email";
 import { recordOptOut } from "./unsubscribe";
 
 const { client, db } = await d1TestDb();
@@ -18,13 +23,23 @@ function fakeBucket() {
       const found = objects.get(key);
       if (found === undefined) return null;
       const bytes = new TextEncoder().encode(found);
-      return { body: new Blob([bytes]).stream(), size: bytes.length, arrayBuffer: async () => bytes.buffer.slice(0) as ArrayBuffer };
+      return {
+        body: new Blob([bytes]).stream(),
+        size: bytes.length,
+        arrayBuffer: async () => bytes.buffer.slice(0) as ArrayBuffer,
+      };
     },
     async delete(keys) {
       for (const key of Array.isArray(keys) ? keys : [keys]) objects.delete(key);
     },
     async list({ prefix }) {
-      return { objects: [...objects.keys()].filter((k) => k.startsWith(prefix)).sort().map((key) => ({ key })), truncated: false };
+      return {
+        objects: [...objects.keys()]
+          .filter((k) => k.startsWith(prefix))
+          .sort()
+          .map((key) => ({ key })),
+        truncated: false,
+      };
     },
   };
   return bucket;
@@ -41,17 +56,33 @@ const email = {
   },
 } as unknown as NonNullable<BroadcastDeps["email"]>;
 
-const makeDeps = (): BroadcastDeps => ({ db, bucket: fakeBucket(), email, secret: "s".repeat(40), baseUrl: "https://api.test" });
+const makeDeps = (): BroadcastDeps => ({
+  db,
+  bucket: fakeBucket(),
+  email,
+  secret: "s".repeat(40),
+  baseUrl: "https://api.test",
+});
 const config = lifecycleConfig({ LIFECYCLE_EMAIL: "on", ADMIN_EMAILS: "owner@test.id" });
 
 const DAY = 86_400_000;
 /** 2026-10-31 10:00 WIB. */
 const NOW = Date.UTC(2026, 9, 31, 3);
 
-async function addUser(id: string, ageDays: number, opts: { verified?: boolean; mail?: string } = {}) {
+async function addUser(
+  id: string,
+  ageDays: number,
+  opts: { verified?: boolean; mail?: string } = {},
+) {
   await client.execute({
     sql: `INSERT INTO "user" (id, name, email, email_verified, created_at) VALUES (?, ?, ?, ?, ?)`,
-    args: [id, id[0]!.toUpperCase() + id.slice(1), opts.mail ?? `${id}@test.id`, opts.verified === false ? 0 : 1, NOW - ageDays * DAY],
+    args: [
+      id,
+      id[0]!.toUpperCase() + id.slice(1),
+      opts.mail ?? `${id}@test.id`,
+      opts.verified === false ? 0 : 1,
+      NOW - ageDays * DAY,
+    ],
   });
 }
 const scan = (userId: string, daysAgo: number, type = "user") =>
@@ -65,12 +96,37 @@ const meal = (userId: string, daysAgo: number, source = "manual") =>
     args: [crypto.randomUUID(), userId, source, NOW - daysAgo * DAY],
   });
 
-const due = async (now = NOW) => (await lifecycleDue(db, config, now)).map((m) => `${m.kind}:${m.id}`).sort();
+/** A payment row paid `daysAgo`; Pro runs until `untilDays` from NOW. */
+async function pay(
+  userId: string,
+  daysAgo: number,
+  opts: { amount?: number; test?: number; untilDays?: number } = {},
+) {
+  await client.execute({
+    sql: `INSERT INTO payment (order_id, user_id, amount_idr, status, months, is_test, created_at, paid_at) VALUES (?, ?, ?, 'paid', 1, ?, ?, ?)`,
+    args: [
+      crypto.randomUUID(),
+      userId,
+      opts.amount ?? 29000,
+      opts.test ?? 0,
+      NOW - daysAgo * DAY,
+      NOW - daysAgo * DAY,
+    ],
+  });
+  await client.execute({
+    sql: `UPDATE "user" SET founder_until = ? WHERE id = ?`,
+    args: [NOW + (opts.untilDays ?? 30 - daysAgo) * DAY, userId],
+  });
+}
+
+const due = async (now = NOW) =>
+  (await lifecycleDue(db, config, now)).map((m) => `${m.kind}:${m.id}`).sort();
 
 beforeEach(async () => {
   outbox = [];
   failSends = false;
-  for (const table of ["email_log", "ai_usage", "food_log", "profile", "user"]) await client.execute(`DELETE FROM "${table}"`);
+  for (const table of ["email_log", "payment", "fitness_score", "ai_usage", "food_log", "profile", "user"])
+    await client.execute(`DELETE FROM "${table}"`);
 });
 
 describe("lifecycleDue", () => {
@@ -94,6 +150,23 @@ describe("lifecycleDue", () => {
     expect(await due()).toEqual(["lifecycle_activate_1:coached", "lifecycle_activate_1:imported"]);
   });
 
+  test("JoyoFit: a watch-only account gets no activation mail; a JoyoFit sync keeps someone out of the win-back", async () => {
+    await addUser("watch", 3);
+    await addUser("both", 100);
+    await meal("both", 20);
+    const fitness = (userId: string, daysAgo: number) =>
+      client.execute({
+        sql: `INSERT INTO fitness_score (id, user_id, date, updated_at) VALUES (?, ?, '2026-10-30', ?)`,
+        args: [crypto.randomUUID(), userId, NOW - daysAgo * DAY],
+      });
+    await fitness("watch", 1);
+    await fitness("both", 2);
+    expect(await due()).toEqual([]);
+    await client.execute(`DELETE FROM fitness_score WHERE user_id = 'both'`);
+    await fitness("both", 16);
+    expect(await due()).toEqual(["lifecycle_winback:both"]);
+  });
+
   test("second nudge only from day 4 and at least 2 days after the first", async () => {
     await addUser("siti", 3);
     const deps = makeDeps();
@@ -102,7 +175,10 @@ describe("lifecycleDue", () => {
     expect(await due(NOW + 2 * DAY)).toEqual(["lifecycle_activate_2:siti"]);
     await runLifecycleEmails(deps, config, NOW + 2 * DAY);
     expect(await due(NOW + 5 * DAY)).toEqual([]);
-    expect(outbox.map((m) => m.subject)).toEqual(["Foto makanan berikutnya, Joyo yang hitung", "Satu foto saja dulu"]);
+    expect(outbox.map((m) => m.subject)).toEqual([
+      "Foto makanan berikutnya, Joyo yang hitung",
+      "Satu foto saja dulu",
+    ]);
   });
 
   test("win-back: last active 14 to 44 days ago, once per lapse, again only after a new lapse and 30 days", async () => {
@@ -126,6 +202,53 @@ describe("lifecycleDue", () => {
   });
 });
 
+describe("paid check-ins", () => {
+  test("from day 3 after the first real payment, only when idle 3+ days; replaces the activation drip", async () => {
+    for (const id of ["day2", "quiet", "busy", "never", "trial", "tester", "expired", "old"])
+      await addUser(id, 40);
+    await pay("day2", 2);
+    await pay("quiet", 4);
+    await meal("quiet", 3.5);
+    await pay("busy", 5);
+    await meal("busy", 1);
+    await addUser("fresh", 3);
+    await pay("fresh", 3);
+    await pay("trial", 5, { amount: 0 });
+    await pay("tester", 5, { test: 1 });
+    await pay("expired", 5, { untilDays: -1 });
+    await pay("old", 20);
+    for (const id of ["day2", "busy", "trial", "tester", "expired", "old"]) await scan(id, 0.5);
+    // Pays, logs no meals, but JoyoFit syncs a score every day: not idle.
+    await addUser("runner", 40);
+    await pay("runner", 5);
+    await client.execute({
+      sql: `INSERT INTO fitness_score (id, user_id, date, updated_at) VALUES ('fs1', 'runner', '2026-10-30', ?)`,
+      args: [NOW - 0.5 * DAY],
+    });
+    expect(await due()).toEqual(["lifecycle_paid_1:fresh", "lifecycle_paid_1:quiet"]);
+  });
+
+  test("second check-in from day 7, 3+ days after the first, only if nothing was logged since", async () => {
+    await addUser("siti", 40);
+    await addUser("budi", 40);
+    await pay("siti", 4);
+    await pay("budi", 4);
+    const deps = makeDeps();
+    expect((await runLifecycleEmails(deps, config, NOW)).sent).toBe(2);
+    expect(await due(NOW + 2 * DAY)).toEqual([]);
+    await meal("budi", -1);
+    // Day 7 for both; Budi logged after the first mail, so only Siti gets the second.
+    expect(await due(NOW + 3 * DAY)).toEqual(["lifecycle_paid_2:siti"]);
+    await runLifecycleEmails(deps, config, NOW + 3 * DAY);
+    expect(await due(NOW + 6 * DAY)).toEqual([]);
+    expect(outbox.map((m) => m.subject)).toEqual([
+      "Cara paling simpel mulai pakai Pro",
+      "Cara paling simpel mulai pakai Pro",
+      "Ada yang bisa saya bantu?",
+    ]);
+  });
+});
+
 describe("runLifecycleEmails", () => {
   test("mails in the person's language with the unsubscribe header, once", async () => {
     await addUser("siti", 2);
@@ -145,13 +268,22 @@ describe("runLifecycleEmails", () => {
   test("off, outside 09:00-19:59 WIB, or opted out: nothing is sent or logged", async () => {
     await addUser("siti", 2);
     const deps = makeDeps();
-    expect(await runLifecycleEmails(deps, { ...config, enabled: false }, NOW)).toMatchObject({ sent: 0 });
+    expect(await runLifecycleEmails(deps, { ...config, enabled: false }, NOW)).toMatchObject({
+      sent: 0,
+    });
     expect(lifecycleSendHour(Date.UTC(2026, 9, 31, 1, 59))).toBe(false);
     expect(lifecycleSendHour(Date.UTC(2026, 9, 31, 2))).toBe(true);
     expect(lifecycleSendHour(Date.UTC(2026, 9, 31, 13))).toBe(false);
-    expect(await runLifecycleEmails(deps, config, Date.UTC(2026, 9, 31, 14))).toMatchObject({ due: 0, sent: 0 });
+    expect(await runLifecycleEmails(deps, config, Date.UTC(2026, 9, 31, 14))).toMatchObject({
+      due: 0,
+      sent: 0,
+    });
     await recordOptOut(deps.bucket, "siti");
-    expect(await runLifecycleEmails(deps, config, NOW)).toMatchObject({ due: 1, sent: 0, optedOut: 1 });
+    expect(await runLifecycleEmails(deps, config, NOW)).toMatchObject({
+      due: 1,
+      sent: 0,
+      optedOut: 1,
+    });
     expect(outbox).toHaveLength(0);
     expect((await client.execute(`SELECT count(*) n FROM email_log`)).rows[0]?.n).toBe(0);
   });

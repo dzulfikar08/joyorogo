@@ -18,6 +18,7 @@ import { useSession } from "@/lib/auth-client";
 import { fetchPolarSubscription, fmtFounderDate, validatePaywallSearch } from "@/lib/billing";
 import type { CheckoutPlan, CheckoutProduct } from "@/lib/billing";
 import { JOYOARTO_RETURN_URL, checkoutSource } from "@/lib/joyoarto";
+import { appStoreUrl, playStoreUrl } from "@/lib/store-urls";
 import { useEnglishBilling } from "@/lib/usd-copy";
 import { orpc } from "@/utils/orpc";
 
@@ -349,6 +350,24 @@ function FounderPage() {
           <>
             <p className="mt-2 text-center text-xs text-muted-foreground">
               {keluarga ? tk("paywall.noAutoRenew") : t("paywall.noAutoRenew")}
+            </p>
+            {/* Store subscriptions renew on their own; one-off rupiah buyers mostly let the month run out (docs/lifecycle-email.md). */}
+            <p className="mt-1 text-center text-xs leading-snug text-muted-foreground">
+              {t("paywall.autoRenewInApp")}{" "}
+              <a
+                href={appStoreUrl("pro")}
+                className="font-semibold underline underline-offset-4 hover:text-foreground"
+              >
+                App Store
+              </a>{" "}
+              {t("paywall.autoRenewInAppOr")}{" "}
+              <a
+                href={playStoreUrl("pro")}
+                className="font-semibold underline underline-offset-4 hover:text-foreground"
+              >
+                Google Play
+              </a>
+              .
             </p>
             {/* Credibility next to the button (Nevo: plan and payment on one page, with trust elements). Rupiah only: the lock is a web-payment rule. */}
             <ul className="mt-3 space-y-1.5 text-xs leading-snug text-muted-foreground">
