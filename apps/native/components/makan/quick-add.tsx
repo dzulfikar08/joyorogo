@@ -63,7 +63,7 @@ export function QuickAdd({
   /** Slot the chips log to (suggested from the clock). */
   meal: Meal;
   favorites: Favorites;
-  /** The viewed day's budget and intake for "Biasa aman buatmu"; undefined while day.summary loads. */
+  /** The viewed day's budget and intake for "Menu biasa yang muat"; undefined while day.summary loads. */
   day: KnownGoodDay | undefined;
   recent: ReadonlyArray<RecentFood>;
   recentDisabled: boolean;

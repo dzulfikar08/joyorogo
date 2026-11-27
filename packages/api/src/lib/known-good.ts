@@ -1,4 +1,4 @@
-// "Biasa aman buatmu": the meals a user has eaten again and again, offered back when they still fit the slot. Two
+// "Menu biasa yang muat": the meals a user has eaten again and again, offered back when they still fit the slot. Two
 // pure steps: `findKnownGood` (server) picks the habits from the user's own diary, `fitKnownGood` (web and native)
 // keeps the ones that fit what is left of the slot's share of today's budget. A habit that does not fit is simply not
 // shown; nothing is ever labelled as too much.

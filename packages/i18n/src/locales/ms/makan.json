@@ -387,8 +387,8 @@
       "later": "Nanti"
     },
     "knownGood": {
-      "title": "Biasa sesuai untuk anda",
-      "hint": "Kerap anda makan dan masih muat dalam jatah {{meal}} · ketik untuk catat"
+      "title": "Pilihan biasa yang muat",
+      "hint": "Yang kerap anda makan & masih muat dalam bajet {{meal}} · ketik untuk catat"
     },
     "quick": {
       "manage": "Urus Catat pantas",

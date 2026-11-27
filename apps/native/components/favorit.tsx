@@ -388,7 +388,7 @@ export function FavoritChips({
 }
 
 /**
- * "Biasa aman buatmu": up to three of the user's own habits usually eaten in `meal` that still fit its share of the
+ * "Menu biasa yang muat": up to three of the user's own habits usually eaten in `meal` that still fit its share of the
  * day. One tap logs it: a favorite through relog, a single food through `onAddFood` (the recent-chip path). Renders
  * nothing when none fits; a habit that does not fit is left out, never labelled.
  */

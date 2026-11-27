@@ -348,7 +348,7 @@ export const savedFoodRouter = {
     return { offer };
   }),
 
-  // "Biasa aman buatmu": foods and favorites the user logged on 3+ days in the last 60 (imports left out), most-eaten
+  // "Menu biasa yang muat": foods and favorites the user logged on 3+ days in the last 60 (imports left out), most-eaten
   // first. The clients keep the ones usually eaten in the slot that still fit its share of the day (lib/known-good).
   knownGood: protectedProcedure.handler(async ({ context }) => {
     const userId = context.session.user.id;

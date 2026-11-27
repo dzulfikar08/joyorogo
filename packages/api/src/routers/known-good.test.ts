@@ -1,4 +1,4 @@
-// "Biasa aman buatmu" end to end on the D1-guarded database: the habits come from the user's own diary (imports and
+// "Menu biasa yang muat" end to end on the D1-guarded database: the habits come from the user's own diary (imports and
 // other users left out), a favorite is offered as itself, and the pick logs through the existing paths.
 import { call } from "@orpc/server";
 import { describe, expect, test } from "bun:test";

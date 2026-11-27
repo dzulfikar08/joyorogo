@@ -135,7 +135,7 @@ export default function Makan() {
   });
   const recentQuery = useQuery(orpc.food.recent.queryOptions());
   const favorites = useFavorites();
-  // "Biasa aman buatmu" fits habits to the same budget and intake as Sisa.
+  // "Menu biasa yang muat" fits habits to the same budget and intake as Sisa.
   const knownGoodDay: KnownGoodDay | undefined = summaryQuery.data
     ? {
         eatKcal: summaryQuery.data.targets?.eatKcal ?? null,

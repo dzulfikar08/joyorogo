@@ -137,7 +137,7 @@ function MakanPage() {
   );
   const slots = slotsFor(ramadan);
   const quickMeal = suggestMealNow(new Date(), ramadan);
-  // "Biasa aman buatmu" fits habits to the same budget and intake as Sisa.
+  // "Menu biasa yang muat" fits habits to the same budget and intake as Sisa.
   const knownGoodDay: KnownGoodDay | undefined = daySummary.data
     ? {
         eatKcal: daySummary.data.targets?.eatKcal ?? null,

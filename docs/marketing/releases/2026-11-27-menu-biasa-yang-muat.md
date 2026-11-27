@@ -1,6 +1,6 @@
 ---
 app: joyorogo
-feature: Biasa aman buatmu
+feature: Menu biasa yang muat
 shipped: 2026-11-27
 available: code
 tier: free
@@ -18,8 +18,8 @@ tanpa menghitung lagi.
 **Angle post:** "Udah hafal makanan andalanmu? JoyoRogo juga. Tinggal pilih yang masih muat, sekali tap."
 
 **Bukti visual:** akun demo dengan satu makanan dicatat di makan siang pada 3 hari berbeda, buka Makan hari ini sebelum
-makan siang: kartu Catat cepat menampilkan "Biasa aman buatmu".
+makan siang: kartu Catat cepat menampilkan "Menu biasa yang muat".
 
-**Jangan klaim:** bukan saran gizi atau medis, dan "aman" hanya berarti muat di jatah kalori waktu makan itu. Hanya dari
+**Jangan klaim:** bukan saran gizi atau medis, dan "muat" hanya berarti masih masuk jatah kalori waktu makan itu; jangan pakai kata "aman" (terdengar seperti klaim kesehatan). Hanya dari
 catatan si pengguna sendiri (impor Huawei tidak dihitung). Belum ada di build App Store / Play Store sampai entri ini
 diperbarui.
