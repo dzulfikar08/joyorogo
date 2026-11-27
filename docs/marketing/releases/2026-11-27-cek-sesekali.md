@@ -5,7 +5,7 @@ shipped: 2026-11-27
 available: code
 tier: free
 post: todo
-atur:
+atur: JRG-504
 ---
 
 **Apa:** Setelan baru di Profil > Makan & puasa. Kalau sudah hafal makanan sehari-hari, nyalakan "Cek sesekali": cukup
