@@ -18,7 +18,7 @@ import { MEALS, jakartaToday, storySlotLabel } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
-import { gramsForTypedKcal, macrosForTypedKcal } from "@joyorogo/api/lib/portion";
+import { gramsForTypedKcal, macrosForTypedKcal, storyStatedItemsJson } from "@joyorogo/api/lib/portion";
 import { copyChipLabel, copyWantedLabel } from "@joyorogo/api/lib/meal-copy-label";
 import type { AppRouterClient } from "@joyorogo/api/routers/index";
 
@@ -439,6 +439,10 @@ export function Cerita({
           grams: gramsForTypedKcal(item, values[index] ?? 0),
           ...macrosForTypedKcal(item, values[index] ?? 0),
           source: item.copied ? "copy" : "ai",
+          // A weight the user wrote ("nasi 100 g") is kept as theirs for the next photo of that food.
+          itemsJson: item.copied
+            ? undefined
+            : storyStatedItemsJson(item, { name: item.name, grams: gramsForTypedKcal(item, values[index] ?? 0), kcal: values[index] ?? 0 }),
           ...(existing ? { plateId: existing } : plate ? { plate } : {}),
           // Re-based on the group's diary day: the time may have been picked while another day was shown.
           ...(eatenAt != null ? { eatenAt: eatenAtFromClock(item.date, eatenAtClock(eatenAt)) ?? undefined } : {}),

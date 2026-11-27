@@ -32,8 +32,8 @@ describe("the owner's putih telur sequence", () => {
     expect(scans.map((s) => s.ai.grams)).toEqual([100, 50, 60, 100, 100, 50, 50, 50]);
   });
 
-  test("with fewer than two corrections in the history the model's number shows", () => {
-    expect(scans.slice(0, 3).map(shownGrams)).toEqual([100, 50, 60]);
+  test("before any correction the model's number shows; after his first (50 -> 100 g) the next scan starts at 100 g", () => {
+    expect(scans.slice(0, 3).map(shownGrams)).toEqual([100, 50, 100]);
   });
 
   test("after two saves at 100 g the history is a usual portion, and the same weight needs no chip", () => {

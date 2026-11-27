@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/server";
-import { and, asc, count, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Database } from "@joyorogo/db";
@@ -179,7 +179,8 @@ export const householdRouter = {
         .from(householdMember)
         .innerJoin(user, eq(user.id, householdMember.userId))
         .where(eq(householdMember.householdId, mine.householdId))
-        .orderBy(asc(householdMember.joinedAt)),
+        // Owner first: on a fast machine the owner and the first member can join in the same millisecond.
+        .orderBy(sql`case when ${householdMember.role} = 'owner' then 0 else 1 end`, asc(householdMember.joinedAt)),
       context.db
         .select({ id: householdInvite.codeHash, expiresAt: householdInvite.expiresAt, createdAt: householdInvite.createdAt })
         .from(householdInvite)
