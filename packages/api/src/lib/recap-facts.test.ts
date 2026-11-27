@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { shiftDate } from "./engine";
+import { isSparseWeek } from "./recap";
 import { consentOnWeek, day, ownerWeek, quietWeek, recapOf, sleepFinding, TODAY, WEEK } from "./recap-fixtures";
 import type { WeekSpec } from "./recap-fixtures";
 import {
@@ -36,7 +37,7 @@ describe("every code and variant is declared", () => {
   });
 });
 
-describe("LOG_STREAK / LOG_GAPS", () => {
+describe("LOG_STREAK", () => {
   test("a streak of 3 is a win, 2 days is not", () => {
     expect(variantOf(quietWeek({}, { streakDays: 3 }), "LOG_STREAK")).toBe("streak");
     // Seven logged days but a streak of 2: the logged-most-days win instead.
@@ -51,21 +52,78 @@ describe("LOG_STREAK / LOG_GAPS", () => {
     expect(variantOf(quietWeek({ mode: "maternal" }, { streakDays: 6 }), "LOG_STREAK")).toBe("logged");
   });
 
-  test("two logged days is the smallest win; one is none", () => {
-    const two = quietWeek({}, { eaten: [1500, 1500, 0, 0, 0, 0, 0], streakDays: 0 });
-    expect(variantOf(two, "LOG_STREAK")).toBe("some");
-    expect(variantOf(quietWeek({}, { eaten: [1500, 0, 0, 0, 0, 0, 0], streakDays: 0 }), "LOG_STREAK")).toBeNull();
+  test("1 to 3 logged days of a finished week is the spot line, never a gap; 4 of 7 is not sparse", () => {
+    for (const eaten of [[1500, 0, 0, 0, 0, 0, 0], [1500, 1500, 0, 0, 0, 0, 0], [1500, 0, 1500, 0, 0, 1500, 0]]) {
+      const facts = buildFacts(quietWeek({}, { eaten, streakDays: 0 }));
+      const log = facts.filter((f) => f.code === "LOG_STREAK");
+      expect(log.map((f) => f.variant)).toEqual(["spot"]);
+      expect(log[0]!.role).toBe("win");
+      expect(log[0]!.params.loggedDays).toBe(eaten.filter((k) => k > 0).length);
+      expect(facts.filter((f) => f.domain === "data" && f.role === "focus" && f.code !== "WEIGH_INS")).toEqual([]);
+    }
+    expect(variantOf(quietWeek({}, { eaten: [1500, 1500, 1500, 1500, 0, 0, 0], streakDays: 0 }), "LOG_STREAK")).toBe("some");
   });
 
-  test("a week logged on half the days or fewer has gaps; 4 of 7 does not", () => {
-    expect(variantOf(quietWeek({}, { eaten: [1500, 1500, 1500, 0, 0, 0, 0] }), "LOG_GAPS")).toBe("gaps");
-    expect(find(quietWeek({}, { eaten: [1500, 1500, 1500, 1500, 0, 0, 0] }), "LOG_GAPS")).toHaveLength(0);
+  test("a streak that ends a sparse week is still a streak", () => {
+    expect(variantOf(quietWeek({}, { eaten: [0, 0, 0, 0, 1500, 1500, 1500], streakDays: 3 }), "LOG_STREAK")).toBe("streak");
   });
 
   test("a running week is only judged on days that are over", () => {
-    const running = quietWeek({ today: day(3) }, { today: day(3), eaten: [1500, 1500, 0, 0, 0, 0, 0] });
-    // 3 judged days, 2 logged: under the 4-day minimum, so no gaps call.
-    expect(find(running, "LOG_GAPS")).toHaveLength(0);
+    const running = quietWeek({ today: day(3) }, { today: day(3), eaten: [1500, 1500, 0, 0, 0, 0, 0], streakDays: 0 });
+    // 3 judged days, 2 logged: under the 4-day minimum, so it is not a sparse week yet.
+    expect(variantOf(running, "LOG_STREAK")).toBe("some");
+    // 1 of 3 judged: nothing to say about logging yet.
+    expect(variantOf(quietWeek({ today: day(3) }, { today: day(3), eaten: [1500, 0, 0, 0, 0, 0, 0], streakDays: 0 }), "LOG_STREAK")).toBeNull();
+  });
+});
+
+describe("a week logged on some days only (JRG-500)", () => {
+  const sparseDays = [1600, 0, 0, 1700, 0, 1800, 0];
+
+  test("isSparseWeek: 1 to 3 of 7 logged days, not 0, not 4, not before 4 judged days", () => {
+    const of = (eaten: number[], today?: string) => isSparseWeek(recapOf({ eaten, today, streakDays: 0 }));
+    expect(of([0, 0, 0, 0, 0, 0, 0])).toBe(false);
+    expect(of([1500, 0, 0, 0, 0, 0, 0])).toBe(true);
+    expect(of(sparseDays)).toBe(true);
+    expect(of([1500, 1500, 1500, 1500, 0, 0, 0])).toBe(false);
+    // Thursday: 3 judged days, 1 logged.
+    expect(of([1500, 0, 0, 0, 0, 0, 0], day(3))).toBe(false);
+    // Friday: 4 judged, 2 logged is half; 3 logged is not.
+    expect(of([1500, 0, 1500, 0, 0, 0, 0], day(4))).toBe(true);
+    expect(of([1500, 1500, 1500, 0, 0, 0, 0], day(4))).toBe(false);
+  });
+
+  test("the food average says it is of the logged days only; a full week does not", () => {
+    const intake = find(quietWeek({}, { eaten: sparseDays, streakDays: 0 }), "INTAKE_AVG_VS_TARGET");
+    expect(intake).toHaveLength(1);
+    expect(intake[0]!.params).toMatchObject({ loggedDays: 3, avgKcal: 1700, partial: true });
+    expect(find(quietWeek({}, { eaten: Array(7).fill(1700) }), "INTAKE_AVG_VS_TARGET")[0]!.params.partial).toBeUndefined();
+  });
+
+  test("a flat weight trend in a sparse week is not told to check its food log", () => {
+    const flat = (eaten: number[]) =>
+      find(quietWeek({ trend: { weeklyRateKg: 0, projectedDate: null } }, { eaten, streakDays: 0 }), "WEIGHT_PACE")[0]!;
+    expect(flat(sparseDays).params.partial).toBe(true);
+    expect(flat(Array(7).fill(1500)).params.partial).toBeUndefined();
+  });
+
+  test("weight, movement and sleep lead; no point asks to log more", () => {
+    const steps = Array.from({ length: 7 }, (_, i) => ({ date: day(i), steps: 9000 }));
+    const sleep = Array.from({ length: 7 }, (_, i) => ({ date: day(i), hours: 7.4 }));
+    const input = quietWeek(
+      { trend: { weeklyRateKg: -0.4, projectedDate: null }, steps, sleep, weighIns: [{ date: day(0), weightKg: 80.4 }, { date: day(5), weightKg: 80 }] },
+      { eaten: [1500, 0, 0, 0, 0, 0, 0], streakDays: 0 },
+    );
+    const { wins, focus } = reflectionFacts(input);
+    expect(wins.map((f) => `${f.code}/${f.variant}`)).toEqual(["WEIGHT_PACE/on_pace", "SLEEP_OK/ok", "STEPS_GOOD/good"]);
+    expect(focus.map((f) => f.code)).not.toContain("LOG_STREAK");
+    expect([...wins, ...focus].some((f) => f.code === "INTAKE_AVG_VS_TARGET")).toBe(false);
+  });
+
+  test("one logged day and nothing else is still a reflection, with no logging nudge", () => {
+    const one = reflectionFacts(quietWeek({}, { eaten: [1500, 0, 0, 0, 0, 0, 0], streakDays: 0 }));
+    expect(one.wins.map((x) => `${x.code}/${x.variant}`)).toEqual(["LOG_STREAK/spot"]);
+    expect(one.focus.map((x) => x.code)).toEqual(["WEIGH_INS"]);
   });
 });
 
@@ -603,11 +661,6 @@ describe("selection", () => {
     expect(selectFacts(a).focus.map((x) => x.code)).toEqual(selectFacts([...a].reverse()).focus.map((x) => x.code));
   });
 
-  test("a week with one logged day has no wins and only the logging nudges", () => {
-    const sparse = reflectionFacts(quietWeek({}, { eaten: [1500, 0, 0, 0, 0, 0, 0], streakDays: 0 }));
-    expect(sparse.wins).toEqual([]);
-    expect(sparse.focus.map((x) => x.code)).toEqual(["LOG_GAPS", "WEIGH_INS"]);
-  });
 });
 
 describe("the owner's week", () => {

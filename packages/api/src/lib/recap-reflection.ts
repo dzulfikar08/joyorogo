@@ -20,6 +20,7 @@ import { ageFromBirthYear, shiftDate } from "./engine";
 import { generateRecapText, recapModel } from "./recap-ai";
 import { reflectionFacts, selectionSignature, sleepFactorOfSignature } from "./recap-facts";
 import type { FactSelection, ReflectionInput, ReflectionMode, WorkoutInput } from "./recap-facts";
+import { isSparseWeek } from "./recap";
 import { loadWeekRecap } from "./recap-store";
 import { renderSelection } from "./recap-text";
 import type { ReflectionBody } from "./recap-text";
@@ -160,6 +161,8 @@ export interface ComputedReflection {
   weekEnd: string;
   complete: boolean;
   mode: ReflectionMode;
+  /** Food was logged on some days only (lib/recap `isSparseWeek`): the wording and the AI rules lead with what there is. */
+  sparse: boolean;
   selection: FactSelection;
   body: ReflectionBody;
   signature: string;
@@ -275,13 +278,15 @@ export async function computeReflection(
 
   const selection = reflectionFacts(input);
   if (selection.wins.length === 0 && selection.focus.length === 0) return null;
+  const sparse = isSparseWeek(recap);
   return {
     weekStart,
     weekEnd,
     complete: recap.complete,
     mode,
+    sparse,
     selection: { wins: selection.wins, focus: selection.focus },
-    body: renderSelection(selection, locale, mode),
+    body: renderSelection(selection, locale, mode, sparse),
     signature: selectionSignature(selection),
     pro,
   };
@@ -437,7 +442,7 @@ export async function generateWeekReflection(
     return toView(computed, decideAi({ pro: true, hasAi: true, row: current, signature: computed.signature, now }), current?.generatedAt ?? null);
   }
 
-  const run = await generateRecapText(env.AI, { model, locale, mode: computed.mode, selection: computed.selection, body: computed.body });
+  const run = await generateRecapText(env.AI, { model, locale, mode: computed.mode, sparse: computed.sparse, selection: computed.selection, body: computed.body });
   const finishedAt = Date.now();
   const status = run.text === null ? "failed" : "ok";
   await db

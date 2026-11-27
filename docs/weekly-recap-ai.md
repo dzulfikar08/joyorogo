@@ -2,7 +2,7 @@
 
 A short, honest read of the week under the numbers on `/rekap`: what went well (2-3 wins) and what to work on (up to 3 focus points). Everyone gets a deterministic template text; Pro accounts get the same facts rewritten by Workers AI, once a week, behind a validator that refuses anything that is not in the facts.
 
-Code: `packages/api/src/lib/recap-facts.ts` (facts), `food-patterns.ts`, `recap-text.ts` (wording), `recap-ai.ts` (prompt, validator, model run), `recap-reflection.ts` (data, cache, orchestration), `recap-store.ts` (the recap queries shared with `stats.weekRecap`). Wording: `packages/i18n/src/locales/{id,en}/reflection.json`. Table: `week_reflection` (migration 0049).
+Code: `packages/api/src/lib/recap-facts.ts` (facts), `food-patterns.ts`, `recap-text.ts` (wording), `recap-ai.ts` (prompt, validator, model run), `recap-reflection.ts` (data, cache, orchestration), `recap-store.ts` (the recap queries shared with `stats.weekRecap`). Wording: `packages/i18n/src/locales/{id,en,ms}/reflection.json`. Table: `week_reflection` (migration 0049).
 
 ## Flow
 
@@ -19,12 +19,11 @@ Thresholds live in `T` in `recap-facts.ts` (tests pin every boundary). A fact is
 
 | Code (variants) | Role | Rule |
 |---|---|---|
-| `LOG_STREAK` (`streak`, `streak_gain`, `logged`, `some`) | win | streak of 3+ days (not in Hamil / Menyusui; Naikin BB counts days at 90% of target); else food logged on 5+ of 5+ judged days; else 2+ days |
-| `LOG_GAPS` | focus | 4+ judged days and food logged on half of them or fewer |
+| `LOG_STREAK` (`streak`, `streak_gain`, `logged`, `some`, `spot`) | win | streak of 3+ days (not in Hamil / Menyusui; Naikin BB counts days at 90% of target); else food logged on 5+ of 5+ judged days; else `spot` on a week logged on some days only (below); else 2+ days |
 | `WEIGHT_PACE` (`on_pace`, `behind`, `gaining`, `flat`, `too_fast`, `week_down`, `steady`, `drifting`, `gain_on_pace`, `gain_stalled`) | both | 28-day weekly rate against the pace the target date needs (`neededKgPerWeek`, with `projectedDate`). Lose: on pace from 60% of the needed pace, flat within 0.1 kg/week, too fast above max(1 kg, 1% of weight). Maintain: steady within 0.25 kg/week. Gain: 0.1 to max(0.75 kg, 1%). Not in Hamil / Menyusui |
 | `WEIGH_INS` (`regular`, `few`, `none`) | both | 4+ is a win; 0-2 on a finished week (or 5+ judged days) is a nudge |
 | `MEASURE_ANOMALY` (`waist`, `weight`) | focus | waist moved 5 cm or more between readings at most 7 days apart; weight 2.5 kg within 2 days (a measuring slip, not a change) |
-| `INTAKE_AVG_VS_TARGET` (`on_target`, `over`, `under`, `under_gain`, `under_maternal`) | both | average of logged days against the mean of **each day's own budget** (`recap.targetKcal`). Lose / maintain: 85-105% on target, over from 110%, under below 70%. Gain: 90-115%, under below 90%. Hamil / Menyusui: 85-115%, only "under" below 80%, never "over". Needs 3 logged days |
+| `INTAKE_AVG_VS_TARGET` (`on_target`, `over`, `under`, `under_gain`, `under_maternal`) | both | average of logged days against the mean of **each day's own budget** (`recap.targetKcal`). Lose / maintain: 85-105% on target, over from 110%, under below 70%. Gain: 90-115%, under below 90%. Hamil / Menyusui: 85-115%, only "under" below 80%, never "over". Needs 3 logged days. On a sparse week it carries `partial` (the text adds "only from the N days you logged"; "under" gets the `advice_partial` advice) |
 | `INTAKE_SWING` (`swing`, `steady`) | both | 4+ usable days; spread of 1000 kcal or a coefficient of variation of 0.3. Days under 40% of their budget are forgotten logs and stay out |
 | `PROTEIN_LOW` / `PROTEIN_OK` | focus / win | average under 70% (under 60% ranks higher) / from 95% of the target; 4+ days with protein. Its own selection domain, ranked above the calorie average and sleep, so a person who asks about macros hears about it first |
 | `FOOD_PATTERN` (`fried`, `double_carb`, `sweet`) | focus | from item names, word lists id + en (`food-patterns.ts`): 4 fried items on 3 days, 4 sweets on 3 days, 3 meals with two different starches. Naikin BB only hears about fried food, Hamil / Menyusui not about starch. Only our own list terms leave the module |
@@ -39,6 +38,18 @@ Thresholds live in `T` in `recap-facts.ts` (tests pin every boundary). A fact is
 Selection: up to 3 wins, best first. Focus points: the best point of each domain (food, protein, weight, movement, sleep, data) before a second one of any domain, at most 2 per domain, at most 3, safest first (an alert-level movement point outranks everything). `selectionSignature` fingerprints the selected facts with numbers rounded to half a power of ten; a text is only rewritten when it changes. The signature of a reflection that shows a sleep pattern ends in `~<variant>`; the next week reads it from the stored row to pick another pattern.
 
 Hamil / Menyusui: no weight pace, weigh-in, measurement, steps or streak facts, never "eat less", gentler intensity wording that points to the doctor or bidan, and a closing note that the numbers are no targets.
+
+## Weeks logged on some days only (JRG-500)
+
+People who have logged for a few weeks learn their usual foods and stop logging every day (docs/marketing/retention-graduates-2026-11.md). `isSparseWeek` (lib/recap.ts) marks such a week: food on at least 1 day, 4+ judged days, and food on half of them or fewer (1 to 3 of a finished week). A week with no food at all is not sparse; the screens show their empty state for it.
+
+- No logging nudge. The old `LOG_GAPS` focus point ("Catatan masih bolong", log once a day) is gone. The week gets the `LOG_STREAK/spot` win instead ("Cek makan sesekali": food logged on N days, the food numbers are of those days only). It ranks last among the wins (priority 20), so weight, movement and sleep lead when the week has them. A streak that ends the week still wins as a streak.
+- Food averages say which days they are of: `INTAKE_AVG_VS_TARGET` gets `partial` (see the table). `WEIGHT_PACE/flat` gets `partial` too, so its advice does not start with "check that your food log is complete".
+- Template: opens with "Yang terlihat minggu ini:" instead of "Kabar baiknya:", and a week with no focus ends with "Sampai ketemu di rekap minggu depan." instead of "Pertahankan ritme ini".
+- AI (Pro): the prompt adds a rule that the person logs on some days on purpose: never call the other days missed, skipped, forgotten, gaps or incomplete, never ask them to log more, lead with weight, movement and sleep. The validator refuses `FORBIDDEN_SPARSE` terms (bolong, terlewat, lupa mencatat, missed, forgot, skipped, ...) on such weeks only; a test checks that none of the fixed wording trips it.
+- Screens (`/rekap`, web and native): the average's note says it covers only the logged days, the reflection moves up right under the average, and the logging-streak tile is left out.
+
+`WEIGH_INS/few` and `none` still apply to sparse weeks: the weight trend is what such a week leans on.
 
 ## Text
 
@@ -70,7 +81,7 @@ Gemma 4 26B A4B on Workers AI is $0.10 / M input and $0.30 / M output tokens (90
 
 ## UI
 
-Web `/rekap` (`apps/web/src/components/recap-reflection.tsx`) and native `rekap` (`apps/native/components/recap-reflection.tsx`): the text, a label saying whether it is AI or the automatic summary, the wins and focus titles, a muted "based on the days so far" note on a running week, the disclaimer, a quiet Pro upsell for free accounts, and a "writing your reflection" row while the AI text is generated. The Monday recap card shows the first focus title as one line.
+Web `/rekap` (`apps/web/src/components/recap-reflection.tsx`) and native `rekap` (`apps/native/components/recap-reflection.tsx`): on a sparse week right under the average, else after the stat tiles; the text, a label saying whether it is AI or the automatic summary, the wins and focus titles, a muted "based on the days so far" note on a running week, the disclaimer, a quiet Pro upsell for free accounts, and a "writing your reflection" row while the AI text is generated. The Monday recap card shows the first focus title as one line.
 
 ## Example: the owner's week
 

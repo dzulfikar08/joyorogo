@@ -14,6 +14,7 @@ import { fmtDate, instantIn } from "@joyorogo/i18n";
 import type { WeekRecap } from "@joyorogo/api/lib/recap";
 import {
   defaultRecapWeek,
+  isSparseWeek,
   lastFullMonth,
   recapShare,
   recapText,
@@ -302,6 +303,9 @@ export default function Rekap() {
       () => toast.error(t("recap.copy.copyFailed")),
     );
   const change = recap.weight?.changeKg ?? null;
+  // Food logged on some days only: the reflection (weight, movement, sleep) comes right after the average, the average
+  // says which days it is of, and the logging streak is left out.
+  const sparse = isSparseWeek(recap);
   const gainWeightLine =
     change === null
       ? null
@@ -376,9 +380,14 @@ export default function Rekap() {
                 />
               </View>
               <Text style={styles.note}>
-                {t("recap.avg.note", { count: recap.loggedDays, target: fmtInt(recap.targetKcal) })}
+                {t(sparse ? "recap.avg.noteSparse" : "recap.avg.note", {
+                  count: recap.loggedDays,
+                  target: fmtInt(recap.targetKcal),
+                })}
               </Text>
             </Card>
+
+            {sparse ? <RecapReflection key={recap.weekStart} weekStart={recap.weekStart} /> : null}
 
             {recap.gain ? (
               <Card style={styles.gainSummary}>
@@ -420,7 +429,7 @@ export default function Rekap() {
               />
             </View>
             <View style={styles.tileRow}>
-              {maternal ? null : (
+              {maternal || sparse ? null : (
                 <StatTile
                   icon="flame"
                   tint="bakar"
@@ -474,7 +483,7 @@ export default function Rekap() {
               />
             </View>
 
-            <RecapReflection key={recap.weekStart} weekStart={recap.weekStart} />
+            {sparse ? null : <RecapReflection key={recap.weekStart} weekStart={recap.weekStart} />}
 
             {share && !maternal ? (
               <ShareStoryButton

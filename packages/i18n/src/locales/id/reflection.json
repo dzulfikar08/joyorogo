@@ -17,9 +17,11 @@
   },
   "text": {
     "winsIntro": "Kabar baiknya:",
+    "sparseIntro": "Yang terlihat minggu ini:",
     "focusIntro": "Yang perlu diperhatikan:",
     "closing": "Fokus minggu depan:",
     "keepGoing": "Pertahankan ritme ini minggu depan.",
+    "keepGoingSparse": "Sampai ketemu di rekap minggu depan.",
     "maternalNote": "Angka-angka ini cuma gambaran, bukan target yang harus dikejar."
   },
   "facts": {
@@ -39,13 +41,10 @@
       "some": {
         "title": "Sudah mulai mencatat",
         "text": "Kamu mencatat makan {{loggedDays}} hari minggu ini. Awal yang bagus."
-      }
-    },
-    "LOG_GAPS": {
-      "gaps": {
-        "title": "Catatan masih bolong",
-        "text": "Kamu baru mencatat makan {{loggedDays}} dari {{judgedDays}} hari, jadi angka minggu ini belum tentu menggambarkan makanmu yang sebenarnya.",
-        "advice": "Catat sekali saja per hari, sekalipun cuma satu kali makan. Lebih baik kasar tapi rutin daripada rinci tapi jarang."
+      },
+      "spot": {
+        "title": "Cek makan sesekali",
+        "text_other": "Kamu mencatat makan di {{loggedDays}} hari minggu ini. Angka makan minggu ini hanya dihitung dari hari yang kamu catat; hari tanpa catatan tidak ikut dihitung."
       }
     },
     "WEIGHT_PACE": {
@@ -71,7 +70,8 @@
       "flat": {
         "title": "Berat belum bergerak",
         "text": "Tren berat badanmu hampir datar, sekitar {{kgPerWeek}} kg per minggu.",
-        "advice": "Cek dulu apakah catatan makanmu sudah lengkap, termasuk camilan dan minuman. Kalau sudah, kurangi sedikit porsi atau tambah jalan kaki."
+        "advice": "Cek dulu apakah catatan makanmu sudah lengkap, termasuk camilan dan minuman. Kalau sudah, kurangi sedikit porsi atau tambah jalan kaki.",
+        "advice_partial": "Kurangi sedikit porsi atau tambah jalan kaki, lalu lihat lagi arah tren-nya minggu depan."
       },
       "too_fast": {
         "title": "Turunnya terlalu cepat",
@@ -126,6 +126,7 @@
       }
     },
     "INTAKE_AVG_VS_TARGET": {
+      "partial": "Rata-rata ini hanya dari {{loggedDays}} hari yang kamu catat.",
       "on_target": {
         "title": "Makan sesuai target",
         "text": "Rata-rata makanmu {{avgKcal}} kkal per hari, dekat dengan target {{targetKcal}} kkal."
@@ -138,7 +139,8 @@
       "under": {
         "title": "Makan jauh di bawah target",
         "text": "Rata-rata makanmu {{avgKcal}} kkal per hari, jauh di bawah target {{targetKcal}} kkal. Bisa jadi ada makanan yang belum tercatat, bisa juga kamu memang makan terlalu sedikit.",
-        "advice": "Catat semua makan dan minuman, termasuk camilan. Kalau memang makan sedikit, jangan dipaksa lebih rendah dari target, badan perlu bahan bakar buat gerak dan pemulihan."
+        "advice": "Catat semua makan dan minuman, termasuk camilan. Kalau memang makan sedikit, jangan dipaksa lebih rendah dari target, badan perlu bahan bakar buat gerak dan pemulihan.",
+        "advice_partial": "Di hari yang kamu catat, masukkan juga camilan dan minuman. Kalau memang makan sedikit, jangan dipaksa lebih rendah dari target, badan perlu bahan bakar buat gerak dan pemulihan."
       },
       "under_gain": {
         "title": "Makan belum cukup buat naik",
