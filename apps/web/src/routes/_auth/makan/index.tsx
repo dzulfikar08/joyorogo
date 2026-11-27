@@ -7,6 +7,7 @@ import {
   suggestMealNow,
 } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import type { KnownGoodDay } from "@joyorogo/api/lib/known-good";
 import { parseIdrInput } from "@joyorogo/api/lib/format";
 import { Button } from "@joyorogo/ui/components/button";
 import { Input } from "@joyorogo/ui/components/input";
@@ -28,7 +29,7 @@ import { JoyoHeaderButton } from "@/components/joyo/header-button";
 import { MacroLine } from "@/components/macro-line";
 import { MakanSummaryCard } from "@/components/macro-card";
 import { FoodPortionSheet } from "@/components/food-portion-sheet";
-import { FavoritChips, FavoritManageSheet, useFavorites } from "@/components/favorit";
+import { FavoritChips, FavoritManageSheet, KnownGoodChips, useFavorites } from "@/components/favorit";
 import { SheetActions } from "@/components/sheet-actions";
 import type { Favorites } from "@/components/favorit";
 import { MetaLine } from "@/components/meta-line";
@@ -136,6 +137,15 @@ function MakanPage() {
   );
   const slots = slotsFor(ramadan);
   const quickMeal = suggestMealNow(new Date(), ramadan);
+  // "Biasa aman buatmu" fits habits to the same budget and intake as Sisa.
+  const knownGoodDay: KnownGoodDay | undefined = daySummary.data
+    ? {
+        eatKcal: daySummary.data.targets?.eatKcal ?? null,
+        eatenKcal: daySummary.data.eatenKcal,
+        eatenByMeal: daySummary.data.eatenByMeal,
+        ramadan,
+      }
+    : undefined;
   // One shared add sheet; the meal slot is the only thing that changes.
   const [sheetMeal, setSheetMeal] = useState<Meal | null>(null);
   // Bagikan ke feed: item makanan yang sedang dibagikan (sheet di bawah).
@@ -407,6 +417,7 @@ function MakanPage() {
               isToday={isToday}
               meal={quickMeal}
               favorites={favorites}
+              day={knownGoodDay}
               recent={recent.data?.items ?? []}
               addPending={add.isPending}
               onAdd={(input) => add.mutate(input)}
@@ -529,6 +540,7 @@ function MakanPage() {
           slots={slots}
           recent={recent.data?.items ?? []}
           favorites={favorites}
+          knownGoodDay={knownGoodDay}
           onManage={() => {
             setSheetMeal(null);
             setManageOpen(true);
@@ -614,6 +626,7 @@ function AddFoodSheet({
   slots,
   recent,
   favorites,
+  knownGoodDay,
   onManage,
   addPending,
   onAdd,
@@ -626,6 +639,7 @@ function AddFoodSheet({
   slots: Meal[];
   recent: FoodRecentItem[];
   favorites: Favorites;
+  knownGoodDay: KnownGoodDay | undefined;
   onManage: () => void;
   addPending: boolean;
   onAdd: (input: FoodAddInput) => Promise<unknown>;
@@ -777,6 +791,21 @@ function AddFoodSheet({
 
         {ceritaPhase === "input" && (
           <EatenAtField id="food-add-eaten-at" date={date} meal={meal} value={eatenAt} onChange={setEatenAt} />
+        )}
+
+        {ceritaPhase === "input" && (
+          <KnownGoodChips
+            favorites={favorites}
+            day={knownGoodDay}
+            date={date}
+            meal={meal}
+            eatenAt={eatenAt}
+            disabled={addPending}
+            onAddFood={(food) =>
+              void onAdd({ date, meal, ...recentAddFields(food), ...eatenAtFields }).then(() => setEatenAt(null))
+            }
+            onLogged={() => setEatenAt(null)}
+          />
         )}
 
         {ceritaPhase === "input" && favorites.items.length > 0 && (

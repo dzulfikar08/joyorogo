@@ -17,6 +17,7 @@ import {
   suggestMealNow,
 } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import type { KnownGoodDay } from "@joyorogo/api/lib/known-good";
 import { eatenAtClock, eatenAtFromClock } from "@joyorogo/api/lib/eaten-at";
 import { formatIdrInput, idrKeystroke, parseIdrInput } from "@joyorogo/api/lib/format";
 
@@ -59,7 +60,7 @@ import { errorMessage, fmtInt, kcalUnit, parseNum } from "@/utils/format";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import { OptimisticCache, useDelayedDelete, useOptimisticMutation } from "@/lib/optimistic";
 import type { QueryKey } from "@tanstack/react-query";
-import { FavoritChips, FavoritManageSheet, useFavorites } from "@/components/favorit";
+import { FavoritChips, FavoritManageSheet, KnownGoodChips, useFavorites } from "@/components/favorit";
 import type { SummaryDelta } from "@joyorogo/api/lib/optimistic";
 import { foodKind, matchesKind } from "@joyorogo/api/lib/food-kind";
 import type { FoodKindFilter } from "@joyorogo/api/lib/food-kind";
@@ -134,6 +135,15 @@ export default function Makan() {
   });
   const recentQuery = useQuery(orpc.food.recent.queryOptions());
   const favorites = useFavorites();
+  // "Biasa aman buatmu" fits habits to the same budget and intake as Sisa.
+  const knownGoodDay: KnownGoodDay | undefined = summaryQuery.data
+    ? {
+        eatKcal: summaryQuery.data.targets?.eatKcal ?? null,
+        eatenKcal: summaryQuery.data.eatenKcal,
+        eatenByMeal: summaryQuery.data.eatenByMeal,
+        ramadan,
+      }
+    : undefined;
   const [manageOpen, setManageOpen] = useState(false);
   // A new log can complete a habit: ask the server again whether something is worth offering as a favorite.
   const loggedRows = listQuery.data?.items.length ?? 0;
@@ -874,6 +884,7 @@ export default function Makan() {
             isToday={isToday}
             meal={suggestMealNow(new Date(), ramadan)}
             favorites={favorites}
+            day={knownGoodDay}
             recent={recentQuery.data?.items ?? []}
             recentDisabled={addFood.isPending}
             onLogRecent={(food) => {
@@ -988,6 +999,20 @@ export default function Makan() {
         ) : null}
         {sheetMeal !== null && ceritaPhase === "input" ? (
           <EatenAtField date={date} meal={sheetMeal} value={eatenAt} onChange={setEatenAt} />
+        ) : null}
+        {ceritaPhase === "input" && sheetMeal !== null ? (
+          <KnownGoodChips
+            favorites={favorites}
+            day={knownGoodDay}
+            date={date}
+            meal={sheetMeal}
+            eatenAt={eatenAt}
+            disabled={addFood.isPending}
+            onAddFood={(food) => {
+              quickAddRef.current = true;
+              addFood.mutate({ date, meal: sheetMeal, ...eatenAtInput(), ...recentAddFields(food) });
+            }}
+          />
         ) : null}
         {ceritaPhase === "input" && sheetMeal !== null && favorites.items.length > 0 ? (
           <View style={styles.recentBox}>

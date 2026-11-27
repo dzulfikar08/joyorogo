@@ -6,8 +6,9 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { MEAL_LABELS } from "@joyorogo/api/lib/engine";
 import type { Meal } from "@joyorogo/api/lib/engine";
+import type { KnownGoodDay } from "@joyorogo/api/lib/known-good";
 
-import { FavoritChips, FavoritOffer } from "@/components/favorit";
+import { FavoritChips, FavoritOffer, KnownGoodChips } from "@/components/favorit";
 import type { Favorites } from "@/components/favorit";
 import { PressableScale } from "@/components/motion";
 import { StickerMini } from "@/components/sticker";
@@ -50,6 +51,7 @@ export function QuickAdd({
   isToday,
   meal,
   favorites,
+  day,
   recent,
   recentDisabled,
   onLogRecent,
@@ -61,6 +63,8 @@ export function QuickAdd({
   /** Slot the chips log to (suggested from the clock). */
   meal: Meal;
   favorites: Favorites;
+  /** The viewed day's budget and intake for "Biasa aman buatmu"; undefined while day.summary loads. */
+  day: KnownGoodDay | undefined;
   recent: ReadonlyArray<RecentFood>;
   recentDisabled: boolean;
   onLogRecent: (food: RecentFood) => void;
@@ -125,6 +129,14 @@ export function QuickAdd({
           </PressableScale>
         ))}
       </View>
+      <KnownGoodChips
+        favorites={favorites}
+        day={day}
+        date={date}
+        meal={meal}
+        disabled={recentDisabled}
+        onAddFood={onLogRecent}
+      />
       <FavoritOffer favorites={favorites} />
       {favorites.items.length === 0 && !favorites.offer ? (
         <Text style={styles.hint}>{t("favorites.quick.empty")}</Text>

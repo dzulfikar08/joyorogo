@@ -19,7 +19,7 @@ export type OfferRow = {
 };
 
 /** One thing the user logged at once: a single row, or every row of one plate. */
-type LogEvent = { names: string[]; rows: OfferRow[]; newest: number };
+export type LogEvent<R extends OfferRow = OfferRow> = { names: string[]; rows: R[]; newest: number };
 
 /** A habit worth saving: save it with `foodId` (one food) or `plateId` (a combo). */
 export type FavoriteOffer = {
@@ -42,9 +42,10 @@ export function habitKey(names: readonly string[]): string {
   return [...new Set(names.map(normalizeFoodName).filter((name) => name !== ""))].sort().join("|");
 }
 
-function groupEvents(rows: readonly OfferRow[]): LogEvent[] {
-  const byPlate = new Map<string, OfferRow[]>();
-  const events: LogEvent[] = [];
+/** Rows grouped into what was logged at once: each loose row alone, each plate's rows together. */
+export function groupEvents<R extends OfferRow>(rows: readonly R[]): LogEvent<R>[] {
+  const byPlate = new Map<string, R[]>();
+  const events: LogEvent<R>[] = [];
   for (const row of rows) {
     if (row.plateId === null) {
       events.push({ names: [row.name], rows: [row], newest: row.createdAt });
