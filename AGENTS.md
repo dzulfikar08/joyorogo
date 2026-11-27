@@ -24,7 +24,7 @@ tooling, docs-only and invisible fixes.
 1. Write `docs/marketing/releases/YYYY-MM-DD-<slug>.md` from the template in `docs/marketing/releases/README.md`, one
    file per feature. If the feature already has an entry, update that file (for example `available: code` to
    `test-build`) instead of adding another.
-2. Create an atur issue (workspace `joyodigitama`, project Joyorogo `JRG`) titled `[Konten] JoyoRogo: <feature>`, state
+2. Create an atur issue (workspace `joyorogo`, project Joyorogo `JRG`) titled `[Konten] JoyoRogo: <feature>`, state
    Todo, as a sub-issue of JRG-235 (`parent_id` `62fc3334-ca8a-4427-b236-ce1c50b2bc52`), with the entry's angle and
    path, and put its key in the entry's `atur:` field. If atur is unreachable, leave `atur:` empty; the weekly sweep
    files it.

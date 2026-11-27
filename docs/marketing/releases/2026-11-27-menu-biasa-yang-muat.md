@@ -5,7 +5,7 @@ shipped: 2026-11-27
 available: code
 tier: free
 post: todo
-atur:
+atur: JRG-503
 ---
 
 **Apa:** Di Catat cepat dan di lembar Tambah makanan, JoyoRogo menampilkan sampai 3 makanan yang sudah sering kamu
