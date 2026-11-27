@@ -15,8 +15,8 @@
 // Counted items scale per piece: a user who saves 200 g for "2 butir" and 100 g for "1 butir" has
 // one usual of 100 g per piece, and a photo with 3 pieces starts at 300 g.
 //
-// History = grams the user set themselves: typed by hand, or edited after the AI
-// answered. Unedited AI answers never count, or the prior would echo the model.
+// History = grams the user set themselves: typed by hand, edited after the AI
+// answered, or written as a weight in a Cerita ("nasi 100 g"). Unedited AI answers never count, or the prior would echo the model.
 import { itemAtGrams } from "./item-grams";
 import { numbersOf } from "./portion-chip";
 import type { PortionPriorChip } from "./portion-chip";
@@ -27,18 +27,27 @@ import type { CalibratedItem } from "./tkpi";
 export const PRIOR_WINDOW_DAYS = 60;
 /** User-set entries a food with a loose history needs before the item starts at the usual grams. */
 export const PRIOR_MIN_ENTRIES = 3;
-/** User-set entries a food needs before the usual grams are offered on the chip. */
-export const PRIOR_SUGGEST_ENTRIES = 2;
-/** Entries that agree (see PRIOR_AGREE) before the item starts at the usual grams. */
-export const PRIOR_TIGHT_ENTRIES = 2;
+/**
+ * User-set entries a food needs before the usual grams are offered on the chip. One: a correction made once
+ * should not have to be made again on every scan (2026-11-27; a heavy user left photos for Cerita within a
+ * week rather than fix the same rice each time, and in production almost nobody reached two agreeing
+ * corrections). The model's number stays one tap away, and a second correction that disagrees hides the prior.
+ */
+export const PRIOR_SUGGEST_ENTRIES = 1;
+/** Entries that agree (see PRIOR_AGREE) before the item starts at the usual grams. One, see PRIOR_SUGGEST_ENTRIES. */
+export const PRIOR_TIGHT_ENTRIES = 1;
 /** Entries within this share of one value agree on it: the user's usual portion of that food. */
 export const PRIOR_AGREE = 0.15;
 /** Newest user-set entries of one food that count (older habits age out before the 60 days do). */
 export const PRIOR_RECENT_ENTRIES = 12;
 /** Largest coefficient of variation (stdev / mean) of a loose history. */
 export const PRIOR_MAX_CV = 0.25;
-/** When the model answers more than this times the usual grams, the photo looks bigger: keep the model's number (the usual one stays on the chip). */
-export const PRIOR_BIG_PLATE = 1.4;
+/**
+ * When the model answers more than this times the usual grams, the photo looks bigger: keep the model's number (the
+ * usual one stays on the chip). Two, not the first 1.4: the model answers 150 or 200 g for 201 of 249 saved rice
+ * photos (production, 2026-11-27) whatever the plate, so at 1.4 a 100 g eater's usual never started.
+ */
+export const PRIOR_BIG_PLATE = 2;
 /** Model and usual grams within this share of each other are the same portion: no chip. */
 const SAME_PORTION = 0.03;
 /**
@@ -123,6 +132,39 @@ function editedAiGrams(row: HistoryRow): { grams: number; count: number } | null
   return { grams: row.grams, count: countOf(same[0]!) };
 }
 
+const WEIGHT_IN_TEXT = /(\d+(?:[.,]\d+)?)\s*(?:g|gr|gram|grams|ml)\b/giu;
+
+function weightsIn(text: string): number[] {
+  return [...text.matchAll(WEIGHT_IN_TEXT)].map((m) => Number(m[1]!.replace(",", ".")));
+}
+
+/**
+ * Whether a Cerita item's grams are a weight the user wrote ("nasi 100 g", "susu 250 ml"), not one the model
+ * guessed: the model's portion text for the item names a weight, the user's own words name the same weight,
+ * and the item's grams are that weight. "1 centong" or "ayam 1 potong" are not weights.
+ */
+export function statedGrams(item: { portion?: string; grams?: number }, transcript: string): boolean {
+  if (item.portion === undefined || item.grams === undefined || !(item.grams > 0)) return false;
+  const said = weightsIn(transcript);
+  return weightsIn(item.portion).some((w) => w > 0 && said.includes(w) && Math.abs(item.grams! - w) <= SAME_PORTION * w);
+}
+
+/** A Cerita row saved with the weight the user wrote, unchanged (storyStatedItemsJson in portion.ts). */
+function storyStated(row: HistoryRow): boolean {
+  if (row.source !== "ai" || !row.itemsJson?.includes('"from":"story"')) return false;
+  try {
+    const parsed: unknown = JSON.parse(row.itemsJson);
+    if (!Array.isArray(parsed)) return false;
+    return parsed.some((entry: unknown) => {
+      if (typeof entry !== "object" || entry === null) return false;
+      const e = entry as { stated?: unknown; name?: unknown; grams?: unknown };
+      return e.stated === true && typeof e.name === "string" && norm(e.name) === norm(row.name) && e.grams === row.grams;
+    });
+  } catch {
+    return false;
+  }
+}
+
 /** Hand-typed rows have no AI list; the meal planner's rows carry a `from: "meal-plan"` list and are not typed grams. */
 function isTyped(row: HistoryRow): boolean {
   if (row.source !== "manual") return false;
@@ -134,7 +176,13 @@ export function userSetSamples(rows: HistoryRow[]): PortionSample[] {
   const samples: PortionSample[] = [];
   for (const row of rows) {
     if (row.grams === null || !(row.grams > 0)) continue;
-    const set = row.source === "ai" ? editedAiGrams(row) : isTyped(row) ? { grams: row.grams, count: 1 } : null;
+    const set = storyStated(row)
+      ? { grams: row.grams, count: 1 }
+      : row.source === "ai"
+        ? editedAiGrams(row)
+        : isTyped(row)
+          ? { grams: row.grams, count: 1 }
+          : null;
     if (set) samples.push({ food: priorFood(row.name), grams: set.grams / set.count });
   }
   return samples;

@@ -56,7 +56,7 @@ import type { CardPlateResult, MeasuredPlate } from "../lib/card-plate";
 import { applyPieceGeometry } from "../lib/piece-geometry";
 import { EventChannel } from "../lib/event-channel";
 import { applyHintCounts } from "../lib/piece-count";
-import { withPortionPrior } from "../lib/portion-prior";
+import { statedGrams, withPortionPrior } from "../lib/portion-prior";
 import type { PortionPrior } from "../lib/portion-prior";
 import { withAskGrams } from "../lib/ask-grams-server";
 import type { SizeOptions } from "../lib/ask-grams";
@@ -1408,6 +1408,8 @@ export const aiRouter = {
       ]);
       const items = analysis.items.map((item) => {
         if (item.copied) return item;
+        // A weight the user wrote is theirs: no usual portion over it, and the save keeps it as history.
+        if (statedGrams(item, transcript)) return { ...withUsualDensity(item, usualMap), statedGrams: true as const };
         const dense = withUsualDensity(item, usualMap);
         const out = withUsualPortion(dense, usualPortions);
         return out.portionPrior?.active === "prior" ? out : dense;
