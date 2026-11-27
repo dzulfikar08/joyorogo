@@ -25,6 +25,14 @@ import { listOptedOut } from "./unsubscribe";
  * - `lifecycle_winback`: last active 14-45 days ago (meal push reminders stop at
  *   14 idle days), once per lapse (ref = "<userId>:<lastActiveMs>") and at most
  *   one per 30 days.
+ * - `lifecycle_paid_1` / `lifecycle_paid_2`: check-ins in the first 14 days after
+ *   someone's first real payment (not a test or Rp0 trial), while Pro is still on.
+ *   `paid_1` from day 3 when they have been idle 3+ days (counting from the later
+ *   of the payment and their last activity); `paid_2` from day 7, again 3+ idle
+ *   days and nothing logged since `paid_1`, at least 3 days after it. Ref = user
+ *   id, so once per person. A paying account in this window gets no activation mail.
+ *   Why: most October web buyers stopped logging in their first two weeks and let
+ *   the month run out (docs/lifecycle-email.md).
  * - Promotional, so it goes out from the broadcast sender with the one-click
  *   unsubscribe, and broadcast opt-outs apply. Ours and ADMIN_EMAILS are skipped.
  * - Off unless LIFECYCLE_EMAIL=on. Sends only 09:00-19:59 WIB, at most
@@ -34,7 +42,14 @@ import { listOptedOut } from "./unsubscribe";
 export const ACTIVATE_1_KIND = "lifecycle_activate_1" as const;
 export const ACTIVATE_2_KIND = "lifecycle_activate_2" as const;
 export const WINBACK_KIND = "lifecycle_winback" as const;
-type LifecycleKind = typeof ACTIVATE_1_KIND | typeof ACTIVATE_2_KIND | typeof WINBACK_KIND;
+export const PAID_1_KIND = "lifecycle_paid_1" as const;
+export const PAID_2_KIND = "lifecycle_paid_2" as const;
+type LifecycleKind =
+  | typeof ACTIVATE_1_KIND
+  | typeof ACTIVATE_2_KIND
+  | typeof WINBACK_KIND
+  | typeof PAID_1_KIND
+  | typeof PAID_2_KIND;
 
 const DAY = 86_400_000;
 /** Activation mails stop for accounts this old: older never-active accounts are a broadcast's job, not a drip's. */
@@ -44,11 +59,18 @@ const ACTIVATE_2_GAP_DAYS = 2;
 export const WINBACK_MIN_IDLE_DAYS = 14;
 const WINBACK_MAX_IDLE_DAYS = 45;
 const WINBACK_COOLDOWN_DAYS = 30;
+/** Paid check-ins run in the first two weeks after the first payment, when October's buyers dropped off. */
+const PAID_WINDOW_DAYS = 14;
+const PAID_1_MIN_DAYS = 3;
+const PAID_2_MIN_DAYS = 7;
+const PAID_IDLE_DAYS = 3;
+const PAID_2_GAP_DAYS = 3;
 const SWEEP_LIMIT = 20;
 const SEND_FROM_HOUR_WIB = 9;
 const SEND_UNTIL_HOUR_WIB = 20;
 
 const APP_URL = "https://app.joyorogo.com/beranda";
+const GROUP_URL = "https://app.joyorogo.com/grup";
 
 const COPY: Record<LifecycleKind, Record<Locale, Campaign>> = {
   [ACTIVATE_1_KIND]: {
@@ -189,6 +211,109 @@ Salam,
 Dzulfikar, JoyoRogo`,
     },
   },
+  [PAID_1_KIND]: {
+    id: {
+      id: "lifecycle-paid-1",
+      subject: "Cara paling ringan memakai Pro-mu",
+      body: `Halo {nama},
+
+Makasih sudah berlangganan JoyoRogo Pro! Beberapa hari ini belum ada makan yang tercatat, jadi ini dua cara paling ringan untuk mulai:
+
+1. Foto makanan berikutnya. Kalau angkanya meleset, koreksi pakai kata-kata, misalnya "nasinya setengah".
+2. Ajak satu teman ke grup. Diet bareng lebih awet: kalian bisa saling colek kalau ada yang lupa mencatat. [Buat grup](${GROUP_URL})
+
+[Buka JoyoRogo](${APP_URL})
+
+Ada yang bikin ribet, atau angkanya terasa salah? Balas email ini. Saya baca sendiri.
+
+Salam,
+Dzulfikar, JoyoRogo`,
+    },
+    en: {
+      id: "lifecycle-paid-1",
+      subject: "The easiest way to use your Pro",
+      body: `Hi {nama},
+
+Thanks for subscribing to JoyoRogo Pro! No meals have been logged for a few days, so here are the two easiest ways to start:
+
+1. Snap your next meal. If a number looks off, correct it in words, like "half the rice".
+2. Bring one friend into a group. Dieting together lasts longer: you can nudge each other when someone forgets to log. [Create a group](${GROUP_URL})
+
+[Open JoyoRogo](${APP_URL})
+
+Is something getting in the way, or do the numbers feel wrong? Just reply to this email. I read every reply myself.
+
+Best,
+Dzulfikar, JoyoRogo`,
+    },
+    ms: {
+      id: "lifecycle-paid-1",
+      subject: "Cara paling mudah menggunakan Pro anda",
+      body: `Hai {nama},
+
+Terima kasih kerana melanggan JoyoRogo Pro! Sudah beberapa hari tiada makanan yang dicatat, jadi ini dua cara paling mudah untuk mula:
+
+1. Ambil gambar makanan seterusnya. Kalau angkanya tersasar, betulkan dengan kata-kata, contohnya "nasi separuh".
+2. Ajak seorang kawan ke dalam kumpulan. Diet bersama lebih tahan lama: anda boleh saling mengingatkan kalau ada yang terlupa mencatat. [Buat kumpulan](${GROUP_URL})
+
+[Buka JoyoRogo](${APP_URL})
+
+Ada yang menyusahkan, atau angkanya terasa salah? Balas sahaja e-mel ini. Saya baca sendiri.
+
+Salam,
+Dzulfikar, JoyoRogo`,
+    },
+  },
+  [PAID_2_KIND]: {
+    id: {
+      id: "lifecycle-paid-2",
+      subject: "Ada yang bisa saya bantu?",
+      body: `Halo {nama},
+
+Sudah seminggu sejak kamu berlangganan Pro, dan beberapa hari terakhir belum ada catatan makan. Saya ingin tahu apa yang menghambat, supaya bisa saya perbaiki.
+
+Balas email ini dengan satu kalimat saja, misalnya "lupa", "angkanya meleset", atau "fitur yang saya butuhkan belum ada".
+
+Kalau mau lanjut, cukup foto makanan berikutnya. Tidak perlu mengejar hari yang terlewat.
+
+[Lanjut catat](${APP_URL})
+
+Salam,
+Dzulfikar, JoyoRogo`,
+    },
+    en: {
+      id: "lifecycle-paid-2",
+      subject: "Can I help with anything?",
+      body: `Hi {nama},
+
+It has been a week since you subscribed to Pro, and no meals have been logged for the last few days. I would like to know what is getting in the way, so I can fix it.
+
+Just reply with one sentence, like "I forget", "the numbers are off" or "a feature I need is missing".
+
+If you want to carry on, just snap your next meal. No need to catch up on the days you missed.
+
+[Pick up where you left off](${APP_URL})
+
+Best,
+Dzulfikar, JoyoRogo`,
+    },
+    ms: {
+      id: "lifecycle-paid-2",
+      subject: "Ada apa-apa yang boleh saya bantu?",
+      body: `Hai {nama},
+
+Sudah seminggu sejak anda melanggan Pro, dan beberapa hari kebelakangan ini tiada catatan makanan. Saya ingin tahu apa yang menghalang, supaya boleh saya perbaiki.
+
+Balas sahaja dengan satu ayat, contohnya "terlupa", "angkanya tersasar" atau "ciri yang saya perlukan belum ada".
+
+Kalau mahu teruskan, ambil sahaja gambar makanan seterusnya. Tidak perlu mengejar hari yang tertinggal.
+
+[Teruskan mencatat](${APP_URL})
+
+Salam,
+Dzulfikar, JoyoRogo`,
+    },
+  },
 };
 
 export type LifecycleConfig = {
@@ -218,27 +343,58 @@ export function lifecycleSendHour(now: number): boolean {
   return hour >= SEND_FROM_HOUR_WIB && hour < SEND_UNTIL_HOUR_WIB;
 }
 
-export type LifecycleMail = { kind: LifecycleKind; ref: string; id: string; name: string; email: string };
+export type LifecycleMail = {
+  kind: LifecycleKind;
+  ref: string;
+  id: string;
+  name: string;
+  email: string;
+};
 
 /**
  * Who is due which mail right now, oldest due first. Pure reads; the sweep claims
  * each in email_log before sending. Skip list applied here (env-sized, D1 binds 100).
  */
-export async function lifecycleDue(db: Database, config: LifecycleConfig, now: number): Promise<LifecycleMail[]> {
+export async function lifecycleDue(
+  db: Database,
+  config: LifecycleConfig,
+  now: number,
+): Promise<LifecycleMail[]> {
   // Spelled out: drizzle renders ${user.id} unqualified in a one-table select, which the subqueries would read as their own id.
   const lastActive = sql<number>`max(
     coalesce((select max(a.created_at) from ai_usage a where a.user_id = "user"."id" and a.scan_type = 'user'), 0),
     coalesce((select max(f.created_at) from food_log f where f.user_id = "user"."id" and f.source <> 'huawei'), 0)
   )`;
+  // First real payment: not a test purchase, not a Rp0 trial, not a proration charge that grants no time.
+  const firstPaid = sql<
+    number | null
+  >`(select min(p.paid_at) from payment p where p.user_id = "user"."id"
+    and p.status = 'paid' and coalesce(p.is_test, 0) = 0 and p.amount_idr > 0 and p.months > 0)`;
   const people = await db
-    .select({ id: user.id, name: user.name, email: user.email, createdAt: user.createdAt, lastActive })
+    .select({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt,
+      founderUntil: user.founderUntil,
+      lastActive,
+      firstPaid,
+    })
     .from(user)
     .where(and(eq(user.emailVerified, true), sql`instr(${user.email}, '@') > 0`))
     .orderBy(user.createdAt);
   const sent = await db
     .select({ userId: emailLog.userId, kind: emailLog.kind, createdAt: emailLog.createdAt })
     .from(emailLog)
-    .where(inArray(emailLog.kind, [ACTIVATE_1_KIND, ACTIVATE_2_KIND, WINBACK_KIND]));
+    .where(
+      inArray(emailLog.kind, [
+        ACTIVATE_1_KIND,
+        ACTIVATE_2_KIND,
+        WINBACK_KIND,
+        PAID_1_KIND,
+        PAID_2_KIND,
+      ]),
+    );
   const lastSent = new Map<string, number>();
   for (const row of sent) {
     const key = `${row.kind}:${row.userId}`;
@@ -251,6 +407,26 @@ export async function lifecycleDue(db: Database, config: LifecycleConfig, now: n
     const who = { id: person.id, name: person.name, email: person.email };
     const ageDays = (now - person.createdAt.getTime()) / DAY;
     const active = Number(person.lastActive) || 0;
+    const paidAt = Number(person.firstPaid) || 0;
+    const paidDays = (now - paidAt) / DAY;
+    const stillPro = (person.founderUntil?.getTime() ?? 0) > now;
+    if (paidAt > 0 && stillPro && paidDays < PAID_WINDOW_DAYS) {
+      // Paying and in the first two weeks: the paid check-in replaces the activation drip.
+      const idleDays = (now - Math.max(active, paidAt)) / DAY;
+      if (paidDays < PAID_1_MIN_DAYS || idleDays < PAID_IDLE_DAYS) continue;
+      const first = lastSent.get(`${PAID_1_KIND}:${person.id}`);
+      if (first === undefined) {
+        due.push({ ...who, kind: PAID_1_KIND, ref: person.id });
+      } else if (
+        paidDays >= PAID_2_MIN_DAYS &&
+        active < first &&
+        now - first >= PAID_2_GAP_DAYS * DAY &&
+        !lastSent.has(`${PAID_2_KIND}:${person.id}`)
+      ) {
+        due.push({ ...who, kind: PAID_2_KIND, ref: person.id });
+      }
+      continue;
+    }
     if (active === 0) {
       if (ageDays < 1 || ageDays >= ACTIVATE_MAX_AGE_DAYS) continue;
       const first = lastSent.get(`${ACTIVATE_1_KIND}:${person.id}`);
@@ -269,7 +445,11 @@ export async function lifecycleDue(db: Database, config: LifecycleConfig, now: n
     if (idleDays < WINBACK_MIN_IDLE_DAYS || idleDays >= WINBACK_MAX_IDLE_DAYS) continue;
     const previous = lastSent.get(`${WINBACK_KIND}:${person.id}`);
     // A win-back sent after the last activity already covers this lapse; the cooldown spaces out repeat lapses.
-    if (previous !== undefined && (previous > active || now - previous < WINBACK_COOLDOWN_DAYS * DAY)) continue;
+    if (
+      previous !== undefined &&
+      (previous > active || now - previous < WINBACK_COOLDOWN_DAYS * DAY)
+    )
+      continue;
     due.push({ ...who, kind: WINBACK_KIND, ref: `${person.id}:${active}` });
   }
   return due;
@@ -303,13 +483,20 @@ export async function runLifecycleEmails(
     if (!(await claimEmail(deps.db, mail.id, mail.kind, mail.ref, new Date(now)))) continue;
     attempted++;
     const locale = await userLocale(deps.db, mail.id);
-    const { mail: rendered, unsubscribeUrl } = await renderFor(deps, COPY[mail.kind][locale], mail, locale);
+    const { mail: rendered, unsubscribeUrl } = await renderFor(
+      deps,
+      COPY[mail.kind][locale],
+      mail,
+      locale,
+    );
     const sent = await deliver(deps, rendered, mail.email, unsubscribeUrl);
     if (sent.ok) {
       result.sent++;
       continue;
     }
-    await deps.db.delete(emailLog).where(and(eq(emailLog.kind, mail.kind), eq(emailLog.ref, mail.ref)));
+    await deps.db
+      .delete(emailLog)
+      .where(and(eq(emailLog.kind, mail.kind), eq(emailLog.ref, mail.ref)));
     result.failed++;
     break;
   }
