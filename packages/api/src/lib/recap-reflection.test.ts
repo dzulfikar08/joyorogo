@@ -425,3 +425,32 @@ describe("the sleep pattern of the previous week", () => {
     expect(await readPreviousSleepFactor(db, "noprof", shiftDate(week, 7))).toBeNull();
   });
 });
+
+describe("a week logged on some days only (JRG-500)", () => {
+  test("leads with what there is, never nags about the other days, and the model gets the sparse rule", async () => {
+    await client.executeMultiple(`
+      INSERT INTO "user" (id, name, email, tier, created_at) VALUES ('grad', 'grad', 'grad@test.id', 'founder', ${old});
+      INSERT INTO profile (user_id, birth_year, gender, height_cm, start_weight_kg, target_weight_kg, target_date, activity_level) VALUES
+        ('grad', 1988, 'male', 175, 107.7, 90, '2031-01-01', 'light');
+      INSERT INTO food_log (id, user_id, date, meal, name, kcal, protein, source) VALUES
+        ('grad-f1', 'grad', '${day(1)}', 'makan_siang', 'Nasi ayam', 1800, 60, 'manual'),
+        ('grad-f2', 'grad', '${day(4)}', 'makan_siang', 'Gado-gado', 1700, 50, 'manual');
+      INSERT INTO weight_log (id, user_id, date, weight_kg) VALUES
+        ('grad-w1', 'grad', '${day(0)}', 108.4), ('grad-w2', 'grad', '${day(2)}', 108.1),
+        ('grad-w3', 'grad', '${day(4)}', 107.9), ('grad-w4', 'grad', '${day(6)}', 107.7);
+    `);
+    const model = faithfulModel();
+    const { deps, settle } = depsFor(model);
+    const view = (await getWeekReflection(deps, "grad", week, "id", "Asia/Jakarta"))!;
+    expect(view.source).toBe("template");
+    expect(view.text).toStartWith("Yang terlihat minggu ini:");
+    expect(view.text).not.toMatch(/bolong|Catat sekali saja per hari/);
+    expect(view.wins.map((w) => w.code)).toContain("WEIGH_INS");
+    expect(view.focus.map((f) => f.code)).not.toContain("LOG_STREAK");
+
+    await generateWeekReflection(deps, "grad", week, "id", "Asia/Jakarta");
+    await settle();
+    expect(model.calls.length).toBeGreaterThan(0);
+    expect(model.calls[0]!.system).toContain("logs food on some days only, on purpose");
+  });
+});

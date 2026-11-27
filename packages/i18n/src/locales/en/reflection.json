@@ -17,9 +17,11 @@
   },
   "text": {
     "winsIntro": "The good news:",
+    "sparseIntro": "What this week shows:",
     "focusIntro": "Worth your attention:",
     "closing": "Focus for next week:",
     "keepGoing": "Keep this rhythm going next week.",
+    "keepGoingSparse": "See you in next week's recap.",
     "maternalNote": "These numbers are only a picture of the week, not targets you have to chase."
   },
   "facts": {
@@ -39,13 +41,11 @@
       "some": {
         "title": "Logging has started",
         "text": "You logged your food on {{loggedDays}} days this week. A good start."
-      }
-    },
-    "LOG_GAPS": {
-      "gaps": {
-        "title": "Logs have gaps",
-        "text": "You logged your food on only {{loggedDays}} of {{judgedDays}} days, so this week's numbers may not show what you really ate.",
-        "advice": "Log once a day, even if it is just one meal. Rough but regular beats detailed but rare."
+      },
+      "spot": {
+        "title": "Spot-checking meals",
+        "text_one": "You logged food on {{loggedDays}} day this week. This week's food numbers come only from that day; days without a log are left out.",
+        "text_other": "You logged food on {{loggedDays}} days this week. This week's food numbers come only from the days you logged; days without a log are left out."
       }
     },
     "WEIGHT_PACE": {
@@ -71,7 +71,8 @@
       "flat": {
         "title": "Weight has not moved",
         "text": "Your weight trend is nearly flat, about {{kgPerWeek}} kg per week.",
-        "advice": "First check that your food log is complete, snacks and drinks included. If it is, trim your portions a little or walk more."
+        "advice": "First check that your food log is complete, snacks and drinks included. If it is, trim your portions a little or walk more.",
+        "advice_partial": "Trim your portions a little or walk more, then look at the trend again next week."
       },
       "too_fast": {
         "title": "Dropping too fast",
@@ -129,6 +130,8 @@
       }
     },
     "INTAKE_AVG_VS_TARGET": {
+      "partial_one": "This average covers only the {{loggedDays}} day you logged.",
+      "partial_other": "This average covers only the {{loggedDays}} days you logged.",
       "on_target": {
         "title": "Eating on target",
         "text": "You averaged {{avgKcal}} kcal a day, close to your {{targetKcal}} kcal target."
@@ -141,7 +144,8 @@
       "under": {
         "title": "Eating far below target",
         "text": "You averaged {{avgKcal}} kcal a day, far below your {{targetKcal}} kcal target. Some food may not be logged, or you may really be eating too little.",
-        "advice": "Log every meal and drink, snacks included. If you really eat little, do not push below your target, your body needs fuel to move and recover."
+        "advice": "Log every meal and drink, snacks included. If you really are eating that little, do not push below your target: your body needs fuel to move and recover.",
+        "advice_partial": "On the days you log, include snacks and drinks too. If you really eat little, do not push below your target, your body needs fuel to move and recover."
       },
       "under_gain": {
         "title": "Not eating enough to gain",

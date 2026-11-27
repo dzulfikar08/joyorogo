@@ -195,3 +195,56 @@ describe("SLEEP_FACTOR wording", () => {
     expect(body.templateText).toContain("34 menit");
   });
 });
+
+describe("a week logged on some days only (JRG-500)", () => {
+  const ALL: Locale[] = ["id", "en", "ms"];
+  const sparseWeek = quietWeek({ trend: { weeklyRateKg: 0, projectedDate: null } }, { eaten: [1600, 0, 0, 1700, 0, 1800, 0], streakDays: 0 });
+  const facts = buildFacts(sparseWeek);
+  const intake = facts.find((f) => f.code === "INTAKE_AVG_VS_TARGET")!;
+  const flat = facts.find((f) => f.code === "WEIGHT_PACE")!;
+
+  test("the average says it is of the logged days only, in every language", () => {
+    expect(renderFact(intake, "id").text).toContain("hanya dari 3 hari yang kamu catat");
+    expect(renderFact(intake, "en").text).toContain("covers only the 3 days you logged");
+    expect(renderFact(intake, "ms").text).toContain("hanya daripada 3 hari yang anda catat");
+    const full = buildFacts(quietWeek({}, { eaten: Array(7).fill(1700) })).find((f) => f.code === "INTAKE_AVG_VS_TARGET")!;
+    expect(renderFact(full, "id").text).not.toContain("hanya dari");
+  });
+
+  test("a flat trend is not told to check its food log; a full week still is", () => {
+    for (const locale of ALL) {
+      const advice = renderFact(flat, locale).advice!;
+      expect(advice, locale).not.toMatch(/lengkap|complete/);
+      expect(advice, locale).not.toContain("{{");
+    }
+    const fullFlat = buildFacts(quietWeek({ trend: { weeklyRateKg: 0, projectedDate: null } })).find((f) => f.code === "WEIGHT_PACE")!;
+    expect(renderFact(fullFlat, "id").advice).toContain("lengkap");
+  });
+
+  test("an under average in a sparse week asks for snacks and drinks on the days that are logged", () => {
+    const under = buildFacts(quietWeek({}, { eaten: [800, 0, 0, 900, 0, 850, 0], streakDays: 0 })).find((f) => f.code === "INTAKE_AVG_VS_TARGET")!;
+    expect(under.variant).toBe("under");
+    expect(renderFact(under, "id").advice).toStartWith("Di hari yang kamu catat");
+    expect(renderFact(under, "en").advice).toStartWith("On the days you log");
+  });
+
+  test("the spot line counts the days, with English plurals, and never says missed", () => {
+    const spot = (eaten: number[]) => buildFacts(quietWeek({}, { eaten, streakDays: 0 })).find((f) => f.code === "LOG_STREAK")!;
+    expect(renderFact(spot([1500, 0, 0, 0, 0, 0, 0]), "en").text).toContain("on 1 day this week");
+    expect(renderFact(spot([1500, 0, 1500, 0, 0, 0, 0]), "en").text).toContain("on 2 days this week");
+    for (const locale of ALL) {
+      const view = renderFact(spot([1500, 0, 1500, 0, 0, 0, 0]), locale);
+      expect(view.text, locale).toContain("2");
+      expect(view.text, locale).not.toMatch(/bolong|berlubang|missed|gaps?\b/i);
+    }
+  });
+
+  test("the template opens with what the week shows and closes without 'keep this rhythm'", () => {
+    const sel = reflectionFacts(quietWeek({}, { eaten: [1500, 0, 0, 0, 0, 0, 0], streakDays: 0 }));
+    const sparseText = renderSelection({ wins: sel.wins, focus: [] }, "id", "lose", true).templateText;
+    expect(sparseText).toStartWith("Yang terlihat minggu ini:");
+    expect(sparseText).toEndWith("Sampai ketemu di rekap minggu depan.");
+    expect(renderSelection({ wins: sel.wins, focus: [] }, "en", "lose", true).templateText).toStartWith("What this week shows:");
+    expect(renderSelection({ wins: sel.wins, focus: [] }, "id", "lose").templateText).toStartWith("Kabar baiknya:");
+  });
+});

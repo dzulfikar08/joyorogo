@@ -120,7 +120,9 @@
       "label": "Daily average",
       "aria": "Average {{avg}} of a {{target}} kcal target",
       "note_one": "Your eat target is {{target}} kcal. Based on {{count}} day you logged.",
-      "note_other": "Your eat target is {{target}} kcal. Based on {{count}} days you logged."
+      "note_other": "Your eat target is {{target}} kcal. Based on {{count}} days you logged.",
+      "noteSparse_one": "Your eat target is {{target}} kcal. This average covers only the {{count}} day you logged; days without a log are left out.",
+      "noteSparse_other": "Your eat target is {{target}} kcal. This average covers only the {{count}} days you logged; days without a log are left out."
     },
     "daily": "Daily",
     "unit": {

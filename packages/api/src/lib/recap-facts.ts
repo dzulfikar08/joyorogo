@@ -11,6 +11,7 @@
 import { daysBetween } from "./engine";
 import { detectFoodPatterns } from "./food-patterns";
 import type { FoodItemInput, FoodPatternKind } from "./food-patterns";
+import { isSparseWeek } from "./recap";
 import type { WeekRecap } from "./recap";
 import type { SleepFinding } from "./sleep-insights-types";
 
@@ -18,7 +19,6 @@ export type ReflectionMode = "lose" | "maintain" | "gain" | "maternal";
 
 export const FACT_CODES = [
   "LOG_STREAK",
-  "LOG_GAPS",
   "WEIGHT_PACE",
   "WEIGH_INS",
   "MEASURE_ANOMALY",
@@ -41,8 +41,7 @@ export type FactCode = (typeof FACT_CODES)[number];
 
 /** Every variant a code can come out with; the template keys (packages/i18n reflection.json) follow this table. */
 export const FACT_VARIANTS: Record<FactCode, readonly string[]> = {
-  LOG_STREAK: ["streak", "streak_gain", "logged", "some"],
-  LOG_GAPS: ["gaps"],
+  LOG_STREAK: ["streak", "streak_gain", "logged", "some", "spot"],
   WEIGHT_PACE: ["on_pace", "week_down", "behind", "gaining", "flat", "too_fast", "steady", "drifting", "gain_on_pace", "gain_stalled"],
   WEIGH_INS: ["regular", "few", "none"],
   MEASURE_ANOMALY: ["waist", "weight"],
@@ -85,9 +84,6 @@ export const T = {
   /** Logged days (of at least `loggedWinOutOf` judged) for the "logged most days" win. */
   loggedWin: 5,
   loggedWinOutOf: 5,
-  /** Judged days before a half-logged week is called out, and the logged share at or below which it is. */
-  gapsMinJudged: 4,
-  gapsShare: 0.5,
   /** Logged days needed before any intake or protein number is judged. */
   minLoggedForIntake: 3,
   /** avg / target between these is on target (lose, maintain). */
@@ -259,22 +255,24 @@ function fact(
 
 // ---- logging ----
 
+/**
+ * A week logged on some days only (`isSparseWeek`) is a way of using the app, not a gap: it gets the "spot" line, which
+ * says the food numbers are of the logged days only, and never a nudge to log more. It ranks last among the wins, so
+ * weight, movement and sleep lead when the week has them.
+ */
 function logFacts(input: ReflectionInput): Fact[] {
   const { recap } = input;
-  const out: Fact[] = [];
   const base = { streakDays: recap.streakDays, loggedDays: recap.loggedDays, judgedDays: recap.evaluatedDays };
   if (input.mode !== "maternal" && recap.streakDays >= T.streakMin) {
     const gain = input.mode === "gain";
-    out.push(fact("LOG_STREAK", gain ? "streak_gain" : "streak", "win", "good", 78 + Math.min(recap.streakDays, 14), "data", base));
-  } else if (recap.loggedDays >= T.loggedWin && recap.evaluatedDays >= T.loggedWinOutOf) {
-    out.push(fact("LOG_STREAK", "logged", "win", "good", 70, "data", base));
-  } else if (recap.loggedDays >= 2) {
-    out.push(fact("LOG_STREAK", "some", "win", "good", 20, "data", base));
+    return [fact("LOG_STREAK", gain ? "streak_gain" : "streak", "win", "good", 78 + Math.min(recap.streakDays, 14), "data", base)];
   }
-  if (recap.evaluatedDays >= T.gapsMinJudged && recap.loggedDays / recap.evaluatedDays <= T.gapsShare) {
-    out.push(fact("LOG_GAPS", "gaps", "focus", "info", 42, "data", base));
+  if (recap.loggedDays >= T.loggedWin && recap.evaluatedDays >= T.loggedWinOutOf) {
+    return [fact("LOG_STREAK", "logged", "win", "good", 70, "data", base)];
   }
-  return out;
+  if (isSparseWeek(recap)) return [fact("LOG_STREAK", "spot", "win", "info", 20, "data", base)];
+  if (recap.loggedDays >= 2) return [fact("LOG_STREAK", "some", "win", "good", 20, "data", base)];
+  return [];
 }
 
 // ---- weight ----
@@ -302,7 +300,8 @@ function weightFacts(input: ReflectionInput): Fact[] {
       } else if (rate > T.paceLoseFlat) {
         out.push(fact("WEIGHT_PACE", "gaining", "focus", "info", 70, "weight", params));
       } else if (rate >= -T.paceLoseFlat) {
-        out.push(fact("WEIGHT_PACE", "flat", "focus", "info", 68, "weight", params));
+        // Its usual advice starts with "check your food log is complete": not for a week logged on purpose on some days.
+        out.push(fact("WEIGHT_PACE", "flat", "focus", "info", 68, "weight", isSparseWeek(recap) ? { ...params, partial: true } : params));
       } else if (needed !== null && -rate < needed * T.paceBehindShare) {
         out.push(fact("WEIGHT_PACE", "behind", "focus", "info", 70, "weight", params));
       } else {
@@ -395,6 +394,8 @@ function intakeFacts(input: ReflectionInput): Fact[] {
     diffPct: Math.abs(Math.round((ratio - 1) * 100)),
     loggedDays: recap.loggedDays,
     daysOnTarget: recap.daysOnTarget,
+    // Logged on some days only: the text says the average is of those days, and "under" does not ask to log everything.
+    ...(isSparseWeek(recap) ? { partial: true } : {}),
   };
   if (mode === "gain") {
     if (ratio >= T.gainOnTargetLow && ratio <= T.gainOnTargetHigh) out.push(fact("INTAKE_AVG_VS_TARGET", "on_target", "win", "good", 85, "food", params));

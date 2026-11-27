@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import type { Locale } from "@joyorogo/i18n";
 
 import {
+  FORBIDDEN_SPARSE,
   RECAP_ATTEMPTS,
   RECAP_WORDS,
   allowedValues,
@@ -398,5 +399,51 @@ Focus for next week:
     const facts = promptFacts(sel, "id", "lose");
     const entry = facts.focus.find((f) => f.code === "SLEEP_FACTOR")!;
     expect(entry.numbers).toEqual({ exposed: "6", other: "9", minutes: "34", confidence: "leaning" });
+  });
+});
+
+describe("a week logged on some days only (JRG-500)", () => {
+  const sparse = reflectionFacts(quietWeek({}, { eaten: [1600, 0, 0, 1700, 0, 1800, 0], streakDays: 0 }));
+
+  test("the prompt says the other days are not missed and the food numbers are of the logged days", () => {
+    const opts = { locale: "id" as const, mode: "lose" as const, closingLabel: "x", focusCount: 0 };
+    const system = buildRecapSystemPrompt({ ...opts, sparse: true });
+    expect(system).toContain("logs food on some days only, on purpose");
+    expect(system).toContain("Never call the other days missed");
+    expect(system).toContain("looks ahead to next week");
+    expect(system).not.toContain("keep the rhythm");
+    expect(buildRecapSystemPrompt(opts)).not.toContain("some days only");
+    // Rule numbers stay in sequence with the other optional rules.
+    expect(buildRecapSystemPrompt({ ...opts, mode: "gain", sleepFactor: true, sparse: true })).toMatch(/\n8\. The person's goal[^\n]*\n9\. The fact with code SLEEP_FACTOR[^\n]*\n10\. The person logs food/);
+  });
+
+  test("the validator refuses 'missed' and 'bolong' for a sparse week only", () => {
+    const base = { ...contextFor("id"), sparse: true };
+    expect(validateRecapText(GOOD_ID.replace("fondasi", "fondasi walau catatanmu bolong"), base)).toMatchObject({ ok: false, reason: "forbidden" });
+    expect(validateRecapText(GOOD_ID.replace("fondasi", "fondasi walau catatanmu bolong"), contextFor("id")).ok).toBe(true);
+    expect(validateRecapText(GOOD_EN.replace("solid base", "solid base despite the days you missed"), { ...contextFor("en"), sparse: true })).toMatchObject({ ok: false, reason: "forbidden" });
+    expect(validateRecapText(GOOD_ID, base).ok).toBe(true);
+  });
+
+  test("the fixed wording of a sparse week never trips its own check", () => {
+    for (const locale of ["id", "en", "ms"] as const) {
+      const strings = promptStrings(promptFacts({ wins: sparse.all.filter((f) => f.role === "win"), focus: sparse.all.filter((f) => f.role === "focus") }, locale, "lose"));
+      for (const text of strings) expect(FORBIDDEN_SPARSE.exec(text), `${locale}: ${text}`).toBeNull();
+      const body = renderSelection(sparse, locale, "lose", true);
+      expect(FORBIDDEN_SPARSE.exec(body.templateText), locale).toBeNull();
+    }
+  });
+
+  test("generateRecapText passes the sparse rule to the model", async () => {
+    const body = renderSelection(sparse, "id", "lose", true);
+    let system = "";
+    const ai = {
+      run: async (_model: string, input: { messages: Array<{ role: string; content: string }> }) => {
+        system = input.messages.find((m) => m.role === "system")?.content ?? "";
+        return { response: "" };
+      },
+    };
+    await generateRecapText(ai as never, { model: "m", locale: "id", mode: "lose", selection: sparse, body, sparse: true });
+    expect(system).toContain("some days only");
   });
 });

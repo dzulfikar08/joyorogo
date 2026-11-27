@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { jakartaToday, shiftDate } from "@joyorogo/api/lib/engine";
 import {
   defaultRecapWeek,
+  isSparseWeek,
   lastFullMonth,
   recapShare,
   recapText,
@@ -79,6 +80,9 @@ function RekapPage() {
   const text = recapText(recap, shareUrl("/", "recap"));
   const monthText = monthQuery.data ? recapText(monthQuery.data, shareUrl("/", "recap")) : null;
   const change = recap.weight?.changeKg ?? null;
+  // Food logged on some days only: the reflection (weight, movement, sleep) comes right after the average, the average
+  // says which days it is of, and the logging streak is left out.
+  const sparse = isSparseWeek(recap);
 
   return (
     <Page className="max-w-xl lg:max-w-3xl">
@@ -142,9 +146,14 @@ function RekapPage() {
               ariaLabel={t("recap.avg.aria", { avg: fmtInt(recap.avgKcal), target: fmtInt(recap.targetKcal) })}
             />
             <p className="mt-2 text-sm text-muted-foreground tabular-nums">
-              {t("recap.avg.note", { count: recap.loggedDays, target: fmtInt(recap.targetKcal) })}
+              {t(sparse ? "recap.avg.noteSparse" : "recap.avg.note", {
+                count: recap.loggedDays,
+                target: fmtInt(recap.targetKcal),
+              })}
             </p>
           </Card>
+
+          {sparse ? <RecapReflection weekStart={recap.weekStart} /> : null}
 
           <Card>
             <SectionTitle className="mb-4 px-0">{t("recap.daily")}</SectionTitle>
@@ -174,14 +183,16 @@ function RekapPage() {
                   : t("recap.stat.protein.none")
               }
             />
-            <StatTile
-              metric="bakar"
-              icon={<Flame className="size-[1.125rem]" aria-hidden />}
-              label={t("recap.stat.streak.label")}
-              value={recap.streakDays}
-              unit={t("recap.unit.day", { count: recap.streakDays })}
-              sub={recap.gain ? t("gain:today.streakRule") : t("recap.stat.streak.sub")}
-            />
+            {sparse ? null : (
+              <StatTile
+                metric="bakar"
+                icon={<Flame className="size-[1.125rem]" aria-hidden />}
+                label={t("recap.stat.streak.label")}
+                value={recap.streakDays}
+                unit={t("recap.unit.day", { count: recap.streakDays })}
+                sub={recap.gain ? t("gain:today.streakRule") : t("recap.stat.streak.sub")}
+              />
+            )}
             <StatTile
               metric="bakar"
               icon={<Dumbbell className="size-[1.125rem]" aria-hidden />}
@@ -225,7 +236,7 @@ function RekapPage() {
             />
           </div>
 
-          <RecapReflection weekStart={recap.weekStart} />
+          {sparse ? null : <RecapReflection weekStart={recap.weekStart} />}
 
           {share ? (
             <ShareStoryButton

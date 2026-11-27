@@ -25,10 +25,14 @@ const translator = (locale: Locale): Translate => getT(locale, "reflection") as 
 
 /** The param i18next counts plural forms by, for the texts that say "1 day" / "3 days". */
 const PLURAL_PARAM: Partial<Record<FactCode, string>> = {
+  LOG_STREAK: "loggedDays",
   WEIGH_INS: "count",
   MEASURE_ANOMALY: "days",
   ACTIVE_WEEK: "activeDays",
 };
+
+/** Focus points whose advice has a version for a week logged on some days only (`partial` param): no "log everything". */
+const PARTIAL_ADVICE: ReadonlySet<string> = new Set(["WEIGHT_PACE/flat", "INTAKE_AVG_VS_TARGET/under"]);
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -66,7 +70,11 @@ export function renderFact(fact: Fact, locale: Locale): FactView {
     text += ` ${t("facts.RUN_INTENSITY.hr", options)}`;
   }
   if (fact.code === "RUN_INTENSITY" && fact.params.loadRatio != null) text += ` ${t("facts.RUN_INTENSITY.load", options)}`;
-  let advice = fact.role === "focus" ? t(`${base}.advice`, options) : null;
+  const partial = fact.params.partial === true;
+  // The average of a week logged on some days says plainly which days it is of.
+  if (fact.code === "INTAKE_AVG_VS_TARGET" && partial) text += ` ${t("facts.INTAKE_AVG_VS_TARGET.partial", { ...options, count: Number(fact.params.loggedDays) })}`;
+  const adviceKey = partial && PARTIAL_ADVICE.has(`${fact.code}/${fact.variant}`) ? `${base}.advice_partial` : `${base}.advice`;
+  let advice = fact.role === "focus" ? t(adviceKey, options) : null;
   if (advice !== null && fact.code === "RUN_INTENSITY" && fact.params.loadRatio != null) advice += ` ${t("facts.RUN_INTENSITY.loadAdvice", options)}`;
   return { code: fact.code, variant: fact.variant, title: t(`${base}.title`), text, advice };
 }
@@ -80,20 +88,23 @@ export interface ReflectionBody {
   templateText: string;
 }
 
-/** Renders the selection and the template text around it. */
-export function renderSelection(selection: FactSelection, locale: Locale, mode: ReflectionMode): ReflectionBody {
+/**
+ * Renders the selection and the template text around it. A week logged on some days only (`sparse`, lib/recap
+ * `isSparseWeek`) opens with "what this week shows" instead of "the good news" and closes without "keep this rhythm".
+ */
+export function renderSelection(selection: FactSelection, locale: Locale, mode: ReflectionMode, sparse = false): ReflectionBody {
   const t = translator(locale);
   const wins = selection.wins.map((fact) => renderFact(fact, locale));
   const focus = selection.focus.map((fact) => renderFact(fact, locale));
   const closingLabel = t("text.closing");
 
   const paragraphs: string[] = [];
-  if (wins.length > 0) paragraphs.push(`${t("text.winsIntro")} ${wins.map((v) => v.text).join(" ")}`);
+  if (wins.length > 0) paragraphs.push(`${t(sparse ? "text.sparseIntro" : "text.winsIntro")} ${wins.map((v) => v.text).join(" ")}`);
   if (focus.length > 0) {
     paragraphs.push(`${t("text.focusIntro")} ${focus.map((v) => v.text).join(" ")}`);
     paragraphs.push([closingLabel, ...focus.map((v, i) => `${i + 1}. ${v.advice}`)].join("\n"));
   } else {
-    paragraphs.push(t("text.keepGoing"));
+    paragraphs.push(t(sparse ? "text.keepGoingSparse" : "text.keepGoing"));
   }
   if (mode === "maternal") paragraphs.push(t("text.maternalNote"));
   return { wins, focus, closingLabel, templateText: paragraphs.join("\n\n") };

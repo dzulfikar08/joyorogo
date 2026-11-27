@@ -17,9 +17,11 @@
   },
   "text": {
     "winsIntro": "Berita baiknya:",
+    "sparseIntro": "Yang kelihatan minggu ini:",
     "focusIntro": "Yang perlu diberi perhatian:",
     "closing": "Fokus minggu depan:",
     "keepGoing": "Kekalkan rentak ini minggu depan.",
+    "keepGoingSparse": "Jumpa lagi dalam rumusan minggu depan.",
     "maternalNote": "Angka-angka ini hanya gambaran, bukan sasaran yang perlu dikejar."
   },
   "facts": {
@@ -39,13 +41,10 @@
       "some": {
         "title": "Sudah mula mencatat",
         "text": "Anda mencatat makanan {{loggedDays}} hari minggu ini. Permulaan yang baik."
-      }
-    },
-    "LOG_GAPS": {
-      "gaps": {
-        "title": "Catatan masih berlubang",
-        "text": "Anda baru mencatat makanan {{loggedDays}} daripada {{judgedDays}} hari, jadi angka minggu ini belum tentu menggambarkan pemakanan anda yang sebenar.",
-        "advice": "Catat sekali sahaja sehari, walaupun hanya satu kali makan. Lebih baik kasar tetapi konsisten daripada terperinci tetapi jarang."
+      },
+      "spot": {
+        "title": "Catatan makan sekali-sekala",
+        "text_other": "Anda mencatat makanan pada {{loggedDays}} hari minggu ini. Angka pemakanannya hanya dikira daripada hari yang anda catat; hari tanpa catatan tidak diambil kira."
       }
     },
     "WEIGHT_PACE": {
@@ -71,7 +70,8 @@
       "flat": {
         "title": "Berat belum bergerak",
         "text": "Trend berat badan anda hampir mendatar, kira-kira {{kgPerWeek}} kg seminggu.",
-        "advice": "Semak dahulu sama ada catatan makanan anda sudah lengkap, termasuk snek dan minuman. Jika sudah, kurangkan sedikit hidangan atau tambah berjalan kaki."
+        "advice": "Semak dahulu sama ada catatan makanan anda sudah lengkap, termasuk snek dan minuman. Jika sudah, kurangkan sedikit hidangan atau tambah berjalan kaki.",
+        "advice_partial": "Kurangkan sedikit saiz hidangan atau lebihkan berjalan kaki, kemudian lihat semula arah trendnya minggu depan."
       },
       "too_fast": {
         "title": "Penurunan terlalu cepat",
@@ -126,6 +126,7 @@
       }
     },
     "INTAKE_AVG_VS_TARGET": {
+      "partial_other": "Purata ini hanya daripada {{loggedDays}} hari yang anda catat.",
       "on_target": {
         "title": "Makan mengikut sasaran",
         "text": "Purata pemakanan anda {{avgKcal}} kcal sehari, hampir dengan sasaran {{targetKcal}} kcal."
@@ -138,7 +139,8 @@
       "under": {
         "title": "Makan jauh di bawah sasaran",
         "text": "Purata pemakanan anda {{avgKcal}} kcal sehari, jauh di bawah sasaran {{targetKcal}} kcal. Mungkin ada makanan yang belum dicatat, atau anda memang makan terlalu sedikit.",
-        "advice": "Catat semua makanan dan minuman, termasuk snek. Jika memang makan sedikit, jangan dipaksa lebih rendah daripada sasaran, badan perlukan tenaga untuk bergerak dan pulih."
+        "advice": "Catat semua makanan dan minuman, termasuk snek. Jika memang makan sedikit, jangan dipaksa lebih rendah daripada sasaran, badan perlukan tenaga untuk bergerak dan pulih.",
+        "advice_partial": "Pada hari yang anda catat, masukkan juga snek dan minuman. Jika memang makan sedikit, jangan dipaksa lebih rendah daripada sasaran, badan perlukan tenaga untuk bergerak dan pulih."
       },
       "under_gain": {
         "title": "Makan belum cukup untuk menaikkan berat",

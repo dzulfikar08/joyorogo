@@ -119,7 +119,8 @@
     "avg": {
       "label": "Rata-rata per hari",
       "aria": "Rata-rata {{avg}} dari target {{target}} kkal",
-      "note_other": "Target makanmu {{target}} kkal. Dihitung dari {{count}} hari yang kamu catat."
+      "note_other": "Target makanmu {{target}} kkal. Dihitung dari {{count}} hari yang kamu catat.",
+      "noteSparse_other": "Target makanmu {{target}} kkal. Rata-rata ini hanya dari {{count}} hari yang kamu catat; hari tanpa catatan tidak ikut dihitung."
     },
     "daily": "Harian",
     "unit": {

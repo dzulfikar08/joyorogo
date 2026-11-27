@@ -27,6 +27,23 @@ export function defaultRecapWeek(today: string): string {
   return thisWeek === today ? shiftDate(thisWeek, -7) : thisWeek;
 }
 
+/** Judged days before a week can count as logged on only some days, and the logged share at or below which it does. */
+export const SPARSE_MIN_JUDGED = 4;
+export const SPARSE_SHARE = 0.5;
+
+/**
+ * A week where food was logged on some days only (1 to 3 of 7): people who know their usual meals and log new or
+ * unusual food. The recap and the reflection lead with what there is and never call the other days missed; every food
+ * average is of the logged days only. Weeks with no food at all are not sparse (the screens show their empty state).
+ */
+export function isSparseWeek(recap: Pick<WeekRecap, "loggedDays" | "evaluatedDays">): boolean {
+  return (
+    recap.loggedDays >= 1 &&
+    recap.evaluatedDays >= SPARSE_MIN_JUDGED &&
+    recap.loggedDays / recap.evaluatedDays <= SPARSE_SHARE
+  );
+}
+
 export type DayStatus = "on_target" | "over" | "under" | "empty" | "pending";
 
 export type RecapDay = {

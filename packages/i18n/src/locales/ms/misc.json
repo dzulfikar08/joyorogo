@@ -119,7 +119,8 @@
     "avg": {
       "label": "Purata sehari",
       "aria": "Purata {{avg}} daripada sasaran {{target}} kcal",
-      "note_other": "Sasaran makan anda {{target}} kcal. Dikira daripada {{count}} hari yang anda catat."
+      "note_other": "Sasaran makan anda {{target}} kcal. Dikira daripada {{count}} hari yang anda catat.",
+      "noteSparse_other": "Sasaran makan anda {{target}} kcal. Purata ini hanya daripada {{count}} hari yang anda catat; hari tanpa catatan tidak diambil kira."
     },
     "daily": "Harian",
     "unit": {
