@@ -150,6 +150,23 @@ describe("lifecycleDue", () => {
     expect(await due()).toEqual(["lifecycle_activate_1:coached", "lifecycle_activate_1:imported"]);
   });
 
+  test("JoyoFit: a watch-only account gets no activation mail; a JoyoFit sync keeps someone out of the win-back", async () => {
+    await addUser("watch", 3);
+    await addUser("both", 100);
+    await meal("both", 20);
+    const fitness = (userId: string, daysAgo: number) =>
+      client.execute({
+        sql: `INSERT INTO fitness_score (id, user_id, date, updated_at) VALUES (?, ?, '2026-10-30', ?)`,
+        args: [crypto.randomUUID(), userId, NOW - daysAgo * DAY],
+      });
+    await fitness("watch", 1);
+    await fitness("both", 2);
+    expect(await due()).toEqual([]);
+    await client.execute(`DELETE FROM fitness_score WHERE user_id = 'both'`);
+    await fitness("both", 16);
+    expect(await due()).toEqual(["lifecycle_winback:both"]);
+  });
+
   test("second nudge only from day 4 and at least 2 days after the first", async () => {
     await addUser("siti", 3);
     const deps = makeDeps();

@@ -371,8 +371,8 @@ export async function lifecycleDue(
     number | null
   >`(select min(p.paid_at) from payment p where p.user_id = "user"."id"
     and p.status = 'paid' and coalesce(p.is_test, 0) = 0 and p.amount_idr > 0 and p.months > 0)`;
-  // JoyoFit use (a daily score synced from the watch). Only the paid check-in reads it: a Pro user who still opens
-  // JoyoFit every day is using what they paid for, even without logging meals.
+  // JoyoFit use (a daily score synced from the watch). A JoyoFit-only account gets no meal drip, someone still syncing
+  // is not lapsed, and a Pro user who opens JoyoFit every day is using what they paid for.
   const fitActive = sql<number>`coalesce((select max(s.updated_at) from fitness_score s where s.user_id = "user"."id"), 0)`;
   const people = await db
     .select({
@@ -433,7 +433,10 @@ export async function lifecycleDue(
       }
       continue;
     }
+    // JoyoFit users who never logged food signed up for the watch side: a "snap your meal" drip is not for them.
+    const fit = Number(person.fitActive) || 0;
     if (active === 0) {
+      if (fit > 0) continue;
       if (ageDays < 1 || ageDays >= ACTIVATE_MAX_AGE_DAYS) continue;
       const first = lastSent.get(`${ACTIVATE_1_KIND}:${person.id}`);
       if (first === undefined) {
@@ -447,7 +450,8 @@ export async function lifecycleDue(
       }
       continue;
     }
-    const idleDays = (now - active) / DAY;
+    // Still syncing JoyoFit: not lapsed, even with no meals logged.
+    const idleDays = (now - Math.max(active, fit)) / DAY;
     if (idleDays < WINBACK_MIN_IDLE_DAYS || idleDays >= WINBACK_MAX_IDLE_DAYS) continue;
     const previous = lastSent.get(`${WINBACK_KIND}:${person.id}`);
     // A win-back sent after the last activity already covers this lapse; the cooldown spaces out repeat lapses.

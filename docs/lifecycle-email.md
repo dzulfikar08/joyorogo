@@ -11,6 +11,7 @@ Automatic activation and win-back mail, sent by the server cron (`apps/server/sr
 | Paid check-in 2 ("Ada yang bisa saya bantu?") | `lifecycle_paid_2` | First payment 7–13 days ago, Pro still on, idle 3+ days, nothing logged since check-in 1, sent 3+ days after it | Once per user |
 
 - **Active** means a photo scan (`ai_usage.scan_type = 'user'`) or any `food_log` row except Huawei imports.
+- **JoyoFit** (a `fitness_score` row synced from the watch) also counts as activity for the win-back and the paid check-ins. A JoyoFit user who never logged food gets no activation mail: the drip is about photographing meals, and in November 2026 131 of 433 accounts used only JoyoFit.
 - 14 days matches `ENGAGED_DAYS` in `packages/api/src/lib/reminders.ts`: that is when meal push reminders stop, so the win-back picks up where push leaves off.
 - **Paid check-ins** exist because of the November 2026 renewal check: of 16 web (QRIS / transfer) buyers from October whose month had ended, 14 did not renew, and 12 of those had stopped logging in their first one to two weeks, long before the "Founder ending" reminder. A "real payment" is a paid `payment` row that is not a test purchase, not a Rp0 trial and grants time (`months > 0`). While someone is in the paid window they get no activation mail; after it, the normal win-back applies.
 - Never-active accounts older than 14 days get nothing from this. Reach them with a one-off broadcast from the admin console if wanted.
