@@ -7,15 +7,15 @@ Subject: Boleh tanya sedikit soal JoyoRogo?
 
 Halo Naufal,
 
-Saya Dzulfikar, yang bikin JoyoRogo. Kamu termasuk yang paling lama mencatat makan di JoyoRogo, lebih dari tiga minggu sejak Oktober. Makasih banyak.
+Saya Dzulfikar, yang bikin JoyoRogo. Kamu termasuk yang paling lama catat makanan di JoyoRogo, lebih dari tiga minggu sejak Oktober. Makasih banyak ya.
 
-Saya mau tanya tiga hal. Jawaban singkat pun sudah sangat membantu:
+Kalau sempat, saya mau tanya tiga hal:
 
-1. Setelah beberapa minggu mencatat, apa kamu jadi hafal kira-kira kalori makanan yang biasa kamu makan?
-2. Apa yang bikin kamu berhenti mencatat?
-3. Kalau JoyoRogo nggak perlu dibuka tiap hari, misalnya cukup cek makanan yang baru atau lihat ringkasan mingguan, apa itu masih berguna buatmu?
+1. Setelah tiga minggu mencatat, kamu jadi sudah kebayang kira-kira kalori makanan harianmu, atau masih perlu cek?
+2. Waktu itu berhenti mencatat karena apa?
+3. Kalau JoyoRogo cukup dipakai sesekali, misalnya pas mau cek makanan yang baru kamu makan atau lihat ringkasan mingguan, kira-kira masih kepakai nggak, atau memang sudah nggak butuh?
 
-Balas email ini saja, sesingkat apa pun. Saya baca sendiri.
+Balas email ini saja ya, sesingkat apa pun. Satu-dua kata per poin juga nggak apa-apa. Saya baca sendiri.
 
 Salam,
 Dzulfikar
